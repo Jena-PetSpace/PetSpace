@@ -49,26 +49,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Kakao OAuth 콜백 시 Supabase가 발생시키는 "Code verifier" 에러는 무시
         final errorMessage = error.toString();
         if (errorMessage.contains('Code verifier could not be found')) {
-          // Kakao SDK가 OAuth를 처리 중이므로 이 에러는 무시
           return;
         }
 
-        // 그 외 실제 auth 에러 발생 시 로그아웃 상태로 처리
-        emit(AuthUnauthenticated());
+        // 그 외 실제 auth 에러 발생 시 이벤트로 처리 (emit 직접 호출 금지)
+        add(AuthUserChanged(null));
       },
     );
   }
 
   void _onAuthUserChanged(AuthUserChanged event, Emitter<AuthState> emit) {
     if (event.user != null) {
-      // TODO: SMTP 설정 후 이메일 인증 체크 다시 활성화
-      // 임시: 이메일 인증 체크 스킵 (SendGrid 만료)
-      // if (!event.user!.isEmailConfirmed) {
-      //   emit(AuthEmailVerificationRequired(event.user!));
-      // } else {
-      //   emit(AuthAuthenticated(event.user!));
-      // }
-      emit(AuthAuthenticated(event.user!));
+      if (!event.user!.isEmailConfirmed) {
+        emit(AuthEmailVerificationRequired(event.user!));
+      } else {
+        emit(AuthAuthenticated(event.user!));
+      }
     } else {
       emit(AuthUnauthenticated());
     }

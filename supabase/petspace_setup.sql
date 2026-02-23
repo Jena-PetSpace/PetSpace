@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(30) UNIQUE,
     photo_url TEXT,
     bio TEXT,
+    provider VARCHAR(20) DEFAULT 'email',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     settings JSONB DEFAULT '{}'::jsonb,
@@ -179,6 +180,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS pets UUID[] DEFAULT ARRAY[]::UUID[];
 ALTER TABLE users ADD COLUMN IF NOT EXISTS following UUID[] DEFAULT ARRAY[]::UUID[];
 ALTER TABLE users ADD COLUMN IF NOT EXISTS followers UUID[] DEFAULT ARRAY[]::UUID[];
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS provider VARCHAR(20) DEFAULT 'email';
+COMMENT ON COLUMN users.provider IS '가입 방식 (email, google, kakao)';
 COMMENT ON COLUMN users.is_onboarding_completed IS '온보딩 프로세스 완료 여부';
 COMMENT ON COLUMN users.pets IS '사용자가 소유한 반려동물 UUID 배열';
 COMMENT ON COLUMN users.following IS '사용자가 팔로우하는 사용자 UUID 배열';
@@ -312,6 +315,8 @@ END;
 $$;
 
 -- 회원가입 시 자동 프로필 생성
+-- Supabase 설정: Authentication > Email > "Confirm email" = OFF
+-- 이메일 인증은 앱에서 자체 OTP 플로우로 관리
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER
 SECURITY DEFINER
@@ -319,17 +324,20 @@ SET search_path = public
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    IF NEW.email_confirmed_at IS NOT NULL THEN
-        INSERT INTO public.users (id, email, display_name, photo_url, is_onboarding_completed)
+    BEGIN
+        INSERT INTO public.users (id, email, display_name, photo_url, provider, is_onboarding_completed)
         VALUES (
             NEW.id,
             NEW.email,
             COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
             NEW.raw_user_meta_data->>'photo_url',
+            COALESCE(NEW.raw_user_meta_data->>'provider', 'email'),
             FALSE
         )
         ON CONFLICT (id) DO NOTHING;
-    END IF;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE LOG 'handle_new_user error for %: %', NEW.email, SQLERRM;
+    END;
     RETURN NEW;
 END;
 $$;
@@ -464,12 +472,12 @@ DROP TRIGGER IF EXISTS comments_count_decrement ON comments;
 CREATE TRIGGER comments_count_decrement AFTER DELETE ON comments
     FOR EACH ROW EXECUTE FUNCTION decrement_comments_count();
 
--- 회원가입 트리거
+-- 회원가입 트리거 (Confirm email OFF이므로 INSERT 시 항상 실행)
+DROP TRIGGER IF EXISTS on_social_user_created ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
-    AFTER INSERT OR UPDATE ON auth.users
+    AFTER INSERT ON auth.users
     FOR EACH ROW
-    WHEN (NEW.email_confirmed_at IS NOT NULL)
     EXECUTE FUNCTION handle_new_user();
 
 

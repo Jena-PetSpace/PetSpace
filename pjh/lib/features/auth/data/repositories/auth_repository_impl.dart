@@ -158,91 +158,138 @@ class AuthRepositoryImpl implements AuthRepository {
                         'kakao_${kakaoUser.id}@kakao.user';
       final kakaoId = kakaoUser.id.toString();
 
+      log('🔵 [Kakao Login] 카카오 사용자 정보 - email: $kakaoEmail, id: $kakaoId, nickname: ${kakaoUser.kakaoAccount?.profile?.nickname}', name: 'AuthRepository');
+
       // 카카오 ID를 비밀번호로 사용 (고정값, 매번 동일해야 함)
       final password = 'kakao_user_${kakaoId}_secure_password';
 
       // 4. Supabase에서 사용자 확인 또는 생성
       User? supabaseUser;
+      String debugLog = '';
 
+      // Step 1: 먼저 로그인 시도
       try {
-        // 먼저 로그인 시도
+        debugLog += '1.signIn시도→';
         final authResult = await supabaseClient.auth.signInWithPassword(
           email: kakaoEmail,
           password: password,
         );
         supabaseUser = authResult.user;
+        debugLog += '성공!';
+        log('✅ [Kakao Login] 기존 사용자 로그인 성공: ${supabaseUser?.id}', name: 'AuthRepository');
       } on AuthException catch (e) {
-        // 로그인 실패 시 (사용자 없음) 회원가입 진행
-        if (e.message.contains('Invalid login credentials') ||
-            e.message.contains('User not found')) {
-          log('🔵 [Kakao Login] 새 사용자 - 회원가입 진행', name: 'AuthRepository');
+        debugLog += '실패(${e.message})→';
+        log('⚠️ [Kakao Login] signIn 실패: ${e.message}', name: 'AuthRepository');
+      }
 
-          try {
-            // 카카오 로그인은 이메일 인증이 필요 없음
-            final signUpResult = await supabaseClient.auth.signUp(
-              email: kakaoEmail,
-              password: password,
-              data: {
-                'display_name': kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
-                'photo_url': kakaoUser.kakaoAccount?.profile?.profileImageUrl,
-                'provider': 'kakao',
-                'kakao_id': kakaoId,
-              },
-            );
-            supabaseUser = signUpResult.user;
-            log('✅ [Kakao Login] 회원가입 성공: ${supabaseUser?.id}', name: 'AuthRepository');
-          } on AuthException catch (signUpError) {
-            // 이메일 전송 실패 에러는 무시하고 다시 로그인 시도
-            // (Supabase가 사용자를 생성했을 수 있음)
-            if (signUpError.message.contains('Error sending confirmation email') ||
-                signUpError.message.contains('unexpected_failure')) {
-              log('⚠️ [Kakao Login] 이메일 전송 실패 (무시하고 계속)', name: 'AuthRepository');
-
-              // 약간 대기 후 로그인 재시도 (사용자가 생성되었을 수 있음)
-              await Future.delayed(const Duration(milliseconds: 500));
-
-              try {
-                final retryLogin = await supabaseClient.auth.signInWithPassword(
-                  email: kakaoEmail,
-                  password: password,
-                );
-                supabaseUser = retryLogin.user;
-                log('✅ [Kakao Login] 재로그인 성공: ${supabaseUser?.id}', name: 'AuthRepository');
-              } catch (retryError) {
-                log('❌ [Kakao Login] 재로그인 실패: $retryError', name: 'AuthRepository');
-                // 여전히 실패하면 원래 에러 throw
-                rethrow;
-              }
-            } else {
-              rethrow;
-            }
-          }
-        } else {
-          rethrow;
+      // Step 2: 로그인 실패 시 회원가입 시도
+      if (supabaseUser == null) {
+        try {
+          debugLog += '2.signUp시도→';
+          final signUpResult = await supabaseClient.auth.signUp(
+            email: kakaoEmail,
+            password: password,
+            data: {
+              'display_name': kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
+              'photo_url': kakaoUser.kakaoAccount?.profile?.profileImageUrl,
+              'provider': 'kakao',
+              'kakao_id': kakaoId,
+            },
+          );
+          supabaseUser = signUpResult.user;
+          debugLog += '성공(id:${supabaseUser?.id})→';
+          log('✅ [Kakao Login] 회원가입 성공: ${supabaseUser?.id}', name: 'AuthRepository');
+        } on AuthException catch (signUpError) {
+          debugLog += 'signUp에러(${signUpError.message})→';
+          log('⚠️ [Kakao Login] signUp 에러: ${signUpError.message}', name: 'AuthRepository');
+          // "Error sending confirmation email"은 사용자가 생성되었을 수 있음 → 계속 진행
+        } catch (e) {
+          debugLog += 'signUp예외($e)→';
+          log('❌ [Kakao Login] signUp 예외: $e', name: 'AuthRepository');
         }
       }
 
+      // Step 3: confirm_kakao_user RPC로 이메일 인증 처리 후 로그인 재시도
       if (supabaseUser == null) {
-        log('❌ [Kakao Login] supabaseUser가 null', name: 'AuthRepository');
-        return const Left(AuthFailure(message: '카카오 로그인에 실패했습니다.'));
+        debugLog += '3.RPC-confirm→';
+        try {
+          await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
+            'user_email': kakaoEmail,
+          });
+          debugLog += 'RPC성공→';
+        } catch (e) {
+          debugLog += 'RPC실패→';
+          log('⚠️ [Kakao Login] confirm RPC: $e', name: 'AuthRepository');
+        }
+
+        // 로그인 재시도
+        debugLog += '재로그인→';
+        await Future.delayed(const Duration(milliseconds: 500));
+        try {
+          final retryResult = await supabaseClient.auth.signInWithPassword(
+            email: kakaoEmail,
+            password: password,
+          );
+          supabaseUser = retryResult.user;
+          debugLog += '성공!';
+          log('✅ [Kakao Login] 재로그인 성공: ${supabaseUser?.id}', name: 'AuthRepository');
+        } on AuthException catch (e) {
+          debugLog += '실패(${e.message})';
+          log('❌ [Kakao Login] 재로그인 실패: ${e.message}', name: 'AuthRepository');
+        }
       }
 
-      // 5. users 테이블에서 사용자 정보 가져오기 (트리거가 자동 생성함)
-      // 트리거가 users 테이블에 자동으로 생성하므로 약간의 대기 후 재시도
-      UserModel? user;
-      for (int i = 0; i < 3; i++) {
-        final userResponse = await supabaseClient
-            .from('users')
-            .select()
-            .eq('id', supabaseUser.id)
-            .maybeSingle();
+      // 최종 실패 시 디버그 로그와 함께 반환
+      if (supabaseUser == null) {
+        log('❌ [Kakao Login] 최종 실패 - debugLog: $debugLog', name: 'AuthRepository');
+        return Left(AuthFailure(message: '[디버그] $debugLog'));
+      }
 
-        if (userResponse != null) {
-          user = UserModel.fromJson(userResponse);
-          break;
-        } else {
-          if (i < 2) {
-            await Future.delayed(const Duration(milliseconds: 500));
+      // 5. users 테이블에서 사용자 정보 가져오기
+      // 트리거가 email_confirmed_at 체크로 프로필을 생성하지 않을 수 있으므로 직접 생성
+      UserModel? user;
+      final userResponse = await supabaseClient
+          .from('users')
+          .select()
+          .eq('id', supabaseUser.id)
+          .maybeSingle();
+
+      if (userResponse != null) {
+        user = UserModel.fromJson(userResponse);
+      } else {
+        // 트리거가 프로필을 생성하지 않은 경우 직접 생성
+        log('🔵 [Kakao Login] 프로필 직접 생성 시도', name: 'AuthRepository');
+        try {
+          await supabaseClient.from('users').insert({
+            'id': supabaseUser.id,
+            'email': kakaoEmail,
+            'display_name': kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
+            'photo_url': kakaoUser.kakaoAccount?.profile?.profileImageUrl,
+            'provider': 'kakao',
+            'is_onboarding_completed': false,
+          });
+
+          final newUserResponse = await supabaseClient
+              .from('users')
+              .select()
+              .eq('id', supabaseUser.id)
+              .maybeSingle();
+
+          if (newUserResponse != null) {
+            user = UserModel.fromJson(newUserResponse);
+            log('✅ [Kakao Login] 프로필 직접 생성 성공', name: 'AuthRepository');
+          }
+        } catch (profileError) {
+          log('⚠️ [Kakao Login] 프로필 직접 생성 실패: $profileError', name: 'AuthRepository');
+          // 동시성 문제로 이미 생성되었을 수 있으므로 다시 조회
+          await Future.delayed(const Duration(milliseconds: 500));
+          final retryResponse = await supabaseClient
+              .from('users')
+              .select()
+              .eq('id', supabaseUser.id)
+              .maybeSingle();
+          if (retryResponse != null) {
+            user = UserModel.fromJson(retryResponse);
           }
         }
       }
@@ -259,14 +306,14 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(authenticatedUser);
     } on kakao.KakaoException catch (e) {
       log('❌ [Kakao Login] KakaoException: ${e.message}', name: 'AuthRepository');
-      return Left(AuthFailure(message: '카카오 로그인 오류: ${e.message}'));
+      return Left(AuthFailure(message: '[카카오SDK] ${e.message}'));
     } on AuthException catch (e) {
-      log('❌ [Kakao Login] AuthException: ${e.message}', name: 'AuthRepository');
-      return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
+      log('❌ [Kakao Login] AuthException: ${e.message} (statusCode: ${e.statusCode})', name: 'AuthRepository');
+      return Left(AuthFailure(message: '[Supabase] ${e.message}'));
     } catch (e, stackTrace) {
       log('❌ [Kakao Login] Unknown Exception: ${e.toString()}', name: 'AuthRepository', stackTrace: stackTrace);
       return Left(
-          AuthFailure(message: '카카오 로그인 중 오류가 발생했습니다: ${e.toString()}'));
+          AuthFailure(message: '[오류] ${e.toString()}'));
     }
   }
 
