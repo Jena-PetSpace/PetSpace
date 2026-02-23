@@ -3,11 +3,11 @@
 
 class SupabaseOptions {
   // 실제 Supabase 프로젝트 정보
-  static const String supabaseUrl = 'https://qiioqzhaxqgvxjbfsjnd.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpaW9xemhheHFndnhqYmZzam5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NTkwNjgsImV4cCI6MjA3NDQzNTA2OH0.fXnVMcKcAxMKiYj_T5W5FKZfwIv3OGjE2kWXAgQZiWs';
+  static const String supabaseUrl = 'https://juukbctqzlrxfnivhgqe.supabase.co';
+  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1dWtiY3RxemxyeGZuaXZoZ3FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4MDUyOTEsImV4cCI6MjA4NzM4MTI5MX0.0vZi_Mx2O61WALdpc3nOLIOzBlMA3UB0-LBbz2oz3gI';
 
-  // ✅ 실제 Supabase 프로젝트로 설정 완료
-  // 프로젝트: qiioqzhaxqgvxjbfsjnd.supabase.co
+  // ✅ 실제 Supabase 프로젝트로 설정 완료 (Jena-PetSpace 회사 계정)
+  // 프로젝트: juukbctqzlrxfnivhgqe.supabase.co
 
   static bool get isConfigured {
     return supabaseUrl != 'YOUR_SUPABASE_URL' &&
