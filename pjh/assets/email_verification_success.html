@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>멍x냥 다이어리 - 이메일 인증 완료</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .icon-container {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .checkmark {
+            width: 50px;
+            height: 50px;
+            stroke: white;
+            stroke-width: 4;
+            stroke-linecap: round;
+            fill: none;
+            animation: draw 0.8s ease-out 0.2s forwards;
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+        }
+
+        @keyframes draw {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        p {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .app-name {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .redirect-info {
+            background: #f7f8fc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 30px;
+        }
+
+        .redirect-info p {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 0;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            margin: 20px auto 0;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .manual-link {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .manual-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .manual-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon-container">
+            <svg class="checkmark" viewBox="0 0 52 52">
+                <path d="M14 27l8 8 16-16" />
+            </svg>
+        </div>
+
+        <h1><span class="app-name">멍x냥 다이어리</span><br>회원가입 이메일 인증 완료</h1>
+
+        <p>축하합니다! 이메일 인증이 성공적으로 완료되었습니다.</p>
+        <p>이제 멍x냥 다이어리의 모든 기능을 사용하실 수 있습니다.</p>
+
+        <div class="redirect-info">
+            <p>잠시 후 앱으로 자동 이동합니다...</p>
+            <div class="spinner"></div>
+        </div>
+
+        <div class="manual-link">
+            <p style="font-size: 13px; color: #999; margin-bottom: 10px;">
+                자동으로 이동하지 않나요?
+            </p>
+            <a href="com.example.pjh://login-callback" id="manualLink">여기를 클릭하여 앱으로 이동</a>
+        </div>
+    </div>
+
+    <script>
+        // URL 파라미터에서 토큰 정보 추출
+        const urlParams = new URLSearchParams(window.location.search);
+        const fragment = window.location.hash;
+
+        // Deep Link 생성
+        let deepLink = 'com.example.pjh://login-callback';
+        if (fragment) {
+            deepLink += fragment;
+        }
+
+        // 수동 링크 업데이트
+        document.getElementById('manualLink').href = deepLink;
+
+        // 1초 후 자동으로 앱으로 리다이렉트
+        setTimeout(() => {
+            window.location.href = deepLink;
+
+            // 3초 후에도 페이지가 그대로면 앱이 설치되지 않았거나 열리지 않은 것
+            setTimeout(() => {
+                document.querySelector('.redirect-info p').textContent =
+                    '앱이 열리지 않았나요? 위의 링크를 클릭하거나 앱을 직접 실행해주세요.';
+                document.querySelector('.spinner').style.display = 'none';
+            }, 3000);
+        }, 1000);
+    </script>
+</body>
+</html>

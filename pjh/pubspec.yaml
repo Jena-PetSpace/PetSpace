@@ -1,0 +1,116 @@
+name: meong_nyang_diary
+description: "AI 기반 반려동물 감정 분석 및 소셜 네트워킹 앱 - Supabase 버전"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.0.0
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_bloc: ^8.1.6
+  get_it: ^7.7.0
+
+  # Supabase
+  supabase_flutter: ^2.5.6
+
+  # Firebase (Push Notifications)
+  firebase_core: ^3.8.1
+  firebase_messaging: ^15.1.5
+
+  # Authentication
+  google_sign_in: ^6.2.1
+  kakao_flutter_sdk: ^1.9.7
+
+  # Image Handling
+  image_picker: ^1.1.2
+  cached_network_image: ^3.3.1
+  image: ^4.2.0
+
+  # UI & Charts
+  fl_chart: ^0.68.0
+  lottie: ^3.1.2
+  shimmer: ^3.0.0
+  flutter_screenutil: ^5.9.3
+
+  # Google ML Kit & Vision API
+  google_ml_kit: ^0.18.0
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.6.0
+
+  # Utilities
+  intl: ^0.19.0
+  http: ^1.2.1
+  dio: ^5.6.0
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  connectivity_plus: ^6.0.5
+  go_router: ^14.2.7
+  crypto: ^3.0.5
+  path: ^1.9.0
+  uuid: ^4.5.1
+  share_plus: ^10.1.2
+  app_links: ^6.3.3
+
+  # Local Storage
+  shared_preferences: ^2.2.3
+  sqflite: ^2.3.3
+  path_provider: ^2.1.4
+
+  # Permissions
+  permission_handler: ^11.3.1
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  bloc_test: ^9.1.7
+  mockito: ^5.4.4
+  mocktail: ^1.0.4
+  build_runner: ^2.4.12
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/lottie/
+
+  # fonts:
+  #   - family: Pretendard
+  #     fonts:
+  #       - asset: assets/fonts/Pretendard-Regular.ttf
+  #       - asset: assets/fonts/Pretendard-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Pretendard-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Pretendard-Bold.ttf
+  #         weight: 700
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
+  web:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+  macos:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+  # 1024 표준 크기 설정
+  remove_alpha_ios: true
