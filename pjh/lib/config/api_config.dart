@@ -20,7 +20,7 @@ class ApiConfig {
 
   // 소셜 로그인 설정
   static const String googleClientId =
-      '436717619181-57khh827kfg9t5j1oo9tpnloalf7rtb7.apps.googleusercontent.com';
+      '295912994007-8cis4t1rgt00lkhklrsrcbh391gaae3c.apps.googleusercontent.com';
   static const String kakaoAppKey = 'c9e18a9067b1d5b615849d787d7ef05b';
 
   // API 설정 확인 메서드

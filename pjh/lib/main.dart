@@ -48,7 +48,7 @@ void main() async {
         // NOTE: detectSessionInUri를 false로 설정하면 Supabase가 deep link를 자동으로 감지하지 않음
       ),
       // Deep link 자동 처리 비활성화 - Supabase가 모든 deep link를 가로채는 것을 방지
-      // 이제 com.example.pjh scheme만 수동으로 처리하고, kakao scheme은 Kakao SDK에게 넘김
+      // 이제 com.petspace.app scheme만 수동으로 처리하고, kakao scheme은 Kakao SDK에게 넘김
       debug: false,
     );
     log('✅ Supabase 초기화 완료', name: 'main.supabase');
@@ -57,7 +57,7 @@ void main() async {
   }
 
   // API 설정 확인 및 안내
-  log('\n📱 멍냥다이어리 설정 현황:', name: 'main.config');
+  log('\n📱 펫페이스 설정 현황:', name: 'main.config');
   log('✅ Supabase: ${SupabaseOptions.isConfigured ? "설정됨" : "미설정 (데모용)"}', name: 'main.config');
   final features = ApiConfig.availableFeatures;
   log('🔧 사용 가능한 기능들:', name: 'main.config');
@@ -153,7 +153,7 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
     }
 
     // Supabase 이메일 인증 콜백 처리
-    // com.example.pjh://login-callback#... 형태의 링크
+    // com.petspace.app://login-callback#... 형태의 링크
     if (uri.host == 'login-callback' || uri.path.contains('login-callback')) {
       log('Email verification callback detected', name: 'DeepLink');
       // Supabase에 deep link 수동 전달

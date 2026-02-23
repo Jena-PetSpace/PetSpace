@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 class AppConfig {
-  static const String appName = '멍x냥 다이어리';
+  static const String appName = '펫페이스';
   static const String appVersion = '1.0.0';
   static const int buildNumber = 1;
 

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>멍x냥 다이어리</string>
+	<string>펫페이스</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -61,10 +61,10 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.example.pjh</string>
+			<string>com.petspace.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.example.pjh</string>
+				<string>com.petspace.app</string>
 			</array>
 		</dict>
 	</array>

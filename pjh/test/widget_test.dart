@@ -15,14 +15,14 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: Center(
-              child: Text('멍x냥 다이어리'),
+              child: Text('펫페이스'),
             ),
           ),
         ),
       );
 
       // Verify the app name appears
-      expect(find.text('멍x냥 다이어리'), findsOneWidget);
+      expect(find.text('펫페이스'), findsOneWidget);
     });
 
     testWidgets('Login page should have required fields', (WidgetTester tester) async {
@@ -163,7 +163,7 @@ void main() {
             length: 3,
             child: Scaffold(
               appBar: AppBar(
-                title: const Text('멍x냥 다이어리'),
+                title: const Text('펫페이스'),
                 bottom: const TabBar(
                   tabs: [
                     Tab(text: '홈'),

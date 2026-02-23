@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "436717619181",
-    "project_id": "our-episode-473304-u5",
-    "storage_bucket": "our-episode-473304-u5.appspot.com"
+    "project_number": "295912994007",
+    "project_id": "project-5e5638c5-de70-498d-8f2",
+    "storage_bucket": "project-5e5638c5-de70-498d-8f2.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:436717619181:android:4f8e3ebf1f7c50cb0e13c5",
+        "mobilesdk_app_id": "1:295912994007:android:petspace",
         "android_client_info": {
-          "package_name": "com.example.pjh"
+          "package_name": "com.petspace.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "436717619181-ibi090msaat54hd8iqugs4873useohin.apps.googleusercontent.com",
+          "client_id": "295912994007-7knelr78jhb4s5dtbpnq9lv17qi6giqt.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.pjh",
+            "package_name": "com.petspace.app",
             "certificate_hash": "4f8e3ebf1f7c50cb0e13c5e8e89f9be3bf0b635e"
           }
         },
         {
-          "client_id": "436717619181-57khh827kfg9t5j1oo9tpnloalf7rtb7.apps.googleusercontent.com",
+          "client_id": "295912994007-8cis4t1rgt00lkhklrsrcbh391gaae3c.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyC98nI-jW75F1DqcSawJAPthPmF7rz5sTI"
+          "current_key": "AIzaSyAG9Znz8A78_k3wxJJNZrBm4RDe-8WjAhk"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "436717619181-57khh827kfg9t5j1oo9tpnloalf7rtb7.apps.googleusercontent.com",
+              "client_id": "295912994007-8cis4t1rgt00lkhklrsrcbh391gaae3c.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

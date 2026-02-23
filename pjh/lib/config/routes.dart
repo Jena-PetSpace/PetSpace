@@ -139,7 +139,7 @@ class SplashScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             const Text(
-              '멍x냥 다이어리',
+              '펫페이스',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
