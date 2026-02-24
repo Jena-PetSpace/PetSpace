@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../../config/api_config.dart';
@@ -8,7 +7,7 @@ import '../models/emotion_analysis_model.dart';
 
 class GeminiAIService {
   final Dio _dio;
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
   GeminiAIService({Dio? dio}) : _dio = dio ?? Dio() {
     _dio.options.connectTimeout = const Duration(seconds: 30);
@@ -21,8 +20,8 @@ class GeminiAIService {
     }
 
     try {
-      log('✅ Gemini API 설정 확인 완료', name: 'GeminiAIService');
-      log('📍 API Key: ${ApiConfig.geminiApiKey.substring(0, 10)}...', name: 'GeminiAIService');
+      print('[GeminiAI] Gemini API 호출 시작');
+      print('[GeminiAI] API Key: ${ApiConfig.geminiApiKey.substring(0, 10)}...');
 
       // 이미지 파일 존재 여부 확인
       if (!await imageFile.exists()) {
@@ -35,12 +34,12 @@ class GeminiAIService {
         throw const ImageException('이미지 파일이 너무 큽니다. (최대 20MB)');
       }
 
-      log('📦 이미지 파일 크기: ${(fileSize / 1024).toStringAsFixed(2)} KB', name: 'GeminiAIService');
+      print('[GeminiAI] 이미지 크기: ${(fileSize / 1024).toStringAsFixed(2)} KB');
 
       // 이미지를 base64로 인코딩
       final bytes = await imageFile.readAsBytes();
       final base64Image = base64Encode(bytes);
-      log('🔄 이미지 base64 인코딩 완료', name: 'GeminiAIService');
+      print('[GeminiAI] base64 인코딩 완료');
 
       // 이미지 MIME 타입 결정
       final extension = imageFile.path.toLowerCase().split('.').last;
@@ -128,8 +127,7 @@ class GeminiAIService {
       };
 
       // API 호출
-      log('🚀 Gemini API 호출 시작...', name: 'GeminiAIService');
-      log('🌐 URL: $_baseUrl', name: 'GeminiAIService');
+      print('[GeminiAI] API 호출 URL: $_baseUrl');
 
       final response = await _dio.post(
         '$_baseUrl?key=${ApiConfig.geminiApiKey}',
@@ -141,7 +139,7 @@ class GeminiAIService {
         ),
       );
 
-      log('✅ Gemini API 응답 수신 완료: ${response.statusCode}', name: 'GeminiAIService');
+      print('[GeminiAI] 응답 수신: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw AnalysisException('Gemini API 호출 실패: ${response.statusCode}');
@@ -158,58 +156,47 @@ class GeminiAIService {
       }
 
       final textContent = responseData['candidates'][0]['content']['parts'][0]['text'] as String;
+      print('[GeminiAI] 응답 텍스트: $textContent');
 
       // JSON 응답에서 감정 점수 추출
-      try {
-        // JSON 부분만 추출하기 위해 정규식 사용
-        final jsonMatch = RegExp(r'\{[^}]*\}').firstMatch(textContent);
-        if (jsonMatch == null) {
-          throw const AnalysisException('응답에서 JSON을 찾을 수 없습니다.');
-        }
-
-        final jsonString = jsonMatch.group(0)!;
-        final emotionData = jsonDecode(jsonString) as Map<String, dynamic>;
-
-        // 감정 점수 추출 및 검증
-        double happiness = _parseDouble(emotionData['happiness'], 0.2);
-        double sadness = _parseDouble(emotionData['sadness'], 0.2);
-        double anxiety = _parseDouble(emotionData['anxiety'], 0.2);
-        double sleepiness = _parseDouble(emotionData['sleepiness'], 0.2);
-        double curiosity = _parseDouble(emotionData['curiosity'], 0.2);
-
-        // 합계 검증 및 정규화
-        final total = happiness + sadness + anxiety + sleepiness + curiosity;
-        if (total > 0) {
-          happiness /= total;
-          sadness /= total;
-          anxiety /= total;
-          sleepiness /= total;
-          curiosity /= total;
-        }
-
-        return EmotionScoresModel(
-          happiness: happiness,
-          sadness: sadness,
-          anxiety: anxiety,
-          sleepiness: sleepiness,
-          curiosity: curiosity,
-        );
-
-      } catch (e) {
-        log('JSON 파싱 오류: $e', name: 'GeminiAIService.parse');
-        log('원본 응답: $textContent', name: 'GeminiAIService.response');
-
-        // 파싱에 실패한 경우 기본값 반환
-        return const EmotionScoresModel(
-          happiness: 0.2,
-          sadness: 0.2,
-          anxiety: 0.2,
-          sleepiness: 0.2,
-          curiosity: 0.2,
-        );
+      final jsonMatch = RegExp(r'\{[^}]*\}').firstMatch(textContent);
+      if (jsonMatch == null) {
+        throw const AnalysisException('응답에서 JSON을 찾을 수 없습니다.');
       }
 
+      final jsonString = jsonMatch.group(0)!;
+      final emotionData = jsonDecode(jsonString) as Map<String, dynamic>;
+
+      // 감정 점수 추출 및 검증
+      double happiness = _parseDouble(emotionData['happiness'], 0.2);
+      double sadness = _parseDouble(emotionData['sadness'], 0.2);
+      double anxiety = _parseDouble(emotionData['anxiety'], 0.2);
+      double sleepiness = _parseDouble(emotionData['sleepiness'], 0.2);
+      double curiosity = _parseDouble(emotionData['curiosity'], 0.2);
+
+      // 합계 검증 및 정규화
+      final total = happiness + sadness + anxiety + sleepiness + curiosity;
+      if (total > 0) {
+        happiness /= total;
+        sadness /= total;
+        anxiety /= total;
+        sleepiness /= total;
+        curiosity /= total;
+      }
+
+      print('[GeminiAI] 감정 분석 완료 - happiness: ${happiness.toStringAsFixed(2)}, sadness: ${sadness.toStringAsFixed(2)}');
+
+      return EmotionScoresModel(
+        happiness: happiness,
+        sadness: sadness,
+        anxiety: anxiety,
+        sleepiness: sleepiness,
+        curiosity: curiosity,
+      );
+
     } on DioException catch (e) {
+      print('[GeminiAI] DioException: ${e.type} - ${e.message}');
+      print('[GeminiAI] Response: ${e.response?.data}');
       if (e.response?.statusCode == 400) {
         throw const AnalysisException('잘못된 요청입니다. 이미지 형식을 확인해주세요.');
       } else if (e.response?.statusCode == 401) {
@@ -224,6 +211,7 @@ class GeminiAIService {
         throw AnalysisException('네트워크 오류가 발생했습니다: ${e.message}');
       }
     } catch (e) {
+      print('[GeminiAI] Error: $e');
       if (e is ImageException || e is AnalysisException) {
         rethrow;
       }

@@ -59,6 +59,24 @@ import '../features/pets/domain/usecases/update_pet.dart';
 import '../features/pets/domain/usecases/delete_pet.dart';
 import '../features/pets/presentation/bloc/pet_bloc.dart';
 
+// Features - Chat
+import '../features/chat/data/datasources/chat_remote_data_source.dart';
+import '../features/chat/data/repositories/chat_repository_impl.dart';
+import '../features/chat/domain/repositories/chat_repository.dart';
+import '../features/chat/domain/usecases/get_chat_rooms.dart';
+import '../features/chat/domain/usecases/get_chat_messages.dart';
+import '../features/chat/domain/usecases/send_message.dart';
+import '../features/chat/domain/usecases/send_image_message.dart';
+import '../features/chat/domain/usecases/create_chat_room.dart';
+import '../features/chat/domain/usecases/update_last_read.dart';
+import '../features/chat/domain/usecases/get_unread_count.dart';
+import '../features/chat/domain/usecases/search_users_for_chat.dart';
+import '../features/chat/domain/usecases/leave_chat_room.dart';
+import '../features/chat/domain/usecases/add_chat_members.dart';
+import '../features/chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
+import '../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
+import '../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
+
 // Core Services
 import '../core/services/image_upload_service.dart';
 import '../core/services/notification_service.dart';
@@ -74,6 +92,7 @@ Future<void> init() async {
   await _initEmotion();
   await _initSocial();
   await _initPets();
+  await _initChat();
   await _initCore();
   await _initExternal();
 }
@@ -248,6 +267,62 @@ Future<void> _initPets() async {
       addPet: sl(),
       updatePet: sl(),
       deletePet: sl(),
+    ),
+  );
+}
+
+Future<void> _initChat() async {
+  // Chat feature dependencies
+
+  // Data Sources
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSourceImpl(
+      supabaseClient: sl<SupabaseClient>(),
+    ),
+  );
+
+  // Repository
+  sl.registerLazySingleton<ChatRepository>(
+    () => ChatRepositoryImpl(
+      remoteDataSource: sl<ChatRemoteDataSource>(),
+      networkInfo: sl<NetworkInfo>(),
+    ),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetChatRooms(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => GetChatMessages(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => SendMessage(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => SendImageMessage(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => CreateDirectChat(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => CreateGroupChat(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => UpdateLastRead(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => GetUnreadCount(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => SearchUsersForChat(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => LeaveChatRoom(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => AddChatMembers(sl<ChatRepository>()));
+
+  // BLoCs
+  sl.registerFactory(
+    () => ChatBadgeBloc(
+      getUnreadCount: sl<GetUnreadCount>(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => ChatRoomsBloc(
+      getChatRooms: sl<GetChatRooms>(),
+      createDirectChat: sl<CreateDirectChat>(),
+      createGroupChat: sl<CreateGroupChat>(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => ChatDetailBloc(
+      getChatMessages: sl<GetChatMessages>(),
+      sendMessage: sl<SendMessage>(),
+      sendImageMessage: sl<SendImageMessage>(),
+      updateLastRead: sl<UpdateLastRead>(),
     ),
   );
 }

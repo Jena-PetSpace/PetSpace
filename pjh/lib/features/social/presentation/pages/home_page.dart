@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 import '../bloc/feed_bloc.dart';
 import '../widgets/post_card.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
@@ -60,11 +61,22 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              final authState = context.read<AuthBloc>().state;
-              if (authState is AuthAuthenticated) {
-                context.go('/notifications?userId=${authState.user.uid}');
-              }
+            onPressed: () => context.push('/notifications'),
+          ),
+          BlocBuilder<ChatBadgeBloc, ChatBadgeState>(
+            builder: (context, badgeState) {
+              return IconButton(
+                icon: badgeState.count > 0
+                    ? Badge(
+                        label: Text(
+                          badgeState.count > 99 ? '99+' : '${badgeState.count}',
+                          style: TextStyle(fontSize: 10.sp),
+                        ),
+                        child: const Icon(Icons.chat_bubble_outline),
+                      )
+                    : const Icon(Icons.chat_bubble_outline),
+                onPressed: () => context.push('/chat'),
+              );
             },
           ),
         ],
