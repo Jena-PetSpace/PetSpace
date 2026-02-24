@@ -31,10 +31,15 @@ class RealtimeService {
   final StreamController<Map<String, dynamic>> _likeController =
       StreamController<Map<String, dynamic>>.broadcast();
 
+  // 채팅 메시지 스트림 컨트롤러
+  final StreamController<Map<String, dynamic>> _chatMessageController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
   // Public streams
   Stream<Map<String, dynamic>> get notificationStream => _notificationController.stream;
   Stream<Map<String, dynamic>> get commentStream => _commentController.stream;
   Stream<Map<String, dynamic>> get likeStream => _likeController.stream;
+  Stream<Map<String, dynamic>> get chatMessageStream => _chatMessageController.stream;
 
   /// 서비스 초기화
   Future<void> initialize() async {
@@ -238,6 +243,45 @@ class RealtimeService {
     }
   }
 
+  /// 채팅 메시지 전체 구독 (뱃지 카운트용)
+  ///
+  /// [userId] - 현재 사용자 ID (자신의 참여 중인 채팅방의 메시지 수신)
+  Future<void> subscribeToChatMessages(String userId) async {
+    final channelName = 'chat_messages:$userId';
+
+    if (_channels.containsKey(channelName)) {
+      log('Already subscribed to chat messages channel', name: 'RealtimeService');
+      return;
+    }
+
+    try {
+      log('Subscribing to chat messages for user: $userId', name: 'RealtimeService');
+
+      final channel = _supabase.channel(channelName);
+
+      channel.onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'chat_messages',
+        callback: (payload) {
+          log('New chat message received: ${payload.newRecord}', name: 'RealtimeService');
+          _chatMessageController.add({
+            'type': 'chat_message',
+            'event': 'insert',
+            'data': payload.newRecord,
+          });
+        },
+      ).subscribe();
+
+      _channels[channelName] = channel;
+      log('Successfully subscribed to chat messages channel', name: 'RealtimeService');
+    } catch (e, stackTrace) {
+      log('Failed to subscribe to chat messages',
+          name: 'RealtimeService', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+
   /// 특정 채널 구독 해제
   ///
   /// [channelName] - 구독 해제할 채널 이름
@@ -289,6 +333,7 @@ class RealtimeService {
     _notificationController.close();
     _commentController.close();
     _likeController.close();
+    _chatMessageController.close();
 
     _isInitialized = false;
     log('Realtime service disposed', name: 'RealtimeService');

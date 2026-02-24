@@ -40,6 +40,11 @@ import '../../features/auth/presentation/pages/password_reset_new_password_page.
 import '../../features/pets/presentation/pages/pet_management_page.dart';
 import '../../features/pets/presentation/bloc/pet_bloc.dart';
 import '../../features/pets/presentation/bloc/pet_event.dart';
+import '../../features/chat/presentation/pages/chat_rooms_page.dart';
+import '../../features/chat/presentation/pages/chat_detail_page.dart';
+import '../../features/chat/presentation/pages/create_chat_page.dart';
+import '../../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
+import '../../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
 import '../../main_navigation.dart';
 import 'auth_guard.dart';
 
@@ -245,6 +250,37 @@ class AppRouter {
                 child: social_profile.ProfilePage(
                   userId: userId,
                   currentUserId: currentUserId,
+                ),
+              );
+            },
+          ),
+          GoRoute(
+            path: '/chat',
+            name: 'chat',
+            builder: (context, state) => BlocProvider(
+              create: (context) => sl<ChatRoomsBloc>(),
+              child: const ChatRoomsPage(),
+            ),
+          ),
+          GoRoute(
+            path: '/chat/new',
+            name: 'chat-new',
+            builder: (context, state) => BlocProvider(
+              create: (context) => sl<ChatRoomsBloc>(),
+              child: const CreateChatPage(),
+            ),
+          ),
+          GoRoute(
+            path: '/chat/:roomId',
+            name: 'chat-detail',
+            builder: (context, state) {
+              final roomId = state.pathParameters['roomId']!;
+              final roomName = state.uri.queryParameters['name'];
+              return BlocProvider(
+                create: (context) => sl<ChatDetailBloc>(),
+                child: ChatDetailPage(
+                  roomId: roomId,
+                  roomName: roomName,
                 ),
               );
             },

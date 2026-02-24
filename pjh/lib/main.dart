@@ -24,6 +24,7 @@ import 'core/navigation/app_router.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import 'features/social/presentation/bloc/feed_bloc.dart';
+import 'features/chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -181,6 +182,9 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
             ),
             BlocProvider<FeedBloc>(
               create: (_) => di.sl<FeedBloc>(),
+            ),
+            BlocProvider<ChatBadgeBloc>(
+              create: (_) => di.sl<ChatBadgeBloc>(),
             ),
           ],
           child: MaterialApp.router(
