@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -19,21 +21,36 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
+  Timer? _badgeTimer;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    // Load feed on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<FeedBloc>().add(const LoadFeedRequested());
+        _loadChatBadge();
+        // 30초마다 뱃지 갱신
+        _badgeTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+          if (mounted) _loadChatBadge();
+        });
       }
     });
   }
 
+  void _loadChatBadge() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<ChatBadgeBloc>().add(
+        ChatBadgeLoadRequested(userId: authState.user.id),
+      );
+    }
+  }
+
   @override
   void dispose() {
+    _badgeTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -49,13 +66,10 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.pets, color: Theme.of(context).colorScheme.primary, size: 24.w),
-            SizedBox(width: 8.w),
-            Text('멍냥다이어리', style: TextStyle(fontSize: 18.sp)),
-          ],
+        title: Image.asset(
+          'assets/images/logo.png',
+          height: 42.h,
+          fit: BoxFit.contain,
         ),
         centerTitle: true,
         actions: [
@@ -65,6 +79,24 @@ class _HomePageState extends State<HomePage> {
           ),
           BlocBuilder<ChatBadgeBloc, ChatBadgeState>(
             builder: (context, badgeState) {
+              final iconColor = IconTheme.of(context).color ?? Colors.black87;
+              final chatIcon = SizedBox(
+                width: 24.w,
+                height: 24.w,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CustomPaint(
+                      size: Size(24.w, 24.w),
+                      painter: _ChatBubblePainter(color: iconColor),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 3.h),
+                      child: Icon(Icons.pets, size: 11.w, color: iconColor),
+                    ),
+                  ],
+                ),
+              );
               return IconButton(
                 icon: badgeState.count > 0
                     ? Badge(
@@ -72,9 +104,9 @@ class _HomePageState extends State<HomePage> {
                           badgeState.count > 99 ? '99+' : '${badgeState.count}',
                           style: TextStyle(fontSize: 10.sp),
                         ),
-                        child: const Icon(Icons.chat_bubble_outline),
+                        child: chatIcon,
                       )
-                    : const Icon(Icons.chat_bubble_outline),
+                    : chatIcon,
                 onPressed: () => context.push('/chat'),
               );
             },
@@ -195,11 +227,11 @@ class _HomePageState extends State<HomePage> {
     try {
       final shareText = '${post.authorName}님의 게시물\n'
           '${post.content ?? ""}\n\n'
-          '멍냥다이어리에서 확인하기';
+          '펫페이스에서 확인하기';
 
       await Share.share(
         shareText,
-        subject: '멍냥다이어리 게시물 공유',
+        subject: '펫페이스 게시물 공유',
       );
     } catch (e) {
       if (mounted) {
@@ -282,4 +314,39 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+
+class _ChatBubblePainter extends CustomPainter {
+  final Color color;
+
+  _ChatBubblePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.8;
+
+    final w = size.width;
+    final h = size.height;
+
+    // 둥근 말풍선 본체 (원형에 가까운 둥근 사각형)
+    final bubbleRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.05, 0, w * 0.9, h * 0.78),
+      Radius.circular(w * 0.35),
+    );
+    canvas.drawRRect(bubbleRect, paint);
+
+    // 말꼬리 (왼쪽 아래)
+    final tailPath = Path()
+      ..moveTo(w * 0.22, h * 0.72)
+      ..quadraticBezierTo(w * 0.15, h * 0.95, w * 0.08, h * 0.98)
+      ..quadraticBezierTo(w * 0.25, h * 0.88, w * 0.35, h * 0.78);
+
+    canvas.drawPath(tailPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

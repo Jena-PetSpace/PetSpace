@@ -153,7 +153,7 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
           ),
           SizedBox(height: 16.h),
           Text(
-            '멍냥다이어리 설정이 완료되었습니다\n이제 반려동물과의 특별한 순간들을\n기록하고 공유해보세요',
+            '펫페이스 설정이 완료되었습니다\n이제 반려동물과의 특별한 순간들을\n기록하고 공유해보세요',
             style: TextStyle(
               fontSize: 16.sp,
               color: Colors.grey[600],
@@ -364,7 +364,7 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('온보딩 완료! 멍냥다이어리에 오신 것을 환영합니다 🎉'),
+            content: Text('온보딩 완료! 펫페이스에 오신 것을 환영합니다 🎉'),
             backgroundColor: Colors.green,
           ),
         );

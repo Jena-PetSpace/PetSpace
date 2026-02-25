@@ -19,7 +19,7 @@ class RegisterPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              '멍냥다이어리',
+              '펫페이스',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,

@@ -98,7 +98,7 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            '사진과 함께 일상의 소중한 순간들을\n멍냥다이어리에 담아보세요',
+            '사진과 함께 일상의 소중한 순간들을\n펫페이스에 담아보세요',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,

@@ -189,11 +189,19 @@ ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 
+-- Users (기존 정책 수정: 채팅 유저 검색을 위해 모든 프로필 조회 허용)
+DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
+DROP POLICY IF EXISTS "Authenticated users can view all profiles" ON public.users;
+CREATE POLICY "Authenticated users can view all profiles" ON public.users
+    FOR SELECT TO authenticated
+    USING (true);
+
 -- Chat Rooms
 DROP POLICY IF EXISTS "Users can view rooms they participate in" ON chat_rooms;
 CREATE POLICY "Users can view rooms they participate in" ON chat_rooms
     FOR SELECT USING (
-        is_room_member(chat_rooms.id, auth.uid())
+        created_by = auth.uid()
+        OR is_room_member(chat_rooms.id, auth.uid())
     );
 
 DROP POLICY IF EXISTS "Authenticated users can create chat rooms" ON chat_rooms;
