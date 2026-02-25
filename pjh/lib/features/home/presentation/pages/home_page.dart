@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('멍냥다이어리'),
+        title: const Text('펫페이스'),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),

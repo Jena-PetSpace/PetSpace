@@ -528,7 +528,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       final emoji = _getEmotionEmoji(dominantEmotion);
 
       final text = '''
-$emoji 멍냥다이어리 AI 감정 분석 결과
+$emoji 펫페이스 AI 감정 분석 결과
 
 주요 감정: $emotionName ($percentage%)
 분석 시간: ${_formatDateTime(widget.analysis.analyzedAt)}
@@ -540,7 +540,7 @@ $emoji 멍냥다이어리 AI 감정 분석 결과
 😴 졸림: ${(widget.analysis.emotions.sleepiness * 100).toInt()}%
 🤔 호기심: ${(widget.analysis.emotions.curiosity * 100).toInt()}%
 
-#멍냥다이어리 #반려동물감정분석 #AI감정분석
+#펫페이스 #반려동물감정분석 #AI감정분석
 ''';
 
       if (widget.imagePath != null) {

@@ -1,4 +1,4 @@
--- 멍냥다이어리 Supabase 데이터베이스 스키마
+-- 펫페이스 Supabase 데이터베이스 스키마
 -- 실행 순서대로 작성됨
 
 -- 1. Users 테이블 확장 (auth.users는 Supabase에서 자동 생성)

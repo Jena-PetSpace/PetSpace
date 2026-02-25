@@ -85,7 +85,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         const SizedBox(height: 8),
         Text(
-          _isLogin ? '멍냥다이어리에 오신 것을 환영합니다' : '새로운 계정을 만들어보세요',
+          _isLogin ? '펫페이스에 오신 것을 환영합니다' : '새로운 계정을 만들어보세요',
           style: TextStyle(
             fontSize: 16,
             color: Colors.grey[600],

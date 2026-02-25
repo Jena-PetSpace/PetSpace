@@ -499,9 +499,12 @@ ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_blocks ENABLE ROW LEVEL SECURITY;
 
 -- Users
+-- 인증된 유저는 모든 프로필 조회 가능 (채팅 유저 검색, 소셜 기능 등)
 DROP POLICY IF EXISTS "Users can view own profile" ON users;
-CREATE POLICY "Users can view own profile" ON users
-    FOR SELECT USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Authenticated users can view all profiles" ON users;
+CREATE POLICY "Authenticated users can view all profiles" ON users
+    FOR SELECT TO authenticated
+    USING (true);
 
 DROP POLICY IF EXISTS "Users can update own profile" ON users;
 CREATE POLICY "Users can update own profile" ON users

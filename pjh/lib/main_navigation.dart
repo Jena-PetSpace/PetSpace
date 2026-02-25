@@ -98,16 +98,18 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _onTabTapped(int index) {
-    if (index == _currentIndex) return;
+    final route = _navigationItems[index].route;
+    if (route == null) return;
+
+    // 현재 경로가 해당 탭의 경로와 다르면 항상 이동 (채팅 등 다른 화면에서도 동작)
+    final location = GoRouterState.of(context).uri.path;
+    if (index == _currentIndex && location.startsWith(route)) return;
 
     setState(() {
       _currentIndex = index;
     });
 
-    final route = _navigationItems[index].route;
-    if (route != null) {
-      context.go(route);
-    }
+    context.go(route);
   }
 }
 

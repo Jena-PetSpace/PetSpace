@@ -36,7 +36,7 @@ class OnboardingPage extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           const Text(
-            '멍냥다이어리에\n오신 것을 환영합니다! 🐾',
+            '펫페이스에\n오신 것을 환영합니다! 🐾',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 28,

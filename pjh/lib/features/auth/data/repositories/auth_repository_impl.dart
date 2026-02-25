@@ -202,15 +202,12 @@ class AuthRepositoryImpl implements AuthRepository {
         } on AuthException catch (signUpError) {
           debugLog += 'signUp에러(${signUpError.message})→';
           log('⚠️ [Kakao Login] signUp 에러: ${signUpError.message}', name: 'AuthRepository');
-          // "Error sending confirmation email"은 사용자가 생성되었을 수 있음 → 계속 진행
         } catch (e) {
           debugLog += 'signUp예외($e)→';
           log('❌ [Kakao Login] signUp 예외: $e', name: 'AuthRepository');
         }
-      }
 
-      // Step 3: confirm_kakao_user RPC로 이메일 인증 처리 후 로그인 재시도
-      if (supabaseUser == null) {
+        // Step 3: RPC로 email_confirmed_at 설정 (signUp은 유저를 생성했지만 인증 이메일 발송 실패한 경우)
         debugLog += '3.RPC-confirm→';
         try {
           await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
@@ -222,9 +219,9 @@ class AuthRepositoryImpl implements AuthRepository {
           log('⚠️ [Kakao Login] confirm RPC: $e', name: 'AuthRepository');
         }
 
-        // 로그인 재시도
+        // Step 4: RPC 후 로그인 재시도
         debugLog += '재로그인→';
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 800));
         try {
           final retryResult = await supabaseClient.auth.signInWithPassword(
             email: kakaoEmail,
@@ -237,6 +234,13 @@ class AuthRepositoryImpl implements AuthRepository {
           debugLog += '실패(${e.message})';
           log('❌ [Kakao Login] 재로그인 실패: ${e.message}', name: 'AuthRepository');
         }
+      } else {
+        // 이미 로그인 성공한 경우에도 RPC 실행 (email_confirmed_at 보장)
+        try {
+          await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
+            'user_email': kakaoEmail,
+          });
+        } catch (_) {}
       }
 
       // 최종 실패 시 디버그 로그와 함께 반환
