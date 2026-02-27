@@ -122,6 +122,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(
           widget.roomName ?? '채팅',
@@ -130,71 +131,68 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         centerTitle: true,
       ),
       body: Column(
-        children: [
-          Expanded(
-            child: BlocBuilder<ChatDetailBloc, ChatDetailState>(
-              builder: (context, state) {
-                if (state is ChatDetailInitial || state is ChatDetailLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state is ChatDetailError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 48.w, color: Colors.grey),
-                        SizedBox(height: 12.h),
-                        Text(state.message, style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
-                        SizedBox(height: 12.h),
-                        ElevatedButton(
-                          onPressed: () {
-                            context.read<ChatDetailBloc>().add(
-                              ChatDetailLoadRequested(roomId: widget.roomId),
-                            );
-                          },
-                          child: const Text('다시 시도'),
+            children: [
+              Expanded(
+                child: BlocBuilder<ChatDetailBloc, ChatDetailState>(
+                  builder: (context, state) {
+                    if (state is ChatDetailInitial || state is ChatDetailLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (state is ChatDetailError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline, size: 48.w, color: Colors.grey),
+                            SizedBox(height: 12.h),
+                            Text(state.message, style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
+                            SizedBox(height: 12.h),
+                            ElevatedButton(
+                              onPressed: () {
+                                context.read<ChatDetailBloc>().add(
+                                  ChatDetailLoadRequested(roomId: widget.roomId),
+                                );
+                              },
+                              child: const Text('다시 시도'),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (state is ChatDetailLoaded) {
-                  return _buildMessageList(state);
-                }
-
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-          BlocBuilder<ChatDetailBloc, ChatDetailState>(
-            builder: (context, state) {
-              final isSending = state is ChatDetailLoaded && state.isSending;
-              return ChatInputBar(
-                isSending: isSending,
-                onSendText: (text) {
-                  context.read<ChatDetailBloc>().add(
-                    ChatDetailSendTextRequested(
-                      roomId: widget.roomId,
-                      senderId: _currentUserId,
-                      content: text,
-                    ),
-                  );
-                },
-                onSendImage: (File imageFile) {
-                  context.read<ChatDetailBloc>().add(
-                    ChatDetailSendImageRequested(
-                      roomId: widget.roomId,
-                      senderId: _currentUserId,
-                      imageFile: imageFile,
-                    ),
+                      );
+                    }
+                    if (state is ChatDetailLoaded) {
+                      return _buildMessageList(state);
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+              BlocBuilder<ChatDetailBloc, ChatDetailState>(
+                builder: (context, state) {
+                  final isSending = state is ChatDetailLoaded && state.isSending;
+                  return ChatInputBar(
+                    isSending: isSending,
+                    onSendText: (text) {
+                      context.read<ChatDetailBloc>().add(
+                        ChatDetailSendTextRequested(
+                          roomId: widget.roomId,
+                          senderId: _currentUserId,
+                          content: text,
+                        ),
+                      );
+                    },
+                    onSendImage: (File imageFile) {
+                      context.read<ChatDetailBloc>().add(
+                        ChatDetailSendImageRequested(
+                          roomId: widget.roomId,
+                          senderId: _currentUserId,
+                          imageFile: imageFile,
+                        ),
+                      );
+                    },
                   );
                 },
-              );
-            },
-          ),
-        ],
+              ),
+            ],
       ),
     );
   }

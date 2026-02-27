@@ -70,7 +70,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
         left: 8.w,
         right: 8.w,
         top: 8.h,
-        bottom: 8.h + MediaQuery.of(context).viewPadding.bottom,
+        bottom: 8.h,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -99,7 +99,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
               child: TextField(
                 controller: _controller,
                 maxLines: null,
-                textInputAction: TextInputAction.send,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
                 onSubmitted: (_) => _handleSendText(),
                 decoration: InputDecoration(
                   hintText: '메시지를 입력하세요',

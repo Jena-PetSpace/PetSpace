@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: Image.asset(
           'assets/images/logo.png',
-          height: 42.h,
+          height: 63.h,
           fit: BoxFit.contain,
         ),
         centerTitle: true,

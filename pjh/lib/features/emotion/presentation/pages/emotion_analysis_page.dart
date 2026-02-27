@@ -123,11 +123,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.camera_alt,
-                      size: 80.w,
-                      color: AppTheme.accentColor,
-                    ),
                     SizedBox(height: 24.h),
                     Text(
                       '반려동물 사진을 촬영하거나 선택하여\nAI 감정 분석을 시작해보세요',

@@ -4,11 +4,11 @@ class ApiConfig {
   static const String emotionApiKey = 'YOUR_AI_EMOTION_API_KEY';
 
   // Google Gemini API 설정
-  static const String geminiApiKey = 'AIzaSyCSVr4J1ZPDad9rgUJSG1yD-6A0YdTqhAk';
+  static const String geminiApiKey = 'AIzaSyCvdVly3SYLq1-hILwzVKEcvV3XZxWfa0c';
 
   // Google Vision API 설정 (현재 미사용 - Gemini로 대체)
   static const String googleVisionApiKey =
-      'AIzaSyCSVr4J1ZPDad9rgUJSG1yD-6A0YdTqhAk';
+      'AIzaSyCvdVly3SYLq1-hILwzVKEcvV3XZxWfa0c';
 
   // OpenAI API 설정 (선택)
   static const String openAiApiKey = 'YOUR_OPENAI_API_KEY';
