@@ -37,7 +37,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('메신저', style: TextStyle(fontSize: 18.sp)),
+        title: Text('채팅', style: TextStyle(fontSize: 18.sp)),
         centerTitle: true,
         actions: [
           IconButton(
