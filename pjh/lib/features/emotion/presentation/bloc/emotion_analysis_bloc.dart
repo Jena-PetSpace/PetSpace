@@ -46,7 +46,7 @@ class EmotionAnalysisBloc extends Bloc<EmotionAnalysisEvent, EmotionAnalysisStat
     emit(EmotionAnalysisLoading());
 
     final result = await _analyzeEmotion(AnalyzeEmotionParams(
-      imagePath: event.imagePath,
+      imagePaths: event.imagePaths,
       petId: event.petId,
     ));
 

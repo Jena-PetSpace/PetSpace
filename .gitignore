@@ -25,5 +25,8 @@ build/
 .packages
 *.iml
 
+# API Keys & Secrets (절대 git에 커밋하지 마세요!)
+pjh/lib/config/secrets.dart
+
 # Supabase local
 supabase/.temp/

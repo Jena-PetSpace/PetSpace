@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -30,13 +31,15 @@ class EmotionAnalysisPage extends StatefulWidget {
 class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   final ImagePicker _picker = ImagePicker();
   Pet? _selectedPet;
-  String? _lastImagePath;
-  bool _analyzeWithoutPet = false; // 반려동물 없이 분석 옵션
+  bool _analyzeWithoutPet = false;
+
+  // 다중 이미지 경로 목록 (최대 5장)
+  final List<String> _imagePaths = [];
+  static const int _maxImages = 5;
 
   @override
   void initState() {
     super.initState();
-    // 사용자의 반려동물 목록 로드
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       context.read<PetBloc>().add(LoadUserPets());
@@ -46,7 +49,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 초기 반려동물 선택 (한 번만 실행)
     if (widget.initialPetId != null && _selectedPet == null) {
       final petState = context.read<PetBloc>().state;
       if (petState is PetLoaded) {
@@ -59,41 +61,40 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     if (widget.initialPetId != null) {
       try {
         final pet = pets.firstWhere((p) => p.id == widget.initialPetId);
-        setState(() {
-          _selectedPet = pet;
-        });
-      } catch (_) {
-        // 해당 ID의 반려동물이 없으면 무시
-      }
+        setState(() => _selectedPet = pet);
+      } catch (_) {}
     }
   }
+
+  bool get _canAnalyze =>
+      (_selectedPet != null || _analyzeWithoutPet) && _imagePaths.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         title: const Text('감정 분석'),
         centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
       ),
       body: BlocConsumer<EmotionAnalysisBloc, EmotionAnalysisState>(
         listener: (context, state) {
           if (state is EmotionAnalysisSuccess) {
-            // 분석 성공 시 결과 페이지로 이동
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => EmotionResultPage(
                   analysis: state.analysis,
-                  imagePath: _lastImagePath,
+                  imagePaths: List.from(_imagePaths),
                 ),
               ),
             );
           } else if (state is EmotionAnalysisError) {
-            // 에러 발생 시 재시도 옵션 제공
             _showErrorDialog(state.message);
           }
         },
         builder: (context, emotionState) {
-          // 로딩 중일 때 전체 화면 로딩 위젯 표시
           if (emotionState is EmotionAnalysisLoading) {
             return Center(
               child: Padding(
@@ -103,14 +104,11 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
             );
           }
 
-          // PetBloc의 상태를 가져와서 반려동물 목록 표시
           return BlocBuilder<PetBloc, PetState>(
             builder: (context, petState) {
               List<Pet> userPets = [];
-
               if (petState is PetLoaded) {
                 userPets = petState.pets;
-                // 초기 반려동물 선택 (PetLoaded 상태일 때)
                 if (widget.initialPetId != null && _selectedPet == null) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     _selectInitialPet(userPets);
@@ -118,73 +116,109 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 }
               }
 
-              return Padding(
-                padding: EdgeInsets.all(24.w),
+              return SingleChildScrollView(
+                padding: EdgeInsets.all(20.w),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 24.h),
-                    Text(
-                      '반려동물 사진을 촬영하거나 선택하여\nAI 감정 분석을 시작해보세요',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16.sp),
+                    SizedBox(height: 8.h),
+
+                    // 반려동물 선택
+                    _buildSectionCard(
+                      child: PetSelectionDropdown(
+                        pets: userPets,
+                        selectedPet: _selectedPet,
+                        onChanged: (Pet? pet) {
+                          setState(() {
+                            _selectedPet = pet;
+                            _analyzeWithoutPet = false;
+                          });
+                        },
+                        analyzeWithoutPet: _analyzeWithoutPet,
+                        onAnalyzeWithoutPetChanged: (bool value) {
+                          setState(() {
+                            _analyzeWithoutPet = value;
+                            if (value) _selectedPet = null;
+                          });
+                        },
+                      ),
                     ),
-                    SizedBox(height: 32.h),
-                    PetSelectionDropdown(
-                      pets: userPets,
-                      selectedPet: _selectedPet,
-                      onChanged: (Pet? pet) {
-                        setState(() {
-                          _selectedPet = pet;
-                          _analyzeWithoutPet = false;
-                        });
-                      },
-                      analyzeWithoutPet: _analyzeWithoutPet,
-                      onAnalyzeWithoutPetChanged: (bool value) {
-                        setState(() {
-                          _analyzeWithoutPet = value;
-                          if (value) {
-                            _selectedPet = null;
-                          }
-                        });
-                      },
-                    ),
-                    SizedBox(height: 32.h),
+
+                    SizedBox(height: 16.h),
+
+                    // 사진 섹션 헤더
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: (_selectedPet != null || _analyzeWithoutPet)
-                              ? () => _takePicture(ImageSource.camera)
-                              : null,
-                          icon: const Icon(Icons.camera),
-                          label: Text('카메라', style: TextStyle(fontSize: 14.sp)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.highlightColor,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 24.w,
-                              vertical: 12.h,
-                            ),
+                        Text(
+                          '사진 선택',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryTextColor,
                           ),
                         ),
-                        ElevatedButton.icon(
-                          onPressed: (_selectedPet != null || _analyzeWithoutPet)
-                              ? () => _takePicture(ImageSource.gallery)
-                              : null,
-                          icon: const Icon(Icons.photo_library),
-                          label: Text('갤러리', style: TextStyle(fontSize: 14.sp)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.accentColor,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 24.w,
-                              vertical: 12.h,
-                            ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          '${_imagePaths.length}/$_maxImages',
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: _imagePaths.length >= _maxImages
+                                ? Colors.orange
+                                : Colors.grey[500],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '여러 장일수록 더 정확해요',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: Colors.grey[500],
                           ),
                         ),
                       ],
                     ),
+                    SizedBox(height: 10.h),
+
+                    // 사진 그리드
+                    _buildImageGrid(),
+
+                    SizedBox(height: 8.h),
+
+                    // 사진 추가 버튼 (최대치 미만일 때만)
+                    if (_imagePaths.length < _maxImages)
+                      _buildAddPhotoButtons(),
+
+                    SizedBox(height: 24.h),
+
+                    // 분석 시작 버튼
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52.h,
+                      child: ElevatedButton.icon(
+                        onPressed: _canAnalyze ? _startAnalysis : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey.shade300,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.r),
+                          ),
+                          elevation: 0,
+                        ),
+                        icon: Icon(Icons.search_rounded, size: 20.w),
+                        label: Text(
+                          _imagePaths.isEmpty
+                              ? '사진을 선택해주세요'
+                              : '${_imagePaths.length}장 종합 분석 시작',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
                   ],
                 ),
               );
@@ -195,28 +229,216 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     );
   }
 
-  Future<void> _takePicture(ImageSource source) async {
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
+  // 사진 그리드 (선택된 사진들 + 빈 슬롯 힌트)
+  Widget _buildImageGrid() {
+    if (_imagePaths.isEmpty) {
+      return Container(
+        width: double.infinity,
+        height: 120.h,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(
+            color: Colors.grey.shade200,
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_photo_alternate_outlined,
+                size: 36.w, color: Colors.grey.shade400),
+            SizedBox(height: 8.h),
+            Text(
+              '카메라 또는 갤러리에서 사진을 추가하세요',
+              style:
+                  TextStyle(fontSize: 12.sp, color: Colors.grey.shade500),
+            ),
+          ],
+        ),
       );
-      if (!mounted) return;
+    }
 
-      if (image != null) {
-        setState(() {
-          _lastImagePath = image.path;
-        });
-
-        // 반려동물 없이 분석하는 경우 petId를 null로 전달
-        context.read<EmotionAnalysisBloc>().add(
-              AnalyzeEmotionRequested(
-                imagePath: image.path,
-                petId: _analyzeWithoutPet ? null : _selectedPet?.id,
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 8.w,
+        mainAxisSpacing: 8.w,
+        childAspectRatio: 1,
+      ),
+      itemCount: _imagePaths.length,
+      itemBuilder: (context, index) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10.r),
+              child: Image.file(
+                File(_imagePaths[index]),
+                fit: BoxFit.cover,
               ),
-            );
+            ),
+            // X 버튼
+            Positioned(
+              top: 4.h,
+              right: 4.w,
+              child: GestureDetector(
+                onTap: () => setState(() => _imagePaths.removeAt(index)),
+                child: Container(
+                  width: 22.w,
+                  height: 22.w,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.close, size: 14.w, color: Colors.white),
+                ),
+              ),
+            ),
+            // 첫 번째 사진 표시
+            if (index == 0)
+              Positioned(
+                bottom: 4.h,
+                left: 4.w,
+                child: Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                  child: Text(
+                    '대표',
+                    style:
+                        TextStyle(fontSize: 9.sp, color: Colors.white),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 사진 추가 버튼 (카메라 / 갤러리)
+  Widget _buildAddPhotoButtons() {
+    final enabled = _selectedPet != null || _analyzeWithoutPet;
+    return Row(
+      children: [
+        Expanded(
+          child: _buildAddButton(
+            icon: Icons.camera_alt_outlined,
+            label: '카메라',
+            color: AppTheme.highlightColor,
+            onTap: enabled ? () => _addPicture(ImageSource.camera) : null,
+          ),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: _buildAddButton(
+            icon: Icons.photo_library_outlined,
+            label: '갤러리',
+            color: AppTheme.accentColor,
+            onTap: enabled ? () => _addPicture(ImageSource.gallery) : null,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback? onTap,
+  }) {
+    final isEnabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52.h,
+        decoration: BoxDecoration(
+          color: isEnabled ? color.withValues(alpha: 0.1) : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isEnabled ? color.withValues(alpha: 0.4) : Colors.grey.shade200,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon,
+                size: 18.w,
+                color: isEnabled ? color : Colors.grey.shade400),
+            SizedBox(width: 6.w),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+                color: isEnabled ? color : Colors.grey.shade400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Future<void> _addPicture(ImageSource source) async {
+    try {
+      if (source == ImageSource.gallery) {
+        // 갤러리: 여러 장 한번에 선택
+        final remaining = _maxImages - _imagePaths.length;
+        final List<XFile> images = await _picker.pickMultiImage(
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 85,
+          limit: remaining,
+        );
+        if (!mounted) return;
+        if (images.isNotEmpty) {
+          setState(() {
+            for (final img in images) {
+              if (_imagePaths.length < _maxImages) {
+                _imagePaths.add(img.path);
+              }
+            }
+          });
+        }
+      } else {
+        // 카메라: 한 장씩
+        final XFile? image = await _picker.pickImage(
+          source: source,
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 85,
+        );
+        if (!mounted) return;
+        if (image != null) {
+          setState(() => _imagePaths.add(image.path));
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -224,6 +446,15 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         SnackBar(content: Text('이미지 선택 중 오류가 발생했습니다: $e')),
       );
     }
+  }
+
+  void _startAnalysis() {
+    context.read<EmotionAnalysisBloc>().add(
+          AnalyzeEmotionRequested(
+            imagePaths: List.from(_imagePaths),
+            petId: _analyzeWithoutPet ? null : _selectedPet?.id,
+          ),
+        );
   }
 
   void _showErrorDialog(String message) {
@@ -243,10 +474,9 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           children: [
             Text(message, style: TextStyle(fontSize: 14.sp)),
             SizedBox(height: 16.h),
-            Text(
-              '가능한 원인:',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
-            ),
+            Text('가능한 원인:',
+                style:
+                    TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp)),
             SizedBox(height: 8.h),
             Text('• 네트워크 연결 문제', style: TextStyle(fontSize: 14.sp)),
             Text('• 이미지가 너무 크거나 손상됨', style: TextStyle(fontSize: 14.sp)),
@@ -261,14 +491,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           ElevatedButton.icon(
             onPressed: () {
               Navigator.of(context).pop();
-              if (_lastImagePath != null && _selectedPet != null) {
-                // 재시도
-                context.read<EmotionAnalysisBloc>().add(
-                      AnalyzeEmotionRequested(
-                        imagePath: _lastImagePath!,
-                        petId: _selectedPet!.id,
-                      ),
-                    );
+              if (_imagePaths.isNotEmpty && _canAnalyze) {
+                _startAnalysis();
               }
             },
             icon: const Icon(Icons.refresh),

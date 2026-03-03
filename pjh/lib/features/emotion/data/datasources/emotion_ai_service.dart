@@ -5,6 +5,7 @@ import '../services/gemini_ai_service.dart';
 
 abstract class EmotionAIService {
   Future<EmotionScoresModel> analyzeEmotionFromImage(File imageFile);
+  Future<EmotionScoresModel> analyzeEmotionFromImages(List<File> imageFiles);
 }
 
 class EmotionAIServiceImpl implements EmotionAIService {
@@ -17,5 +18,10 @@ class EmotionAIServiceImpl implements EmotionAIService {
   @override
   Future<EmotionScoresModel> analyzeEmotionFromImage(File imageFile) async {
     return await _geminiService.analyzeEmotionFromImage(imageFile);
+  }
+
+  @override
+  Future<EmotionScoresModel> analyzeEmotionFromImages(List<File> imageFiles) async {
+    return await _geminiService.analyzeEmotionFromImages(imageFiles);
   }
 }

@@ -11,12 +11,12 @@ import '../widgets/emotion_radar_chart.dart';
 
 class EmotionResultPage extends StatefulWidget {
   final EmotionAnalysis analysis;
-  final String? imagePath;
+  final List<String> imagePaths;
 
   const EmotionResultPage({
     super.key,
     required this.analysis,
-    this.imagePath,
+    this.imagePaths = const [],
   });
 
   @override
@@ -225,16 +225,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
             padding: EdgeInsets.all(16.w),
             child: Row(
               children: [
-                if (widget.imagePath != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12.r),
-                    child: Image.file(
-                      File(widget.imagePath!),
-                      width: 88.w,
-                      height: 88.w,
-                      fit: BoxFit.cover,
-                    ),
-                  )
+                if (widget.imagePaths.isNotEmpty)
+                  _buildImageThumbnails()
                 else
                   Container(
                     width: 88.w,
@@ -450,6 +442,56 @@ class _EmotionResultPageState extends State<EmotionResultPage>
             child: EmotionRadarChart(
               emotions: widget.analysis.emotions,
               size: 180.w,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 다중 사진 썸네일 ──
+  Widget _buildImageThumbnails() {
+    final paths = widget.imagePaths;
+    if (paths.length == 1) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12.r),
+        child: Image.file(
+          File(paths.first),
+          width: 88.w,
+          height: 88.w,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    // 2장 이상: 첫 번째 큰 썸네일 + 나머지 작은 썸네일 스택
+    return SizedBox(
+      width: 88.w,
+      height: 88.w,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12.r),
+            child: Image.file(
+              File(paths.first),
+              width: 88.w,
+              height: 88.w,
+              fit: BoxFit.cover,
+            ),
+          ),
+          // 장수 뱃지
+          Positioned(
+            bottom: 4.h,
+            right: 4.w,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(6.r),
+              ),
+              child: Text(
+                '${paths.length}장',
+                style: TextStyle(fontSize: 9.sp, color: Colors.white),
+              ),
             ),
           ),
         ],
@@ -688,9 +730,9 @@ $emoji 펫페이스 AI 감정 분석 결과
 #펫페이스 #반려동물감정분석 #AI감정분석
 ''';
 
-      if (widget.imagePath != null) {
+      if (widget.imagePaths.isNotEmpty) {
         await Share.shareXFiles(
-          [XFile(widget.imagePath!)],
+          [XFile(widget.imagePaths.first)],
           text: text,
           subject: '반려동물 AI 감정 분석 결과',
         );

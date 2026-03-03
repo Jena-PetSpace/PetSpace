@@ -11,7 +11,7 @@ class GeminiAIService {
 
   GeminiAIService({Dio? dio}) : _dio = dio ?? Dio() {
     _dio.options.connectTimeout = const Duration(seconds: 30);
-    _dio.options.receiveTimeout = const Duration(seconds: 60);
+    _dio.options.receiveTimeout = const Duration(seconds: 120);
   }
 
   Future<EmotionScoresModel> analyzeEmotionFromImage(File imageFile) async {
@@ -215,6 +215,182 @@ class GeminiAIService {
       if (e is ImageException || e is AnalysisException) {
         rethrow;
       }
+      throw AnalysisException('감정 분석 중 오류가 발생했습니다: ${e.toString()}');
+    }
+  }
+
+  /// 여러 이미지를 한 번의 Gemini API 호출로 종합 분석
+  Future<EmotionScoresModel> analyzeEmotionFromImages(List<File> imageFiles) async {
+    if (!ApiConfig.isGeminiConfigured) {
+      throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
+    }
+    if (imageFiles.isEmpty) {
+      throw const AnalysisException('분석할 이미지가 없습니다.');
+    }
+
+    // 이미지가 1장이면 기존 단일 메서드 사용
+    if (imageFiles.length == 1) {
+      return analyzeEmotionFromImage(imageFiles.first);
+    }
+
+    try {
+      print('[GeminiAI] 다중 이미지 분석 시작 (${imageFiles.length}장)');
+
+      // parts 리스트 구성: 텍스트 프롬프트 + 이미지들
+      final parts = <Map<String, dynamic>>[];
+
+      // 텍스트 프롬프트 (첫 번째 part)
+      parts.add({
+        "text": """
+아래 ${imageFiles.length}장의 사진은 모두 같은 반려동물(강아지 또는 고양이)입니다.
+모든 사진을 종합적으로 보고 전반적인 감정 상태를 분석해주세요.
+
+다음 5가지 감정에 대해 0.0~1.0 사이의 점수를 부여해주세요 (모든 값의 합은 1.0이 되어야 합니다):
+
+1. happiness (행복함): 꼬리를 흔들거나, 입을 벌리고 있거나, 편안한 표정
+2. sadness (슬픔): 귀가 처져있거나, 눈이 처져있거나, 우울한 표정
+3. anxiety (불안): 경계하는 모습이나, 긴장된 자세, 스트레스를 받는 모습
+4. sleepiness (졸림): 눈이 감기거나, 휴식 자세, 나른한 모습
+5. curiosity (호기심): 귀가 세워져 있거나, 집중하는 모습, 탐색하는 자세
+
+응답은 반드시 다음 JSON 형식으로만 응답해주세요:
+{
+  "happiness": 0.3,
+  "sadness": 0.1,
+  "anxiety": 0.2,
+  "sleepiness": 0.1,
+  "curiosity": 0.3
+}
+
+동물이 보이지 않거나 명확하지 않은 경우에는 균등하게 분배해주세요 (각각 0.2).
+"""
+      });
+
+      // 이미지들을 parts에 추가
+      for (final imageFile in imageFiles) {
+        if (!await imageFile.exists()) continue;
+        final fileSize = await imageFile.length();
+        if (fileSize > 20 * 1024 * 1024) continue;
+
+        final bytes = await imageFile.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        final extension = imageFile.path.toLowerCase().split('.').last;
+        String mimeType;
+        switch (extension) {
+          case 'jpg':
+          case 'jpeg':
+            mimeType = 'image/jpeg';
+            break;
+          case 'png':
+            mimeType = 'image/png';
+            break;
+          case 'webp':
+            mimeType = 'image/webp';
+            break;
+          default:
+            mimeType = 'image/jpeg';
+        }
+
+        parts.add({
+          "inline_data": {"mime_type": mimeType, "data": base64Image}
+        });
+        print('[GeminiAI] 이미지 추가: ${(fileSize / 1024).toStringAsFixed(1)} KB');
+      }
+
+      if (parts.length < 2) {
+        throw const AnalysisException('유효한 이미지가 없습니다.');
+      }
+
+      final requestData = {
+        "contents": [
+          {
+            "role": "user",
+            "parts": parts,
+          }
+        ],
+        "generationConfig": {
+          "temperature": 0.4,
+          "topK": 32,
+          "topP": 1,
+          "maxOutputTokens": 4096,
+        },
+        "safetySettings": [
+          {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+          {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+          {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+          {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+        ]
+      };
+
+      final response = await _dio.post(
+        '$_baseUrl?key=${ApiConfig.geminiApiKey}',
+        data: requestData,
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+
+      print('[GeminiAI] 다중 이미지 응답: ${response.statusCode}');
+
+      if (response.statusCode != 200) {
+        throw AnalysisException('Gemini API 호출 실패: ${response.statusCode}');
+      }
+
+      final responseData = response.data;
+      if (responseData['candidates'] == null ||
+          responseData['candidates'].isEmpty ||
+          responseData['candidates'][0]['content'] == null ||
+          responseData['candidates'][0]['content']['parts'] == null ||
+          responseData['candidates'][0]['content']['parts'].isEmpty) {
+        throw const AnalysisException('Gemini API 응답이 비어있습니다.');
+      }
+
+      final textContent = responseData['candidates'][0]['content']['parts'][0]['text'] as String;
+      print('[GeminiAI] 응답 텍스트: $textContent');
+
+      final jsonMatch = RegExp(r'\{[^}]*\}').firstMatch(textContent);
+      if (jsonMatch == null) {
+        throw const AnalysisException('응답에서 JSON을 찾을 수 없습니다.');
+      }
+
+      final emotionData = jsonDecode(jsonMatch.group(0)!) as Map<String, dynamic>;
+
+      double happiness  = _parseDouble(emotionData['happiness'],  0.2);
+      double sadness    = _parseDouble(emotionData['sadness'],    0.2);
+      double anxiety    = _parseDouble(emotionData['anxiety'],    0.2);
+      double sleepiness = _parseDouble(emotionData['sleepiness'], 0.2);
+      double curiosity  = _parseDouble(emotionData['curiosity'],  0.2);
+
+      final total = happiness + sadness + anxiety + sleepiness + curiosity;
+      if (total > 0) {
+        happiness  /= total;
+        sadness    /= total;
+        anxiety    /= total;
+        sleepiness /= total;
+        curiosity  /= total;
+      }
+
+      print('[GeminiAI] 종합 분석 완료 - happiness: ${happiness.toStringAsFixed(2)}');
+
+      return EmotionScoresModel(
+        happiness: happiness,
+        sadness: sadness,
+        anxiety: anxiety,
+        sleepiness: sleepiness,
+        curiosity: curiosity,
+      );
+    } on DioException catch (e) {
+      print('[GeminiAI] DioException: ${e.type} - ${e.message}');
+      if (e.response?.statusCode == 401) {
+        throw const AnalysisException('API 키가 유효하지 않습니다.');
+      } else if (e.response?.statusCode == 429) {
+        throw const AnalysisException('API 사용량 한도를 초과했습니다.');
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        throw const AnalysisException('연결 시간이 초과되었습니다.');
+      } else if (e.type == DioExceptionType.receiveTimeout) {
+        throw const AnalysisException('응답 시간이 초과되었습니다.');
+      }
+      throw AnalysisException('네트워크 오류가 발생했습니다: ${e.message}');
+    } catch (e) {
+      if (e is AnalysisException) rethrow;
       throw AnalysisException('감정 분석 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
