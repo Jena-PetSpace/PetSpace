@@ -8,7 +8,7 @@ import '../../../pets/domain/entities/pet.dart';
 abstract class EmotionRepository {
   // 감정 분석
   Future<Either<Failure, EmotionAnalysis>> analyzeEmotion({
-    required String imagePath,
+    required List<String> imagePaths,
     String? petId,
   });
 

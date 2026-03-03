@@ -8,16 +8,16 @@ abstract class EmotionAnalysisEvent extends Equatable {
 }
 
 class AnalyzeEmotionRequested extends EmotionAnalysisEvent {
-  final String imagePath;
+  final List<String> imagePaths;
   final String? petId;
 
   const AnalyzeEmotionRequested({
-    required this.imagePath,
+    required this.imagePaths,
     this.petId,
   });
 
   @override
-  List<Object?> get props => [imagePath, petId];
+  List<Object?> get props => [imagePaths, petId];
 }
 
 class SaveAnalysisRequested extends EmotionAnalysisEvent {

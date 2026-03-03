@@ -1,14 +1,15 @@
+import 'secrets.dart';
+
 class ApiConfig {
   // AI 감정분석 API 설정
   static const String emotionApiEndpoint = 'YOUR_AI_EMOTION_API_ENDPOINT';
   static const String emotionApiKey = 'YOUR_AI_EMOTION_API_KEY';
 
-  // Google Gemini API 설정
-  static const String geminiApiKey = 'AIzaSyCvdVly3SYLq1-hILwzVKEcvV3XZxWfa0c';
+  // Google Gemini API 설정 (secrets.dart에서 로드)
+  static String get geminiApiKey => Secrets.geminiApiKey;
 
   // Google Vision API 설정 (현재 미사용 - Gemini로 대체)
-  static const String googleVisionApiKey =
-      'AIzaSyCvdVly3SYLq1-hILwzVKEcvV3XZxWfa0c';
+  static String get googleVisionApiKey => Secrets.geminiApiKey;
 
   // OpenAI API 설정 (선택)
   static const String openAiApiKey = 'YOUR_OPENAI_API_KEY';
@@ -18,17 +19,18 @@ class ApiConfig {
   static const String awsSecretKey = 'YOUR_AWS_SECRET_KEY';
   static const String awsRegion = 'YOUR_AWS_REGION';
 
-  // 소셜 로그인 설정
-  static const String googleClientId =
-      '295912994007-8cis4t1rgt00lkhklrsrcbh391gaae3c.apps.googleusercontent.com';
-  static const String kakaoAppKey = 'c9e18a9067b1d5b615849d787d7ef05b';
+  // 소셜 로그인 설정 (secrets.dart에서 로드)
+  static String get googleClientId => Secrets.googleClientId;
+  static String get kakaoAppKey => Secrets.kakaoAppKey;
 
   // API 설정 확인 메서드
   static bool get isEmotionApiConfigured =>
       emotionApiEndpoint != 'YOUR_AI_EMOTION_API_ENDPOINT' &&
       emotionApiKey != 'YOUR_AI_EMOTION_API_KEY';
 
-  static bool get isGeminiConfigured => geminiApiKey != 'YOUR_GEMINI_API_KEY';
+  static bool get isGeminiConfigured =>
+      geminiApiKey != 'YOUR_GEMINI_API_KEY_HERE' &&
+      geminiApiKey.isNotEmpty;
 
   static bool get isGoogleVisionConfigured =>
       googleVisionApiKey != 'YOUR_GOOGLE_VISION_API_KEY';
@@ -69,19 +71,18 @@ class ApiConfig {
 
 현재 데모 모드로 실행 중입니다. 실제 기능을 사용하려면 다음 API 키들을 설정하세요:
 
-1. 감정분석 API:
-   - emotionApiEndpoint: AI 감정분석 서버 엔드포인트
-   - emotionApiKey: API 인증 키
+1. lib/config/secrets.dart 파일에서 API 키 설정:
+   - geminiApiKey: Google AI Studio에서 발급
+     https://aistudio.google.com/apikey
 
 2. 소셜 로그인:
    - googleClientId: Google OAuth 클라이언트 ID
    - kakaoAppKey: Kakao 개발자 앱 키
 
 3. 선택사항:
-   - Google Vision API: 얼굴 감정 인식
    - OpenAI API: GPT 기반 감정 분석
    - AWS Rekognition: AWS 감정 분석
 
-설정 파일: lib/config/api_config.dart
+⚠️  secrets.dart는 .gitignore에 등록되어 있어 git에 커밋되지 않습니다.
 ''';
 }

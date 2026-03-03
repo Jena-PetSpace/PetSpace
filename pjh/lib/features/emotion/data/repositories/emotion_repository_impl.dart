@@ -26,7 +26,7 @@ class EmotionRepositoryImpl implements EmotionRepository {
 
   @override
   Future<Either<Failure, EmotionAnalysis>> analyzeEmotion({
-    required String imagePath,
+    required List<String> imagePaths,
     String? petId,
   }) async {
     if (!await networkInfo.isConnected) {
@@ -39,28 +39,29 @@ class EmotionRepositoryImpl implements EmotionRepository {
         return const Left(AuthFailure(message: '로그인이 필요합니다.'));
       }
 
-      final imageFile = File(imagePath);
+      // 이미지 전처리 (모든 이미지)
+      final processedImages = <File>[];
+      for (final path in imagePaths) {
+        final processed = await imageService.processImage(File(path));
+        processedImages.add(processed);
+      }
 
-      // 이미지 처리
-      final processedImage = await imageService.processImage(imageFile);
-
-      // AI 감정 분석
+      // AI 감정 분석 (여러 이미지를 한 번의 API 호출로)
       final emotionScores =
-          await aiService.analyzeEmotionFromImage(processedImage);
+          await aiService.analyzeEmotionFromImages(processedImages);
 
-      // 이미지를 Supabase Storage에 업로드
-      final imageUrl = await uploadImage(processedImage, 'emotions/${user.id}');
+      // 대표 이미지(첫 번째)를 Supabase Storage에 업로드
+      final imageUrl =
+          await uploadImage(processedImages.first, 'emotions/${user.id}');
       final localImagePath = await imageService.saveImageToLocal(
-        processedImage,
+        processedImages.first,
         'emotion_${DateTime.now().millisecondsSinceEpoch}.jpg',
       );
 
-      // 신뢰도 계산 (감정 점수의 분산을 이용)
       final confidence = _calculateConfidence(emotionScores);
 
-      // 분석 결과 생성
       final analysis = EmotionAnalysisModel(
-        id: '', // Supabase에서 자동 생성
+        id: '',
         userId: user.id,
         petId: petId,
         imageUrl: imageUrl.fold((l) => '', (r) => r),
