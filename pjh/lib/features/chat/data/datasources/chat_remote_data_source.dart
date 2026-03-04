@@ -59,21 +59,22 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         ''')
         .order('last_message_at', ascending: false, nullsFirst: false);
 
-    final rooms = <ChatRoomModel>[];
-    for (final json in response as List) {
-      final roomData = json as Map<String, dynamic>;
+    final roomDataList = (response as List).cast<Map<String, dynamic>>();
 
-      // 안읽은 메시지 수 조회
-      final unreadCount = await supabaseClient
+    // 모든 채팅방의 안읽은 메시지 수를 병렬로 조회 (N+1 → 1+N 병렬)
+    final unreadCounts = await Future.wait(
+      roomDataList.map((roomData) => supabaseClient
           .rpc('get_room_unread_count', params: {
-        'p_room_id': roomData['id'],
-        'p_user_id': userId,
-      });
+            'p_room_id': roomData['id'],
+            'p_user_id': userId,
+          })
+          .then((v) => v as int? ?? 0)),
+    );
 
-      rooms.add(ChatRoomModel.fromJson(roomData, unreadCount: unreadCount as int? ?? 0));
-    }
-
-    return rooms;
+    return [
+      for (var i = 0; i < roomDataList.length; i++)
+        ChatRoomModel.fromJson(roomDataList[i], unreadCount: unreadCounts[i]),
+    ];
   }
 
   @override
