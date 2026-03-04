@@ -10,23 +10,28 @@ abstract class EmotionAnalysisEvent extends Equatable {
 class AnalyzeEmotionRequested extends EmotionAnalysisEvent {
   final List<String> imagePaths;
   final String? petId;
+  final String? petType;
+  final String? breed;
 
   const AnalyzeEmotionRequested({
     required this.imagePaths,
     this.petId,
+    this.petType,
+    this.breed,
   });
 
   @override
-  List<Object?> get props => [imagePaths, petId];
+  List<Object?> get props => [imagePaths, petId, petType, breed];
 }
 
 class SaveAnalysisRequested extends EmotionAnalysisEvent {
   final String? memo;
+  final List<String> tags;
 
-  const SaveAnalysisRequested({this.memo});
+  const SaveAnalysisRequested({this.memo, this.tags = const []});
 
   @override
-  List<Object?> get props => [memo];
+  List<Object?> get props => [memo, tags];
 }
 
 class LoadAnalysisHistory extends EmotionAnalysisEvent {

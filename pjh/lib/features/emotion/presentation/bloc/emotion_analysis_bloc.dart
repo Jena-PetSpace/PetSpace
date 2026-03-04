@@ -48,6 +48,8 @@ class EmotionAnalysisBloc extends Bloc<EmotionAnalysisEvent, EmotionAnalysisStat
     final result = await _analyzeEmotion(AnalyzeEmotionParams(
       imagePaths: event.imagePaths,
       petId: event.petId,
+      petType: event.petType,
+      breed: event.breed,
     ));
 
     result.fold(
@@ -65,9 +67,13 @@ class EmotionAnalysisBloc extends Bloc<EmotionAnalysisEvent, EmotionAnalysisStat
     final currentState = state as EmotionAnalysisSuccess;
     emit(EmotionAnalysisSaving(currentState.analysis));
 
-    final updatedAnalysis = event.memo != null
-        ? currentState.analysis.copyWith(memo: event.memo)
-        : currentState.analysis;
+    var updatedAnalysis = currentState.analysis;
+    if (event.memo != null) {
+      updatedAnalysis = updatedAnalysis.copyWith(memo: event.memo);
+    }
+    if (event.tags.isNotEmpty) {
+      updatedAnalysis = updatedAnalysis.copyWith(tags: event.tags);
+    }
 
     final result = await _saveEmotionAnalysis(SaveEmotionAnalysisParams(
       analysis: updatedAnalysis,

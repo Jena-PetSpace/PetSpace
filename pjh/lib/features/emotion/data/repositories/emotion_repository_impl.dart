@@ -28,6 +28,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
   Future<Either<Failure, EmotionAnalysis>> analyzeEmotion({
     required List<String> imagePaths,
     String? petId,
+    String? petType,
+    String? breed,
   }) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
@@ -47,8 +49,11 @@ class EmotionRepositoryImpl implements EmotionRepository {
       }
 
       // AI 감정 분석 (여러 이미지를 한 번의 API 호출로)
-      final emotionScores =
-          await aiService.analyzeEmotionFromImages(processedImages);
+      final emotionScores = await aiService.analyzeEmotionFromImages(
+        processedImages,
+        petType: petType,
+        breed: breed,
+      );
 
       // 대표 이미지(첫 번째)를 Supabase Storage에 업로드
       final imageUrl =
@@ -487,6 +492,26 @@ class EmotionRepositoryImpl implements EmotionRepository {
           ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
     );
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> getBreedAverage({
+    required String breed,
+    int days = 30,
+  }) async {
+    try {
+      final response = await supabaseClient.rpc(
+        'get_breed_average',
+        params: {'p_breed': breed, 'p_days': days},
+      );
+      if (response == null) {
+        return const Right({'count': 0});
+      }
+      return Right(Map<String, dynamic>.from(response as Map));
+    } catch (e) {
+      // RPC가 없거나 에러 → 빈 데이터 반환
+      return const Right({'count': 0});
+    }
   }
 
   PetType _parseType(String? value) {

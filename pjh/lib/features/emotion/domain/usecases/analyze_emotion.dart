@@ -18,6 +18,8 @@ class AnalyzeEmotion implements UseCase<EmotionAnalysis, AnalyzeEmotionParams> {
     return await repository.analyzeEmotion(
       imagePaths: params.imagePaths,
       petId: params.petId,
+      petType: params.petType,
+      breed: params.breed,
     );
   }
 }
@@ -25,12 +27,16 @@ class AnalyzeEmotion implements UseCase<EmotionAnalysis, AnalyzeEmotionParams> {
 class AnalyzeEmotionParams extends Equatable {
   final List<String> imagePaths;
   final String? petId;
+  final String? petType;
+  final String? breed;
 
   const AnalyzeEmotionParams({
     required this.imagePaths,
     this.petId,
+    this.petType,
+    this.breed,
   });
 
   @override
-  List<Object?> get props => [imagePaths, petId];
+  List<Object?> get props => [imagePaths, petId, petType, breed];
 }

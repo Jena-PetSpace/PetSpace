@@ -28,10 +28,28 @@ class EmotionAnalysisPage extends StatefulWidget {
   State<EmotionAnalysisPage> createState() => _EmotionAnalysisPageState();
 }
 
+// 품종 데이터
+const Map<String, List<String>> _breedsByType = {
+  'dog': [
+    '골든 리트리버', '래브라도 리트리버', '비글', '시바견', '진돗개',
+    '포메라니안', '말티즈', '푸들', '치와와', '요크셔테리어',
+    '시츄', '웰시코기', '보더콜리', '허스키', '사모예드', '기타',
+  ],
+  'cat': [
+    '코리안 숏헤어', '페르시안', '러시안 블루', '브리티시 숏헤어',
+    '스코티시 폴드', '아메리칸 숏헤어', '샴', '뱅갈',
+    '메인쿤', '노르웨이 숲', '랙돌', '터키시 앙고라', '기타',
+  ],
+};
+
 class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   final ImagePicker _picker = ImagePicker();
   Pet? _selectedPet;
   bool _analyzeWithoutPet = false;
+
+  // 수동 종/품종 선택 (반려동물 미선택 시)
+  String? _manualPetType; // 'dog' or 'cat'
+  String? _manualBreed;
 
   // 다중 이미지 경로 목록 (최대 5장)
   final List<String> _imagePaths = [];
@@ -138,11 +156,21 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                         onAnalyzeWithoutPetChanged: (bool value) {
                           setState(() {
                             _analyzeWithoutPet = value;
-                            if (value) _selectedPet = null;
+                            if (value) {
+                              _selectedPet = null;
+                              _manualPetType = null;
+                              _manualBreed = null;
+                            }
                           });
                         },
                       ),
                     ),
+
+                    // 수동 종/품종 선택 (반려동물 미선택 시)
+                    if (_analyzeWithoutPet) ...[
+                      SizedBox(height: 12.h),
+                      _buildSectionCard(child: _buildManualBreedSelector()),
+                    ],
 
                     SizedBox(height: 16.h),
 
@@ -387,6 +415,96 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     );
   }
 
+  Widget _buildManualBreedSelector() {
+    final breeds = _manualPetType != null
+        ? _breedsByType[_manualPetType] ?? []
+        : <String>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '종류 선택 (선택사항)',
+          style: TextStyle(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.secondaryTextColor,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          children: [
+            _buildTypeChip('dog', '강아지'),
+            SizedBox(width: 8.w),
+            _buildTypeChip('cat', '고양이'),
+          ],
+        ),
+        if (_manualPetType != null && breeds.isNotEmpty) ...[
+          SizedBox(height: 12.h),
+          DropdownButtonFormField<String>(
+            initialValue: _manualBreed,
+            decoration: InputDecoration(
+              labelText: '품종',
+              labelStyle: TextStyle(fontSize: 13.sp),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12.w,
+                vertical: 10.h,
+              ),
+              isDense: true,
+            ),
+            items: breeds
+                .map((b) => DropdownMenuItem(value: b, child: Text(b, style: TextStyle(fontSize: 13.sp))))
+                .toList(),
+            onChanged: (value) => setState(() => _manualBreed = value),
+          ),
+        ],
+        SizedBox(height: 4.h),
+        Text(
+          '품종을 선택하면 더 정확한 분석이 가능해요',
+          style: TextStyle(fontSize: 11.sp, color: Colors.grey[500]),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeChip(String type, String label) {
+    final isSelected = _manualPetType == type;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _manualPetType = type;
+          _manualBreed = null;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryColor.withValues(alpha: 0.1)
+              : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primaryColor
+                : Colors.grey.shade300,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13.sp,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? AppTheme.primaryColor : Colors.grey[600],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionCard({required Widget child}) {
     return Container(
       width: double.infinity,
@@ -449,10 +567,23 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   }
 
   void _startAnalysis() {
+    // 반려동물 선택 시 자동으로 petType/breed 추출
+    String? petType;
+    String? breed;
+    if (_selectedPet != null) {
+      petType = _selectedPet!.type.name; // 'dog' or 'cat'
+      breed = _selectedPet!.breed;
+    } else if (_analyzeWithoutPet) {
+      petType = _manualPetType;
+      breed = _manualBreed;
+    }
+
     context.read<EmotionAnalysisBloc>().add(
           AnalyzeEmotionRequested(
             imagePaths: List.from(_imagePaths),
             petId: _analyzeWithoutPet ? null : _selectedPet?.id,
+            petType: petType,
+            breed: breed,
           ),
         );
   }

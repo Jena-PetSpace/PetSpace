@@ -162,25 +162,56 @@ class AuthRepositoryImpl implements AuthRepository {
       log('🔵 [Kakao Login] 카카오 사용자 정보 - email: $kakaoEmail, id: $kakaoId, nickname: ${kakaoUser.kakaoAccount?.profile?.nickname}', name: 'AuthRepository');
 
       // 카카오 ID + 시크릿 솔트로 비밀번호 생성 (소스코드만으로 유추 불가)
-      final password = 'kakao_${kakaoId}_${Secrets.kakaoPasswordSalt}';
+      final newPassword = 'kakao_${kakaoId}_${Secrets.kakaoPasswordSalt}';
+      // 기존 비밀번호 패턴 (마이그레이션용)
+      final legacyPassword = 'kakao_user_${kakaoId}_secure_password';
 
       // 4. Supabase에서 사용자 확인 또는 생성
       User? supabaseUser;
       String debugLog = '';
 
-      // Step 1: 먼저 로그인 시도
+      // Step 1: 새 비밀번호로 로그인 시도
       try {
-        debugLog += '1.signIn시도→';
+        debugLog += '1.signIn(new)→';
         final authResult = await supabaseClient.auth.signInWithPassword(
           email: kakaoEmail,
-          password: password,
+          password: newPassword,
         );
         supabaseUser = authResult.user;
         debugLog += '성공!';
-        log('✅ [Kakao Login] 기존 사용자 로그인 성공: ${supabaseUser?.id}', name: 'AuthRepository');
+        log('✅ [Kakao Login] 새 비밀번호로 로그인 성공: ${supabaseUser?.id}', name: 'AuthRepository');
       } on AuthException catch (e) {
-        debugLog += '실패(${e.message})→';
-        log('⚠️ [Kakao Login] signIn 실패: ${e.message}', name: 'AuthRepository');
+        debugLog += '실패→';
+        log('⚠️ [Kakao Login] 새 비밀번호 signIn 실패: ${e.message}', name: 'AuthRepository');
+      }
+
+      // Step 1-b: 새 비밀번호 실패 시 기존 비밀번호로 시도 (마이그레이션)
+      if (supabaseUser == null) {
+        try {
+          debugLog += '1b.signIn(legacy)→';
+          final authResult = await supabaseClient.auth.signInWithPassword(
+            email: kakaoEmail,
+            password: legacyPassword,
+          );
+          supabaseUser = authResult.user;
+          debugLog += '성공→';
+          log('✅ [Kakao Login] 기존 비밀번호로 로그인 성공 (마이그레이션 필요): ${supabaseUser?.id}', name: 'AuthRepository');
+
+          // 기존 비밀번호로 로그인 성공 → 새 비밀번호로 업데이트
+          try {
+            await supabaseClient.auth.updateUser(
+              UserAttributes(password: newPassword),
+            );
+            log('✅ [Kakao Login] 비밀번호 마이그레이션 완료', name: 'AuthRepository');
+            debugLog += '비밀번호갱신성공→';
+          } catch (updateError) {
+            log('⚠️ [Kakao Login] 비밀번호 갱신 실패 (다음 로그인 시 재시도): $updateError', name: 'AuthRepository');
+            debugLog += '비밀번호갱신실패→';
+          }
+        } on AuthException catch (e) {
+          debugLog += '실패(${e.message})→';
+          log('⚠️ [Kakao Login] 기존 비밀번호 signIn도 실패: ${e.message}', name: 'AuthRepository');
+        }
       }
 
       // Step 2: 로그인 실패 시 회원가입 시도
@@ -189,7 +220,7 @@ class AuthRepositoryImpl implements AuthRepository {
           debugLog += '2.signUp시도→';
           final signUpResult = await supabaseClient.auth.signUp(
             email: kakaoEmail,
-            password: password,
+            password: newPassword,
             data: {
               'display_name': kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
               'photo_url': kakaoUser.kakaoAccount?.profile?.profileImageUrl,
@@ -226,7 +257,7 @@ class AuthRepositoryImpl implements AuthRepository {
         try {
           final retryResult = await supabaseClient.auth.signInWithPassword(
             email: kakaoEmail,
-            password: password,
+            password: newPassword,
           );
           supabaseUser = retryResult.user;
           debugLog += '성공!';
