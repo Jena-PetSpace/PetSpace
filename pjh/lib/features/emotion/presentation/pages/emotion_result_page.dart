@@ -5,7 +5,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../config/injection_container.dart';
 import '../../domain/entities/emotion_analysis.dart';
+import '../../domain/repositories/emotion_repository.dart';
+import '../../data/services/emotion_insights_service.dart';
+import '../../data/services/emotion_diary_service.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/emotion_radar_chart.dart';
 
@@ -29,6 +33,30 @@ class _EmotionResultPageState extends State<EmotionResultPage>
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
+  // 더보기 모드: none / radar / facial
+  _ChartMode _chartMode = _ChartMode.none;
+
+  // A-5: 이전 분석 비교
+  EmotionAnalysis? _previousAnalysis;
+  bool _historyLoaded = false;
+
+  // B그룹: 히스토리 기반
+  EmotionInsights _insights = EmotionInsights.empty;
+  List<EmotionAnalysis> _fullHistory = [];
+
+  // B-4: AI 일기
+  String? _diaryText;
+  bool _diaryLoading = false;
+
+  // C-1: 멀티펫 비교
+  List<EmotionAnalysis> _otherPetAnalyses = [];
+
+  // C-2: 커뮤니티 벤치마크
+  Map<String, dynamic>? _breedAverage;
+
+  // 스트레스 더보기
+  bool _showStressDetail = false;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +66,130 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
+    _loadPreviousAnalysis();
+    _loadMultiPetData();
+    _loadBreedAverage();
+  }
+
+  Future<void> _loadPreviousAnalysis() async {
+    if (widget.analysis.petId == null) {
+      // 펫 없이 분석해도 현재 분석은 히스토리에 포함
+      _fullHistory = [widget.analysis];
+      setState(() => _historyLoaded = true);
+      return;
+    }
+    try {
+      final repo = sl<EmotionRepository>();
+      // 히스토리를 더 많이 가져와서 B그룹 인사이트에도 활용
+      final result = await repo.getAnalysisHistory(
+        userId: widget.analysis.userId,
+        petId: widget.analysis.petId,
+        limit: 20,
+      );
+      result.fold(
+        (_) {
+          // 실패해도 현재 분석은 포함
+          _fullHistory = [widget.analysis];
+        },
+        (history) {
+          // 현재 분석이 히스토리에 아직 없으면 추가
+          final hasCurrentAnalysis = history.any((a) => a.id == widget.analysis.id);
+          if (!hasCurrentAnalysis) {
+            _fullHistory = [widget.analysis, ...history];
+          } else {
+            _fullHistory = history;
+          }
+          // A-5: 이전 분석 찾기
+          final prev = _fullHistory.where((a) => a.id != widget.analysis.id).toList();
+          if (prev.isNotEmpty) {
+            _previousAnalysis = prev.first;
+          }
+          // B-1, B-3: 인사이트 계산
+          if (_fullHistory.length >= 3) {
+            final service = EmotionInsightsService();
+            _insights = service.calculate(_fullHistory);
+          }
+        },
+      );
+    } catch (_) {
+      _fullHistory = [widget.analysis];
+    }
+    if (mounted) setState(() => _historyLoaded = true);
+  }
+
+  Future<void> _loadMultiPetData() async {
+    try {
+      final repo = sl<EmotionRepository>();
+      // 같은 유저의 모든 펫 히스토리에서 최근 1건씩
+      final result = await repo.getAnalysisHistory(
+        userId: widget.analysis.userId,
+        limit: 50,
+      );
+      result.fold((_) {}, (history) {
+        // 다른 펫들의 최근 분석만 추출
+        final seen = <String>{};
+        final others = <EmotionAnalysis>[];
+        for (final a in history) {
+          if (a.petId != null &&
+              a.petId != widget.analysis.petId &&
+              !seen.contains(a.petId)) {
+            seen.add(a.petId!);
+            others.add(a);
+          }
+        }
+        if (mounted && others.isNotEmpty) {
+          setState(() => _otherPetAnalyses = others);
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _loadBreedAverage() async {
+    // breed 정보가 있어야 커뮤니티 벤치마크 가능
+    // petId로 펫 정보 조회해서 breed 가져오기
+    if (widget.analysis.petId == null) return;
+    try {
+      final repo = sl<EmotionRepository>();
+      final petResult = await repo.getPetById(widget.analysis.petId!);
+      petResult.fold((_) {}, (pet) async {
+        if (pet.breed == null || pet.breed!.isEmpty) return;
+        final avgResult = await repo.getBreedAverage(breed: pet.breed!);
+        avgResult.fold((_) {}, (avg) {
+          if (mounted && (avg['count'] as num? ?? 0) > 0) {
+            setState(() => _breedAverage = avg);
+          }
+        });
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _generateDiary() async {
+    if (_diaryLoading || _fullHistory.isEmpty) return;
+    setState(() => _diaryLoading = true);
+    try {
+      // 이번 주(월~일) 데이터만 필터링
+      final now = DateTime.now();
+      final weekday = now.weekday; // 1=월 ~ 7=일
+      final mondayOfThisWeek = DateTime(now.year, now.month, now.day)
+          .subtract(Duration(days: weekday - 1));
+      final weekHistory = _fullHistory
+          .where((a) => a.analyzedAt.isAfter(mondayOfThisWeek) ||
+              a.analyzedAt.isAtSameMomentAs(mondayOfThisWeek))
+          .toList();
+
+      final service = EmotionDiaryService();
+      final text = await service.generateDiary(
+        weekHistory.isNotEmpty ? weekHistory : _fullHistory.take(3).toList(),
+      );
+      if (mounted) {
+        setState(() {
+          _diaryText = text;
+          _diaryLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _diaryLoading = false);
+    }
   }
 
   @override
@@ -51,13 +203,13 @@ class _EmotionResultPageState extends State<EmotionResultPage>
   Widget build(BuildContext context) {
     final dominant = widget.analysis.emotions.dominantEmotion;
     final dominantName = _getEmotionName(dominant);
-    final dominantEmoji = _getEmotionEmoji(dominant);
+    final dominantIcon = _getEmotionIcon(dominant);
     final dominantValue = _getEmotionValue(dominant);
     final emotionColor = AppTheme.getEmotionColor(dominant);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      appBar: _buildAppBar(dominantEmoji, dominantName, emotionColor),
+      appBar: _buildAppBar(dominantIcon, dominantName, emotionColor),
       body: BlocListener<EmotionAnalysisBloc, EmotionAnalysisState>(
         listener: (context, state) {
           if (state is EmotionAnalysisSaved) {
@@ -80,29 +232,41 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                   child: Column(
                     children: [
-                      // 상단: 사진 + 주감정 카드
-                      _buildHeroCard(
-                        dominant, dominantName, dominantEmoji,
-                        dominantValue, emotionColor,
-                      ),
+                      // 1. HeroCard
+                      _buildHeroCard(dominant, dominantName, dominantIcon,
+                          dominantValue, emotionColor),
                       SizedBox(height: 14.h),
-                      // 중단: 감정 바
-                      _buildEmotionBarsCard(),
-                      SizedBox(height: 14.h),
-                      // 레이더 차트
-                      _buildRadarCard(),
-                      SizedBox(height: 14.h),
-                      // 하단 추천
+
+                      // 2. 이전 분석 대비
+                      _buildDeltaCard(),
+                      // 3. 오늘의 추천
                       _buildRecommendCard(dominant, emotionColor),
                       SizedBox(height: 14.h),
-                      // 메모
+                      // 4. 감정 분포
+                      _buildEmotionDistributionCard(),
+                      SizedBox(height: 14.h),
+                      // 5. 스트레스 지수
+                      _buildStressCard(),
+                      SizedBox(height: 14.h),
+                      // 6. 이번주 감정 일기
+                      _buildDiaryCard(),
+                      // 7. 건강 체크 알림
+                      _buildHealthTipsCard(),
+                      // 8. 웰빙 점수
+                      _buildWellbeingCard(),
+                      // 9. 감정 안정성
+                      _buildStabilityCard(),
+                      // 10. 멀티펫 비교
+                      _buildMultiPetCard(),
+                      // 11. 커뮤니티 벤치마크
+                      _buildCommunityCard(),
+                      // 12. 메모
                       _buildMemoCard(),
                     ],
                   ),
                 ),
               ),
             ),
-            // 하단 고정 버튼
             _buildBottomBar(),
           ],
         ),
@@ -111,7 +275,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
   }
 
   PreferredSizeWidget _buildAppBar(
-      String emoji, String name, Color emotionColor) {
+      IconData icon, String name, Color emotionColor) {
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0.5,
@@ -120,7 +284,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
-        '감정 분석 결과',
+        '종합 분석 결과',
         style: TextStyle(
           fontSize: 16.sp,
           fontWeight: FontWeight.bold,
@@ -137,8 +301,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
   }
 
-  // ── 상단: 사진 + 주감정 ──
-  Widget _buildHeroCard(String dominant, String name, String emoji,
+  // ── 1. 상단: 사진 + 주감정 ──
+  Widget _buildHeroCard(String dominant, String name, IconData icon,
       double value, Color color) {
     return Container(
       decoration: BoxDecoration(
@@ -154,7 +318,6 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       ),
       child: Column(
         children: [
-          // 상단 컬러 헤더
           Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 20.w),
@@ -171,11 +334,16 @@ class _EmotionResultPageState extends State<EmotionResultPage>
             ),
             child: Row(
               children: [
-                Text(
-                  emoji,
-                  style: TextStyle(fontSize: 32.sp),
+                Container(
+                  width: 48.w,
+                  height: 48.w,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  child: Icon(icon, size: 28.w, color: Colors.white),
                 ),
-                SizedBox(width: 10.w),
+                SizedBox(width: 12.w),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -220,7 +388,6 @@ class _EmotionResultPageState extends State<EmotionResultPage>
               ],
             ),
           ),
-          // 사진 + 날짜
           Padding(
             padding: EdgeInsets.all(16.w),
             child: Row(
@@ -244,14 +411,13 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.access_time, size: 13.w, color: Colors.grey),
+                          Icon(Icons.access_time,
+                              size: 13.w, color: Colors.grey),
                           SizedBox(width: 4.w),
                           Text(
                             _formatDateTime(widget.analysis.analyzedAt),
                             style: TextStyle(
-                              fontSize: 11.sp,
-                              color: Colors.grey[600],
-                            ),
+                                fontSize: 11.sp, color: Colors.grey[600]),
                           ),
                         ],
                       ),
@@ -284,54 +450,133 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
   }
 
-  // ── 중단: 감정 바 ──
-  Widget _buildEmotionBarsCard() {
+  // ── 2. A-5: 이전 분석 대비 카드 ──
+  Widget _buildDeltaCard() {
+    if (!_historyLoaded) return const SizedBox.shrink();
+
+    if (_previousAnalysis == null) {
+      // 첫 분석
+      if (widget.analysis.petId == null) return const SizedBox.shrink();
+      return Padding(
+        padding: EdgeInsets.only(bottom: 14.h),
+        child: _cardContainer(
+          child: Row(
+            children: [
+              Icon(Icons.timeline_rounded, size: 18.w, color: Colors.grey[400]),
+              SizedBox(width: 8.w),
+              Text(
+                '첫 분석이에요! 다음 분석부터 변화를 추적할 수 있어요.',
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final cur = widget.analysis.emotions;
+    final prev = _previousAnalysis!.emotions;
+    final deltas = [
+      ('기쁨', cur.happiness - prev.happiness),
+      ('슬픔', cur.sadness - prev.sadness),
+      ('불안', cur.anxiety - prev.anxiety),
+      ('졸림', cur.sleepiness - prev.sleepiness),
+      ('호기심', cur.curiosity - prev.curiosity),
+    ];
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14.h),
+      child: _cardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '이전 분석 대비 변화',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryTextColor,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              children: deltas.map((d) {
+                final delta = d.$2;
+                final pct = (delta.abs() * 100).toInt();
+                if (pct == 0) return const SizedBox.shrink();
+                final isUp = delta > 0;
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: (isUp ? Colors.green : Colors.red).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(d.$1, style: TextStyle(fontSize: 12.sp, color: Colors.grey[700])),
+                      SizedBox(width: 4.w),
+                      Icon(
+                        isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                        size: 14.w,
+                        color: isUp ? Colors.green : Colors.red,
+                      ),
+                      Text(
+                        '$pct%',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                          color: isUp ? Colors.green : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              '${_formatDateTime(_previousAnalysis!.analyzedAt)} 대비',
+              style: TextStyle(fontSize: 10.sp, color: Colors.grey[400]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 3. 감정 분포 + 레이더/부위별 통합 카드 ──
+  Widget _buildEmotionDistributionCard() {
     final emotions = [
-      ('happiness', '기쁨', '😊', widget.analysis.emotions.happiness),
-      ('sadness', '슬픔', '😢', widget.analysis.emotions.sadness),
-      ('anxiety', '불안', '😰', widget.analysis.emotions.anxiety),
-      ('sleepiness', '졸림', '😴', widget.analysis.emotions.sleepiness),
-      ('curiosity', '호기심', '🤔', widget.analysis.emotions.curiosity),
+      ('happiness', '😊 기쁨', widget.analysis.emotions.happiness),
+      ('sadness', '😢 슬픔', widget.analysis.emotions.sadness),
+      ('anxiety', '😰 불안', widget.analysis.emotions.anxiety),
+      ('sleepiness', '😴 졸림', widget.analysis.emotions.sleepiness),
+      ('curiosity', '🧐 호기심', widget.analysis.emotions.curiosity),
     ];
     final dominant = widget.analysis.emotions.dominantEmotion;
+    final hasFacial = widget.analysis.emotions.facialFeatures != null &&
+        widget.analysis.emotions.facialFeatures!.isNotEmpty;
 
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return _cardContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.bar_chart_rounded,
-                  size: 16.w, color: AppTheme.primaryColor),
-              SizedBox(width: 6.w),
-              Text(
-                '감정 분포',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryTextColor,
-                ),
-              ),
-            ],
+          Text(
+            '감정 분포',
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryTextColor,
+            ),
           ),
           SizedBox(height: 14.h),
           ...emotions.map((e) {
             final key = e.$1;
             final name = e.$2;
-            final emoji = e.$3;
-            final value = e.$4;
+            final value = e.$3;
             final color = AppTheme.getEmotionColor(key);
             final isMain = key == dominant;
 
@@ -339,10 +584,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
               padding: EdgeInsets.only(bottom: 10.h),
               child: Row(
                 children: [
-                  Text(emoji, style: TextStyle(fontSize: 18.sp)),
-                  SizedBox(width: 8.w),
                   SizedBox(
-                    width: 44.w,
+                    width: 64.w,
                     child: Text(
                       name,
                       style: TextStyle(
@@ -389,9 +632,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         fontSize: 12.sp,
-                        fontWeight: isMain
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        fontWeight:
+                            isMain ? FontWeight.bold : FontWeight.normal,
                         color: isMain ? color : Colors.grey[500],
                       ),
                     ),
@@ -400,56 +642,1138 @@ class _EmotionResultPageState extends State<EmotionResultPage>
               ),
             );
           }),
+          SizedBox(height: 4.h),
+          // 토글 버튼들
+          Row(
+            children: [
+              Expanded(
+                child: _buildToggleButton(
+                  label: '감정 레이더',
+                  icon: Icons.radar,
+                  isActive: _chartMode == _ChartMode.radar,
+                  onTap: () => setState(() => _chartMode =
+                      _chartMode == _ChartMode.radar ? _ChartMode.none : _ChartMode.radar),
+                ),
+              ),
+              if (hasFacial) ...[
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: _buildToggleButton(
+                    label: '부위별 분석',
+                    icon: Icons.visibility_outlined,
+                    isActive: _chartMode == _ChartMode.facial,
+                    onTap: () => setState(() => _chartMode =
+                        _chartMode == _ChartMode.facial ? _ChartMode.none : _ChartMode.facial),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          // 토글 콘텐츠
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _buildChartModeContent(),
+          ),
         ],
       ),
     );
   }
 
-  // ── 레이더 차트 ──
-  Widget _buildRadarCard() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+  Widget _buildToggleButton({
+    required String label,
+    required IconData icon,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8.r),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 10.h),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppTheme.primaryColor.withValues(alpha: 0.08)
+              : const Color(0xFFF5F6FA),
+          borderRadius: BorderRadius.circular(8.r),
+          border: isActive
+              ? Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3))
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isActive ? Icons.keyboard_arrow_up : icon,
+              size: 16.w,
+              color: AppTheme.primaryColor,
+            ),
+            SizedBox(width: 4.w),
+            Text(
+              isActive ? '$label 접기' : label,
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildChartModeContent() {
+    switch (_chartMode) {
+      case _ChartMode.radar:
+        return Padding(
+          padding: EdgeInsets.only(top: 56.h, bottom: 8.h),
+          child: Center(
+            child: EmotionRadarChart(
+              emotions: widget.analysis.emotions,
+              size: 180.w,
+            ),
+          ),
+        );
+      case _ChartMode.facial:
+        return _buildFacialFeaturesContent();
+      case _ChartMode.none:
+        return const SizedBox.shrink();
+    }
+  }
+
+  // A-1: 부위별 분석 콘텐츠
+  Widget _buildFacialFeaturesContent() {
+    final features = widget.analysis.emotions.facialFeatures;
+    if (features == null || features.isEmpty) return const SizedBox.shrink();
+
+    final partLabels = {
+      'eyes': ('눈', Icons.remove_red_eye_outlined),
+      'ears': ('귀', Icons.hearing_outlined),
+      'mouth': ('입', Icons.mood_outlined),
+      'posture': ('자세', Icons.accessibility_new_outlined),
+    };
+
+    return Padding(
+      padding: EdgeInsets.only(top: 16.h),
+      child: Column(
+        children: features.entries.map((entry) {
+          final part = partLabels[entry.key];
+          final label = part?.$1 ?? entry.key;
+          final icon = part?.$2 ?? Icons.circle_outlined;
+          final feature = entry.value;
+
+          return Padding(
+            padding: EdgeInsets.only(bottom: 8.h),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F6FA),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(icon, size: 18.w, color: AppTheme.primaryColor),
+                  SizedBox(width: 10.w),
+                  SizedBox(
+                    width: 32.w,
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      feature.state,
+                      style: TextStyle(fontSize: 12.sp, color: Colors.grey[700]),
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6.r),
+                    ),
+                    child: Text(
+                      feature.signal,
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // ── 4. 스트레스 지수 카드 ──
+  Widget _buildStressCard() {
+    final stress = widget.analysis.emotions.stressLevel;
+    final stressColor = stress >= 70
+        ? const Color(0xFFE74C3C)
+        : stress >= 40
+            ? const Color(0xFFF39C12)
+            : const Color(0xFF2ECC71);
+    final stressLabel = stress >= 70
+        ? '높음'
+        : stress >= 40
+            ? '보통'
+            : '낮음';
+    final stressDesc = stress >= 70
+        ? '스트레스가 높은 상태예요. 편안한 환경과 충분한 휴식이 필요합니다.'
+        : stress >= 40
+            ? '약간의 긴장 상태예요. 부드러운 스킨십으로 안정시켜 주세요.'
+            : '안정적인 상태예요. 지금처럼 편안한 환경을 유지해 주세요.';
+
+    return _cardContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.radar, size: 16.w, color: AppTheme.primaryColor),
-              SizedBox(width: 6.w),
               Text(
-                '감정 레이더',
+                '스트레스 지수',
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.primaryTextColor,
                 ),
               ),
+              const Spacer(),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: stressColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6.r),
+                ),
+                child: Text(
+                  stressLabel,
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.bold,
+                    color: stressColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$stress',
+                style: TextStyle(
+                  fontSize: 42.sp,
+                  fontWeight: FontWeight.bold,
+                  color: stressColor,
+                  height: 1,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(bottom: 6.h, left: 2.w),
+                child: Text(
+                  '/ 100',
+                  style: TextStyle(fontSize: 14.sp, color: Colors.grey[400]),
+                ),
+              ),
             ],
           ),
           SizedBox(height: 12.h),
-          Center(
-            child: EmotionRadarChart(
-              emotions: widget.analysis.emotions,
-              size: 180.w,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6.r),
+            child: LinearProgressIndicator(
+              value: stress / 100,
+              minHeight: 8.h,
+              backgroundColor: Colors.grey.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(stressColor),
             ),
+          ),
+          SizedBox(height: 12.h),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(10.w),
+            decoration: BoxDecoration(
+              color: stressColor.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, size: 14.w, color: stressColor),
+                SizedBox(width: 6.w),
+                Expanded(
+                  child: Text(
+                    stressDesc,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 10.h),
+          // 더보기 토글 버튼
+          InkWell(
+            onTap: () => setState(() => _showStressDetail = !_showStressDetail),
+            borderRadius: BorderRadius.circular(8.r),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F6FA),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _showStressDetail
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    size: 16.w,
+                    color: AppTheme.primaryColor,
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    _showStressDetail ? '접기' : '관련 분석 더보기',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // 더보기 콘텐츠
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _showStressDetail
+                ? _buildStressDetailContent(stress, stressColor)
+                : const SizedBox.shrink(),
           ),
         ],
       ),
     );
   }
 
-  // ── 다중 사진 썸네일 ──
+  Widget _buildStressDetailContent(int stress, Color stressColor) {
+    final emotions = widget.analysis.emotions;
+
+    // 스트레스 관련 분석
+    final analysisItems = <String>[];
+
+    // 감정별 스트레스 영향 분석
+    if (emotions.anxiety > 0.3) {
+      analysisItems.add('불안 수치가 ${(emotions.anxiety * 100).toInt()}%로 다소 높아 스트레스에 영향을 줄 수 있어요.');
+    }
+    if (emotions.sadness > 0.3) {
+      analysisItems.add('슬픔 수치가 ${(emotions.sadness * 100).toInt()}%로 감정적 피로가 누적되었을 수 있어요.');
+    }
+    if (emotions.happiness < 0.2) {
+      analysisItems.add('기쁨 수치가 낮아 전반적인 기분 개선이 필요해 보여요.');
+    }
+    if (emotions.sleepiness > 0.4) {
+      analysisItems.add('졸림 수치가 높아 수면 부족이나 체력 저하가 의심돼요.');
+    }
+
+    // 감정 조합 기반 심층 분석
+    if (emotions.anxiety > 0.3 && emotions.sadness > 0.3) {
+      analysisItems.add('불안과 슬픔이 동시에 높아요. 분리불안이나 환경 변화로 인한 복합 스트레스일 수 있어요.');
+    }
+    if (emotions.anxiety > 0.3 && emotions.curiosity > 0.3) {
+      analysisItems.add('불안 속에서도 호기심이 있어요. 새로운 환경에 대한 경계와 탐구가 공존하는 상태예요.');
+    }
+    if (emotions.sleepiness > 0.3 && emotions.sadness > 0.2) {
+      analysisItems.add('졸림과 슬픔이 함께 나타나요. 무기력함이나 우울 경향을 주의 깊게 관찰해 주세요.');
+    }
+    if (emotions.happiness > 0.5 && stress >= 40) {
+      analysisItems.add('기쁨은 높지만 스트레스도 있어요. 흥분 상태로 인한 과각성일 수 있어요.');
+    }
+
+    // 스트레스 수준별 종합 판단
+    if (stress >= 80) {
+      analysisItems.add('스트레스 수치가 매우 높아 즉각적인 안정 조치가 필요해요.');
+    } else if (stress >= 60) {
+      analysisItems.add('스트레스가 경계 수준이에요. 지속되면 건강에 영향을 줄 수 있어요.');
+    } else if (stress <= 20) {
+      analysisItems.add('스트레스가 매우 낮아 매우 안정적인 상태예요.');
+    }
+
+    // 감정 균형도 분석
+    final emotionValues = [
+      emotions.happiness, emotions.sadness, emotions.anxiety,
+      emotions.sleepiness, emotions.curiosity,
+    ];
+    final maxEmotion = emotionValues.reduce((a, b) => a > b ? a : b);
+    final minEmotion = emotionValues.reduce((a, b) => a < b ? a : b);
+    if (maxEmotion - minEmotion > 0.5) {
+      analysisItems.add('감정 편차가 커요. 특정 감정에 크게 치우친 상태로 보여요.');
+    } else if (maxEmotion - minEmotion < 0.15 && stress < 40) {
+      analysisItems.add('감정이 고르게 분포되어 있어 심리적으로 균형 잡힌 상태예요.');
+    }
+
+    if (analysisItems.isEmpty) {
+      analysisItems.add('현재 감정 상태가 비교적 안정적이에요.');
+    }
+
+    // 스트레스 수준별 행동 요령
+    final tips = stress >= 70
+        ? [
+            '조용하고 안전한 공간으로 이동시켜 주세요',
+            '과도한 자극(소음, 낯선 사람)을 줄여주세요',
+            '좋아하는 간식이나 장난감으로 기분 전환을 시도하세요',
+            '부드럽게 쓰다듬어 안정감을 줘주세요',
+            '일시적으로 다른 동물과의 접촉을 줄여주세요',
+            '차분한 목소리로 이름을 불러 안심시켜 주세요',
+            '증상이 지속되면 수의사 상담을 권장합니다',
+          ]
+        : stress >= 40
+            ? [
+                '규칙적인 산책과 운동으로 에너지를 발산시켜 주세요',
+                '편안한 음악이나 조명으로 환경을 안정시켜 주세요',
+                '일상 루틴을 유지해 안정감을 줘주세요',
+                '스킨십 시간을 늘려주세요',
+                '좋아하는 놀이를 통해 긍정적 경험을 쌓아주세요',
+                '충분한 수면 환경을 제공해 주세요',
+              ]
+            : [
+                '현재 환경이 잘 맞는 것 같아요. 유지해 주세요',
+                '규칙적인 식사와 산책을 계속 이어가세요',
+                '긍정적인 상호작용을 꾸준히 해주세요',
+                '새로운 놀이나 간식으로 즐거운 자극을 줘보세요',
+                '다른 반려동물이나 사람과의 사회화도 좋아요',
+              ];
+
+    // 간식/음식 추천
+    final foodTips = stress >= 70
+        ? [
+            '캐모마일 성분이 든 진정 간식을 줘보세요',
+            '따뜻한 물에 적신 사료로 식사를 편안하게 해주세요',
+            '트립토판이 풍부한 닭가슴살 간식이 안정에 도움돼요',
+          ]
+        : stress >= 40
+            ? [
+                '호박, 고구마 등 소화가 편한 간식을 줘보세요',
+                '오메가3가 풍부한 연어 간식이 기분 개선에 좋아요',
+                '블루베리 등 항산화 과일 간식도 추천해요',
+              ]
+            : [
+                '좋아하는 간식으로 긍정적 보상을 해주세요',
+                '수분 보충이 되는 수박, 오이 간식도 좋아요',
+                '노즈워크 간식으로 두뇌 자극을 줘보세요',
+              ];
+
+    // 환경/생활 추천
+    final lifeTips = stress >= 70
+        ? [
+            '조명을 어둡게 하고 조용한 음악을 틀어주세요',
+            '익숙한 냄새가 나는 담요나 옷을 곁에 두세요',
+          ]
+        : stress >= 40
+            ? [
+                '하루 2회 이상 짧은 산책을 해보세요',
+                '놀이 시간을 정해서 루틴을 만들어 주세요',
+              ]
+            : [
+                '새로운 산책 코스를 시도해 보세요',
+                '다양한 질감의 장난감으로 자극을 줘보세요',
+              ];
+
+    return Padding(
+      padding: EdgeInsets.only(top: 12.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. 상태 분석
+          _buildStressSection(
+            title: '상태 분석',
+            icon: Icons.analytics_outlined,
+            color: stressColor,
+            items: analysisItems,
+          ),
+          SizedBox(height: 12.h),
+          // 2. 행동 요령
+          _buildStressSection(
+            title: '행동 요령',
+            icon: Icons.directions_walk_outlined,
+            color: const Color(0xFF3498DB),
+            items: tips,
+          ),
+          SizedBox(height: 12.h),
+          // 3. 간식/음식 추천
+          _buildStressSection(
+            title: '간식/음식 추천',
+            icon: Icons.restaurant_outlined,
+            color: const Color(0xFFE67E22),
+            items: foodTips,
+          ),
+          SizedBox(height: 12.h),
+          // 4. 환경/생활 추천
+          _buildStressSection(
+            title: '환경/생활 추천',
+            icon: Icons.home_outlined,
+            color: const Color(0xFF27AE60),
+            items: lifeTips,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStressSection({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required List<String> items,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16.w, color: color),
+              SizedBox(width: 6.w),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          ...items.map((item) => Padding(
+            padding: EdgeInsets.only(bottom: 5.h),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: EdgeInsets.only(top: 6.h),
+                  width: 4.w,
+                  height: 4.w,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    item,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  // ── 6. A-3: 건강 체크 알림 카드 ──
+  Widget _buildHealthTipsCard() {
+    final tips = widget.analysis.emotions.healthTips;
+    if (tips.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14.h),
+      child: _cardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '건강 체크 알림',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryTextColor,
+              ),
+            ),
+            SizedBox(height: 10.h),
+            ...tips.map((tip) => Padding(
+              padding: EdgeInsets.only(bottom: 6.h),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.check_circle_outline,
+                      size: 16.w, color: const Color(0xFF2ECC71)),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      tip,
+                      style: TextStyle(fontSize: 12.sp, color: Colors.grey[700], height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+            SizedBox(height: 6.h),
+            Text(
+              '* AI 분석 결과로 참고용입니다. 정확한 진단은 수의사와 상담하세요.',
+              style: TextStyle(fontSize: 10.sp, color: Colors.grey[400]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── C-1: 멀티펫 비교 카드 ──
+  Widget _buildMultiPetCard() {
+    if (_otherPetAnalyses.isEmpty) return const SizedBox.shrink();
+
+    final cur = widget.analysis.emotions;
+    final emotionNames = {'happiness': '기쁨', 'sadness': '슬픔', 'anxiety': '불안', 'sleepiness': '졸림', 'curiosity': '호기심'};
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14.h),
+      child: _cardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '다른 반려동물과 비교',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryTextColor,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            ..._otherPetAnalyses.take(3).map((other) {
+              final otherE = other.emotions;
+              return Padding(
+                padding: EdgeInsets.only(bottom: 10.h),
+                child: Container(
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F6FA),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '펫 ${other.petId?.substring(0, 6) ?? ""}',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryTextColor,
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+                      Row(
+                        children: [
+                          ...emotionNames.entries.map((entry) {
+                            final curVal = _getEmotionValueByKey(cur, entry.key);
+                            final otherVal = _getEmotionValueByKey(otherE, entry.key);
+                            final diff = curVal - otherVal;
+                            if (diff.abs() < 0.05) return const SizedBox.shrink();
+                            return Padding(
+                              padding: EdgeInsets.only(right: 8.w),
+                              child: Text(
+                                '${entry.value} ${diff > 0 ? "+" : ""}${(diff * 100).toInt()}%',
+                                style: TextStyle(
+                                  fontSize: 10.sp,
+                                  color: diff > 0 ? Colors.green : Colors.red,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double _getEmotionValueByKey(EmotionScores e, String key) {
+    switch (key) {
+      case 'happiness': return e.happiness;
+      case 'sadness': return e.sadness;
+      case 'anxiety': return e.anxiety;
+      case 'sleepiness': return e.sleepiness;
+      case 'curiosity': return e.curiosity;
+      default: return 0.0;
+    }
+  }
+
+  // ── C-2: 커뮤니티 벤치마크 카드 ──
+  Widget _buildCommunityCard() {
+    if (_breedAverage == null) return const SizedBox.shrink();
+
+    final avg = _breedAverage!;
+    final count = (avg['count'] as num?)?.toInt() ?? 0;
+    if (count == 0) return const SizedBox.shrink();
+
+    final cur = widget.analysis.emotions;
+    final comparisons = [
+      ('기쁨', cur.happiness, (avg['happiness'] as num?)?.toDouble() ?? 0),
+      ('슬픔', cur.sadness, (avg['sadness'] as num?)?.toDouble() ?? 0),
+      ('불안', cur.anxiety, (avg['anxiety'] as num?)?.toDouble() ?? 0),
+      ('졸림', cur.sleepiness, (avg['sleepiness'] as num?)?.toDouble() ?? 0),
+      ('호기심', cur.curiosity, (avg['curiosity'] as num?)?.toDouble() ?? 0),
+    ];
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14.h),
+      child: _cardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '같은 품종 평균 대비',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryTextColor,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '$count건 기준',
+                  style: TextStyle(fontSize: 10.sp, color: Colors.grey[500]),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            ...comparisons.map((c) {
+              final name = c.$1;
+              final mine = c.$2;
+              final breedAvg = c.$3;
+              final diff = mine - breedAvg;
+
+              return Padding(
+                padding: EdgeInsets.only(bottom: 8.h),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 44.w,
+                      child: Text(name, style: TextStyle(fontSize: 12.sp, color: Colors.grey[700])),
+                    ),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: 8.h,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
+                          ),
+                          // 품종 평균 마커
+                          Positioned(
+                            left: (breedAvg * 100).clamp(0, 100) / 100 *
+                                (MediaQuery.of(context).size.width - 130.w),
+                            child: Container(
+                              width: 2.w,
+                              height: 8.h,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                          // 현재 값 바
+                          FractionallySizedBox(
+                            widthFactor: mine.clamp(0.0, 1.0),
+                            child: Container(
+                              height: 8.h,
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryColor.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(4.r),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 6.w),
+                    SizedBox(
+                      width: 40.w,
+                      child: Text(
+                        '${diff > 0 ? "+" : ""}${(diff * 100).toInt()}%',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                          color: diff.abs() < 0.05
+                              ? Colors.grey[500]
+                              : diff > 0
+                                  ? Colors.green
+                                  : Colors.red,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            SizedBox(height: 4.h),
+            Text(
+              '회색 선: 같은 품종 평균',
+              style: TextStyle(fontSize: 10.sp, color: Colors.grey[400]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 9. B-1: 웰빙 점수 카드 ──
+  Widget _buildWellbeingCard() {
+    if (!_historyLoaded) return const SizedBox.shrink();
+
+    if (!_insights.hasEnoughData) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: 14.h),
+        child: _cardContainer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '웰빙 점수',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                _insights.emptyStateMessage,
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final score = _insights.wellbeingScore;
+    final color = score >= 70
+        ? const Color(0xFF2ECC71)
+        : score >= 40
+            ? const Color(0xFFF39C12)
+            : const Color(0xFFE74C3C);
+    final label = score >= 70
+        ? '좋음'
+        : score >= 40
+            ? '보통'
+            : '관심 필요';
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14.h),
+      child: _cardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '웰빙 점수',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryTextColor,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6.r),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${score.toInt()}',
+                  style: TextStyle(
+                    fontSize: 36.sp,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                    height: 1,
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(bottom: 4.h, left: 2.w),
+                  child: Text(
+                    '/ 100',
+                    style: TextStyle(fontSize: 13.sp, color: Colors.grey[400]),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4.r),
+              child: LinearProgressIndicator(
+                value: score / 100,
+                minHeight: 6.h,
+                backgroundColor: Colors.grey.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              '최근 분석 기록 기반 종합 웰빙 지수입니다.',
+              style: TextStyle(fontSize: 11.sp, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 10. B-3: 감정 안정성 카드 ──
+  Widget _buildStabilityCard() {
+    if (!_historyLoaded) return const SizedBox.shrink();
+
+    if (!_insights.hasEnoughData) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: 14.h),
+        child: _cardContainer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '감정 안정성',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                _insights.emptyStateMessage,
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final emotionNames = {
+      'happiness': '기쁨',
+      'sadness': '슬픔',
+      'anxiety': '불안',
+      'sleepiness': '졸림',
+      'curiosity': '호기심',
+    };
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14.h),
+      child: _cardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '감정 안정성',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryTextColor,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '종합 ${(_insights.stabilityIndex * 100).toInt()}%',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              children: _insights.emotionStability.entries.map((entry) {
+                final name = emotionNames[entry.key] ?? entry.key;
+                final stability = entry.value;
+                final isStable = stability >= 0.6;
+                final color = isStable
+                    ? const Color(0xFF2ECC71)
+                    : const Color(0xFFF39C12);
+
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(fontSize: 12.sp, color: Colors.grey[700]),
+                      ),
+                      SizedBox(width: 6.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        child: Text(
+                          isStable ? '안정' : '변동',
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              '최근 분석 기록을 기반으로 각 감정의 변동 정도를 분석했어요.',
+              style: TextStyle(fontSize: 11.sp, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 11. B-4: 이번주 감정 일기 카드 ──
+  Widget _buildDiaryCard() {
+    if (!_historyLoaded) return const SizedBox.shrink();
+
+    if (_fullHistory.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 14.h),
+      child: _cardContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '이번주 감정 일기',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryTextColor,
+              ),
+            ),
+            SizedBox(height: 10.h),
+            if (_diaryText != null)
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8E44AD).withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Text(
+                  _diaryText!,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: Colors.grey[700],
+                    height: 1.6,
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _diaryLoading ? null : _generateDiary,
+                  icon: _diaryLoading
+                      ? SizedBox(
+                          width: 16.w,
+                          height: 16.w,
+                          child: const CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(Icons.auto_awesome, size: 16.w),
+                  label: Text(
+                    _diaryLoading ? '생성 중...' : '이번주 일기 생성하기',
+                    style: TextStyle(fontSize: 13.sp),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF8E44AD),
+                    side: const BorderSide(color: Color(0xFF8E44AD)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 썸네일 ──
   Widget _buildImageThumbnails() {
     final paths = widget.imagePaths;
     if (paths.length == 1) {
@@ -463,7 +1787,6 @@ class _EmotionResultPageState extends State<EmotionResultPage>
         ),
       );
     }
-    // 2장 이상: 첫 번째 큰 썸네일 + 나머지 작은 썸네일 스택
     return SizedBox(
       width: 88.w,
       height: 88.w,
@@ -478,7 +1801,6 @@ class _EmotionResultPageState extends State<EmotionResultPage>
               fit: BoxFit.cover,
             ),
           ),
-          // 장수 뱃지
           Positioned(
             bottom: 4.h,
             right: 4.w,
@@ -499,7 +1821,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
   }
 
-  // ── 추천 한 가지 ──
+  // ── 9. 추천 카드 ──
   Widget _buildRecommendCard(String dominant, Color color) {
     final rec = _getSingleRecommendation(dominant);
 
@@ -527,9 +1849,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
               color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10.r),
             ),
-            child: Center(
-              child: Text(rec.emoji, style: TextStyle(fontSize: 20.sp)),
-            ),
+            child: Icon(rec.icon, size: 22.w, color: color),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -572,35 +1892,17 @@ class _EmotionResultPageState extends State<EmotionResultPage>
 
   // ── 메모 카드 ──
   Widget _buildMemoCard() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return _cardContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.edit_note, size: 16.w, color: AppTheme.primaryColor),
-              SizedBox(width: 6.w),
-              Text(
-                '메모',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryTextColor,
-                ),
-              ),
-            ],
+          Text(
+            '메모',
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryTextColor,
+            ),
           ),
           SizedBox(height: 10.h),
           TextField(
@@ -626,6 +1928,25 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
   }
 
+  // ── 공통 카드 컨테이너 ──
+  Widget _cardContainer({required Widget child}) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
   // ── 하단 고정 버튼 ──
   Widget _buildBottomBar() {
     return Container(
@@ -645,7 +1966,6 @@ class _EmotionResultPageState extends State<EmotionResultPage>
           final isLoading = state is EmotionAnalysisSaving;
           return Row(
             children: [
-              // 공유 버튼
               SizedBox(
                 height: 48.h,
                 width: 48.h,
@@ -663,7 +1983,6 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                 ),
               ),
               SizedBox(width: 10.w),
-              // 저장 버튼
               Expanded(
                 child: SizedBox(
                   height: 48.h,
@@ -704,7 +2023,9 @@ class _EmotionResultPageState extends State<EmotionResultPage>
 
   void _saveAnalysis() {
     context.read<EmotionAnalysisBloc>().add(
-          SaveAnalysisRequested(memo: _memoController.text.trim()),
+          SaveAnalysisRequested(
+            memo: _memoController.text.trim(),
+          ),
         );
   }
 
@@ -713,31 +2034,32 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       final dominant = widget.analysis.emotions.dominantEmotion;
       final value = _getEmotionValue(dominant);
       final name = _getEmotionName(dominant);
-      final emoji = _getEmotionEmoji(dominant);
+      final stress = widget.analysis.emotions.stressLevel;
 
       final text = '''
-$emoji 펫페이스 AI 감정 분석 결과
+펫스페이스 AI 종합 분석 결과
 
 주요 감정: $name (${(value * 100).toInt()}%)
+스트레스 지수: $stress/100
 분석 시간: ${_formatDateTime(widget.analysis.analyzedAt)}
 
-😊 기쁨: ${(widget.analysis.emotions.happiness * 100).toInt()}%
-😢 슬픔: ${(widget.analysis.emotions.sadness * 100).toInt()}%
-😰 불안: ${(widget.analysis.emotions.anxiety * 100).toInt()}%
-😴 졸림: ${(widget.analysis.emotions.sleepiness * 100).toInt()}%
-🤔 호기심: ${(widget.analysis.emotions.curiosity * 100).toInt()}%
+기쁨: ${(widget.analysis.emotions.happiness * 100).toInt()}%
+슬픔: ${(widget.analysis.emotions.sadness * 100).toInt()}%
+불안: ${(widget.analysis.emotions.anxiety * 100).toInt()}%
+졸림: ${(widget.analysis.emotions.sleepiness * 100).toInt()}%
+호기심: ${(widget.analysis.emotions.curiosity * 100).toInt()}%
 
-#펫페이스 #반려동물감정분석 #AI감정분석
+#펫스페이스 #반려동물감정분석 #AI분석
 ''';
 
       if (widget.imagePaths.isNotEmpty) {
         await Share.shareXFiles(
           [XFile(widget.imagePaths.first)],
           text: text,
-          subject: '반려동물 AI 감정 분석 결과',
+          subject: '반려동물 AI 종합 분석 결과',
         );
       } else {
-        await Share.share(text, subject: '반려동물 AI 감정 분석 결과');
+        await Share.share(text, subject: '반려동물 AI 종합 분석 결과');
       }
     } catch (e) {
       if (!mounted) return;
@@ -776,24 +2098,24 @@ $emoji 펫페이스 AI 감정 분석 결과
     }
   }
 
-  String _getEmotionEmoji(String emotion) {
+  IconData _getEmotionIcon(String emotion) {
     switch (emotion) {
-      case 'happiness': return '😊';
-      case 'sadness':   return '😢';
-      case 'anxiety':   return '😰';
-      case 'sleepiness':return '😴';
-      case 'curiosity': return '🤔';
-      default: return '🐾';
+      case 'happiness': return Icons.sentiment_very_satisfied;
+      case 'sadness':   return Icons.sentiment_very_dissatisfied;
+      case 'anxiety':   return Icons.psychology_alt;
+      case 'sleepiness':return Icons.bedtime;
+      case 'curiosity': return Icons.explore;
+      default: return Icons.pets;
     }
   }
 
   String _getShortDescription(String emotion) {
     switch (emotion) {
-      case 'happiness': return '지금 이 순간, 아이가 행복해 보여요 🌟';
-      case 'sadness':   return '오늘은 조금 기운이 없어 보이네요 💙';
-      case 'anxiety':   return '살짝 긴장하고 있는 것 같아요. 안심시켜 주세요 🤗';
-      case 'sleepiness':return '스르르 졸음이 오고 있어요. 편히 쉬게 해주세요 😴';
-      case 'curiosity': return '무언가에 호기심이 가득한 눈빛이에요! 🌿';
+      case 'happiness': return '지금 이 순간, 아이가 행복해 보여요!';
+      case 'sadness':   return '오늘은 조금 기운이 없어 보이네요.';
+      case 'anxiety':   return '살짝 긴장하고 있는 것 같아요. 안심시켜 주세요.';
+      case 'sleepiness':return '스르르 졸음이 오고 있어요. 편히 쉬게 해주세요.';
+      case 'curiosity': return '무언가에 호기심이 가득한 눈빛이에요!';
       default: return '오늘 아이의 상태를 확인했어요';
     }
   }
@@ -802,37 +2124,37 @@ $emoji 펫페이스 AI 감정 분석 결과
     switch (emotion) {
       case 'happiness':
         return _Recommendation(
-          emoji: '🎾',
+          icon: Icons.sports_tennis,
           title: '함께 놀아주세요',
           body: '지금이 함께 산책하거나 좋아하는 놀이를 즐기기에 가장 좋은 타이밍이에요!',
         );
       case 'curiosity':
         return _Recommendation(
-          emoji: '🧩',
+          icon: Icons.extension,
           title: '탐색 시간을 주세요',
           body: '새로운 장난감이나 안전한 공간을 탐색하게 해주면 자연스러운 호기심을 충족할 수 있어요.',
         );
       case 'anxiety':
         return _Recommendation(
-          emoji: '🫂',
+          icon: Icons.spa,
           title: '조용히 곁에 있어주세요',
-          body: '부드러운 목소리와 가벼운 스킨십으로 안심감을 전달해 주세요. 익숙한 물건이 도움이 돼요.',
+          body: '부드러운 목소리와 가벼운 스킨십으로 안심감을 전달해 주세요.',
         );
       case 'sadness':
         return _Recommendation(
-          emoji: '💙',
+          icon: Icons.favorite,
           title: '따뜻한 스킨십이 필요해요',
-          body: '좋아하는 간식이나 장난감으로 기분 전환을 도와주세요. 우울이 지속되면 수의사에게 상담하세요.',
+          body: '좋아하는 간식이나 장난감으로 기분 전환을 도와주세요.',
         );
       case 'sleepiness':
         return _Recommendation(
-          emoji: '🛏️',
+          icon: Icons.hotel,
           title: '편안한 잠자리를 만들어주세요',
-          body: '따뜻하고 조용한 공간에서 충분히 쉬게 해주세요. 수면은 아이의 건강에 매우 중요해요.',
+          body: '따뜻하고 조용한 공간에서 충분히 쉬게 해주세요.',
         );
       default:
         return _Recommendation(
-          emoji: '🐾',
+          icon: Icons.pets,
           title: '오늘도 잘 보살펴주세요',
           body: '반려동물의 상태를 꾸준히 관찰하고 기록하면 건강 변화를 빠르게 파악할 수 있어요.',
         );
@@ -840,9 +2162,11 @@ $emoji 펫페이스 AI 감정 분석 결과
   }
 }
 
+enum _ChartMode { none, radar, facial }
+
 class _Recommendation {
-  final String emoji;
+  final IconData icon;
   final String title;
   final String body;
-  _Recommendation({required this.emoji, required this.title, required this.body});
+  _Recommendation({required this.icon, required this.title, required this.body});
 }

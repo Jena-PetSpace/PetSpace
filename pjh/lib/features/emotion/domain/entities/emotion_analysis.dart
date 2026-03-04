@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:equatable/equatable.dart';
 
 class EmotionAnalysis extends Equatable {
@@ -45,7 +46,6 @@ class EmotionAnalysis extends Equatable {
     );
   }
 
-  // JSON serialization for Supabase
   factory EmotionAnalysis.fromJson(Map<String, dynamic> json) {
     return EmotionAnalysis(
       id: json['id'] as String? ?? '',
@@ -114,17 +114,27 @@ class EmotionAnalysis extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        petId,
-        imageUrl,
-        localImagePath,
-        emotions,
-        confidence,
-        analyzedAt,
-        memo,
-        tags,
+        id, userId, petId, imageUrl, localImagePath,
+        emotions, confidence, analyzedAt, memo, tags,
       ];
+}
+
+// 부위별 분석 결과
+class FacialFeature extends Equatable {
+  final String state;   // 예: "귀가 뒤로 눕혀짐"
+  final String signal;  // 예: "불안"
+
+  const FacialFeature({required this.state, required this.signal});
+
+  factory FacialFeature.fromJson(Map<String, dynamic> json) => FacialFeature(
+    state: json['state'] as String? ?? '',
+    signal: json['signal'] as String? ?? '',
+  );
+
+  Map<String, dynamic> toJson() => {'state': state, 'signal': signal};
+
+  @override
+  List<Object?> get props => [state, signal];
 }
 
 class EmotionScores extends Equatable {
@@ -134,12 +144,32 @@ class EmotionScores extends Equatable {
   final double sleepiness;
   final double curiosity;
 
+  // 추가 분석 지표 (0~100 스케일)
+  final int stressLevel;
+  final int activityLevel;
+  final String healthSignal;
+  final int comfortLevel;
+
+  // A-1: 부위별 분석
+  final Map<String, FacialFeature>? facialFeatures;
+  // A-3: 건강 관련 팁
+  final List<String> healthTips;
+  // A-6: 품종 기반 해석
+  final String? breedInsight;
+
   const EmotionScores({
     required this.happiness,
     required this.sadness,
     required this.anxiety,
     required this.sleepiness,
     required this.curiosity,
+    this.stressLevel = 0,
+    this.activityLevel = 0,
+    this.healthSignal = 'normal',
+    this.comfortLevel = 0,
+    this.facialFeatures,
+    this.healthTips = const [],
+    this.breedInsight,
   });
 
   double get total => happiness + sadness + anxiety + sleepiness + curiosity;
@@ -152,11 +182,23 @@ class EmotionScores extends Equatable {
       'sleepiness': sleepiness,
       'curiosity': curiosity,
     };
-
     return emotions.entries.reduce((a, b) => a.value > b.value ? a : b).key;
   }
 
-  Map<String, double> toMap() {
+  // A-2: 감정 복합도 (Shannon Entropy, 0.0~1.0)
+  double get complexityIndex {
+    final values = [happiness, sadness, anxiety, sleepiness, curiosity]
+        .where((v) => v > 0).toList();
+    if (values.isEmpty) return 0.0;
+    double entropy = 0.0;
+    for (final v in values) {
+      entropy -= v * (math.log(v) / math.log(2));
+    }
+    // max entropy for 5 emotions = log2(5) ~= 2.322
+    return (entropy / 2.322).clamp(0.0, 1.0);
+  }
+
+  Map<String, dynamic> toMap() {
     return {
       'happiness': happiness,
       'sadness': sadness,
@@ -166,25 +208,64 @@ class EmotionScores extends Equatable {
     };
   }
 
-  // JSON serialization for Supabase
   factory EmotionScores.fromJson(Map<String, dynamic> json) {
+    // 부위별 분석 파싱
+    Map<String, FacialFeature>? facialFeatures;
+    final rawFeatures = json['facial_features'];
+    if (rawFeatures is Map<String, dynamic>) {
+      facialFeatures = rawFeatures.map((k, v) => MapEntry(
+        k,
+        v is Map<String, dynamic>
+            ? FacialFeature.fromJson(v)
+            : const FacialFeature(state: '', signal: ''),
+      ));
+    }
+
+    // 건강 팁 파싱
+    final rawTips = json['health_tips'];
+    final healthTips = rawTips is List
+        ? List<String>.from(rawTips)
+        : <String>[];
+
     return EmotionScores(
       happiness: (json['happiness'] as num?)?.toDouble() ?? 0.0,
       sadness: (json['sadness'] as num?)?.toDouble() ?? 0.0,
       anxiety: (json['anxiety'] as num?)?.toDouble() ?? 0.0,
       sleepiness: (json['sleepiness'] as num?)?.toDouble() ?? 0.0,
       curiosity: (json['curiosity'] as num?)?.toDouble() ?? 0.0,
+      stressLevel: (json['stress_level'] as num?)?.toInt() ?? 0,
+      activityLevel: (json['activity_level'] as num?)?.toInt() ?? 0,
+      healthSignal: json['health_signal'] as String? ?? 'normal',
+      comfortLevel: (json['comfort_level'] as num?)?.toInt() ?? 0,
+      facialFeatures: facialFeatures,
+      healthTips: healthTips,
+      breedInsight: json['breed_insight'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final json = <String, dynamic>{
       'happiness': happiness,
       'sadness': sadness,
       'anxiety': anxiety,
       'sleepiness': sleepiness,
       'curiosity': curiosity,
+      'stress_level': stressLevel,
+      'activity_level': activityLevel,
+      'health_signal': healthSignal,
+      'comfort_level': comfortLevel,
     };
+    if (facialFeatures != null) {
+      json['facial_features'] = facialFeatures!.map(
+          (k, v) => MapEntry(k, v.toJson()));
+    }
+    if (healthTips.isNotEmpty) {
+      json['health_tips'] = healthTips;
+    }
+    if (breedInsight != null) {
+      json['breed_insight'] = breedInsight;
+    }
+    return json;
   }
 
   EmotionScores copyWith({
@@ -193,6 +274,13 @@ class EmotionScores extends Equatable {
     double? anxiety,
     double? sleepiness,
     double? curiosity,
+    int? stressLevel,
+    int? activityLevel,
+    String? healthSignal,
+    int? comfortLevel,
+    Map<String, FacialFeature>? facialFeatures,
+    List<String>? healthTips,
+    String? breedInsight,
   }) {
     return EmotionScores(
       happiness: happiness ?? this.happiness,
@@ -200,10 +288,20 @@ class EmotionScores extends Equatable {
       anxiety: anxiety ?? this.anxiety,
       sleepiness: sleepiness ?? this.sleepiness,
       curiosity: curiosity ?? this.curiosity,
+      stressLevel: stressLevel ?? this.stressLevel,
+      activityLevel: activityLevel ?? this.activityLevel,
+      healthSignal: healthSignal ?? this.healthSignal,
+      comfortLevel: comfortLevel ?? this.comfortLevel,
+      facialFeatures: facialFeatures ?? this.facialFeatures,
+      healthTips: healthTips ?? this.healthTips,
+      breedInsight: breedInsight ?? this.breedInsight,
     );
   }
 
   @override
-  List<Object?> get props =>
-      [happiness, sadness, anxiety, sleepiness, curiosity];
+  List<Object?> get props => [
+        happiness, sadness, anxiety, sleepiness, curiosity,
+        stressLevel, activityLevel, healthSignal, comfortLevel,
+        facialFeatures, healthTips, breedInsight,
+      ];
 }

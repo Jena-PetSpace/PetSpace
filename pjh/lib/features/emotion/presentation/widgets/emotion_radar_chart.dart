@@ -43,7 +43,7 @@ class EmotionRadarChart extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: AppTheme.primaryTextColor,
           ),
-          titlePositionPercentageOffset: 0.15,
+          titlePositionPercentageOffset: 0.35,
           getTitle: (index, angle) {
             final titles = [
               _EmotionTitle('😊 기쁨', emotions.happiness),

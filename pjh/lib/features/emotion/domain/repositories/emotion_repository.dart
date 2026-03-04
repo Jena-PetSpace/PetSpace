@@ -10,6 +10,8 @@ abstract class EmotionRepository {
   Future<Either<Failure, EmotionAnalysis>> analyzeEmotion({
     required List<String> imagePaths,
     String? petId,
+    String? petType,
+    String? breed,
   });
 
   // 히스토리 관리
@@ -41,5 +43,11 @@ abstract class EmotionRepository {
     String? petId,
     DateTime? startDate,
     DateTime? endDate,
+  });
+
+  // C-2: 커뮤니티 품종 평균
+  Future<Either<Failure, Map<String, dynamic>>> getBreedAverage({
+    required String breed,
+    int days = 30,
   });
 }
