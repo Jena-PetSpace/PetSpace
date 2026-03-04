@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'api_config.dart';
+import 'secrets.dart';
 
 // Core
 import '../core/network/network_info.dart';
@@ -87,14 +88,16 @@ import '../core/services/fcm_service.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
+  //! External & Core (먼저 초기화)
+  await _initExternal();
+  await _initCore();
+
   //! Features
   await _initAuth();
   await _initEmotion();
   await _initSocial();
   await _initPets();
   await _initChat();
-  await _initCore();
-  await _initExternal();
 }
 
 Future<void> _initAuth() async {
@@ -371,7 +374,7 @@ Future<void> _initExternal() async {
 
   // Google Sign In
   sl.registerLazySingleton(() => GoogleSignIn(
-    serverClientId: ApiConfig.isGoogleLoginConfigured ? '295912994007-8cis4t1rgt00lkhklrsrcbh391gaae3c.apps.googleusercontent.com' : null,
+    serverClientId: ApiConfig.isGoogleLoginConfigured ? Secrets.googleClientId : null,
     scopes: [
       'email',
       'profile',
