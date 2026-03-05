@@ -365,25 +365,13 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   ],
                 ),
                 const Spacer(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${(value * 100).toInt()}%',
-                      style: TextStyle(
-                        fontSize: 28.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      '신뢰도',
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
+                Text(
+                  '${(value * 100).toInt()}%',
+                  style: TextStyle(
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -556,6 +544,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       ('sleepiness', '😴 졸림', widget.analysis.emotions.sleepiness),
       ('curiosity', '🧐 호기심', widget.analysis.emotions.curiosity),
     ];
+    emotions.sort((a, b) => b.$3.compareTo(a.$3));
     final dominant = widget.analysis.emotions.dominantEmotion;
     final hasFacial = widget.analysis.emotions.facialFeatures != null &&
         widget.analysis.emotions.facialFeatures!.isNotEmpty;
