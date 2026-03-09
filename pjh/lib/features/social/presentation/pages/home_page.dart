@@ -4,13 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 
+import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
-import '../bloc/feed_bloc.dart';
-import '../widgets/post_card.dart';
-import '../widgets/edit_post_bottom_sheet.dart';
+import '../../../pets/presentation/bloc/pet_bloc.dart';
+import '../../../pets/presentation/bloc/pet_event.dart';
+import '../../../home/presentation/widgets/pet_profile_card.dart';
+import '../../../home/presentation/widgets/category_filter_chips.dart';
+import '../../../home/presentation/widgets/hot_topic_banner.dart';
+import '../../../home/presentation/widgets/magazine_grid.dart';
+import '../../../home/presentation/widgets/community_preview.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,18 +24,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final ScrollController _scrollController = ScrollController();
   Timer? _badgeTimer;
+  int _selectedCategory = 0;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<FeedBloc>().add(const LoadFeedRequested());
         _loadChatBadge();
-        // 30초마다 뱃지 갱신
         _badgeTimer = Timer.periodic(const Duration(seconds: 30), (_) {
           if (mounted) _loadChatBadge();
         });
@@ -51,15 +52,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _badgeTimer?.cancel();
-    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent * 0.8) {
-      context.read<FeedBloc>().add(const LoadMorePostsRequested());
-    }
   }
 
   @override
@@ -71,8 +64,12 @@ class _HomePageState extends State<HomePage> {
           height: 63.h,
           fit: BoxFit.contain,
         ),
-        centerTitle: true,
+        centerTitle: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push('/explore'),
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => context.push('/notifications'),
@@ -104,6 +101,7 @@ class _HomePageState extends State<HomePage> {
                           badgeState.count > 99 ? '99+' : '${badgeState.count}',
                           style: TextStyle(fontSize: 10.sp),
                         ),
+                        backgroundColor: AppTheme.highlightColor,
                         child: chatIcon,
                       )
                     : chatIcon,
@@ -113,204 +111,192 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: BlocConsumer<FeedBloc, FeedState>(
-        listener: (context, state) {
-          if (state is FeedError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          _loadChatBadge();
+          context.read<PetBloc>().add(LoadUserPets());
+          await Future.delayed(const Duration(milliseconds: 500));
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 8.h),
+
+              // 1. 반려동물 프로필 카드
+              const PetProfileCard(),
+              SizedBox(height: 20.h),
+
+              // 2. 카테고리 필터 칩
+              CategoryFilterChips(
+                onSelected: (index) {
+                  setState(() => _selectedCategory = index);
+                },
               ),
-            );
-          }
-        },
-        builder: (context, state) {
-          // 초기 상태나 로딩 중일 때 로딩 인디케이터 표시
-          if (state is FeedInitial || (state is FeedLoading && state is! FeedLoaded)) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is FeedLoaded) {
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<FeedBloc>().add(const RefreshFeedRequested());
-                await Future.delayed(const Duration(seconds: 1));
-              },
-              child: _buildFeedList(state),
-            );
-          } else if (state is FeedError) {
-            return _buildEmptyState(state.message);
-          }
+              SizedBox(height: 20.h),
 
-          return const SizedBox.shrink();
-        },
-      ),
-    );
-  }
+              // 카테고리별 콘텐츠
+              _buildCategoryContent(),
 
-  Widget _buildFeedList(FeedLoaded state) {
-    if (state.posts.isEmpty) {
-      return _buildEmptyState(null);
-    }
-
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, authState) {
-        final currentUserId = authState is AuthAuthenticated
-            ? authState.user.id
-            : '';
-
-        return ListView.builder(
-          controller: _scrollController,
-          itemCount: state.posts.length + (!state.hasReachedMax ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index >= state.posts.length) {
-              return Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.w),
-                  child: const CircularProgressIndicator(),
-                ),
-              );
-            }
-
-            final post = state.posts[index];
-            return PostCard(
-              post: post,
-              currentUserId: currentUserId,
-              onLike: () {
-                if (post.isLikedByCurrentUser) {
-                  context.read<FeedBloc>().add(
-                    UnlikePostRequested(
-                      postId: post.id,
-                      userId: currentUserId,
-                    ),
-                  );
-                } else {
-                  context.read<FeedBloc>().add(
-                    LikePostRequested(
-                      postId: post.id,
-                      userId: currentUserId,
-                    ),
-                  );
-                }
-              },
-              onComment: () {
-                context.push('/post/${post.id}');
-              },
-              onShare: () {
-                _sharePost(post);
-              },
-              onDelete: post.authorId == currentUserId
-                  ? () {
-                      context.read<FeedBloc>().add(
-                        DeletePostRequested(postId: post.id),
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('게시물이 삭제되었습니다'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  : null,
-              onEdit: post.authorId == currentUserId
-                  ? () => _showEditPostBottomSheet(post)
-                  : null,
-              onHashtagTap: (hashtag) {
-                context.go('/explore?hashtag=$hashtag');
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _sharePost(dynamic post) async {
-    try {
-      final shareText = '${post.authorName}님의 게시물\n'
-          '${post.content ?? ""}\n\n'
-          '펫페이스에서 확인하기';
-
-      await Share.share(
-        shareText,
-        subject: '펫페이스 게시물 공유',
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('공유 중 오류가 발생했습니다: $e'),
-            backgroundColor: Colors.red,
+              SizedBox(height: 32.h),
+            ],
           ),
-        );
-      }
-    }
-  }
-
-  void _showEditPostBottomSheet(dynamic post) {
-    final feedBloc = context.read<FeedBloc>();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (bottomSheetContext) => EditPostBottomSheet(
-        post: post,
-        onSave: (updatedPost) {
-          feedBloc.add(UpdatePostRequested(post: updatedPost));
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('게시물이 수정되었습니다'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        },
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState(String? errorMessage) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildCategoryContent() {
+    // 0: 인기(전체), 1: 매거진, 2: 커뮤니티, 3: 건강, 4: 훈련
+    switch (_selectedCategory) {
+      case 1: // 매거진
+        return const MagazineGrid();
+      case 2: // 커뮤니티
+        return const CommunityPreview();
+      case 3: // 건강
+        return _buildHealthContent();
+      case 4: // 훈련
+        return _buildTrainingContent();
+      default: // 인기 (전체 보기)
+        return Column(
           children: [
-            Icon(
-              errorMessage != null ? Icons.error_outline : Icons.pets,
-              size: 80.w,
-              color: Colors.grey,
+            const HotTopicBanner(),
+            SizedBox(height: 24.h),
+            const MagazineGrid(),
+            SizedBox(height: 24.h),
+            const CommunityPreview(),
+          ],
+        );
+    }
+  }
+
+  Widget _buildHealthContent() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '건강 관련 콘텐츠',
+            style: TextStyle(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryTextColor,
             ),
-            SizedBox(height: 16.h),
-            Text(
-              errorMessage != null ? '오류 발생' : '아직 게시물이 없습니다',
-              style: TextStyle(
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-              ),
+          ),
+          SizedBox(height: 12.h),
+          _buildContentItem(
+            icon: Icons.medical_services_outlined,
+            iconColor: const Color(0xFF4CAF50),
+            title: '반려동물 치아 관리 필수 가이드',
+            subtitle: '건강 · 2시간 전',
+          ),
+          SizedBox(height: 10.h),
+          _buildContentItem(
+            icon: Icons.medical_services_outlined,
+            iconColor: const Color(0xFF4CAF50),
+            title: '겨울철 반려동물 건강 체크리스트',
+            subtitle: '건강 · 5시간 전',
+          ),
+          SizedBox(height: 10.h),
+          _buildContentItem(
+            icon: Icons.medical_services_outlined,
+            iconColor: const Color(0xFF4CAF50),
+            title: '예방접종 가이드: 시기와 종류',
+            subtitle: '건강 · 어제',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrainingContent() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '훈련 관련 콘텐츠',
+            style: TextStyle(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryTextColor,
             ),
-            SizedBox(height: 8.h),
-            Text(
-              errorMessage ?? '첫 번째 게시물을 작성해보세요!',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 16.sp,
-              ),
-              textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 12.h),
+          _buildContentItem(
+            icon: Icons.school_outlined,
+            iconColor: AppTheme.accentColor,
+            title: '기본 복종 훈련 시작하기',
+            subtitle: '훈련 · 3시간 전',
+          ),
+          SizedBox(height: 10.h),
+          _buildContentItem(
+            icon: Icons.school_outlined,
+            iconColor: AppTheme.accentColor,
+            title: '산책 매너 교육 방법',
+            subtitle: '훈련 · 어제',
+          ),
+          SizedBox(height: 10.h),
+          _buildContentItem(
+            icon: Icons.school_outlined,
+            iconColor: AppTheme.accentColor,
+            title: '분리불안 극복 훈련 팁',
+            subtitle: '훈련 · 2일 전',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      decoration: AppTheme.cardDecoration,
+      padding: EdgeInsets.all(14.w),
+      child: Row(
+        children: [
+          Container(
+            width: 40.w,
+            height: 40.w,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10.r),
             ),
-            if (errorMessage == null) ...[
-              SizedBox(height: 24.h),
-              ElevatedButton.icon(
-                onPressed: () => context.go('/create-post'),
-                icon: const Icon(Icons.add),
-                label: Text('게시물 작성하기', style: TextStyle(fontSize: 14.sp)),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 24.w,
-                    vertical: 12.h,
+            child: Icon(icon, size: 20.w, color: iconColor),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryTextColor,
                   ),
                 ),
-              ),
-            ],
-          ],
-        ),
+                SizedBox(height: 2.h),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.arrow_forward_ios, size: 14.w, color: AppTheme.secondaryTextColor),
+        ],
       ),
     );
   }
@@ -331,14 +317,12 @@ class _ChatBubblePainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // 둥근 말풍선 본체 (원형에 가까운 둥근 사각형)
     final bubbleRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(w * 0.05, 0, w * 0.9, h * 0.78),
       Radius.circular(w * 0.35),
     );
     canvas.drawRRect(bubbleRect, paint);
 
-    // 말꼬리 (왼쪽 아래)
     final tailPath = Path()
       ..moveTo(w * 0.22, h * 0.72)
       ..quadraticBezierTo(w * 0.15, h * 0.95, w * 0.08, h * 0.98)

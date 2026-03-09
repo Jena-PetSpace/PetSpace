@@ -110,25 +110,10 @@ class SettingsPage extends StatelessWidget {
       body: ListView(
         children: [
           ListTile(
-            leading: Icon(Icons.pets, size: 24.w),
-            title: Text('반려동물 관리', style: TextStyle(fontSize: 14.sp)),
-            trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () {
-              context.push('/pets');
-            },
-          ),
-          const Divider(),
-          ListTile(
             leading: Icon(Icons.person, size: 24.w),
             title: Text('계정 정보', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
             onTap: () => _showAccountInfo(context),
-          ),
-          ListTile(
-            leading: Icon(Icons.notifications, size: 24.w),
-            title: Text('알림 설정', style: TextStyle(fontSize: 14.sp)),
-            trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () {},
           ),
           ListTile(
             leading: Icon(Icons.privacy_tip, size: 24.w),
@@ -139,6 +124,12 @@ class SettingsPage extends StatelessWidget {
           ListTile(
             leading: Icon(Icons.help, size: 24.w),
             title: Text('도움말', style: TextStyle(fontSize: 14.sp)),
+            trailing: Icon(Icons.chevron_right, size: 20.w),
+            onTap: () {},
+          ),
+          ListTile(
+            leading: Icon(Icons.info_outline, size: 24.w),
+            title: Text('앱 정보', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
             onTap: () {},
           ),

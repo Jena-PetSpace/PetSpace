@@ -63,12 +63,13 @@ class _PetManagementPageState extends State<PetManagementPage> {
             final pets = state is PetLoaded
                 ? state.pets
                 : (state as PetOperationSuccess).pets;
+            final selectedPet = state is PetLoaded ? state.selectedPet : null;
 
             if (pets.isEmpty) {
               return _buildEmptyState();
             }
 
-            return _buildPetList(pets);
+            return _buildPetList(pets, selectedPet);
           }
 
           return const SizedBox.shrink();
@@ -172,7 +173,7 @@ class _PetManagementPageState extends State<PetManagementPage> {
     );
   }
 
-  Widget _buildPetList(List<Pet> pets) {
+  Widget _buildPetList(List<Pet> pets, Pet? selectedPet) {
     return RefreshIndicator(
       onRefresh: () async {
         context.read<PetBloc>().add(LoadUserPets());
@@ -205,9 +206,16 @@ class _PetManagementPageState extends State<PetManagementPage> {
           final pet = pets[index - 1];
           return PetCard(
             pet: pet,
+            isSelected: selectedPet?.id == pet.id,
             onTap: () => _showPetDetails(pet),
             onEdit: () => _showEditPetBottomSheet(pet),
             onDelete: () => _showDeleteConfirmation(pet),
+            onSetPrimary: () {
+              context.read<PetBloc>().add(SelectPet(pet));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('${pet.name}이(가) 대표 반려동물로 설정되었습니다.')),
+              );
+            },
           );
         },
       ),

@@ -7,16 +7,20 @@ import '../../domain/entities/pet.dart';
 
 class PetCard extends StatelessWidget {
   final Pet pet;
+  final bool isSelected;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onSetPrimary;
 
   const PetCard({
     super.key,
     required this.pet,
+    this.isSelected = false,
     this.onTap,
     this.onEdit,
     this.onDelete,
+    this.onSetPrimary,
   });
 
   @override
@@ -26,6 +30,9 @@ class PetCard extends StatelessWidget {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16.r),
+        side: isSelected
+            ? BorderSide(color: AppTheme.primaryColor, width: 2.w)
+            : BorderSide.none,
       ),
       child: InkWell(
         onTap: onTap,
@@ -45,6 +52,24 @@ class PetCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
+                        if (isSelected) ...[
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor,
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
+                            child: Text(
+                              '대표',
+                              style: TextStyle(
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 6.w),
+                        ],
                         Expanded(
                           child: Text(
                             pet.name,
@@ -189,6 +214,9 @@ class PetCard extends StatelessWidget {
     return PopupMenuButton<String>(
       onSelected: (value) {
         switch (value) {
+          case 'primary':
+            onSetPrimary?.call();
+            break;
           case 'edit':
             onEdit?.call();
             break;
@@ -198,6 +226,17 @@ class PetCard extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
+        if (!isSelected)
+          PopupMenuItem(
+            value: 'primary',
+            child: Row(
+              children: [
+                Icon(Icons.star, size: 20.w, color: Colors.amber),
+                SizedBox(width: 8.w),
+                Text('대표 설정', style: TextStyle(fontSize: 14.sp)),
+              ],
+            ),
+          ),
         PopupMenuItem(
           value: 'edit',
           child: Row(

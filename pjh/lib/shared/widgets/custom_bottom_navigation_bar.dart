@@ -40,9 +40,31 @@ class CustomBottomNavigationBar extends StatelessWidget {
               final item = entry.value;
               final isSelected = currentIndex == index;
 
-              // Skip the center item (create post) as it's handled by FAB
+              // 중앙 AI분석 FAB 버튼
               if (index == 2) {
-                return SizedBox(width: 40.w); // Space for FAB
+                return GestureDetector(
+                  onTap: () => onTap(index),
+                  child: Container(
+                    width: 56.w,
+                    height: 56.w,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18.r),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppTheme.primaryColor, AppTheme.accentColor],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(Icons.psychology, color: Colors.white, size: 28.w),
+                  ),
+                );
               }
 
               return GestureDetector(
