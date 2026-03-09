@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import 'shared/models/navigation_item.dart';
+import 'shared/themes/app_theme.dart';
 
 class MainNavigation extends StatefulWidget {
   final Widget child;
@@ -26,47 +28,130 @@ class _MainNavigationState extends State<MainNavigation> {
       route: '/home',
     ),
     const NavigationItem(
-      icon: Icons.explore_outlined,
-      selectedIcon: Icons.explore,
-      label: '탐색',
-      route: '/explore',
-    ),
-    const NavigationItem(
-      icon: Icons.add_circle_outline,
-      selectedIcon: Icons.add_circle,
-      label: '게시',
-      route: '/create-post',
+      icon: Icons.dynamic_feed_outlined,
+      selectedIcon: Icons.dynamic_feed,
+      label: '피드',
+      route: '/feed',
     ),
     const NavigationItem(
       icon: Icons.psychology_outlined,
       selectedIcon: Icons.psychology,
-      label: '감정분석',
+      label: 'AI분석',
       route: '/emotion',
+    ),
+    const NavigationItem(
+      icon: Icons.medical_services_outlined,
+      selectedIcon: Icons.medical_services,
+      label: '건강관리',
+      route: '/health',
     ),
     const NavigationItem(
       icon: Icons.person_outline,
       selectedIcon: Icons.person,
-      label: '프로필',
-      route: '/profile',
+      label: 'MY',
+      route: '/my',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    // GoRouter의 현재 경로를 기반으로 탭 인덱스 설정
     final location = GoRouterState.of(context).uri.path;
     _updateCurrentIndex(location);
 
     return Scaffold(
       body: widget.child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        type: BottomNavigationBarType.fixed,
-        items: _navigationItems.map((item) => BottomNavigationBarItem(
-          icon: Icon(item.icon),
-          label: item.label,
-        )).toList(),
+      bottomNavigationBar: _buildCustomBottomNav(),
+    );
+  }
+
+  Widget _buildCustomBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Container(
+          height: 60.h,
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: _navigationItems.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              final isSelected = _currentIndex == index;
+
+              // 중앙 AI분석 FAB 버튼
+              if (index == 2) {
+                return GestureDetector(
+                  onTap: () => _onTabTapped(index),
+                  child: Container(
+                    width: 56.w,
+                    height: 56.w,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18.r),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppTheme.primaryColor, AppTheme.accentColor],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(Icons.psychology, color: Colors.white, size: 28.w),
+                  ),
+                );
+              }
+
+              return GestureDetector(
+                onTap: () => _onTabTapped(index),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 8.h,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isSelected ? item.selectedIcon : item.icon,
+                        color: isSelected
+                            ? AppTheme.primaryColor
+                            : AppTheme.secondaryTextColor,
+                        size: 24.w,
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        item.label,
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: isSelected
+                              ? AppTheme.primaryColor
+                              : AppTheme.secondaryTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }
@@ -76,13 +161,13 @@ class _MainNavigationState extends State<MainNavigation> {
 
     if (location.startsWith('/home')) {
       newIndex = 0;
-    } else if (location.startsWith('/explore')) {
+    } else if (location.startsWith('/feed')) {
       newIndex = 1;
-    } else if (location.startsWith('/create-post')) {
-      newIndex = 2;
     } else if (location.startsWith('/emotion')) {
+      newIndex = 2;
+    } else if (location.startsWith('/health')) {
       newIndex = 3;
-    } else if (location.startsWith('/profile')) {
+    } else if (location.startsWith('/my')) {
       newIndex = 4;
     }
 
@@ -101,7 +186,6 @@ class _MainNavigationState extends State<MainNavigation> {
     final route = _navigationItems[index].route;
     if (route == null) return;
 
-    // 현재 경로가 해당 탭의 경로와 다르면 항상 이동 (채팅 등 다른 화면에서도 동작)
     final location = GoRouterState.of(context).uri.path;
     if (index == _currentIndex && location.startsWith(route)) return;
 
@@ -112,4 +196,3 @@ class _MainNavigationState extends State<MainNavigation> {
     context.go(route);
   }
 }
-

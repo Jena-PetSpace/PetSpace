@@ -9,8 +9,7 @@ import '../../config/injection_container.dart';
 import '../../features/social/presentation/bloc/notifications_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/emotion/presentation/pages/emotion_analysis_page.dart';
-import '../../features/emotion/domain/entities/emotion_analysis.dart';
-import '../../features/emotion/presentation/pages/emotion_result_page.dart';
+import '../../features/emotion/presentation/pages/emotion_result_loader_page.dart';
 import '../../features/emotion/presentation/pages/emotion_history_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/profile_edit_page.dart';
@@ -24,6 +23,10 @@ import '../../features/social/presentation/pages/profile_page.dart' as social_pr
 import '../../features/social/presentation/bloc/profile_bloc.dart';
 import '../../features/social/presentation/pages/search_page.dart';
 import '../../features/social/presentation/bloc/search_bloc.dart';
+import '../../features/health/presentation/pages/health_main_page.dart';
+import '../../features/feed_hub/presentation/pages/feed_hub_page.dart';
+import '../../features/my/presentation/pages/my_page.dart';
+import '../../features/my/presentation/pages/my_posts_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_slides_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_login_page.dart';
@@ -159,6 +162,34 @@ class AppRouter {
             builder: (context, state) => const HomePage(),
           ),
           GoRoute(
+            path: '/health',
+            name: 'health',
+            builder: (context, state) => const HealthMainPage(),
+          ),
+          GoRoute(
+            path: '/feed',
+            name: 'feed-hub',
+            builder: (context, state) {
+              final tab = state.uri.queryParameters['tab'];
+              int initialTab = 0;
+              if (tab == 'following') initialTab = 1;
+              if (tab == 'community') initialTab = 2;
+              return FeedHubPage(initialTab: initialTab);
+            },
+          ),
+          GoRoute(
+            path: '/my',
+            name: 'my',
+            builder: (context, state) => const MyPage(),
+            routes: [
+              GoRoute(
+                path: 'posts',
+                name: 'my-posts',
+                builder: (context, state) => const MyPostsPage(),
+              ),
+            ],
+          ),
+          GoRoute(
             path: '/explore',
             name: 'explore',
             builder: (context, state) {
@@ -205,7 +236,10 @@ class AppRouter {
             path: '/notifications',
             name: 'notifications',
             builder: (context, state) {
-              final userId = state.uri.queryParameters['userId'] ?? '';
+              final queryUserId = state.uri.queryParameters['userId'];
+              final authState = authBloc.state;
+              final userId = queryUserId ??
+                  (authState is AuthAuthenticated ? authState.user.uid : '');
               return BlocProvider(
                 create: (context) => sl<NotificationsBloc>()
                   ..add(LoadNotificationsRequested(userId: userId)),
@@ -233,10 +267,12 @@ class AppRouter {
           GoRoute(
             path: '/pets',
             name: 'pets',
-            builder: (context, state) => BlocProvider(
-              create: (context) => sl<PetBloc>(),
-              child: const PetManagementPage(),
-            ),
+            builder: (context, state) => const PetManagementPage(),
+          ),
+          GoRoute(
+            path: '/settings',
+            name: 'settings-direct',
+            builder: (context, state) => const SettingsPage(),
           ),
           GoRoute(
             path: '/user-profile/:userId',
@@ -303,9 +339,8 @@ class AppRouter {
               GoRoute(
                 path: '/result/:analysisId',
                 name: 'emotion-result',
-                builder: (context, state) => EmotionResultPage(
-                  analysis:
-                      EmotionAnalysis.empty(), // TODO: Load from analysisId
+                builder: (context, state) => EmotionResultLoaderPage(
+                  analysisId: state.pathParameters['analysisId']!,
                 ),
               ),
               GoRoute(
@@ -340,11 +375,8 @@ class AppRouter {
         // 초기 상태이거나 로딩 중일 때
         // authStateChanges 스트림이 첫 이벤트를 발생시킬 때까지 대기
         if (authState is AuthInitial || authState is AuthLoading) {
-          // 처음 사용하는 경우 1차 온보딩 페이지로
-          if (currentPath == '/home' || currentPath == '/') {
-            log('Redirecting to /onboarding (initial state)', name: 'GoRouter');
-            return '/onboarding';
-          }
+          // 인증 확인이 완료될 때까지 현재 위치 유지 (온보딩 깜빡임 방지)
+          log('Auth state is initial/loading - staying at $currentPath', name: 'GoRouter');
           return null;
         }
 

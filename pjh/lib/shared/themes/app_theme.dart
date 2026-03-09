@@ -25,6 +25,35 @@ class AppTheme {
   static const Color sleepinessColor = Color(0xFF1E3A5F); // 딥 블루 (졸림)
   static const Color curiosityColor = Color(0xFF0077B6); // 브라이트 블루 (호기심)
 
+  // 간격
+  static const double spacingXs = 4;
+  static const double spacingSm = 8;
+  static const double spacingMd = 16;
+  static const double spacingLg = 24;
+  static const double spacingXl = 32;
+
+  // 라운딩
+  static const double radiusSm = 8;
+  static const double radiusMd = 12;
+  static const double radiusLg = 14;
+  static const double radiusXl = 18;
+
+  // 카드 데코레이션
+  static BoxDecoration get cardDecoration => BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(14),
+    boxShadow: const [
+      BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
+    ],
+  );
+
+  // 그라데이션
+  static const LinearGradient primaryGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primaryColor, accentColor],
+  );
+
   // 그림자
   static const List<BoxShadow> cardShadow = [
     BoxShadow(
@@ -37,6 +66,7 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'Pretendard',
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         brightness: Brightness.light,

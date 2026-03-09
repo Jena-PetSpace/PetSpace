@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../features/social/presentation/pages/home_page.dart';
-import '../../features/social/presentation/pages/explore_page.dart';
-import '../../features/social/presentation/pages/create_post_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/health/presentation/pages/health_main_page.dart';
 import '../../features/emotion/presentation/pages/emotion_analysis_page.dart';
+import '../../features/feed_hub/presentation/pages/feed_hub_page.dart';
+import '../../features/my/presentation/pages/my_page.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../themes/app_theme.dart';
 import '../models/navigation_item.dart';
 import 'custom_bottom_navigation_bar.dart';
 
@@ -28,24 +27,24 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       label: '홈',
     ),
     const NavigationItem(
-      icon: Icons.explore_outlined,
-      selectedIcon: Icons.explore,
-      label: '탐색',
-    ),
-    const NavigationItem(
-      icon: Icons.add_circle_outline,
-      selectedIcon: Icons.add_circle,
-      label: '게시',
+      icon: Icons.medical_services_outlined,
+      selectedIcon: Icons.medical_services,
+      label: '건강관리',
     ),
     const NavigationItem(
       icon: Icons.psychology_outlined,
       selectedIcon: Icons.psychology,
-      label: '감정분석',
+      label: 'AI분석',
+    ),
+    const NavigationItem(
+      icon: Icons.dynamic_feed_outlined,
+      selectedIcon: Icons.dynamic_feed,
+      label: '피드',
     ),
     const NavigationItem(
       icon: Icons.person_outline,
       selectedIcon: Icons.person,
-      label: '프로필',
+      label: 'MY',
     ),
   ];
 
@@ -71,8 +70,6 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
         items: _navigationItems,
         onTap: _onTabTapped,
       ),
-      floatingActionButton: _buildFloatingActionButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
@@ -81,13 +78,13 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       case 0:
         return const HomePage();
       case 1:
-        return const ExplorePage();
+        return const HealthMainPage();
       case 2:
-        return const CreatePostPage();
-      case 3:
         return const EmotionAnalysisPage();
+      case 3:
+        return const FeedHubPage();
       case 4:
-        return const ProfilePage();
+        return const MyPage();
       default:
         return const HomePage();
     }
@@ -100,24 +97,4 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       _currentIndex = index;
     });
   }
-
-  Widget? _buildFloatingActionButton() {
-    // Show FAB only on home and explore pages for quick post creation
-    if (_currentIndex == 0 || _currentIndex == 1) {
-      return FloatingActionButton(
-        onPressed: () {
-          setState(() {
-            _currentIndex = 2;
-          });
-        },
-        backgroundColor: AppTheme.primaryColor,
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-        ),
-      );
-    }
-    return null;
-  }
 }
-

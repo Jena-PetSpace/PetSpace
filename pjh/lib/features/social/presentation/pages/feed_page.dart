@@ -43,63 +43,40 @@ class _FeedPageState extends State<FeedPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('피드'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // Navigate to search page
+    return BlocConsumer<FeedBloc, FeedState>(
+      listener: (context, state) {
+        if (state is FeedError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else if (state is FeedPostCreated) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('게시물이 성공적으로 작성되었습니다!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        if (state is FeedLoading) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (state is FeedLoaded) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              context.read<FeedBloc>().add(RefreshFeedRequested(userId: widget.userId));
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // Navigate to notifications page
-            },
-          ),
-        ],
-      ),
-      body: BlocConsumer<FeedBloc, FeedState>(
-        listener: (context, state) {
-          if (state is FeedError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          } else if (state is FeedPostCreated) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('게시물이 성공적으로 작성되었습니다!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state is FeedLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is FeedLoaded) {
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<FeedBloc>().add(RefreshFeedRequested(userId: widget.userId));
-              },
-              child: _buildFeedList(state),
-            );
-          } else if (state is FeedError) {
-            return _buildErrorState(state.message);
-          }
+            child: _buildFeedList(state),
+          );
+        } else if (state is FeedError) {
+          return _buildErrorState(state.message);
+        }
 
-          return const SizedBox.shrink();
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreatePostBottomSheet,
-        child: const Icon(Icons.add),
-      ),
+        return const SizedBox.shrink();
+      },
     );
   }
 

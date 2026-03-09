@@ -18,6 +18,8 @@ import 'shared/themes/app_theme.dart';
 
 // Core
 import 'core/constants/app_constants.dart';
+import 'features/pets/presentation/bloc/pet_bloc.dart';
+import 'features/pets/presentation/bloc/pet_event.dart';
 import 'core/navigation/app_router.dart';
 
 // Features
@@ -185,6 +187,9 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
             ),
             BlocProvider<ChatBadgeBloc>(
               create: (_) => di.sl<ChatBadgeBloc>(),
+            ),
+            BlocProvider<PetBloc>(
+              create: (_) => di.sl<PetBloc>()..add(LoadUserPets()),
             ),
           ],
           child: MaterialApp.router(

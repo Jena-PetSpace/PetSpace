@@ -46,6 +46,19 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          '프로필',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
           if (state is ProfileLoaded && state.error != null) {
@@ -76,111 +89,106 @@ class _ProfilePageState extends State<ProfilePage>
     final user = state.user;
     final isOwnProfile = widget.currentUserId == user.id;
 
-    return NestedScrollView(
-      headerSliverBuilder: (context, innerBoxIsScrolled) => [
-        SliverAppBar(
-          expandedHeight: 300.h,
-          floating: false,
-          pinned: true,
-          backgroundColor: AppTheme.primaryColor,
-          flexibleSpace: FlexibleSpaceBar(
-            background: _buildProfileHeader(user, state.isFollowing, isOwnProfile),
+    return Column(
+      children: [
+        // 프로필 헤더
+        _buildProfileHeader(user, state.isFollowing, isOwnProfile),
+        // 탭바
+        TabBar(
+          controller: _tabController,
+          labelColor: AppTheme.primaryColor,
+          unselectedLabelColor: AppTheme.lightTextColor,
+          indicatorColor: AppTheme.primaryColor,
+          tabs: const [
+            Tab(text: '게시물', icon: Icon(Icons.grid_on, size: 20)),
+            Tab(text: '팔로워', icon: Icon(Icons.people, size: 20)),
+            Tab(text: '팔로잉', icon: Icon(Icons.person_add, size: 20)),
+          ],
+        ),
+        // 탭 내용
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              UserPostsList(userId: user.id),
+              _buildFollowersList(),
+              _buildFollowingList(),
+            ],
           ),
         ),
       ],
-      body: Column(
-        children: [
-          TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: '게시물', icon: Icon(Icons.grid_on)),
-              Tab(text: '팔로워', icon: Icon(Icons.people)),
-              Tab(text: '팔로잉', icon: Icon(Icons.person_add)),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                UserPostsList(userId: user.id),
-                _buildFollowersList(),
-                _buildFollowingList(),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildProfileHeader(SocialUser user, bool isFollowing, bool isOwnProfile) {
     return Container(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
             AppTheme.primaryColor,
-            AppTheme.primaryColor.withValues(alpha: 0.8),
+            AppTheme.primaryColor.withValues(alpha: 0.85),
           ],
         ),
       ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            SizedBox(height: 20.h),
-            CircleAvatar(
-              radius: 50.r,
-              backgroundImage: user.profileImageUrl != null
-                  ? CachedNetworkImageProvider(user.profileImageUrl!)
-                  : null,
-              child: user.profileImageUrl == null
-                  ? Text(
-                      user.displayName.isNotEmpty ? user.displayName[0] : '?',
-                      style: TextStyle(fontSize: 32.sp, color: Colors.white),
-                    )
-                  : null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 40.r,
+            backgroundImage: user.profileImageUrl != null
+                ? CachedNetworkImageProvider(user.profileImageUrl!)
+                : null,
+            child: user.profileImageUrl == null
+                ? Text(
+                    user.displayName.isNotEmpty ? user.displayName[0] : '?',
+                    style: TextStyle(fontSize: 28.sp, color: Colors.white),
+                  )
+                : null,
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            user.displayName,
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            SizedBox(height: 16.h),
-            Text(
-              user.displayName,
-              style: TextStyle(
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+          ),
+          if (user.username != null && user.username!.isNotEmpty) ...[
+            SizedBox(height: 2.h),
             Text(
               '@${user.username}',
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: 12.sp,
                 color: Colors.white70,
               ),
             ),
-            if (user.bio != null) ...[
-              SizedBox(height: 8.h),
-              Text(
-                user.bio!,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: Colors.white70,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            SizedBox(height: 16.h),
-            ProfileStatsCard(
-              postsCount: user.postsCount,
-              followersCount: user.followersCount,
-              followingCount: user.followingCount,
-            ),
-            SizedBox(height: 16.h),
-            _buildActionButtons(user, isFollowing, isOwnProfile),
           ],
-        ),
+          if (user.bio != null && user.bio!.isNotEmpty) ...[
+            SizedBox(height: 6.h),
+            Text(
+              user.bio!,
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: Colors.white70,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          SizedBox(height: 12.h),
+          ProfileStatsCard(
+            postsCount: user.postsCount,
+            followersCount: user.followersCount,
+            followingCount: user.followingCount,
+          ),
+          SizedBox(height: 12.h),
+          _buildActionButtons(user, isFollowing, isOwnProfile),
+        ],
       ),
     );
   }
