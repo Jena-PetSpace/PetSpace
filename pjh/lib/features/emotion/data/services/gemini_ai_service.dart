@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../../config/api_config.dart';
@@ -83,7 +84,7 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
     }
 
     try {
-      print('[GeminiAI] Gemini API 호출 시작');
+      log('Gemini API 호출 시작', name: 'GeminiAI');
 
       if (!await imageFile.exists()) {
         throw const ImageException('이미지 파일을 찾을 수 없습니다.');
@@ -131,7 +132,7 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
     }
 
     try {
-      print('[GeminiAI] 다중 이미지 분석 시작 (${imageFiles.length}장)');
+      log('다중 이미지 분석 시작 (${imageFiles.length}장)', name: 'GeminiAI');
 
       final parts = <Map<String, dynamic>>[];
       final prompt = _buildPrompt(petType: petType, breed: breed);
@@ -152,7 +153,7 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
         parts.add({
           "inline_data": {"mime_type": mimeType, "data": base64Image}
         });
-        print('[GeminiAI] 이미지 추가: ${(fileSize / 1024).toStringAsFixed(1)} KB');
+        log('이미지 추가: ${(fileSize / 1024).toStringAsFixed(1)} KB', name: 'GeminiAI');
       }
 
       if (parts.length < 2) {
@@ -183,7 +184,7 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
       final textContent = response['candidates'][0]['content']['parts'][0]['text'] as String;
       return textContent.trim();
     } catch (e) {
-      print('[GeminiAI] generateText 오류: $e');
+      log('generateText 오류: $e', name: 'GeminiAI');
       return null;
     }
   }
@@ -300,7 +301,7 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
 
   EmotionScoresModel _parseResponse(Map<String, dynamic> responseData) {
     final textContent = responseData['candidates'][0]['content']['parts'][0]['text'] as String;
-    print('[GeminiAI] 응답 텍스트: $textContent');
+    log('응답 텍스트: $textContent', name: 'GeminiAI');
 
     final jsonStr = _extractJson(textContent);
     if (jsonStr == null) {
@@ -353,7 +354,7 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
     // A-6: 품종 해석
     final breedInsight = emotionData['breed_insight'] as String?;
 
-    print('[GeminiAI] 분석 완료 - happiness: ${happiness.toStringAsFixed(2)}, stress: $stressLevel');
+    log('분석 완료 - happiness: ${happiness.toStringAsFixed(2)}, stress: $stressLevel', name: 'GeminiAI');
 
     return EmotionScoresModel(
       happiness: happiness,
@@ -372,8 +373,8 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
   }
 
   AnalysisException _handleDioException(DioException e) {
-    print('[GeminiAI] DioException: ${e.type} - ${e.message}');
-    print('[GeminiAI] Response: ${e.response?.data}');
+    log('DioException: ${e.type} - ${e.message}', name: 'GeminiAI');
+    log('Response: ${e.response?.data}', name: 'GeminiAI');
     if (e.response?.statusCode == 400) {
       return const AnalysisException('잘못된 요청입니다. 이미지 형식을 확인해주세요.');
     } else if (e.response?.statusCode == 401) {
