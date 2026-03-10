@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -105,7 +106,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 ),
               );
             } catch (e) {
-              print('[ChatDetail] Failed to parse realtime message: $e');
+              log('Failed to parse realtime message: $e', name: 'ChatDetail');
             }
           },
         )

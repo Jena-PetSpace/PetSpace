@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+
+import 'package:crypto/crypto.dart';
 
 import 'package:dartz/dartz.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -161,10 +164,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
       log('🔵 [Kakao Login] 카카오 사용자 정보 - email: $kakaoEmail, id: $kakaoId, nickname: ${kakaoUser.kakaoAccount?.profile?.nickname}', name: 'AuthRepository');
 
-      // 카카오 ID + 시크릿 솔트로 비밀번호 생성 (소스코드만으로 유추 불가)
-      final newPassword = 'kakao_${kakaoId}_${Secrets.kakaoPasswordSalt}';
+      // 카카오 ID + 시크릿 솔트로 SHA-256 해싱 비밀번호 생성 (소스코드만으로 유추 불가)
+      final saltedInput = '${kakaoId}_${Secrets.kakaoPasswordSalt}_petspace_kakao_auth';
+      final hash = sha256.convert(utf8.encode(saltedInput));
+      final newPassword = 'K_${hash.toString()}';
       // 기존 비밀번호 패턴 (마이그레이션용)
-      final legacyPassword = 'kakao_user_${kakaoId}_secure_password';
+      final legacyPassword = 'kakao_${kakaoId}_${Secrets.kakaoPasswordSalt}';
 
       // 4. Supabase에서 사용자 확인 또는 생성
       User? supabaseUser;

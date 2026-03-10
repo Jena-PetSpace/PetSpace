@@ -274,24 +274,22 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     if (state is FeedLoaded) {
       final currentState = state as FeedLoaded;
 
+      // 낙관적 삭제: 먼저 UI에서 제거
+      final updatedPosts = currentState.posts
+          .where((post) => post.id != event.postId)
+          .toList();
+      emit(currentState.copyWith(posts: updatedPosts));
+
+      // 서버 요청
       final result = await _deletePost(DeletePostParams(postId: event.postId));
 
       result.fold(
         (failure) {
-          emit(FeedError(failure.message));
-          // Restore previous state after showing error
-          Future.delayed(const Duration(seconds: 2), () {
-            if (!emit.isDone) {
-              emit(currentState);
-            }
-          });
+          // 실패 시 원복 + 에러 메시지
+          emit(currentState.copyWith(error: failure.message));
         },
         (_) {
-          // Remove the post from the list
-          final updatedPosts = currentState.posts
-              .where((post) => post.id != event.postId)
-              .toList();
-          emit(currentState.copyWith(posts: updatedPosts));
+          // 성공 - 이미 UI에 반영됨
         },
       );
     }

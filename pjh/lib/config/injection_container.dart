@@ -118,7 +118,7 @@ Future<void> _initAuth() async {
   sl.registerLazySingleton(() => SignOut(sl()));
 
   // BLoC
-  sl.registerFactory(
+  sl.registerLazySingleton(
     () => AuthBloc(
       authRepository: sl(),
       signInWithGoogle: sl(),
