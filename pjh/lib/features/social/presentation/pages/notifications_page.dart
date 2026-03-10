@@ -4,6 +4,7 @@ import "package:flutter_screenutil/flutter_screenutil.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../../config/injection_container.dart" as di;
+import "../../domain/entities/notification.dart" as app;
 import "../bloc/notifications_bloc.dart";
 
 class NotificationsPage extends StatelessWidget {
@@ -94,6 +95,7 @@ class NotificationsPage extends StatelessWidget {
                               ),
                             );
                       }
+                      _navigateToContent(context, notification);
                     },
                   ),
                 );
@@ -111,5 +113,27 @@ class NotificationsPage extends StatelessWidget {
       ),
       ),
     );
+  }
+
+  void _navigateToContent(BuildContext context, app.Notification notification) {
+    switch (notification.type) {
+      case app.NotificationType.like:
+      case app.NotificationType.comment:
+      case app.NotificationType.mention:
+      case app.NotificationType.postShare:
+        if (notification.postId != null) {
+          context.push('/post/${notification.postId}');
+        }
+        break;
+      case app.NotificationType.follow:
+      case app.NotificationType.friendRequest:
+        if (notification.senderId.isNotEmpty) {
+          context.push('/user-profile/${notification.senderId}?currentUserId=$userId');
+        }
+        break;
+      case app.NotificationType.emotionAnalysis:
+        context.push('/emotion/history');
+        break;
+    }
   }
 }

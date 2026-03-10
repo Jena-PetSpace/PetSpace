@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:app_links/app_links.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart' as kakao;
 
@@ -29,9 +30,25 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import 'features/social/presentation/bloc/feed_bloc.dart';
 import 'features/chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
+import 'shared/themes/theme_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 전역 Flutter 에러 핸들러
+  FlutterError.onError = (FlutterErrorDetails details) {
+    log('FlutterError: ${details.exceptionAsString()}',
+        name: 'GlobalError',
+        error: details.exception,
+        stackTrace: details.stack);
+  };
+
+  // Dart 비동기 에러 핸들러
+  PlatformDispatcher.instance.onError = (error, stack) {
+    log('PlatformError: $error',
+        name: 'GlobalError', error: error, stackTrace: stack);
+    return true;
+  };
 
   // Kakao SDK 초기화
   if (ApiConfig.isKakaoLoginConfigured) {
@@ -203,14 +220,32 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
             BlocProvider<PetBloc>(
               create: (_) => di.sl<PetBloc>()..add(LoadUserPets()),
             ),
+            BlocProvider<ThemeCubit>(
+              create: (_) => ThemeCubit(di.sl()),
+            ),
           ],
-          child: MaterialApp.router(
-            title: AppConstants.appName,
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.light,
-            routerConfig: AppRouter.createRouter(authBloc),
+          child: BlocListener<AuthBloc, AuthState>(
+            listener: (context, state) {
+              if (state is AuthAuthenticated) {
+                final userId = state.user.id;
+                log('Auth: subscribing realtime for $userId', name: 'main.realtime');
+                RealtimeService().subscribeToNotifications(userId);
+                RealtimeService().subscribeToChatMessages(userId);
+              } else if (state is AuthUnauthenticated) {
+                log('Auth: unsubscribing realtime', name: 'main.realtime');
+                RealtimeService().unsubscribeAll();
+              }
+            },
+            child: BlocBuilder<ThemeCubit, ThemeMode>(
+              builder: (context, themeMode) => MaterialApp.router(
+                title: AppConstants.appName,
+                debugShowCheckedModeBanner: false,
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: themeMode,
+                routerConfig: AppRouter.createRouter(authBloc),
+              ),
+            ),
           ),
         );
       },

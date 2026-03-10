@@ -22,7 +22,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 
 -- ================================================================
--- PART 2: Tables (12개)
+-- PART 2: Tables (13개)
 -- ================================================================
 
 -- 1. Users
@@ -174,6 +174,22 @@ CREATE TABLE IF NOT EXISTS user_blocks (
     CHECK (blocker_id != blocked_id)
 );
 
+-- 13. Health Records
+CREATE TABLE IF NOT EXISTS health_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pet_id UUID REFERENCES pets(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    record_type VARCHAR(20) NOT NULL CHECK (record_type IN ('vaccination', 'checkup', 'weight', 'medication', 'surgery')),
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    record_date DATE NOT NULL,
+    next_date DATE,
+    status VARCHAR(20) DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'overdue', 'cancelled')),
+    data JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Users 테이블 컬럼 보강 (기존 테이블 대비)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_onboarding_completed BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS pets UUID[] DEFAULT ARRAY[]::UUID[];
@@ -226,6 +242,9 @@ CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_blocks_blocker_id ON user_blocks(blocker_id);
 CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked_id ON user_blocks(blocked_id);
+CREATE INDEX IF NOT EXISTS idx_health_records_pet_id ON health_records(pet_id);
+CREATE INDEX IF NOT EXISTS idx_health_records_user_id ON health_records(user_id);
+CREATE INDEX IF NOT EXISTS idx_health_records_record_date ON health_records(record_date DESC);
 
 
 -- ================================================================
@@ -472,6 +491,11 @@ DROP TRIGGER IF EXISTS comments_count_decrement ON comments;
 CREATE TRIGGER comments_count_decrement AFTER DELETE ON comments
     FOR EACH ROW EXECUTE FUNCTION decrement_comments_count();
 
+-- health_records updated_at 트리거
+DROP TRIGGER IF EXISTS update_health_records_updated_at ON health_records;
+CREATE TRIGGER update_health_records_updated_at BEFORE UPDATE ON health_records
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- 회원가입 트리거 (Confirm email OFF이므로 INSERT 시 항상 실행)
 DROP TRIGGER IF EXISTS on_social_user_created ON auth.users;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -497,6 +521,7 @@ ALTER TABLE user_devices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comment_likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_blocks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE health_records ENABLE ROW LEVEL SECURITY;
 
 -- Users
 -- 인증된 유저는 모든 프로필 조회 가능 (채팅 유저 검색, 소셜 기능 등)
@@ -645,6 +670,23 @@ DROP POLICY IF EXISTS "Users can delete their own blocks" ON user_blocks;
 CREATE POLICY "Users can delete their own blocks" ON user_blocks
     FOR DELETE USING (auth.uid() = blocker_id);
 
+-- Health Records
+DROP POLICY IF EXISTS "Users can view own pet health records" ON health_records;
+CREATE POLICY "Users can view own pet health records" ON health_records
+    FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own pet health records" ON health_records;
+CREATE POLICY "Users can insert own pet health records" ON health_records
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own pet health records" ON health_records;
+CREATE POLICY "Users can update own pet health records" ON health_records
+    FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own pet health records" ON health_records;
+CREATE POLICY "Users can delete own pet health records" ON health_records
+    FOR DELETE USING (auth.uid() = user_id);
+
 
 -- ================================================================
 -- PART 7: Storage Bucket
@@ -759,6 +801,6 @@ BEGIN
     RAISE NOTICE '  PetSpace 데이터베이스 설정 완료!';
     RAISE NOTICE '================================================';
     RAISE NOTICE '';
-    RAISE NOTICE '테이블 12개, 인덱스, RLS, 트리거, 함수, 스토리지 설정 완료';
+    RAISE NOTICE '테이블 13개, 인덱스, RLS, 트리거, 함수, 스토리지 설정 완료';
     RAISE NOTICE '================================================';
 END $$;
