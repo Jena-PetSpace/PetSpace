@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/emotion_analysis.dart';
@@ -27,6 +28,9 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   String? _selectedEmotion; // 필터링할 감정 타입
+  bool _isCalendarView = false;
+  DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime? _selectedDay;
 
   @override
   void initState() {
@@ -52,6 +56,11 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
         title: const Text('감정 분석 히스토리'),
         actions: [
           IconButton(
+            icon: Icon(_isCalendarView ? Icons.list : Icons.calendar_month),
+            tooltip: _isCalendarView ? '리스트 보기' : '캘린더 보기',
+            onPressed: () => setState(() => _isCalendarView = !_isCalendarView),
+          ),
+          IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
           ),
@@ -62,7 +71,9 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
           if (state is EmotionAnalysisHistoryLoading) {
             return const Center(child: CircularProgressIndicator());
           } else if (state is EmotionAnalysisHistoryLoaded) {
-            return _buildHistoryList(state.history);
+            return _isCalendarView
+                ? _buildCalendarView(state.history)
+                : _buildHistoryList(state.history);
           } else if (state is EmotionAnalysisError) {
             return _buildErrorState(state.message);
           }
@@ -109,6 +120,190 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCalendarView(List<EmotionAnalysis> history) {
+    // Group analyses by date
+    final Map<String, List<EmotionAnalysis>> grouped = {};
+    for (final analysis in history) {
+      final key = DateFormat('yyyy-MM-dd').format(analysis.analyzedAt);
+      grouped.putIfAbsent(key, () => []).add(analysis);
+    }
+
+    final now = DateTime.now();
+    final daysInMonth = DateUtils.getDaysInMonth(_calendarMonth.year, _calendarMonth.month);
+    final firstWeekday = DateTime(_calendarMonth.year, _calendarMonth.month, 1).weekday % 7; // 0=Sun
+
+    // Selected day's analyses
+    final selectedKey = _selectedDay != null ? DateFormat('yyyy-MM-dd').format(_selectedDay!) : null;
+    final selectedAnalyses = selectedKey != null ? (grouped[selectedKey] ?? []) : <EmotionAnalysis>[];
+
+    return Column(
+      children: [
+        // Month navigation
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () {
+                  setState(() {
+                    _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month - 1);
+                    _selectedDay = null;
+                  });
+                },
+              ),
+              Text(
+                DateFormat('yyyy년 M월').format(_calendarMonth),
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: _calendarMonth.year < now.year ||
+                    (_calendarMonth.year == now.year && _calendarMonth.month < now.month)
+                    ? () {
+                        setState(() {
+                          _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month + 1);
+                          _selectedDay = null;
+                        });
+                      }
+                    : null,
+              ),
+            ],
+          ),
+        ),
+
+        // Weekday headers
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          child: Row(
+            children: ['일', '월', '화', '수', '목', '금', '토'].map((day) {
+              return Expanded(
+                child: Center(
+                  child: Text(
+                    day,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: day == '일' ? Colors.red : day == '토' ? Colors.blue : AppTheme.secondaryTextColor,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        SizedBox(height: 4.h),
+
+        // Calendar grid
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: 1,
+            ),
+            itemCount: firstWeekday + daysInMonth,
+            itemBuilder: (context, index) {
+              if (index < firstWeekday) return const SizedBox.shrink();
+
+              final day = index - firstWeekday + 1;
+              final date = DateTime(_calendarMonth.year, _calendarMonth.month, day);
+              final dateKey = DateFormat('yyyy-MM-dd').format(date);
+              final dayAnalyses = grouped[dateKey];
+              final isSelected = _selectedDay != null &&
+                  _selectedDay!.year == date.year &&
+                  _selectedDay!.month == date.month &&
+                  _selectedDay!.day == date.day;
+              final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+
+              return GestureDetector(
+                onTap: dayAnalyses != null && dayAnalyses.isNotEmpty
+                    ? () => setState(() => _selectedDay = date)
+                    : null,
+                child: Container(
+                  margin: EdgeInsets.all(2.w),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.primaryColor.withValues(alpha: 0.15)
+                        : isToday
+                            ? Colors.grey.withValues(alpha: 0.1)
+                            : null,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: isToday ? Border.all(color: AppTheme.primaryColor, width: 1) : null,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$day',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                          color: date.isAfter(now) ? Colors.grey[300] : null,
+                        ),
+                      ),
+                      if (dayAnalyses != null && dayAnalyses.isNotEmpty)
+                        Container(
+                          width: 8.w,
+                          height: 8.w,
+                          margin: EdgeInsets.only(top: 2.h),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.getEmotionColor(
+                              dayAnalyses.first.emotions.dominantEmotion,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // Selected day's analyses
+        if (_selectedDay != null) ...[
+          Divider(height: 24.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                DateFormat('M월 d일 분석 기록').format(_selectedDay!),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          SizedBox(height: 8.h),
+        ],
+        if (selectedAnalyses.isNotEmpty)
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              itemCount: selectedAnalyses.length,
+              itemBuilder: (context, index) => _buildHistoryItem(selectedAnalyses[index]),
+            ),
+          )
+        else if (_selectedDay != null)
+          Expanded(
+            child: Center(
+              child: Text('이 날의 분석 기록이 없습니다', style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
+            ),
+          )
+        else
+          Expanded(
+            child: Center(
+              child: Text('날짜를 선택하면 분석 기록을 볼 수 있습니다', style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
+            ),
+          ),
+      ],
     );
   }
 

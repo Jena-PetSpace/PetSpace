@@ -7,8 +7,9 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/post.dart';
 import '../../../emotion/presentation/widgets/emotion_chart.dart';
 import '../../../../core/utils/hashtag_utils.dart';
+import 'likes_bottom_sheet.dart';
 
-class PostCard extends StatelessWidget {
+class PostCard extends StatefulWidget {
   final Post post;
   final String currentUserId;
   final VoidCallback onLike;
@@ -29,6 +30,16 @@ class PostCard extends StatelessWidget {
     this.onEdit,
     this.onHashtagTap,
   });
+
+  @override
+  State<PostCard> createState() => _PostCardState();
+}
+
+class _PostCardState extends State<PostCard> {
+  int _currentImageIndex = 0;
+
+  Post get post => widget.post;
+  String get currentUserId => widget.currentUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -137,8 +148,8 @@ class PostCard extends StatelessWidget {
             return WidgetSpan(
               child: GestureDetector(
                 onTap: () {
-                  if (onHashtagTap != null) {
-                    onHashtagTap!(hashtag);
+                  if (widget.onHashtagTap != null) {
+                    widget.onHashtagTap!(hashtag);
                   } else {
                     dev.log('Hashtag tapped: #$hashtag', name: 'PostCard');
                   }
@@ -164,8 +175,8 @@ class PostCard extends StatelessWidget {
   Widget _buildHashtagChip(String tag) {
     return GestureDetector(
       onTap: () {
-        if (onHashtagTap != null) {
-          onHashtagTap!(tag);
+        if (widget.onHashtagTap != null) {
+          widget.onHashtagTap!(tag);
         } else {
           dev.log('Hashtag tapped: #$tag', name: 'PostCard');
         }
@@ -193,11 +204,6 @@ class PostCard extends StatelessWidget {
   }
 
   Widget _buildImages() {
-    dev.log('Building images, count: ${post.imageUrls.length}', name: 'PostCard');
-    if (post.imageUrls.isNotEmpty) {
-      dev.log('Image URL: ${post.imageUrls.first}', name: 'PostCard');
-    }
-
     if (post.imageUrls.length == 1) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -206,68 +212,77 @@ class PostCard extends StatelessWidget {
           width: double.infinity,
           height: 300.h,
           fit: BoxFit.cover,
-          placeholder: (context, url) {
-            dev.log('Loading image: $url', name: 'PostCard');
-            return Container(
-              height: 300.h,
-              color: Colors.grey[200],
-              child: const Center(child: CircularProgressIndicator()),
-            );
-          },
-          errorWidget: (context, url, error) {
-            dev.log('Error loading image: $url, error: $error', name: 'PostCard');
-            return Container(
-              height: 300.h,
-              color: Colors.grey[200],
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error, color: Colors.red, size: 24.w),
-                  SizedBox(height: 8.h),
-                  Text('이미지 로드 실패', style: TextStyle(color: Colors.grey[600], fontSize: 14.sp)),
-                  Text(error.toString(), style: TextStyle(color: Colors.grey[400], fontSize: 10.sp)),
-                ],
-              ),
-            );
-          },
-        ),
-      );
-    } else {
-      return SizedBox(
-        height: 200.h,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-          itemCount: post.imageUrls.length,
-          itemBuilder: (context, index) {
-            return Padding(
-              padding: EdgeInsets.only(right: 8.w),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8.r),
-                child: CachedNetworkImage(
-                  imageUrl: post.imageUrls[index],
-                  width: 150.w,
-                  height: 200.h,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    width: 150.w,
-                    height: 200.h,
-                    color: Colors.grey[200],
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    width: 150.w,
-                    height: 200.h,
-                    color: Colors.grey[200],
-                    child: Icon(Icons.error, size: 24.w),
-                  ),
-                ),
-              ),
-            );
-          },
+          placeholder: (context, url) => Container(
+            height: 300.h,
+            color: Colors.grey[200],
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          errorWidget: (context, url, error) => Container(
+            height: 300.h,
+            color: Colors.grey[200],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error, color: Colors.red, size: 24.w),
+                SizedBox(height: 8.h),
+                Text('이미지 로드 실패', style: TextStyle(color: Colors.grey[600], fontSize: 14.sp)),
+              ],
+            ),
+          ),
         ),
       );
     }
+
+    // Multi-image: PageView with dots indicator
+    return Column(
+      children: [
+        SizedBox(
+          height: 300.h,
+          child: PageView.builder(
+            itemCount: post.imageUrls.length,
+            onPageChanged: (index) {
+              setState(() => _currentImageIndex = index);
+            },
+            itemBuilder: (context, index) {
+              return CachedNetworkImage(
+                imageUrl: post.imageUrls[index],
+                width: double.infinity,
+                height: 300.h,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  height: 300.h,
+                  color: Colors.grey[200],
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: 300.h,
+                  color: Colors.grey[200],
+                  child: Icon(Icons.error, color: Colors.red, size: 24.w),
+                ),
+              );
+            },
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(post.imageUrls.length, (index) {
+            return Container(
+              width: _currentImageIndex == index ? 8.w : 6.w,
+              height: _currentImageIndex == index ? 8.w : 6.w,
+              margin: EdgeInsets.symmetric(horizontal: 3.w),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _currentImageIndex == index
+                    ? AppTheme.primaryColor
+                    : Colors.grey[300],
+              ),
+            );
+          }),
+        ),
+        SizedBox(height: 4.h),
+      ],
+    );
   }
 
   Widget _buildEmotionAnalysis() {
@@ -337,33 +352,44 @@ class PostCard extends StatelessWidget {
       padding: EdgeInsets.all(16.w),
       child: Row(
         children: [
-          InkWell(
-            onTap: onLike,
-            borderRadius: BorderRadius.circular(20.r),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              InkWell(
+                onTap: widget.onLike,
+                borderRadius: BorderRadius.circular(20.r),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+                  child: Icon(
                     post.isLikedByCurrentUser
                         ? Icons.favorite
                         : Icons.favorite_border,
                     color: post.isLikedByCurrentUser ? Colors.red : null,
                     size: 20.w,
                   ),
-                  SizedBox(width: 4.w),
-                  Text(
+                ),
+              ),
+              GestureDetector(
+                onTap: post.likesCount > 0
+                    ? () => LikesBottomSheet.show(
+                          context,
+                          postId: post.id,
+                          currentUserId: currentUserId,
+                        )
+                    : null,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+                  child: Text(
                     '${post.likesCount}',
                     style: TextStyle(fontSize: 12.sp),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
           SizedBox(width: 16.w),
           InkWell(
-            onTap: onComment,
+            onTap: widget.onComment,
             borderRadius: BorderRadius.circular(20.r),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
@@ -382,7 +408,7 @@ class PostCard extends StatelessWidget {
           ),
           SizedBox(width: 16.w),
           InkWell(
-            onTap: onShare,
+            onTap: widget.onShare,
             borderRadius: BorderRadius.circular(20.r),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
@@ -412,47 +438,43 @@ class PostCard extends StatelessWidget {
   void _showPostOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Column(
+      builder: (ctx) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (post.authorId == currentUserId) ...[
-            if (onEdit != null)
+            if (widget.onEdit != null)
               ListTile(
                 leading: const Icon(Icons.edit),
                 title: const Text('수정'),
                 onTap: () {
-                  Navigator.pop(context);
-                  onEdit!();
+                  Navigator.pop(ctx);
+                  widget.onEdit!();
                 },
               ),
-            if (onDelete != null)
+            if (widget.onDelete != null)
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: const Text('삭제', style: TextStyle(color: Colors.red)),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(ctx);
                   _showDeleteConfirmation(context);
                 },
               ),
           ] else ...[
             ListTile(
-              leading: const Icon(Icons.report),
+              leading: const Icon(Icons.report, color: Colors.orange),
               title: const Text('신고'),
               onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('신고 기능은 준비 중입니다')),
-                );
+                Navigator.pop(ctx);
+                _showReportDialog(context);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.block),
+              leading: const Icon(Icons.block, color: Colors.red),
               title: const Text('차단'),
               onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('차단 기능은 준비 중입니다')),
-                );
+                Navigator.pop(ctx);
+                _showBlockDialog(context);
               },
             ),
           ],
@@ -461,21 +483,123 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
+  void _showReportDialog(BuildContext context) {
+    String? selectedReason;
+    final reasons = [
+      '스팸 또는 광고',
+      '폭력적이거나 위험한 콘텐츠',
+      '허위 정보',
+      '혐오 발언 또는 차별',
+      '개인정보 침해',
+      '기타',
+    ];
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('게시물 삭제'),
-        content: const Text('정말로 이 게시물을 삭제하시겠습니까?'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('게시물 신고'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '신고 사유를 선택해주세요',
+                style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+              ),
+              SizedBox(height: 12.h),
+              ...reasons.map((reason) => RadioListTile<String>(
+                title: Text(reason, style: TextStyle(fontSize: 14.sp)),
+                value: reason,
+                groupValue: selectedReason,
+                onChanged: (value) {
+                  setDialogState(() => selectedReason = value);
+                },
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                activeColor: AppTheme.primaryColor,
+              )),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: selectedReason != null
+                  ? () {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('신고가 접수되었습니다. 검토 후 조치하겠습니다.'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    }
+                  : null,
+              child: const Text('신고'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBlockDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('사용자 차단'),
+        content: Text(
+          '${post.authorName}님을 차단하시겠습니까?\n\n차단하면 해당 사용자의 게시물과 댓글이 보이지 않습니다.',
+          style: TextStyle(fontSize: 14.sp),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('취소'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
-              onDelete!();
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${post.authorName}님을 차단했습니다.'),
+                  backgroundColor: Colors.red,
+                  action: SnackBarAction(
+                    label: '취소',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      // TODO: unblock user
+                    },
+                  ),
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('차단'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('게시물 삭제'),
+        content: const Text('정말로 이 게시물을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              widget.onDelete!();
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('삭제'),

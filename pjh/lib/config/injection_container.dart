@@ -60,6 +60,11 @@ import '../features/pets/domain/usecases/update_pet.dart';
 import '../features/pets/domain/usecases/delete_pet.dart';
 import '../features/pets/presentation/bloc/pet_bloc.dart';
 
+// Features - Health
+import '../features/health/data/repositories/health_repository_impl.dart';
+import '../features/health/domain/repositories/health_repository.dart';
+import '../features/health/presentation/bloc/health_bloc.dart';
+
 // Features - Chat
 import '../features/chat/data/datasources/chat_remote_data_source.dart';
 import '../features/chat/data/repositories/chat_repository_impl.dart';
@@ -97,6 +102,7 @@ Future<void> init() async {
   await _initEmotion();
   await _initSocial();
   await _initPets();
+  await _initHealth();
   await _initChat();
 }
 
@@ -271,6 +277,21 @@ Future<void> _initPets() async {
       updatePet: sl(),
       deletePet: sl(),
     ),
+  );
+}
+
+Future<void> _initHealth() async {
+  // Repository
+  sl.registerLazySingleton<HealthRepository>(
+    () => HealthRepositoryImpl(
+      supabaseClient: sl(),
+      networkInfo: sl(),
+    ),
+  );
+
+  // BLoC
+  sl.registerFactory(
+    () => HealthBloc(healthRepository: sl()),
   );
 }
 
