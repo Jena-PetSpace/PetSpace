@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../emotion/domain/entities/emotion_analysis.dart';
@@ -19,9 +20,7 @@ class RecentEmotionCard extends StatelessWidget {
 
     return Card(
       child: InkWell(
-        onTap: () {
-          // 상세 페이지로 이동
-        },
+        onTap: () => context.push('/emotion/history'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),

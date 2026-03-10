@@ -3,9 +3,40 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import 'notification_settings_page.dart';
+import 'privacy_settings_page.dart';
+import 'help_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('계정 삭제', style: TextStyle(fontSize: 18.sp, color: Colors.red[700])),
+        content: Text(
+          '정말로 계정을 삭제하시겠습니까?\n\n'
+          '모든 게시물, 댓글, 반려동물 정보 등이 영구적으로 삭제되며 복구할 수 없습니다.',
+          style: TextStyle(fontSize: 14.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text('취소', style: TextStyle(fontSize: 14.sp)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              context.read<AuthBloc>().add(AuthDeleteAccountRequested());
+              context.go('/onboarding/login');
+            },
+            child: Text('삭제', style: TextStyle(color: Colors.red, fontSize: 14.sp)),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showAccountInfo(BuildContext context) {
     final authState = context.read<AuthBloc>().state;
@@ -116,22 +147,46 @@ class SettingsPage extends StatelessWidget {
             onTap: () => _showAccountInfo(context),
           ),
           ListTile(
+            leading: Icon(Icons.notifications, size: 24.w),
+            title: Text('알림 설정', style: TextStyle(fontSize: 14.sp)),
+            trailing: Icon(Icons.chevron_right, size: 20.w),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const NotificationSettingsPage()),
+            ),
+          ),
+          ListTile(
             leading: Icon(Icons.privacy_tip, size: 24.w),
             title: Text('개인정보 보호', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () {},
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const PrivacySettingsPage()),
+            ),
           ),
           ListTile(
             leading: Icon(Icons.help, size: 24.w),
             title: Text('도움말', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () {},
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HelpPage()),
+            ),
           ),
           ListTile(
             leading: Icon(Icons.info_outline, size: 24.w),
             title: Text('앱 정보', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () {},
+            onTap: () {
+              showAboutDialog(
+                context: context,
+                applicationName: '멍냥다이어리',
+                applicationVersion: '1.0.0',
+                applicationLegalese: '© 2026 PetSpace',
+              );
+            },
           ),
           const Divider(),
           ListTile(
@@ -162,6 +217,14 @@ class SettingsPage extends StatelessWidget {
                 context.go('/onboarding/login');
               }
             },
+          ),
+          ListTile(
+            leading: Icon(Icons.delete_forever, color: Colors.red[700], size: 24.w),
+            title: Text('계정 삭제',
+                style: TextStyle(color: Colors.red[700], fontSize: 14.sp)),
+            subtitle: Text('모든 데이터가 영구적으로 삭제됩니다',
+                style: TextStyle(fontSize: 12.sp, color: Colors.grey)),
+            onTap: () => _showDeleteAccountDialog(context),
           ),
         ],
       ),

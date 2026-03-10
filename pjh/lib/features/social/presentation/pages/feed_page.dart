@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../bloc/feed_bloc.dart';
 import '../widgets/post_card.dart';
 import '../widgets/create_post_bottom_sheet.dart';
+import '../widgets/edit_post_bottom_sheet.dart';
 
 class FeedPage extends StatefulWidget {
   final String? userId;
@@ -125,6 +126,26 @@ class _FeedPageState extends State<FeedPage> {
           onShare: () {
             // Handle share
             _sharePost(post);
+          },
+          onEdit: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => EditPostBottomSheet(
+                post: post,
+                onSave: (updatedPost) {
+                  context.read<FeedBloc>().add(
+                    UpdatePostRequested(post: updatedPost),
+                  );
+                },
+              ),
+            );
+          },
+          onDelete: () {
+            context.read<FeedBloc>().add(
+              DeletePostRequested(postId: post.id),
+            );
           },
           onHashtagTap: (hashtag) {
             // Navigate to search page with hashtag

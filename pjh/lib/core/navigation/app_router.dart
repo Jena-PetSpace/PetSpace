@@ -346,9 +346,13 @@ class AppRouter {
               GoRoute(
                 path: '/history',
                 name: 'emotion-history',
-                builder: (context, state) => const EmotionHistoryPage(
-                  userId: '', // TODO: Get current user ID
-                ),
+                builder: (context, state) {
+                  final authState = authBloc.state;
+                  final userId = authState is AuthAuthenticated
+                      ? authState.user.uid
+                      : '';
+                  return EmotionHistoryPage(userId: userId);
+                },
               ),
             ],
           ),
