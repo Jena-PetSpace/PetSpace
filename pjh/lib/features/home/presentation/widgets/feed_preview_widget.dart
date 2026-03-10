@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -19,9 +20,7 @@ class FeedPreviewWidget extends StatelessWidget {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: InkWell(
-            onTap: () {
-              // 포스트 상세로 이동
-            },
+            onTap: () => context.push('/post/${post.id}'),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(

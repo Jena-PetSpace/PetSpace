@@ -18,6 +18,8 @@ import 'shared/themes/app_theme.dart';
 
 // Core
 import 'core/constants/app_constants.dart';
+import 'core/cache/cache_manager.dart';
+import 'core/services/realtime_service.dart';
 import 'features/pets/presentation/bloc/pet_bloc.dart';
 import 'features/pets/presentation/bloc/pet_event.dart';
 import 'core/navigation/app_router.dart';
@@ -74,6 +76,16 @@ void main() async {
   }
 
   await di.init();
+
+  // CacheManager 초기화
+  await CacheManager().initialize();
+  log('✅ CacheManager 초기화 완료', name: 'main.cache');
+
+  // RealtimeService 초기화
+  if (SupabaseOptions.isConfigured) {
+    await RealtimeService().initialize();
+    log('✅ RealtimeService 초기화 완료', name: 'main.realtime');
+  }
 
   runApp(const MeongNyangDiaryApp());
 }
