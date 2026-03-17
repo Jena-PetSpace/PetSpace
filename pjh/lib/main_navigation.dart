@@ -28,10 +28,10 @@ class _MainNavigationState extends State<MainNavigation> {
       route: '/home',
     ),
     const NavigationItem(
-      icon: Icons.dynamic_feed_outlined,
-      selectedIcon: Icons.dynamic_feed,
-      label: '피드',
-      route: '/feed',
+      icon: Icons.favorite_border,
+      selectedIcon: Icons.favorite,
+      label: '건강관리',
+      route: '/health',
     ),
     const NavigationItem(
       icon: Icons.psychology_outlined,
@@ -40,10 +40,10 @@ class _MainNavigationState extends State<MainNavigation> {
       route: '/emotion',
     ),
     const NavigationItem(
-      icon: Icons.medical_services_outlined,
-      selectedIcon: Icons.medical_services,
-      label: '건강관리',
-      route: '/health',
+      icon: Icons.dynamic_feed_outlined,
+      selectedIcon: Icons.dynamic_feed,
+      label: '피드',
+      route: '/feed',
     ),
     const NavigationItem(
       icon: Icons.person_outline,
@@ -161,11 +161,11 @@ class _MainNavigationState extends State<MainNavigation> {
 
     if (location.startsWith('/home')) {
       newIndex = 0;
-    } else if (location.startsWith('/feed')) {
+    } else if (location.startsWith('/health')) {
       newIndex = 1;
     } else if (location.startsWith('/emotion')) {
       newIndex = 2;
-    } else if (location.startsWith('/health')) {
+    } else if (location.startsWith('/feed')) {
       newIndex = 3;
     } else if (location.startsWith('/my')) {
       newIndex = 4;

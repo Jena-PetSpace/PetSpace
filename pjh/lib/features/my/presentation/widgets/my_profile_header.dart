@@ -2,17 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../../config/injection_container.dart';
+import '../../../../core/services/profile_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 
-class MyProfileHeader extends StatelessWidget {
+class MyProfileHeader extends StatefulWidget {
   final dynamic user;
 
   const MyProfileHeader({super.key, required this.user});
 
   @override
+  State<MyProfileHeader> createState() => _MyProfileHeaderState();
+}
+
+class _MyProfileHeaderState extends State<MyProfileHeader> {
+  late Future<Map<String, dynamic>> _statsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _statsFuture = sl<ProfileService>().getProfileStats();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final photoUrl = user.photoURL as String?;
-    final displayName = (user.displayName as String?) ?? '사용자';
+    final photoUrl = widget.user.photoURL as String?;
+    final displayName = (widget.user.displayName as String?) ?? '사용자';
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
@@ -53,16 +68,25 @@ class MyProfileHeader extends StatelessWidget {
           ),
           SizedBox(height: 16.h),
 
-          // 통계 3칸
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStat('게시글', '0'),
-              _buildDivider(),
-              _buildStat('팔로워', '0'),
-              _buildDivider(),
-              _buildStat('팔로잉', '0'),
-            ],
+          // 통계 3칸 — 실데이터
+          FutureBuilder<Map<String, dynamic>>(
+            future: _statsFuture,
+            builder: (context, snapshot) {
+              final posts = snapshot.data?['posts'] ?? 0;
+              final followers = snapshot.data?['followers'] ?? 0;
+              final following = snapshot.data?['following'] ?? 0;
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildStat('게시글', '$posts'),
+                  _buildDivider(),
+                  _buildStat('팔로워', '$followers'),
+                  _buildDivider(),
+                  _buildStat('팔로잉', '$following'),
+                ],
+              );
+            },
           ),
         ],
       ),

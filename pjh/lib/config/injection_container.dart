@@ -63,6 +63,11 @@ import '../features/pets/presentation/bloc/pet_bloc.dart';
 // Features - Health
 import '../features/health/data/repositories/health_repository_impl.dart';
 import '../features/health/domain/repositories/health_repository.dart';
+import '../features/health/domain/usecases/get_health_records.dart';
+import '../features/health/domain/usecases/add_health_record.dart';
+import '../features/health/domain/usecases/update_health_record.dart';
+import '../features/health/domain/usecases/delete_health_record.dart';
+import '../features/health/domain/usecases/get_upcoming_records.dart';
 import '../features/health/presentation/bloc/health_bloc.dart';
 
 // Features - Chat
@@ -289,9 +294,23 @@ Future<void> _initHealth() async {
     ),
   );
 
+  // Use Cases
+  sl.registerLazySingleton(() => GetHealthRecords(sl()));
+  sl.registerLazySingleton(() => AddHealthRecord(sl()));
+  sl.registerLazySingleton(() => UpdateHealthRecord(sl()));
+  sl.registerLazySingleton(() => DeleteHealthRecord(sl()));
+  sl.registerLazySingleton(() => GetUpcomingRecords(sl()));
+
   // BLoC
   sl.registerFactory(
-    () => HealthBloc(healthRepository: sl()),
+    () => HealthBloc(
+      healthRepository: sl(),
+      getHealthRecords: sl(),
+      addHealthRecord: sl(),
+      updateHealthRecord: sl(),
+      deleteHealthRecord: sl(),
+      getUpcomingRecords: sl(),
+    ),
   );
 }
 

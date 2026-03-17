@@ -3,14 +3,31 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/health_record.dart';
 import '../../domain/repositories/health_repository.dart';
+import '../../domain/usecases/get_health_records.dart';
+import '../../domain/usecases/add_health_record.dart';
+import '../../domain/usecases/update_health_record.dart';
+import '../../domain/usecases/delete_health_record.dart';
+import '../../domain/usecases/get_upcoming_records.dart';
 
 part 'health_event.dart';
 part 'health_state.dart';
 
 class HealthBloc extends Bloc<HealthEvent, HealthState> {
   final HealthRepository healthRepository;
+  final GetHealthRecords getHealthRecords;
+  final AddHealthRecord addHealthRecord;
+  final UpdateHealthRecord updateHealthRecord;
+  final DeleteHealthRecord deleteHealthRecord;
+  final GetUpcomingRecords getUpcomingRecords;
 
-  HealthBloc({required this.healthRepository}) : super(HealthInitial()) {
+  HealthBloc({
+    required this.healthRepository,
+    required this.getHealthRecords,
+    required this.addHealthRecord,
+    required this.updateHealthRecord,
+    required this.deleteHealthRecord,
+    required this.getUpcomingRecords,
+  }) : super(HealthInitial()) {
     on<LoadHealthRecords>(_onLoadHealthRecords);
     on<AddHealthRecordEvent>(_onAddHealthRecord);
     on<UpdateHealthRecordEvent>(_onUpdateHealthRecord);
@@ -23,28 +40,21 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
   ) async {
     emit(HealthLoading());
 
-    final result = await healthRepository.getHealthRecords(
+    final result = await getHealthRecords(GetHealthRecordsParams(
       petId: event.petId,
       type: event.type,
-    );
+    ));
 
     await result.fold(
-      (failure) async {
-        emit(HealthError(failure.message));
-      },
+      (failure) async => emit(HealthError(failure.message)),
       (records) async {
-        // 예정된 알림도 함께 로드
         List<HealthRecord> upcoming = [];
         if (event.userId != null) {
-          final upcomingResult = await healthRepository.getUpcomingRecords(
-            userId: event.userId!,
+          final upcomingResult = await getUpcomingRecords(
+            GetUpcomingRecordsParams(userId: event.userId!),
           );
-          upcomingResult.fold(
-            (_) {},
-            (upcomingRecords) => upcoming = upcomingRecords,
-          );
+          upcomingResult.fold((_) {}, (list) => upcoming = list);
         }
-
         emit(HealthLoaded(records: records, upcomingAlerts: upcoming));
       },
     );
@@ -55,8 +65,7 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     Emitter<HealthState> emit,
   ) async {
     final currentState = state;
-
-    final result = await healthRepository.addHealthRecord(event.record);
+    final result = await addHealthRecord(AddHealthRecordParams(record: event.record));
 
     result.fold(
       (failure) {
@@ -68,8 +77,10 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
       },
       (newRecord) {
         if (currentState is HealthLoaded) {
-          final updatedRecords = [newRecord, ...currentState.records];
-          emit(currentState.copyWith(records: updatedRecords, error: null));
+          emit(currentState.copyWith(
+            records: [newRecord, ...currentState.records],
+            error: null,
+          ));
         }
       },
     );
@@ -80,13 +91,14 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     Emitter<HealthState> emit,
   ) async {
     final currentState = state;
-
-    final result = await healthRepository.updateHealthRecord(event.record);
+    final result = await updateHealthRecord(UpdateHealthRecordParams(record: event.record));
 
     result.fold(
       (failure) {
         if (currentState is HealthLoaded) {
           emit(currentState.copyWith(error: failure.message));
+        } else {
+          emit(HealthError(failure.message));
         }
       },
       (updatedRecord) {
@@ -107,18 +119,18 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     final currentState = state;
     if (currentState is! HealthLoaded) return;
 
-    // 낙관적 삭제
-    final updatedRecords =
-        currentState.records.where((r) => r.id != event.recordId).toList();
-    emit(currentState.copyWith(records: updatedRecords));
+    // 낙관적 삭제 → 실패 시 원복
+    final optimistic = currentState.records
+        .where((r) => r.id != event.recordId)
+        .toList();
+    emit(currentState.copyWith(records: optimistic));
 
-    final result = await healthRepository.deleteHealthRecord(event.recordId);
+    final result = await deleteHealthRecord(
+      DeleteHealthRecordParams(recordId: event.recordId),
+    );
 
     result.fold(
-      (failure) {
-        // 실패 시 복원
-        emit(currentState.copyWith(error: failure.message));
-      },
+      (failure) => emit(currentState.copyWith(error: failure.message)),
       (_) {},
     );
   }
