@@ -1,5 +1,6 @@
 -- ================================================================
 -- PetSpace 전체 데이터베이스 설정 (통합 SQL)
+-- 최종 수정: 2026-03-17 (saved_posts 추가, Realtime 설정, 스키마 버그 수정)
 -- ================================================================
 --
 -- 이 파일 하나만 Supabase SQL Editor에서 실행하면
@@ -62,9 +63,9 @@ CREATE TABLE IF NOT EXISTS pets (
 CREATE TABLE IF NOT EXISTS posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    pet_id UUID REFERENCES pets(id) ON DELETE CASCADE,
-    image_url TEXT NOT NULL,
-    emotion_analysis JSONB NOT NULL,
+    pet_id UUID REFERENCES pets(id) ON DELETE SET NULL, -- 반려동물 삭제 시 포스트 유지
+    image_url TEXT,          -- NULL 허용: 감정분석 공유 시 이미지 없을 수 있음
+    emotion_analysis JSONB,  -- NULL 허용: 일반 커뮤니티 포스트 지원
     caption TEXT,
     hashtags TEXT[],
     likes_count INTEGER DEFAULT 0,
@@ -178,7 +179,7 @@ CREATE TABLE IF NOT EXISTS user_blocks (
 CREATE TABLE IF NOT EXISTS health_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pet_id UUID REFERENCES pets(id) ON DELETE CASCADE NOT NULL,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
     record_type VARCHAR(20) NOT NULL CHECK (record_type IN ('vaccination', 'checkup', 'weight', 'medication', 'surgery')),
     title VARCHAR(100) NOT NULL,
     description TEXT,
@@ -188,6 +189,16 @@ CREATE TABLE IF NOT EXISTS health_records (
     data JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+-- 14. Saved Posts (북마크)
+CREATE TABLE IF NOT EXISTS saved_posts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    post_id UUID REFERENCES posts(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(post_id, user_id)
 );
 
 -- Users 테이블 컬럼 보강 (기존 테이블 대비)
@@ -245,6 +256,10 @@ CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked_id ON user_blocks(blocked_id)
 CREATE INDEX IF NOT EXISTS idx_health_records_pet_id ON health_records(pet_id);
 CREATE INDEX IF NOT EXISTS idx_health_records_user_id ON health_records(user_id);
 CREATE INDEX IF NOT EXISTS idx_health_records_record_date ON health_records(record_date DESC);
+CREATE INDEX IF NOT EXISTS idx_saved_posts_user_id ON saved_posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_posts_post_id ON saved_posts(post_id);
+CREATE INDEX IF NOT EXISTS idx_saved_posts_created_at ON saved_posts(created_at DESC);
+
 
 
 -- ================================================================
@@ -522,6 +537,7 @@ ALTER TABLE comment_likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_blocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE health_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saved_posts ENABLE ROW LEVEL SECURITY;
 
 -- Users
 -- 인증된 유저는 모든 프로필 조회 가능 (채팅 유저 검색, 소셜 기능 등)
@@ -688,6 +704,12 @@ CREATE POLICY "Users can delete own pet health records" ON health_records
     FOR DELETE USING (auth.uid() = user_id);
 
 
+-- Saved Posts (북마크)
+DROP POLICY IF EXISTS "Users can manage own saved posts" ON saved_posts;
+CREATE POLICY "Users can manage own saved posts" ON saved_posts
+    FOR ALL USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
 -- ================================================================
 -- PART 7: Storage Bucket
 -- ================================================================
@@ -790,6 +812,43 @@ CREATE POLICY "Public can view emotion analysis images" ON storage.objects
     USING (bucket_id = 'images' AND (storage.foldername(name))[1] = 'emotion_analysis');
 
 
+
+-- ================================================================
+-- PART 9: Realtime Publication
+-- ================================================================
+-- Supabase Realtime을 통한 실시간 업데이트를 위해
+-- likes, comments, notifications 테이블을 publication에 추가합니다.
+-- (supabase_realtime publication은 Supabase가 자동 생성함)
+
+DO $$
+BEGIN
+    -- likes
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND tablename = 'likes'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE likes;
+    END IF;
+
+    -- comments
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND tablename = 'comments'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE comments;
+    END IF;
+
+    -- notifications
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND tablename = 'notifications'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+    END IF;
+
+    RAISE NOTICE 'Realtime publication 설정 완료 (likes, comments, notifications)';
+END $$;
+
 -- ================================================================
 -- DONE
 -- ================================================================
@@ -801,6 +860,7 @@ BEGIN
     RAISE NOTICE '  PetSpace 데이터베이스 설정 완료!';
     RAISE NOTICE '================================================';
     RAISE NOTICE '';
-    RAISE NOTICE '테이블 13개, 인덱스, RLS, 트리거, 함수, 스토리지 설정 완료';
+    RAISE NOTICE '테이블 14개, 인덱스, RLS, 트리거, 함수, 스토리지, Realtime 설정 완료';
+    RAISE NOTICE '  추가된 테이블: saved_posts (북마크)';
     RAISE NOTICE '================================================';
 END $$;
