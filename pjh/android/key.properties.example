@@ -1,0 +1,19 @@
+# android/key.properties.example
+# 이 파일을 복사해서 key.properties로 만든 후 실제 값을 입력하세요.
+# key.properties는 .gitignore에 포함됩니다 (절대 커밋하지 마세요).
+
+# 키스토어 생성 명령어:
+# keytool -genkey -v \
+#   -keystore petspace-release.jks \
+#   -keyalg RSA -keysize 2048 -validity 10000 \
+#   -alias petspace \
+#   -storepass YOUR_STORE_PASSWORD \
+#   -keypass YOUR_KEY_PASSWORD \
+#   -dname "CN=PetSpace, OU=Jena, O=Jena, L=Seoul, S=Seoul, C=KR"
+#
+# 생성된 petspace-release.jks 파일을 android/ 폴더에 배치
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=petspace
+storeFile=../petspace-release.jks

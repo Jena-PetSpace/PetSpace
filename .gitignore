@@ -30,3 +30,9 @@ pjh/lib/config/secrets.dart
 
 # Supabase local
 supabase/.temp/
+
+# Android 릴리즈 서명 키 (절대 커밋 금지)
+pjh/android/key.properties
+pjh/android/petspace-release.jks
+pjh/android/*.jks
+pjh/android/*.keystore

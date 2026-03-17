@@ -8,11 +8,17 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:app_links/app_links.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart' as kakao;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Config
 import 'config/injection_container.dart' as di;
 import 'supabase_options.dart';
 import 'config/api_config.dart';
+import 'firebase_options.dart';
 
 // Shared
 import 'shared/themes/app_theme.dart';
@@ -91,6 +97,18 @@ void main() async {
   if (!ApiConfig.isGoogleLoginConfigured && !ApiConfig.isKakaoLoginConfigured) {
     log('\n⚠️ 실제 소셜 로그인을 위해서는 API 키 설정이 필요합니다.', name: 'main.warning');
     log('   lib/config/api_config.dart 파일을 확인하세요.', name: 'main.warning');
+  }
+
+  // Firebase 초기화 (Android FCM 푸시 알림)
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    // 백그라운드 메시지 핸들러 등록 (top-level 함수)
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    log('✅ Firebase 초기화 완료', name: 'main.firebase');
+  } catch (e) {
+    log('⚠️ Firebase 초기화 실패: $e', name: 'main.firebase');
   }
 
   await di.init();
