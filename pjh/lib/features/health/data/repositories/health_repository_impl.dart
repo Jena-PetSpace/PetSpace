@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../core/error/error_messages.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/health_record.dart';
 import '../../domain/repositories/health_repository.dart';
@@ -23,7 +24,7 @@ class HealthRepositoryImpl implements HealthRepository {
     int limit = 50,
   }) async {
     if (!await networkInfo.isConnected) {
-      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      return const Left(NetworkFailure(message: ErrorMessages.networkError));
     }
 
     try {
@@ -48,7 +49,7 @@ class HealthRepositoryImpl implements HealthRepository {
     } on PostgrestException catch (e) {
       return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
     } catch (e) {
-      return Left(GeneralFailure(message: '건강 기록 조회 실패: ${e.toString()}'));
+      return Left(GeneralFailure(message: ErrorMessages.healthRecordLoadFailed));
     }
   }
 
@@ -56,7 +57,7 @@ class HealthRepositoryImpl implements HealthRepository {
   Future<Either<Failure, HealthRecord>> addHealthRecord(
       HealthRecord record) async {
     if (!await networkInfo.isConnected) {
-      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      return const Left(NetworkFailure(message: ErrorMessages.networkError));
     }
 
     try {
@@ -88,7 +89,7 @@ class HealthRepositoryImpl implements HealthRepository {
   Future<Either<Failure, HealthRecord>> updateHealthRecord(
       HealthRecord record) async {
     if (!await networkInfo.isConnected) {
-      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      return const Left(NetworkFailure(message: ErrorMessages.networkError));
     }
 
     try {
@@ -112,7 +113,7 @@ class HealthRepositoryImpl implements HealthRepository {
   @override
   Future<Either<Failure, void>> deleteHealthRecord(String recordId) async {
     if (!await networkInfo.isConnected) {
-      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      return const Left(NetworkFailure(message: ErrorMessages.networkError));
     }
 
     try {
@@ -135,7 +136,7 @@ class HealthRepositoryImpl implements HealthRepository {
     int daysAhead = 30,
   }) async {
     if (!await networkInfo.isConnected) {
-      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      return const Left(NetworkFailure(message: ErrorMessages.networkError));
     }
 
     try {

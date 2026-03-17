@@ -538,7 +538,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
       case HealthRecordType.vaccination:
         return AppTheme.highlightColor;
       case HealthRecordType.checkup:
-        return const Color(0xFF4CAF50);
+        return AppTheme.successColor;
       case HealthRecordType.weight:
         return AppTheme.accentColor;
       case HealthRecordType.medication:
@@ -581,7 +581,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
       case HealthRecordStatus.scheduled:
         return AppTheme.highlightColor;
       case HealthRecordStatus.completed:
-        return const Color(0xFF4CAF50);
+        return AppTheme.successColor;
       case HealthRecordStatus.overdue:
         return Colors.red;
       case HealthRecordStatus.cancelled:

@@ -124,7 +124,7 @@ void showSuccessSnackbar(BuildContext context, String message) {
           ),
         ],
       ),
-      backgroundColor: const Color(0xFF4CAF50), // Green
+      backgroundColor: AppTheme.successColor, // Green
       duration: const Duration(seconds: 2),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(

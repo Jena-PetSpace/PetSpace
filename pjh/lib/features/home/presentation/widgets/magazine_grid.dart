@@ -51,7 +51,7 @@ class MagazineGrid extends StatelessWidget {
               _buildMagazineItem(
                 context: context,
                 tag: '건강',
-                tagColor: const Color(0xFF4CAF50),
+                tagColor: AppTheme.successColor,
                 title: '반려동물 치아 관리\n필수 가이드',
               ),
               _buildMagazineItem(

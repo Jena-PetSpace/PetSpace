@@ -2,6 +2,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../core/error/error_messages.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/comment.dart';
 import '../../domain/entities/follow.dart';
@@ -25,7 +26,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, SocialUser>> getUserProfile(String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final user = await remoteDataSource.getUser(userId);
@@ -39,7 +40,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, SocialUser>> updateUserProfile(SocialUser user) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final updatedUser = await remoteDataSource.updateUser(user);
@@ -53,7 +54,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<SocialUser>>> searchUsers(String query, {int limit = 20}) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final users = await remoteDataSource.searchUsers(query, limit, null);
@@ -67,7 +68,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, Post>> createPost(Post post) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final createdPost = await remoteDataSource.createPost(post, []);
@@ -81,7 +82,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, Post>> getPost(String postId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final post = await remoteDataSource.getPost(postId);
@@ -99,7 +100,7 @@ class SocialRepositoryImpl implements SocialRepository {
   }) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final posts = await remoteDataSource.getFeedPosts(userId, limit, lastPostId);
@@ -116,7 +117,7 @@ class SocialRepositoryImpl implements SocialRepository {
   }) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final posts = await remoteDataSource.getExplorePosts(limit, lastPostId);
@@ -135,7 +136,7 @@ class SocialRepositoryImpl implements SocialRepository {
   }) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final posts = await remoteDataSource.getUserPosts(userId, limit, lastPostId);
@@ -149,7 +150,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> likePost(String postId, String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.likePost(postId, userId);
@@ -163,7 +164,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> unlikePost(String postId, String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.unlikePost(postId, userId);
@@ -177,7 +178,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> deletePost(String postId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.deletePost(postId);
@@ -191,7 +192,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, Comment>> createComment(Comment comment) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final createdComment = await remoteDataSource.createComment(comment);
@@ -209,7 +210,7 @@ class SocialRepositoryImpl implements SocialRepository {
   }) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final comments = await remoteDataSource.getPostComments(postId, limit, lastCommentId);
@@ -223,7 +224,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, Follow>> followUser(String followerId, String followingId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.followUser(followerId, followingId);
@@ -246,7 +247,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> unfollowUser(String followerId, String followingId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.unfollowUser(followerId, followingId);
@@ -261,7 +262,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> markNotificationAsRead(String notificationId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.markNotificationAsRead(notificationId);
@@ -276,7 +277,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> acceptFollowRequest(String followId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       // 팔로우 요청 승인은 현재 스키마에서 지원하지 않음 (자동 승인 구조)
@@ -291,7 +292,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> createNotification(Notification notification) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.createNotification(notification);
@@ -305,7 +306,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> deleteComment(String commentId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.deleteComment(commentId);
@@ -324,7 +325,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<Follow>>> getFollowers(String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final users = await remoteDataSource.getFollowers(userId, 50, null);
@@ -350,7 +351,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<Follow>>> getFollowing(String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final users = await remoteDataSource.getFollowing(userId, 50, null);
@@ -376,7 +377,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<Notification>>> getNotifications({required String userId, int limit = 20, String? lastNotificationId}) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final notifications = await remoteDataSource.getUserNotifications(userId, limit, lastNotificationId);
@@ -395,7 +396,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<Follow>>> getPendingFollowRequests(String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       // 팔로우 요청 대기 기능은 현재 스키마에서 지원하지 않음 (자동 승인 구조)
@@ -410,7 +411,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<SocialUser>>> getPostLikes(String postId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final userIds = await remoteDataSource.getPostLikes(postId, 100);
@@ -437,7 +438,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<Post>>> getSharedPosts(String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       // 공유된 게시물은 현재 별도 테이블 없이 일반 게시물로 처리됨
@@ -452,7 +453,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, int>> getUnreadNotificationsCount(String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       // 안읽은 알림을 가져와서 개수 반환
@@ -468,7 +469,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, bool>> isFollowing(String followerId, String followingId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final isFollowing = await remoteDataSource.isFollowing(followerId, followingId);
@@ -482,7 +483,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> likeComment(String commentId, String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.likeComment(commentId, userId);
@@ -496,7 +497,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> markAllNotificationsAsRead(String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       // Bulk update로 성능 최적화
@@ -511,7 +512,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> rejectFollowRequest(String followId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       // 팔로우 요청 거절은 현재 스키마에서 지원하지 않음 (자동 승인 구조)
@@ -526,7 +527,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> reportPost(String postId, String userId, String reason) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.reportPost(postId, userId, reason);
@@ -540,7 +541,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> reportUser(String reportedUserId, String reporterId, String reason) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.reportUser(reportedUserId, reporterId, reason);
@@ -554,7 +555,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> sharePost(String postId, String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       // 원본 포스트 가져오기
@@ -596,7 +597,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> unlikeComment(String commentId, String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.unlikeComment(commentId, userId);
@@ -610,7 +611,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, Comment>> updateComment(Comment comment) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final updatedComment = await remoteDataSource.updateComment(comment);
@@ -624,7 +625,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, Post>> updatePost(Post post) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final updatedPost = await remoteDataSource.updatePost(post);
@@ -642,7 +643,7 @@ class SocialRepositoryImpl implements SocialRepository {
   }) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final posts = await remoteDataSource.searchPosts(
@@ -664,7 +665,7 @@ class SocialRepositoryImpl implements SocialRepository {
   }) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final posts = await remoteDataSource.searchPostsByHashtag(
@@ -684,7 +685,7 @@ class SocialRepositoryImpl implements SocialRepository {
   }) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final hashtags = await remoteDataSource.getPopularHashtags(limit: limit);
@@ -701,7 +702,7 @@ class SocialRepositoryImpl implements SocialRepository {
   }) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final hashtags = await remoteDataSource.getTrendingHashtags(
@@ -720,14 +721,14 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> savePost(String postId, String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
       await remoteDataSource.supabaseClient
           .from('saved_posts')
           .upsert({'post_id': postId, 'user_id': userId, 'created_at': DateTime.now().toIso8601String()});
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(message: '북마크 저장 실패: ${e.toString()}'));
+      return Left(ServerFailure(message: '${ErrorMessages.savePostFailed}: \${e.toString()}'));
     }
   }
 
@@ -735,7 +736,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, void>> unsavePost(String postId, String userId) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
       await remoteDataSource.supabaseClient
           .from('saved_posts')
@@ -744,7 +745,7 @@ class SocialRepositoryImpl implements SocialRepository {
           .eq('user_id', userId);
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(message: '북마크 해제 실패: ${e.toString()}'));
+      return Left(ServerFailure(message: '${ErrorMessages.unsavePostFailed}: \${e.toString()}'));
     }
   }
 
@@ -752,7 +753,7 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<Post>>> getSavedPosts({required String userId, int limit = 20}) async {
     try {
       if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
       final response = await remoteDataSource.supabaseClient
           .from('saved_posts')
@@ -771,7 +772,7 @@ class SocialRepositoryImpl implements SocialRepository {
           .toList();
       return Right(posts);
     } catch (e) {
-      return Left(ServerFailure(message: '저장된 게시글 조회 실패: ${e.toString()}'));
+      return Left(ServerFailure(message: '${ErrorMessages.savedPostsLoadFailed}: \${e.toString()}'));
     }
   }
 

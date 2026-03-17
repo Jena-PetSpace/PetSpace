@@ -125,7 +125,7 @@ class _FeedHubPageState extends State<FeedHubPage>
                 selected: isSelected,
                 selectedColor: AppTheme.primaryColor,
                 backgroundColor: Colors.white,
-                side: BorderSide(color: isSelected ? AppTheme.primaryColor : const Color(0xFFE0E0E0)),
+                side: BorderSide(color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
                 onSelected: (_) {},
               );
             },

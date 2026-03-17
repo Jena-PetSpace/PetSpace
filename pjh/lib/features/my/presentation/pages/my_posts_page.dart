@@ -276,7 +276,7 @@ class _MyPostsPageState extends State<MyPostsPage>
                   selected: isSelected,
                   selectedColor: AppTheme.primaryColor,
                   backgroundColor: Colors.white,
-                  side: BorderSide(color: isSelected ? AppTheme.primaryColor : const Color(0xFFE0E0E0)),
+                  side: BorderSide(color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
                   onSelected: (_) {
                     setState(() => _selectedPetFilter = null);
                     _loadEmotionData();
@@ -300,7 +300,7 @@ class _MyPostsPageState extends State<MyPostsPage>
                   selected: isSelected,
                   selectedColor: AppTheme.primaryColor,
                   backgroundColor: Colors.white,
-                  side: BorderSide(color: isSelected ? AppTheme.primaryColor : const Color(0xFFE0E0E0)),
+                  side: BorderSide(color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
                   onSelected: (_) {
                     setState(() => _selectedPetFilter = _kNoPet);
                     _loadEmotionData();
@@ -328,7 +328,7 @@ class _MyPostsPageState extends State<MyPostsPage>
                 selected: isSelected,
                 selectedColor: AppTheme.primaryColor,
                 backgroundColor: Colors.white,
-                side: BorderSide(color: isSelected ? AppTheme.primaryColor : const Color(0xFFE0E0E0)),
+                side: BorderSide(color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
                 onSelected: (_) {
                   setState(() => _selectedPetFilter = pet.id);
                   _loadEmotionData();

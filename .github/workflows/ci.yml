@@ -43,6 +43,8 @@ jobs:
           flutter test \
             test/features/auth/presentation/bloc/auth_bloc_test.dart \
             test/features/emotion/presentation/bloc/emotion_analysis_bloc_test.dart \
+            test/features/health/domain/usecases/health_usecases_test.dart \
+            test/features/social/domain/usecases/bookmark_usecases_test.dart \
             --reporter=expanded
 
   # ─────────────────────────────────────────────────────────────────────────────

@@ -52,6 +52,21 @@ class ErrorMessages {
   static const String commentFailed = '댓글 작성에 실패했습니다.\n다시 시도해주세요.';
   static const String likeFailed = '좋아요 처리에 실패했습니다.\n다시 시도해주세요.';
   static const String followFailed = '팔로우 처리에 실패했습니다.\n다시 시도해주세요.';
+  static const String feedLoadFailed = '피드를 불러오지 못했습니다.\n다시 시도해주세요.';
+  static const String savePostFailed = '게시물 저장에 실패했습니다.\n다시 시도해주세요.';
+  static const String unsavePostFailed = '저장 취소에 실패했습니다.\n다시 시도해주세요.';
+  static const String savedPostsLoadFailed = '저장한 글을 불러오지 못했습니다.\n다시 시도해주세요.';
+
+  // 건강 관리 에러
+  static const String healthRecordLoadFailed = '건강 기록을 불러오지 못했습니다.\n다시 시도해주세요.';
+  static const String healthRecordCreateFailed = '건강 기록 저장에 실패했습니다.\n다시 시도해주세요.';
+  static const String healthRecordUpdateFailed = '건강 기록 수정에 실패했습니다.\n다시 시도해주세요.';
+  static const String healthRecordDeleteFailed = '건강 기록 삭제에 실패했습니다.\n다시 시도해주세요.';
+
+  // 채팅 에러
+  static const String chatRoomCreateFailed = '채팅방 생성에 실패했습니다.\n다시 시도해주세요.';
+  static const String messageSendFailed = '메시지 전송에 실패했습니다.\n다시 시도해주세요.';
+  static const String chatLoadFailed = '채팅 내역을 불러오지 못했습니다.\n다시 시도해주세요.';
 
   // 반려동물 에러
   static const String petNotFound = '반려동물 정보를 찾을 수 없습니다.';

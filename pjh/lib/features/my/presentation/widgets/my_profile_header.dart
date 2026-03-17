@@ -120,7 +120,7 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
     return Container(
       width: 1,
       height: 30.h,
-      color: const Color(0xFFE0E0E0),
+      color: AppTheme.dividerColor,
     );
   }
 }

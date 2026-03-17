@@ -61,7 +61,7 @@ class _CategoryFilterChipsState extends State<CategoryFilterChips> {
                   borderRadius: BorderRadius.circular(20.r),
                   border: isSelected
                       ? null
-                      : Border.all(color: const Color(0xFFE0E0E0)),
+                      : Border.all(color: AppTheme.dividerColor),
                 ),
                 child: Text(
                   '${cat['emoji']} ${cat['label']}',

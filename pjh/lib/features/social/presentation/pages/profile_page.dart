@@ -12,11 +12,14 @@ import '../widgets/user_posts_list.dart';
 class ProfilePage extends StatefulWidget {
   final String userId;
   final String? currentUserId;
+  /// true면 상단에 설정 버튼 표시 (내 프로필 진입 시)
+  final bool isMyProfile;
 
   const ProfilePage({
     super.key,
     required this.userId,
     this.currentUserId,
+    this.isMyProfile = false,
   });
 
   @override
@@ -58,6 +61,14 @@ class _ProfilePageState extends State<ProfilePage>
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: widget.isMyProfile
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => context.push('/settings'),
+                ),
+              ]
+            : null,
       ),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
