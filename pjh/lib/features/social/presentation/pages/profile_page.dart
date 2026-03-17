@@ -331,8 +331,15 @@ class _ProfilePageState extends State<ProfilePage>
     }
   }
 
-  void _editProfile() {
-    Navigator.pushNamed(context, '/edit-profile');
+  void _editProfile() async {
+    final updated = await context.push<bool>('/profile/edit');
+    if (updated == true && mounted) {
+      // 프로필 정보 갱신
+      context.read<ProfileBloc>().add(LoadUserProfileRequested(
+        userId: widget.userId,
+        currentUserId: widget.currentUserId,
+      ));
+    }
   }
 
   void _showSettings() {

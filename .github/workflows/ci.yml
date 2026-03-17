@@ -29,6 +29,17 @@ jobs:
         working-directory: pjh
         run: flutter pub get
 
+      - name: secrets.dart 생성 (CI용 더미)
+        working-directory: pjh
+        run: |
+          mkdir -p lib/config
+          cat > lib/config/secrets.dart << 'EOF'
+          const String supabaseUrl = '';
+          const String supabaseAnonKey = '';
+          const String geminiApiKey = '';
+          const String kakaoNativeKey = '';
+          EOF
+
       - name: 코드 포맷 검사
         working-directory: pjh
         run: dart format --output=none --set-exit-if-changed lib/

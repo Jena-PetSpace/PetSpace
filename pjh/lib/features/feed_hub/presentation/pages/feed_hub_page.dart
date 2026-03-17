@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:go_router/go_router.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../social/presentation/pages/feed_page.dart';
 import '../widgets/community_post_card.dart';
@@ -94,6 +95,13 @@ class _FeedHubPageState extends State<FeedHubPage>
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push('/search'),
+            tooltip: '검색',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryColor,
