@@ -9,10 +9,12 @@ import '../widgets/edit_post_bottom_sheet.dart';
 
 class FeedPage extends StatefulWidget {
   final String? userId;
+  final bool followingOnly;
 
   const FeedPage({
     super.key,
     this.userId,
+    this.followingOnly = false,
   });
 
   @override
@@ -26,7 +28,7 @@ class _FeedPageState extends State<FeedPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    context.read<FeedBloc>().add(LoadFeedRequested(userId: widget.userId));
+    context.read<FeedBloc>().add(LoadFeedRequested(userId: widget.userId, followingOnly: widget.followingOnly));
   }
 
   @override
@@ -38,7 +40,7 @@ class _FeedPageState extends State<FeedPage> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent * 0.8) {
-      context.read<FeedBloc>().add(LoadMorePostsRequested(userId: widget.userId));
+      context.read<FeedBloc>().add(LoadMorePostsRequested(userId: widget.userId, followingOnly: widget.followingOnly));
     }
   }
 
@@ -68,7 +70,7 @@ class _FeedPageState extends State<FeedPage> {
         } else if (state is FeedLoaded) {
           return RefreshIndicator(
             onRefresh: () async {
-              context.read<FeedBloc>().add(RefreshFeedRequested(userId: widget.userId));
+              context.read<FeedBloc>().add(RefreshFeedRequested(userId: widget.userId, followingOnly: widget.followingOnly));
             },
             child: _buildFeedList(state),
           );
@@ -227,7 +229,7 @@ class _FeedPageState extends State<FeedPage> {
           SizedBox(height: 16.h),
           ElevatedButton(
             onPressed: () {
-              context.read<FeedBloc>().add(LoadFeedRequested(userId: widget.userId));
+              context.read<FeedBloc>().add(LoadFeedRequested(userId: widget.userId, followingOnly: widget.followingOnly));
             },
             child: Text('다시 시도', style: TextStyle(fontSize: 14.sp)),
           ),

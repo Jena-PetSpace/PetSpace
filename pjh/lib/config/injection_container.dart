@@ -94,6 +94,7 @@ import '../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
 // Core Services
 import '../core/services/image_upload_service.dart';
 import '../core/services/notification_service.dart';
+import '../core/services/push_notification_service.dart';
 import '../core/services/realtime_service.dart';
 import '../core/services/profile_service.dart';
 import '../core/services/fcm_service.dart';
@@ -392,6 +393,10 @@ Future<void> _initCore() async {
 
   sl.registerLazySingleton<NotificationService>(
     () => NotificationService(),
+  );
+
+  sl.registerLazySingleton<PushNotificationService>(
+    () => PushNotificationService(),
   );
 
   sl.registerLazySingleton<RealtimeService>(

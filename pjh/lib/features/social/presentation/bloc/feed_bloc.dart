@@ -11,6 +11,7 @@ import '../../domain/usecases/like_post.dart';
 import '../../domain/usecases/unlike_post.dart';
 import '../../domain/usecases/save_post.dart';
 import '../../../../core/services/realtime_service.dart';
+import '../../../../core/services/push_notification_service.dart';
 import '../../domain/usecases/unsave_post.dart';
 import '../../domain/usecases/get_saved_posts.dart';
 import '../../domain/usecases/update_post.dart';
@@ -29,6 +30,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   final UnsavePost _unsavePost;
   final GetSavedPosts _getSavedPosts;
   final RealtimeService _realtimeService;
+  final PushNotificationService _pushService = PushNotificationService();
   StreamSubscription<Map<String, dynamic>>? _likeSub;
   StreamSubscription<Map<String, dynamic>>? _commentSub;
 
@@ -78,6 +80,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     final result = await _getFeed(GetFeedParams(
       userId: event.userId,
       limit: event.limit,
+      followingOnly: event.followingOnly,
     ));
 
     result.fold(
@@ -96,6 +99,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     final result = await _getFeed(GetFeedParams(
       userId: event.userId,
       limit: 20,
+      followingOnly: event.followingOnly,
     ));
 
     result.fold(
@@ -121,6 +125,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
         userId: event.userId,
         limit: 20,
         lastPostId: currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
+        followingOnly: event.followingOnly,
       ));
 
       result.fold(
@@ -204,7 +209,20 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
           // 실패 시 원본 상태로 복원
           emit(currentState.copyWith(posts: originalPosts));
         },
-        (_) {},
+        (_) {
+          // 성공 시 게시글 작성자에게 알림 발송 (자기 자신 제외)
+          final likedPost = currentState.posts
+              .where((p) => p.id == event.postId)
+              .firstOrNull;
+          if (likedPost != null && likedPost.authorId != event.userId) {
+            _pushService.sendLikeNotification(
+              toUserId: likedPost.authorId,
+              fromUserId: event.userId,
+              fromUserName: '사용자',
+              postId: event.postId,
+            );
+          }
+        },
       );
     }
   }

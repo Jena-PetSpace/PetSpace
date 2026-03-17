@@ -8,11 +8,13 @@ class GetFeedParams {
   final String? userId;
   final int limit;
   final String? lastPostId;
+  final bool followingOnly;
 
   const GetFeedParams({
     this.userId,
     this.limit = 20,
     this.lastPostId,
+    this.followingOnly = false,
   });
 }
 
@@ -27,6 +29,7 @@ class GetFeed extends UseCase<List<Post>, GetFeedParams> {
       userId: params.userId,
       limit: params.limit,
       lastPostId: params.lastPostId,
+      followingOnly: params.followingOnly,
     );
   }
 }

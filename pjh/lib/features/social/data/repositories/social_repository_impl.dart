@@ -317,7 +317,15 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
-  Future<Either<Failure, List<Post>>> getFeed({String? userId, int limit = 20, String? lastPostId}) async {
+  Future<Either<Failure, List<Post>>> getFeed({
+    String? userId,
+    int limit = 20,
+    String? lastPostId,
+    bool followingOnly = false,
+  }) async {
+    if (followingOnly && userId != null && userId.isNotEmpty) {
+      return await getFeedPosts(userId: userId, limit: limit, lastPostId: lastPostId);
+    }
     return await getFeedPosts(userId: userId ?? '', limit: limit, lastPostId: lastPostId);
   }
 

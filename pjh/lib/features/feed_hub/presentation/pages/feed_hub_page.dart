@@ -1,5 +1,7 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../social/presentation/pages/feed_page.dart';
@@ -7,7 +9,6 @@ import '../widgets/community_post_card.dart';
 
 class FeedHubPage extends StatefulWidget {
   final int initialTab;
-
   const FeedHubPage({super.key, this.initialTab = 0});
 
   @override
@@ -17,6 +18,21 @@ class FeedHubPage extends StatefulWidget {
 class _FeedHubPageState extends State<FeedHubPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final _supabase = Supabase.instance.client;
+
+  // 커뮤니티 탭 상태
+  int _selectedCategory = 0;
+  List<Map<String, dynamic>> _communityPosts = [];
+  bool _communityLoading = true;
+
+  static const _categories = [
+    {'label': '전체', 'value': null},
+    {'label': '건강Q&A', 'value': 'health_qa'},
+    {'label': '사료추천', 'value': 'food_recommend'},
+    {'label': '자유Q&A', 'value': 'parenting_qa'},
+    {'label': '정보공유', 'value': 'info_share'},
+    {'label': '자유', 'value': 'free'},
+  ];
 
   @override
   void initState() {
@@ -26,12 +42,42 @@ class _FeedHubPageState extends State<FeedHubPage>
       vsync: this,
       initialIndex: widget.initialTab,
     );
+    _tabController.addListener(() {
+      if (_tabController.index == 2 && _communityPosts.isEmpty) {
+        _loadCommunityPosts();
+      }
+    });
+    if (widget.initialTab == 2) _loadCommunityPosts();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCommunityPosts({String? category}) async {
+    setState(() => _communityLoading = true);
+    try {
+      var query = _supabase
+          .from('community_posts')
+          .select('id, author_id, category, title, content, likes_count, comments_count, created_at, users(display_name, photo_url)')
+          .order('created_at', ascending: false)
+          .limit(30);
+
+      if (category != null) {
+        query = query.eq('category', category);
+      }
+
+      final response = await query;
+      setState(() {
+        _communityPosts = List<Map<String, dynamic>>.from(response);
+        _communityLoading = false;
+      });
+    } catch (e) {
+      dev.log('커뮤니티 포스트 로드 실패: $e', name: 'FeedHubPage');
+      setState(() => _communityLoading = false);
+    }
   }
 
   @override
@@ -49,18 +95,9 @@ class _FeedHubPageState extends State<FeedHubPage>
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppTheme.primaryColor,
-          indicatorWeight: 2,
           labelColor: AppTheme.primaryColor,
-          labelStyle: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w700,
-          ),
-          unselectedLabelColor: AppTheme.lightTextColor,
-          unselectedLabelStyle: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w400,
-          ),
+          unselectedLabelColor: AppTheme.secondaryTextColor,
+          indicatorColor: AppTheme.primaryColor,
           tabs: const [
             Tab(text: '추천'),
             Tab(text: '팔로잉'),
@@ -71,7 +108,7 @@ class _FeedHubPageState extends State<FeedHubPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          const FeedPage(),
+          _buildFeedTab(),
           _buildFollowingTab(),
           _buildCommunityTab(),
         ],
@@ -79,28 +116,15 @@ class _FeedHubPageState extends State<FeedHubPage>
     );
   }
 
+  Widget _buildFeedTab() {
+    return const FeedPage();
+  }
+
   Widget _buildFollowingTab() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.people_outline, size: 64.w, color: Colors.grey[400]),
-          SizedBox(height: 16.h),
-          Text(
-            '팔로잉한 사용자의 게시물이\n여기에 표시됩니다',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: AppTheme.secondaryTextColor,
-            ),
-          ),
-        ],
-      ),
-    );
+    return const FeedPage(followingOnly: true);
   }
 
   Widget _buildCommunityTab() {
-    final categories = ['전체', '건강Q&A', '사료추천', '자유Q&A', '정보공유'];
     return Column(
       children: [
         // 카테고리 칩
@@ -110,13 +134,13 @@ class _FeedHubPageState extends State<FeedHubPage>
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: EdgeInsets.symmetric(horizontal: 16.w),
-            itemCount: categories.length,
+            itemCount: _categories.length,
             separatorBuilder: (_, __) => SizedBox(width: 8.w),
             itemBuilder: (context, index) {
-              final isSelected = index == 0;
+              final isSelected = _selectedCategory == index;
               return FilterChip(
                 label: Text(
-                  categories[index],
+                  _categories[index]['label'] as String,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
@@ -125,48 +149,92 @@ class _FeedHubPageState extends State<FeedHubPage>
                 selected: isSelected,
                 selectedColor: AppTheme.primaryColor,
                 backgroundColor: Colors.white,
-                side: BorderSide(color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
-                onSelected: (_) {},
+                side: BorderSide(
+                    color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
+                onSelected: (_) {
+                  setState(() => _selectedCategory = index);
+                  final cat = _categories[index]['value'] as String?;
+                  _loadCommunityPosts(category: cat);
+                },
               );
             },
           ),
         ),
-        // 게시글 리스트 (샘플)
+
+        // 게시글 리스트
         Expanded(
-          child: ListView(
-            padding: EdgeInsets.all(16.w),
-            children: const [
-              CommunityPostCard(
-                authorName: '몽이맘',
-                category: '건강Q&A',
-                title: '강아지 눈물자국 관리법 알려주세요',
-                content: '말티즈 3살인데 눈물자국이 심해져서 고민이에요. 좋은 방법 있으면 공유해주세요!',
-                likes: 12,
-                comments: 5,
-                timeAgo: '2시간 전',
-              ),
-              CommunityPostCard(
-                authorName: '냥순이아빠',
-                category: '사료추천',
-                title: '고양이 사료 추천 부탁드려요',
-                content: '5살 페르시안 고양이인데 요즘 사료를 안먹으려고 해요. 추천해주실 사료 있으신가요?',
-                likes: 8,
-                comments: 14,
-                timeAgo: '5시간 전',
-              ),
-              CommunityPostCard(
-                authorName: '댕댕이사랑',
-                category: '자유Q&A',
-                title: '산책할 때 다른 강아지 만나면 흥분해요',
-                content: '산책 중에 다른 강아지를 보면 너무 흥분하는데 교정 방법이 있을까요?',
-                likes: 23,
-                comments: 9,
-                timeAgo: '어제',
-              ),
-            ],
-          ),
+          child: _communityLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _communityPosts.isEmpty
+                  ? _buildEmpty()
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        final cat = _categories[_selectedCategory]['value'] as String?;
+                        await _loadCommunityPosts(category: cat);
+                      },
+                      child: ListView.builder(
+                        padding: EdgeInsets.all(16.w),
+                        itemCount: _communityPosts.length,
+                        itemBuilder: (context, index) {
+                          final post = _communityPosts[index];
+                          final user = post['users'] as Map<String, dynamic>?;
+                          return CommunityPostCard(
+                            authorName: user?['display_name'] as String? ?? '익명',
+                            category: _categoryLabel(post['category'] as String? ?? ''),
+                            title: post['title'] as String? ?? '',
+                            content: post['content'] as String? ?? '',
+                            likes: post['likes_count'] as int? ?? 0,
+                            comments: post['comments_count'] as int? ?? 0,
+                            timeAgo: _timeAgo(post['created_at'] as String? ?? ''),
+                          );
+                        },
+                      ),
+                    ),
         ),
       ],
     );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.forum_outlined, size: 64.w, color: Colors.grey[300]),
+          SizedBox(height: 16.h),
+          Text('게시글이 없습니다',
+              style: TextStyle(fontSize: 16.sp, color: Colors.grey[500])),
+          SizedBox(height: 8.h),
+          Text('첫 번째 글을 작성해보세요',
+              style: TextStyle(fontSize: 13.sp, color: Colors.grey[400])),
+        ],
+      ),
+    );
+  }
+
+  String _categoryLabel(String value) {
+    const map = {
+      'health_qa': '건강Q&A',
+      'food_recommend': '사료추천',
+      'parenting_qa': '자유Q&A',
+      'info_share': '정보공유',
+      'free': '자유',
+    };
+    return map[value] ?? value;
+  }
+
+  String _timeAgo(String isoString) {
+    if (isoString.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return '방금 전';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+      if (diff.inHours < 24) return '${diff.inHours}시간 전';
+      if (diff.inDays < 7) return '${diff.inDays}일 전';
+      return '${dt.month}/${dt.day}';
+    } catch (_) {
+      return '';
+    }
   }
 }

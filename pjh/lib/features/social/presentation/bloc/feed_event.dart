@@ -10,32 +10,36 @@ abstract class FeedEvent extends Equatable {
 class LoadFeedRequested extends FeedEvent {
   final String? userId;
   final int limit;
+  final bool followingOnly;
 
   const LoadFeedRequested({
     this.userId,
     this.limit = 20,
+    this.followingOnly = false,
   });
 
   @override
-  List<Object?> get props => [userId, limit];
+  List<Object?> get props => [userId, limit, followingOnly];
 }
 
 class RefreshFeedRequested extends FeedEvent {
   final String? userId;
+  final bool followingOnly;
 
-  const RefreshFeedRequested({this.userId});
+  const RefreshFeedRequested({this.userId, this.followingOnly = false});
 
   @override
-  List<Object?> get props => [userId];
+  List<Object?> get props => [userId, followingOnly];
 }
 
 class LoadMorePostsRequested extends FeedEvent {
   final String? userId;
+  final bool followingOnly;
 
-  const LoadMorePostsRequested({this.userId});
+  const LoadMorePostsRequested({this.userId, this.followingOnly = false});
 
   @override
-  List<Object?> get props => [userId];
+  List<Object?> get props => [userId, followingOnly];
 }
 
 class CreatePostRequested extends FeedEvent {

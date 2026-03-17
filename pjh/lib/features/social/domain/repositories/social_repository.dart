@@ -21,6 +21,7 @@ abstract class SocialRepository {
     String? userId,
     int limit = 20,
     String? lastPostId,
+    bool followingOnly = false,
   });
   Future<Either<Failure, List<Post>>> getFeedPosts({
     required String userId,
@@ -91,6 +92,11 @@ abstract class SocialRepository {
   Future<Either<Failure, void>> unsavePost(String postId, String userId);
   Future<Either<Failure, List<Post>>> getSavedPosts({required String userId, int limit = 20});
   Future<Either<Failure, bool>> isPostSaved(String postId, String userId);
+
+  // Block operations
+  Future<Either<Failure, void>> blockUser(String blockerId, String blockedId);
+  Future<Either<Failure, void>> unblockUser(String blockerId, String blockedId);
+  Future<Either<Failure, bool>> isBlocked(String blockerId, String blockedId);
 
   // Report operations
   Future<Either<Failure, void>> reportPost(String postId, String userId, String reason);
