@@ -66,14 +66,18 @@ class _PostCardState extends State<PostCard> {
       padding: EdgeInsets.all(16.w),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 20.r,
-            backgroundImage: post.authorProfileImage != null
-                ? CachedNetworkImageProvider(post.authorProfileImage!)
-                : null,
-            child: post.authorProfileImage == null
-                ? Text(post.authorName.isNotEmpty ? post.authorName[0] : '?', style: TextStyle(fontSize: 14.sp))
-                : null,
+          Semantics(
+            label: '${post.authorName} 프로필 사진',
+            image: true,
+            child: CircleAvatar(
+              radius: 20.r,
+              backgroundImage: post.authorProfileImage != null
+                  ? CachedNetworkImageProvider(post.authorProfileImage!)
+                  : null,
+              child: post.authorProfileImage == null
+                  ? Text(post.authorName.isNotEmpty ? post.authorName[0] : '?', style: TextStyle(fontSize: 14.sp))
+                  : null,
+            ),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -378,17 +382,21 @@ class _PostCardState extends State<PostCard> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              InkWell(
-                onTap: widget.onLike,
-                borderRadius: BorderRadius.circular(20.r),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-                  child: Icon(
-                    post.isLikedByCurrentUser
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    color: post.isLikedByCurrentUser ? Colors.red : null,
-                    size: 20.w,
+              Semantics(
+                label: post.isLikedByCurrentUser ? '좋아요 취소' : '좋아요',
+                button: true,
+                child: InkWell(
+                  onTap: widget.onLike,
+                  borderRadius: BorderRadius.circular(20.r),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+                    child: Icon(
+                      post.isLikedByCurrentUser
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: post.isLikedByCurrentUser ? Colors.red : null,
+                      size: 20.w,
+                    ),
                   ),
                 ),
               ),
@@ -411,21 +419,25 @@ class _PostCardState extends State<PostCard> {
             ],
           ),
           SizedBox(width: 16.w),
-          InkWell(
-            onTap: widget.onComment,
-            borderRadius: BorderRadius.circular(20.r),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.comment_outlined, size: 20.w),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '${post.commentsCount}',
-                    style: TextStyle(fontSize: 12.sp),
-                  ),
-                ],
+          Semantics(
+            label: '댓글 ${post.commentsCount}개 보기',
+            button: true,
+            child: InkWell(
+              onTap: widget.onComment,
+              borderRadius: BorderRadius.circular(20.r),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.comment_outlined, size: 20.w),
+                    SizedBox(width: 4.w),
+                    Text(
+                      '${post.commentsCount}',
+                      style: TextStyle(fontSize: 12.sp),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -220,7 +220,11 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                     SizedBox(height: 24.h),
 
                     // 분석 시작 버튼
-                    SizedBox(
+                    Semantics(
+                      label: _imagePaths.isEmpty ? '사진을 선택해주세요' : '${_imagePaths.length}장 종합 분석 시작',
+                      button: true,
+                      enabled: _canAnalyze,
+                      child: SizedBox(
                       width: double.infinity,
                       height: 52.h,
                       child: ElevatedButton.icon(
@@ -246,6 +250,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                         ),
                       ),
                     ),
+                    )),
                     SizedBox(height: 16.h),
                   ],
                 ),

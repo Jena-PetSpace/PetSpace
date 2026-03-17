@@ -82,10 +82,14 @@ class _HealthMainViewState extends State<_HealthMainView> {
             ),
             centerTitle: true,
           ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showAddRecordSheet(context),
-            backgroundColor: AppTheme.primaryColor,
-            child: const Icon(Icons.add, color: Colors.white),
+          floatingActionButton: Semantics(
+            label: '건강 기록 추가',
+            button: true,
+            child: FloatingActionButton(
+              onPressed: () => _showAddRecordSheet(context),
+              backgroundColor: AppTheme.primaryColor,
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
           ),
           body: BlocBuilder<HealthBloc, HealthState>(
             builder: (context, state) {

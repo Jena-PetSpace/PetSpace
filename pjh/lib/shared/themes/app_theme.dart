@@ -225,15 +225,211 @@ class AppTheme {
   }
 
   static ThemeData get darkTheme {
+    const darkBackground = Color(0xFF121212);
+    const darkSurface = Color(0xFF1E1E1E);
+    const darkCard = Color(0xFF252525);
+    const darkText = Color(0xFFE0E0E0);
+    const darkSecondaryText = Color(0xFF9E9E9E);
+    const darkDivider = Color(0xFF2E2E2E);
+    const darkHint = Color(0xFF757575);
+
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'Pretendard',
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         brightness: Brightness.dark,
+        surface: darkSurface,
+        primary: primaryColor,
+        secondary: highlightColor,
       ),
       primaryColor: primaryColor,
-      scaffoldBackgroundColor: const Color(0xFF121212),
-      fontFamily: 'Pretendard',
+      scaffoldBackgroundColor: darkBackground,
+
+      // AppBar
+      appBarTheme: const AppBarTheme(
+        backgroundColor: darkSurface,
+        foregroundColor: darkText,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: darkText,
+          fontFamily: 'Pretendard',
+        ),
+        iconTheme: IconThemeData(color: darkText),
+      ),
+
+      // Card
+      cardTheme: CardThemeData(
+        color: darkCard,
+        elevation: 0,
+        shadowColor: Colors.black54,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+
+      // BottomNavigationBar
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: darkSurface,
+        selectedItemColor: primaryColor,
+        unselectedItemColor: darkSecondaryText,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+      ),
+
+      // TabBar
+      tabBarTheme: const TabBarThemeData(
+        labelColor: primaryColor,
+        unselectedLabelColor: darkSecondaryText,
+        indicatorColor: primaryColor,
+      ),
+
+      // ElevatedButton
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Pretendard',
+          ),
+        ),
+      ),
+
+      // TextButton
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: accentColor,
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            fontFamily: 'Pretendard',
+          ),
+        ),
+      ),
+
+      // OutlinedButton
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: primaryColor,
+          side: const BorderSide(color: primaryColor),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+
+      // FloatingActionButton
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+      ),
+
+      // InputDecoration
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: darkCard,
+        hintStyle: const TextStyle(color: darkHint),
+        labelStyle: const TextStyle(color: darkSecondaryText),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: darkDivider),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: darkDivider),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primaryColor, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+
+      // Divider
+      dividerTheme: const DividerThemeData(
+        color: darkDivider,
+        thickness: 1,
+        space: 1,
+      ),
+
+      // Chip
+      chipTheme: ChipThemeData(
+        backgroundColor: darkCard,
+        selectedColor: primaryColor,
+        labelStyle: const TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        side: const BorderSide(color: darkDivider),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+
+      // Icon
+      iconTheme: const IconThemeData(color: darkText),
+
+      // Text
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        displayMedium: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        bodyLarge: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        bodyMedium: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        bodySmall: TextStyle(color: darkSecondaryText, fontFamily: 'Pretendard'),
+        labelLarge: TextStyle(color: darkText, fontWeight: FontWeight.w600, fontFamily: 'Pretendard'),
+      ),
+
+      // SnackBar
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: darkCard,
+        contentTextStyle: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+
+      // Dialog
+      dialogTheme: const DialogThemeData(
+        backgroundColor: darkSurface,
+        titleTextStyle: TextStyle(
+          color: darkText,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'Pretendard',
+        ),
+        contentTextStyle: TextStyle(
+          color: darkSecondaryText,
+          fontSize: 14,
+          fontFamily: 'Pretendard',
+        ),
+      ),
+
+      // ListTile
+      listTileTheme: const ListTileThemeData(
+        tileColor: Colors.transparent,
+        textColor: darkText,
+        iconColor: darkSecondaryText,
+      ),
+
+      // Switch
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected) ? primaryColor : darkSecondaryText,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? primaryColor.withValues(alpha: 0.4)
+              : darkDivider,
+        ),
+      ),
     );
   }
 

@@ -89,7 +89,11 @@ class _MainNavigationState extends State<MainNavigation> {
 
               // 중앙 AI분석 FAB 버튼
               if (index == 2) {
-                return GestureDetector(
+                return Semantics(
+                  label: 'AI 감정 분석',
+                  button: true,
+                  selected: _currentIndex == 2,
+                  child: GestureDetector(
                   onTap: () => _onTabTapped(index),
                   child: Container(
                     width: 56.w,
@@ -111,10 +115,14 @@ class _MainNavigationState extends State<MainNavigation> {
                     ),
                     child: Icon(Icons.psychology, color: Colors.white, size: 28.w),
                   ),
-                );
+                ));
               }
 
-              return GestureDetector(
+              return Semantics(
+                label: item.label,
+                button: true,
+                selected: isSelected,
+                child: GestureDetector(
                 onTap: () => _onTabTapped(index),
                 behavior: HitTestBehavior.opaque,
                 child: Container(
