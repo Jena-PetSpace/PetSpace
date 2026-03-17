@@ -474,9 +474,29 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
   }
 
-  void _postToFeed(BuildContext ctx, String caption, List<String> tags) {
+  Future<void> _postToFeed(BuildContext ctx, String caption, List<String> tags) async {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
+
+    // 1. 이미지 URL 결정: Supabase URL이 있으면 그대로, 없으면 로컬 파일 업로드
+    String? finalImageUrl;
+
+    if (widget.analysis.imageUrl.isNotEmpty) {
+      finalImageUrl = widget.analysis.imageUrl;
+    } else if (widget.imagePaths.isNotEmpty) {
+      try {
+        final uploadService = sl<ImageUploadService>();
+        final result = await uploadService.uploadPostImage(
+          File(widget.imagePaths.first),
+        );
+        finalImageUrl = result['url'];
+      } catch (e) {
+        // 업로드 실패해도 이미지 없이 게시 진행
+        finalImageUrl = null;
+      }
+    }
+
+    if (!mounted) return;
 
     final post = Post(
       id: '',
@@ -485,7 +505,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       authorProfileImage: authState.user.photoURL,
       type: PostType.emotionAnalysis,
       content: caption.isEmpty ? null : caption,
-      imageUrls: widget.analysis.imageUrl.isNotEmpty ? [widget.analysis.imageUrl] : [],
+      imageUrls: finalImageUrl != null ? [finalImageUrl] : [],
       emotionAnalysis: widget.analysis,
       tags: tags,
       createdAt: DateTime.now(),

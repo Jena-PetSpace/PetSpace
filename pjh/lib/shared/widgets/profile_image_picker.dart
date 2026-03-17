@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -135,7 +136,7 @@ class ProfileImagePicker extends StatelessWidget {
         onImageSelected();
       }
     } catch (e) {
-      debugPrint('이미지 선택 오류: $e');
+      developer.log('이미지 선택 오류: $e', name: 'ProfileImagePicker', error: e);
     }
   }
 

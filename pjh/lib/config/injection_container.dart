@@ -172,7 +172,7 @@ Future<void> _initEmotion() async {
   sl.registerLazySingleton(() => DeleteEmotionAnalysis(sl()));
 
   // BLoC
-  sl.registerFactory(
+  sl.registerLazySingleton(
     () => EmotionAnalysisBloc(
       analyzeEmotion: sl(),
       saveEmotionAnalysis: sl(),
@@ -387,7 +387,6 @@ Future<void> _initCore() async {
   sl.registerLazySingleton<ImageUploadService>(
     () => ImageUploadService(
       storage: sl(),
-      auth: null,
     ),
   );
 

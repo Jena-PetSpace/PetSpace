@@ -29,6 +29,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   final UnsavePost _unsavePost;
   final GetSavedPosts _getSavedPosts;
   final RealtimeService _realtimeService;
+  StreamSubscription<Map<String, dynamic>>? _likeSub;
+  StreamSubscription<Map<String, dynamic>>? _commentSub;
 
   FeedBloc({
     required GetFeed getFeed,
@@ -392,12 +394,23 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
   /// 피드 로드 후 Realtime 구독 시작
   void subscribeRealtime(String userId) {
+    // 중복 구독 방지
+    _likeSub?.cancel();
+    _commentSub?.cancel();
+
     _realtimeService.subscribeToNotifications(userId);
-    _realtimeService.likeStream.listen((data) {
+    _likeSub = _realtimeService.likeStream.listen((data) {
       add(RealtimeLikeReceived(data));
     });
-    _realtimeService.commentStream.listen((data) {
+    _commentSub = _realtimeService.commentStream.listen((data) {
       add(RealtimeCommentReceived(data));
     });
+  }
+
+  @override
+  Future<void> close() {
+    _likeSub?.cancel();
+    _commentSub?.cancel();
+    return super.close();
   }
 }

@@ -1,5 +1,8 @@
 import 'dart:developer' as dev;
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart' show FlutterLocalNotificationsPlugin, AndroidNotificationDetails, AndroidNotificationChannel, DarwinNotificationDetails, NotificationDetails, Importance, Priority;
+import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart' show BuildContext, GlobalKey, NavigatorState;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Firebase Cloud Messaging 서비스
@@ -8,7 +11,41 @@ class FCMService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final SupabaseClient _supabase;
 
+  /// GoRouter navigatorKey — main.dart에서 주입
+  GlobalKey<NavigatorState>? navigatorKey;
+
   FCMService({required SupabaseClient supabase}) : _supabase = supabase;
+
+  /// 메시지 data 필드 기준 라우팅
+  void _routeFromData(Map<String, dynamic> data) {
+    final router = navigatorKey?.currentContext != null
+        ? GoRouter.of(navigatorKey!.currentContext!)
+        : null;
+    if (router == null) return;
+
+    final type = data['type'] as String?;
+    final postId = data['post_id'] as String?;
+    final senderId = data['sender_id'] as String?;
+    final userId = _supabase.auth.currentUser?.id ?? '';
+
+    switch (type) {
+      case 'like':
+      case 'comment':
+      case 'mention':
+        if (postId != null) router.push('/post/$postId');
+        break;
+      case 'follow':
+        if (senderId != null) {
+          router.push('/user-profile/$senderId?currentUserId=$userId');
+        }
+        break;
+      case 'emotion_analysis':
+        router.push('/emotion/history');
+        break;
+      default:
+        router.push('/notifications?userId=$userId');
+    }
+  }
 
   /// FCM 초기화
   Future<void> initialize() async {
@@ -48,6 +85,9 @@ class FCMService {
 
       // 백그라운드 메시지 핸들러는 main.dart에서 설정
 
+      // 알림 탭 → 딥링크 라우팅 설정
+      setupInteractedMessage();
+
       dev.log('FCM 초기화 완료', name: 'FCMService');
     } catch (e, stackTrace) {
       dev.log('FCM 초기화 실패', error: e, stackTrace: stackTrace, name: 'FCMService');
@@ -78,12 +118,24 @@ class FCMService {
 
   /// 포그라운드 메시지 처리
   void _handleForegroundMessage(RemoteMessage message) {
-    dev.log('포그라운드 메시지 수신', name: 'FCMService');
-    dev.log('Title: ${message.notification?.title}', name: 'FCMService');
-    dev.log('Body: ${message.notification?.body}', name: 'FCMService');
-    dev.log('Data: ${message.data}', name: 'FCMService');
+    dev.log('포그라운드 메시지 수신: ${message.notification?.title}', name: 'FCMService');
+    // 포그라운드에서는 알림 데이터만 저장 — 탭 시 처리는 onMessageOpenedApp에서
+  }
 
-    // TODO: 앱 내 알림 UI 표시 (SnackBar, Dialog 등)
+  /// 알림 탭 → 인앱 라우팅 (앱이 백그라운드 → 포그라운드 전환 시)
+  void setupInteractedMessage() {
+    // 앱이 종료된 상태에서 알림 탭으로 열린 경우
+    _firebaseMessaging.getInitialMessage().then((message) {
+      if (message != null) {
+        _routeFromData(message.data);
+      }
+    });
+
+    // 앱이 백그라운드 상태에서 알림 탭으로 포그라운드로 전환된 경우
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      dev.log('알림 탭 → 라우팅: ${message.data}', name: 'FCMService');
+      _routeFromData(message.data);
+    });
   }
 
   /// 특정 토픽 구독

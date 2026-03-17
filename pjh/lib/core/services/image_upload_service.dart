@@ -11,7 +11,6 @@ class ImageUploadService {
 
   ImageUploadService({
     required SupabaseClient storage,
-    required auth,
   }) : _supabase = storage;
 
   String get _currentUserId {

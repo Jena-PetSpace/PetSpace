@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -39,7 +40,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         });
       }
     } catch (e) {
-      debugPrint('프로필 로드 오류: $e');
+      developer.log('프로필 로드 오류: $e', name: 'ProfileEditPage', error: e);
     }
   }
 
@@ -187,7 +188,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       // 이미지가 선택되었으면 업로드
       if (_selectedImage != null) {
         newImageUrl = await _profileService.updateProfileImage(_selectedImage!);
-        debugPrint('프로필 이미지 업로드 완료: $newImageUrl');
+        developer.log('프로필 이미지 업로드 완료', name: 'ProfileEditPage');
       }
 
       // 프로필 정보 저장
@@ -200,7 +201,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         photoUrl: newImageUrl, // 새 이미지가 없으면 null (기존 유지)
       );
 
-      debugPrint('프로필 저장 완료 - 이름: $displayName, 소개: $bio');
+      developer.log('프로필 저장 완료', name: 'ProfileEditPage');
 
       // 성공 메시지 표시
       if (mounted) {
@@ -214,7 +215,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         Navigator.pop(context, true); // true를 반환하여 업데이트 알림
       }
     } catch (e) {
-      debugPrint('프로필 저장 오류: $e');
+      developer.log('프로필 저장 오류: $e', name: 'ProfileEditPage', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

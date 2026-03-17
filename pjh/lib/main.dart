@@ -21,6 +21,7 @@ import 'shared/themes/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/cache/cache_manager.dart';
 import 'core/services/realtime_service.dart';
+import 'core/services/fcm_service.dart';
 import 'features/pets/presentation/bloc/pet_bloc.dart';
 import 'features/pets/presentation/bloc/pet_event.dart';
 import 'core/navigation/app_router.dart';
@@ -102,6 +103,14 @@ void main() async {
   if (SupabaseOptions.isConfigured) {
     await RealtimeService().initialize();
     log('✅ RealtimeService 초기화 완료', name: 'main.realtime');
+  }
+
+  // FCMService 초기화
+  try {
+    await di.sl<FCMService>().initialize();
+    log('✅ FCMService 초기화 완료', name: 'main.fcm');
+  } catch (e) {
+    log('⚠️ FCMService 초기화 실패 (Firebase 미설정 시 무시): $e', name: 'main.fcm');
   }
 
   runApp(const MeongNyangDiaryApp());

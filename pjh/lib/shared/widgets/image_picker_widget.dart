@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -136,7 +137,7 @@ class ImagePickerWidget extends StatelessWidget {
       }
     } catch (e) {
       // Handle error
-      debugPrint('Error picking image: $e');
+      developer.log('Error picking image: $e', name: 'ImagePickerWidget', error: e);
     }
   }
 

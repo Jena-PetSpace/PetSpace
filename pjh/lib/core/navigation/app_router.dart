@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../../config/injection_container.dart' as di;
+import '../../core/services/fcm_service.dart';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -54,7 +56,7 @@ import 'auth_guard.dart';
 
 class AppRouter {
   static GoRouter createRouter(AuthBloc authBloc) {
-    return GoRouter(
+    final router = GoRouter(
       // 초기 위치는 홈으로 설정하고, redirect 로직에서 인증 상태에 따라 적절히 리다이렉트
       initialLocation: '/home',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
@@ -486,6 +488,16 @@ class AppRouter {
         ),
       ),
     );
+
+    // FCMService에 navigatorKey 주입 (딥링크 라우팅용)
+    try {
+      di.sl<FCMService>().navigatorKey = GlobalKey<NavigatorState>()
+        ..currentState;
+      // GoRouter 자체 navigatorKey 활용
+      di.sl<FCMService>().navigatorKey = router.routerDelegate.navigatorKey;
+    } catch (_) {}
+
+    return router;
   }
 }
 
