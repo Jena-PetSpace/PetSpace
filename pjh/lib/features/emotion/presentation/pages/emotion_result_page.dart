@@ -3,9 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../config/injection_container.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../social/domain/entities/post.dart';
+import '../../../social/presentation/bloc/feed_bloc.dart';
+import '../../../social/presentation/bloc/feed_event.dart';
+import '../../../social/presentation/bloc/feed_state.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../../domain/repositories/emotion_repository.dart';
 import '../../data/services/emotion_insights_service.dart';
@@ -1971,7 +1977,25 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                       size: 20.w, color: Colors.grey[700]),
                 ),
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: 8.w),
+              // 피드에 공유 버튼
+              SizedBox(
+                height: 48.h,
+                width: 48.h,
+                child: OutlinedButton(
+                  onPressed: () => _showShareToFeedSheet(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.5)),
+                  ),
+                  child: Icon(Icons.dynamic_feed_outlined,
+                      size: 20.w, color: AppTheme.primaryColor),
+                ),
+              ),
+              SizedBox(width: 8.w),
               Expanded(
                 child: SizedBox(
                   height: 48.h,
@@ -2018,7 +2042,200 @@ class _EmotionResultPageState extends State<EmotionResultPage>
         );
   }
 
-  Future<void> _shareResult() async {
+  // ─── 피드 공유 ───────────────────────────────────────────────────────────
+  void _showShareToFeedSheet(BuildContext context) {
+    final captionController = TextEditingController();
+    final List<String> defaultTags = ['반려동물감정분석', 'AI분석', '펫스페이스'];
+    final selectedTags = List<String>.from(defaultTags);
+
+    final dominant = widget.analysis.emotions.dominantEmotion;
+    final dominantName = _getEmotionNameForShare(dominant);
+    final dominantPct = (_getEmotionValueForShare(dominant) * 100).toInt();
+
+    captionController.text = '$dominantName $dominantPct% 🐾 AI 감정 분석 결과를 공유합니다';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (sheetContext) => BlocListener<FeedBloc, FeedState>(
+        listener: (ctx, state) {
+          if (state is FeedPostCreated) {
+            Navigator.pop(sheetContext);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('피드에 공유되었습니다 🎉'),
+                action: SnackBarAction(
+                  label: '피드 보기',
+                  onPressed: () => context.go('/feed'),
+                ),
+              ),
+            );
+          } else if (state is FeedError) {
+            ScaffoldMessenger.of(sheetContext).showSnackBar(
+              SnackBar(content: Text('공유 실패: ${state.message}')),
+            );
+          }
+        },
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20.w,
+            right: 20.w,
+            top: 20.h,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24.h,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 핸들
+                Center(
+                  child: Container(
+                    width: 36.w,
+                    height: 4.h,
+                    margin: EdgeInsets.only(bottom: 16.h),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                ),
+                Text('피드에 공유',
+                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+                SizedBox(height: 16.h),
+
+                // 감정 미리보기 카드
+                Container(
+                  padding: EdgeInsets.all(14.w),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.psychology, color: AppTheme.primaryColor, size: 28.w),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('AI 감정 분석 결과 첨부됨',
+                                style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
+                            Text(
+                              '$dominantName $dominantPct% · 신뢰도 ${(widget.analysis.confidence * 100).toInt()}%',
+                              style: TextStyle(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.primaryColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 14.h),
+
+                // 캡션
+                TextField(
+                  controller: captionController,
+                  maxLines: 3,
+                  style: TextStyle(fontSize: 14.sp),
+                  decoration: InputDecoration(
+                    hintText: '한 마디를 적어주세요...',
+                    hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey[400]),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                    contentPadding: EdgeInsets.all(14.w),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+
+                // 게시 버튼
+                BlocBuilder<FeedBloc, FeedState>(
+                  builder: (ctx, state) {
+                    final isPosting = state is FeedLoading;
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: isPosting ? null : () => _postToFeed(ctx, captionController.text.trim(), selectedTags),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r)),
+                          elevation: 0,
+                        ),
+                        child: isPosting
+                            ? SizedBox(
+                                width: 20.w,
+                                height: 20.w,
+                                child: const CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : Text('피드에 올리기',
+                                style: TextStyle(
+                                    fontSize: 15.sp, fontWeight: FontWeight.w600)),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _postToFeed(BuildContext ctx, String caption, List<String> tags) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) return;
+
+    final post = Post(
+      id: '',
+      authorId: authState.user.uid,
+      authorName: authState.user.displayName ?? '사용자',
+      authorProfileImage: authState.user.photoURL,
+      type: PostType.emotionAnalysis,
+      content: caption.isEmpty ? null : caption,
+      imageUrls: widget.analysis.imageUrl.isNotEmpty ? [widget.analysis.imageUrl] : [],
+      emotionAnalysis: widget.analysis,
+      tags: tags,
+      createdAt: DateTime.now(),
+    );
+
+    ctx.read<FeedBloc>().add(CreatePostRequested(post: post));
+  }
+
+  String _getEmotionNameForShare(String emotion) {
+    const map = {
+      'happiness': '기쁨',
+      'sadness': '슬픔',
+      'anxiety': '불안',
+      'sleepiness': '졸림',
+      'curiosity': '호기심',
+    };
+    return map[emotion] ?? '알 수 없음';
+  }
+
+  double _getEmotionValueForShare(String emotion) {
+    final e = widget.analysis.emotions;
+    switch (emotion) {
+      case 'happiness': return e.happiness;
+      case 'sadness': return e.sadness;
+      case 'anxiety': return e.anxiety;
+      case 'sleepiness': return e.sleepiness;
+      case 'curiosity': return e.curiosity;
+      default: return 0.0;
+    }
+  }
+
+    Future<void> _shareResult() async {
     try {
       final dominant = widget.analysis.emotions.dominantEmotion;
       final value = _getEmotionValue(dominant);
