@@ -42,6 +42,10 @@ import 'shared/themes/theme_cubit.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Flutter 이미지 캐시 크기 제한 (기본값: 100MB 무제한 → 명시적 설정)
+  PaintingBinding.instance.imageCache.maximumSize = 200;        // 최대 200개 이미지
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 50 << 20; // 50MB
+
   // 전역 Flutter 에러 핸들러
   FlutterError.onError = (FlutterErrorDetails details) {
     log('FlutterError: ${details.exceptionAsString()}',

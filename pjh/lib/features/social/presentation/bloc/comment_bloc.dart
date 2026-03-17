@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/usecases/get_comments.dart';
@@ -8,6 +9,7 @@ import '../../domain/entities/comment.dart';
 import 'comment_event.dart';
 import 'comment_state.dart';
 import '../../../../core/services/push_notification_service.dart';
+import '../../../../core/services/realtime_service.dart';
 
 class CommentBloc extends Bloc<CommentEvent, CommentState> {
   final GetComments _getComments;
@@ -16,6 +18,8 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
   final UpdateComment _updateComment;
   final String _currentUserId;
   final _pushService = PushNotificationService();
+  final _realtimeService = RealtimeService();
+  StreamSubscription<Map<String, dynamic>>? _commentSub;
 
   static const int _commentsPerPage = 20;
   String? _lastCommentId;
@@ -46,6 +50,8 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
   ) async {
     emit(CommentLoading());
     _currentPostId = event.postId;
+    // 이 postId의 댓글 Realtime 구독 시작
+    _subscribeToRealtime(event.postId);
     _lastCommentId = null;
 
     final result = await _getComments(
@@ -222,5 +228,27 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
         emit(currentState.copyWith(comments: updatedComments));
       },
     );
+  }
+
+  void _subscribeToRealtime(String postId) {
+    _commentSub?.cancel();
+    _realtimeService.subscribeToPostComments(postId);
+    _commentSub = _realtimeService.commentStream.listen((data) {
+      if (data['postId'] != postId) return;
+      final event = data['event'] as String?;
+      if (event == 'insert') {
+        // 새 댓글 → 목록 새로고침
+        add(LoadComments(postId: postId));
+      } else if (event == 'delete') {
+        // 댓글 삭제 → 목록 새로고침
+        add(LoadComments(postId: postId));
+      }
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _commentSub?.cancel();
+    return super.close();
   }
 }

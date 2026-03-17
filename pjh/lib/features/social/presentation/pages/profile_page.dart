@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/social_user.dart';
 import '../bloc/profile_bloc.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../widgets/profile_stats_card.dart';
 import '../widgets/user_posts_list.dart';
 
@@ -324,9 +325,14 @@ class _ProfilePageState extends State<ProfilePage>
         followingId: userId,
       ));
     } else {
+      final authState = context.read<AuthBloc>().state;
+      final myName = authState is AuthAuthenticated
+          ? authState.user.displayName ?? '사용자'
+          : '사용자';
       context.read<ProfileBloc>().add(FollowUserRequested(
         followerId: currentUserId,
         followingId: userId,
+        followerName: myName,
       ));
     }
   }
