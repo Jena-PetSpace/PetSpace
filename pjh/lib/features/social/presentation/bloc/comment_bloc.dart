@@ -7,6 +7,7 @@ import '../../domain/usecases/update_comment.dart';
 import '../../domain/entities/comment.dart';
 import 'comment_event.dart';
 import 'comment_state.dart';
+import '../../../../core/services/push_notification_service.dart';
 
 class CommentBloc extends Bloc<CommentEvent, CommentState> {
   final GetComments _getComments;
@@ -14,6 +15,7 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
   final DeleteComment _deleteComment;
   final UpdateComment _updateComment;
   final String _currentUserId;
+  final _pushService = PushNotificationService();
 
   static const int _commentsPerPage = 20;
   String? _lastCommentId;
@@ -135,10 +137,21 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
             comments: [newComment, ...currentState.comments],
           ));
         } else {
-          // If no comments loaded yet, reload
           if (_currentPostId != null) {
             add(LoadComments(postId: _currentPostId!));
           }
+        }
+        // 게시글 작성자에게 댓글 알림 발송 (자기 자신 제외)
+        if (event.postAuthorId != null &&
+            event.postAuthorId!.isNotEmpty &&
+            event.postAuthorId != _currentUserId) {
+          _pushService.sendCommentNotification(
+            toUserId: event.postAuthorId!,
+            fromUserId: _currentUserId,
+            fromUserName: event.senderName ?? '사용자',
+            postId: event.postId,
+            commentPreview: event.content,
+          );
         }
       },
     );

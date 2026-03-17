@@ -8,11 +8,13 @@ import '../../domain/usecases/get_user_profile.dart';
 import '../../domain/usecases/follow_user.dart';
 import '../../domain/usecases/unfollow_user.dart';
 import '../../domain/repositories/social_repository.dart';
+import '../../../../core/services/push_notification_service.dart';
 
 part 'profile_event.dart';
 part 'profile_state.dart';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
+  final _pushService = PushNotificationService();
   final GetUserProfile _getUserProfile;
   final FollowUser _followUser;
   final UnfollowUser _unfollowUser;
@@ -101,7 +103,12 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           emit(currentState.copyWith(error: failure.message));
         },
         (follow) {
-          // Update was successful, keep the optimistic state
+          // 팔로우 성공 → 대상 사용자에게 알림 발송
+          _pushService.sendFollowNotification(
+            toUserId: event.followingId,
+            fromUserId: event.followerId,
+            fromUserName: event.followerName,
+          );
         },
       );
     }

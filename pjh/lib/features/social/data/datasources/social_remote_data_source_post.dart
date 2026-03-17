@@ -96,24 +96,46 @@ part of 'social_remote_data_source.dart';
     try {
       _logger.debug('Getting feed posts for user: $userId', tag: 'SocialDataSource');
 
-      // Supabase에서 게시글 목록 가져오기 (users 테이블 JOIN)
-      final response = await supabaseClient
+      // 내가 차단한 사용자 ID 목록 조회
+      final blockedRes = await supabaseClient
+          .from('user_blocks')
+          .select('blocked_id')
+          .eq('blocker_id', userId);
+
+      final blockedIds = (blockedRes as List)
+          .map((b) => b['blocked_id'] as String)
+          .toList();
+
+      // 기본 쿼리
+      var query = supabaseClient
           .from('posts')
-          .select('''
-            *,
-            users!posts_author_id_fkey(id, display_name, photo_url)
-          ''')
+          .select('*, users!posts_author_id_fkey(id, display_name, photo_url)')
           .order('created_at', ascending: false)
           .limit(limit);
 
+      // 차단 사용자 제외
+      if (blockedIds.isNotEmpty) {
+        query = query.not('author_id', 'in', '(${blockedIds.map((id) => "'$id'").join(',')})');
+      }
+
+      // cursor 페이지네이션
+      if (lastPostId != null) {
+        final lastPost = await supabaseClient
+            .from('posts')
+            .select('created_at')
+            .eq('id', lastPostId)
+            .maybeSingle();
+        if (lastPost != null) {
+          query = query.lt('created_at', lastPost['created_at']);
+        }
+      }
+
+      final response = await query;
       _logger.debug('Fetched ${response.length} feed posts', tag: 'SocialDataSource');
 
-      // 응답을 PostModel 리스트로 변환 후 Entity 리스트로 변환
-      final posts = (response as List)
+      return (response as List)
           .map((json) => PostModel.fromJson(json).toEntity())
           .toList();
-
-      return posts;
     } catch (e, stackTrace) {
       _logger.error('Failed to fetch feed posts', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('피드를 불러오는 중 오류가 발생했습니다: ${e.toString()}');

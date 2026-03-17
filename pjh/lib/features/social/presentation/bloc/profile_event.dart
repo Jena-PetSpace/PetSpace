@@ -23,14 +23,16 @@ class LoadUserProfileRequested extends ProfileEvent {
 class FollowUserRequested extends ProfileEvent {
   final String followerId;
   final String followingId;
+  final String followerName;  // 알림 발송용
 
   const FollowUserRequested({
     required this.followerId,
     required this.followingId,
+    this.followerName = '사용자',
   });
 
   @override
-  List<Object?> get props => [followerId, followingId];
+  List<Object?> get props => [followerId, followingId, followerName];
 }
 
 class UnfollowUserRequested extends ProfileEvent {

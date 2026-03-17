@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../social/presentation/pages/feed_page.dart';
 import '../widgets/community_post_card.dart';
+import 'create_community_post_page.dart';
 
 class FeedHubPage extends StatefulWidget {
   final int initialTab;
@@ -112,6 +113,26 @@ class _FeedHubPageState extends State<FeedHubPage>
           _buildFollowingTab(),
           _buildCommunityTab(),
         ],
+      ),
+      floatingActionButton: AnimatedBuilder(
+        animation: _tabController,
+        builder: (context, _) {
+          if (_tabController.index != 2) return const SizedBox.shrink();
+          return FloatingActionButton(
+            onPressed: () async {
+              final created = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                    builder: (_) => const CreateCommunityPostPage()),
+              );
+              if (created == true) {
+                final cat = _categories[_selectedCategory]['value'] as String?;
+                _loadCommunityPosts(category: cat);
+              }
+            },
+            backgroundColor: AppTheme.primaryColor,
+            child: const Icon(Icons.edit, color: Colors.white),
+          );
+        },
       ),
     );
   }
