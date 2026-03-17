@@ -90,3 +90,52 @@ class DeletePostRequested extends FeedEvent {
   @override
   List<Object?> get props => [postId];
 }
+class SavePostRequested extends FeedEvent {
+  final String postId;
+  final String userId;
+  const SavePostRequested({required this.postId, required this.userId});
+
+  @override
+  List<Object?> get props => [postId, userId];
+}
+
+class UnsavePostRequested extends FeedEvent {
+  final String postId;
+  final String userId;
+  const UnsavePostRequested({required this.postId, required this.userId});
+
+  @override
+  List<Object?> get props => [postId, userId];
+}
+
+class LoadSavedPostsRequested extends FeedEvent {
+  final String userId;
+  const LoadSavedPostsRequested({required this.userId});
+
+  @override
+  List<Object?> get props => [userId];
+}
+
+class SubscribeToFeedRealtime extends FeedEvent {
+  final String userId;
+  const SubscribeToFealRealtime({required this.userId});
+
+  @override
+  List<Object?> get props => [userId];
+}
+
+class RealtimeLikeReceived extends FeedEvent {
+  final Map<String, dynamic> data;
+  const RealtimeLikeReceived(this.data);
+
+  @override
+  List<Object?> get props => [data];
+}
+
+class RealtimeCommentReceived extends FeedEvent {
+  final Map<String, dynamic> data;
+  const RealtimeCommentReceived(this.data);
+
+  @override
+  List<Object?> get props => [data];
+}

@@ -39,7 +39,7 @@ class MyMenuList extends StatelessWidget {
             context,
             emoji: '\uD83D\uDD16',
             label: '저장한 글',
-            onTap: () {},
+            onTap: () => context.push('/my/saved'),
           ),
           _buildDivider(),
           _buildMenuItem(

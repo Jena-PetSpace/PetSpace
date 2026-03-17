@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/image_viewer_page.dart';
 import '../../domain/entities/post.dart';
 import '../../../emotion/presentation/widgets/emotion_chart.dart';
 import '../../../../core/utils/hashtag_utils.dart';
@@ -207,33 +208,38 @@ class _PostCardState extends State<PostCard> {
     if (post.imageUrls.length == 1) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 8.h),
-        child: CachedNetworkImage(
-          imageUrl: post.imageUrls.first,
-          width: double.infinity,
-          height: 300.h,
-          fit: BoxFit.cover,
-          placeholder: (context, url) => Container(
+        child: GestureDetector(
+          onTap: () => _openViewer(context, 0),
+          child: CachedNetworkImage(
+            imageUrl: post.imageUrls.first,
+            width: double.infinity,
             height: 300.h,
-            color: Colors.grey[200],
-            child: const Center(child: CircularProgressIndicator()),
-          ),
-          errorWidget: (context, url, error) => Container(
-            height: 300.h,
-            color: Colors.grey[200],
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error, color: Colors.red, size: 24.w),
-                SizedBox(height: 8.h),
-                Text('이미지 로드 실패', style: TextStyle(color: Colors.grey[600], fontSize: 14.sp)),
-              ],
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              height: 300.h,
+              color: Colors.grey[200],
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (context, url, error) => Container(
+              height: 300.h,
+              color: Colors.grey[200],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error, color: Colors.red, size: 24.w),
+                  SizedBox(height: 8.h),
+                  Text('이미지 로드 실패',
+                      style: TextStyle(
+                          color: Colors.grey[600], fontSize: 14.sp)),
+                ],
+              ),
             ),
           ),
         ),
       );
     }
 
-    // Multi-image: PageView with dots indicator
+    // Multi-image: PageView with dots indicator + 탭으로 전체화면 뷰어
     return Column(
       children: [
         SizedBox(
@@ -244,20 +250,23 @@ class _PostCardState extends State<PostCard> {
               setState(() => _currentImageIndex = index);
             },
             itemBuilder: (context, index) {
-              return CachedNetworkImage(
-                imageUrl: post.imageUrls[index],
-                width: double.infinity,
-                height: 300.h,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
+              return GestureDetector(
+                onTap: () => _openViewer(context, index),
+                child: CachedNetworkImage(
+                  imageUrl: post.imageUrls[index],
+                  width: double.infinity,
                   height: 300.h,
-                  color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 300.h,
-                  color: Colors.grey[200],
-                  child: Icon(Icons.error, color: Colors.red, size: 24.w),
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    height: 300.h,
+                    color: Colors.grey[200],
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    height: 300.h,
+                    color: Colors.grey[200],
+                    child: Icon(Icons.error, color: Colors.red, size: 24.w),
+                  ),
                 ),
               );
             },
@@ -282,6 +291,18 @@ class _PostCardState extends State<PostCard> {
         ),
         SizedBox(height: 4.h),
       ],
+    );
+  }
+
+  void _openViewer(BuildContext context, int initialIndex) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => ImageViewerPage(
+          imageUrls: post.imageUrls,
+          initialIndex: initialIndex,
+        ),
+      ),
     );
   }
 

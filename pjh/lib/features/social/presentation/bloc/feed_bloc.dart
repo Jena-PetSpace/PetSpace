@@ -9,6 +9,10 @@ import '../../domain/usecases/delete_post.dart';
 import '../../domain/usecases/get_feed.dart';
 import '../../domain/usecases/like_post.dart';
 import '../../domain/usecases/unlike_post.dart';
+import '../../domain/usecases/save_post.dart';
+import '../../../../core/services/realtime_service.dart';
+import '../../domain/usecases/unsave_post.dart';
+import '../../domain/usecases/get_saved_posts.dart';
 import '../../domain/usecases/update_post.dart';
 
 part 'feed_event.dart';
@@ -21,6 +25,10 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   final DeletePost _deletePost;
   final LikePost _likePost;
   final UnlikePost _unlikePost;
+  final SavePost _savePost;
+  final UnsavePost _unsavePost;
+  final GetSavedPosts _getSavedPosts;
+  final RealtimeService _realtimeService;
 
   FeedBloc({
     required GetFeed getFeed,
@@ -29,12 +37,20 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     required DeletePost deletePost,
     required LikePost likePost,
     required UnlikePost unlikePost,
+    required SavePost savePost,
+    required UnsavePost unsavePost,
+    required GetSavedPosts getSavedPosts,
+    RealtimeService? realtimeService,
   })  : _getFeed = getFeed,
         _createPost = createPost,
         _updatePost = updatePost,
         _deletePost = deletePost,
         _likePost = likePost,
         _unlikePost = unlikePost,
+        _savePost = savePost,
+        _unsavePost = unsavePost,
+        _getSavedPosts = getSavedPosts,
+        _realtimeService = realtimeService ?? RealtimeService(),
         super(FeedInitial()) {
     on<LoadFeedRequested>(_onLoadFeedRequested);
     on<RefreshFeedRequested>(_onRefreshFeedRequested);
@@ -44,6 +60,11 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     on<DeletePostRequested>(_onDeletePostRequested);
     on<LikePostRequested>(_onLikePostRequested);
     on<UnlikePostRequested>(_onUnlikePostRequested);
+    on<SavePostRequested>(_onSavePostRequested);
+    on<UnsavePostRequested>(_onUnsavePostRequested);
+    on<LoadSavedPostsRequested>(_onLoadSavedPostsRequested);
+    on<RealtimeLikeReceived>(_onRealtimeLikeReceived);
+    on<RealtimeCommentReceived>(_onRealtimeCommentReceived);
   }
 
   Future<void> _onLoadFeedRequested(
@@ -293,5 +314,90 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
         },
       );
     }
+  }
+
+
+  Future<void> _onSavePostRequested(
+    SavePostRequested event,
+    Emitter<FeedState> emit,
+  ) async {
+    final result = await _savePost(SavePostParams(postId: event.postId, userId: event.userId));
+    result.fold(
+      (failure) => emit(FeedError(failure.message)),
+      (_) => emit(FeedPostSaved(event.postId)),
+    );
+  }
+
+  Future<void> _onUnsavePostRequested(
+    UnsavePostRequested event,
+    Emitter<FeedState> emit,
+  ) async {
+    final result = await _unsavePost(UnsavePostParams(postId: event.postId, userId: event.userId));
+    result.fold(
+      (failure) => emit(FeedError(failure.message)),
+      (_) => emit(FeedPostUnsaved(event.postId)),
+    );
+  }
+
+  Future<void> _onLoadSavedPostsRequested(
+    LoadSavedPostsRequested event,
+    Emitter<FeedState> emit,
+  ) async {
+    emit(FeedLoading());
+    final result = await _getSavedPosts(GetSavedPostsParams(userId: event.userId));
+    result.fold(
+      (failure) => emit(FeedError(failure.message)),
+      (posts) => emit(FeedSavedPostsLoaded(posts)),
+    );
+  }
+
+
+  Future<void> _onRealtimeLikeReceived(
+    RealtimeLikeReceived event,
+    Emitter<FeedState> emit,
+  ) async {
+    if (state is! FeedLoaded) return;
+    final current = state as FeedLoaded;
+    final postId = event.data['post_id'] as String?;
+    final delta = event.data['event'] == 'insert' ? 1 : -1;
+    if (postId == null) return;
+
+    final updated = current.posts.map((p) {
+      if (p.id == postId) {
+        return p.copyWith(likesCount: (p.likesCount + delta).clamp(0, 999999));
+      }
+      return p;
+    }).toList();
+    emit(current.copyWith(posts: updated));
+  }
+
+  Future<void> _onRealtimeCommentReceived(
+    RealtimeCommentReceived event,
+    Emitter<FeedState> emit,
+  ) async {
+    if (state is! FeedLoaded) return;
+    final current = state as FeedLoaded;
+    final postId = event.data['post_id'] as String?;
+    final delta = event.data['event'] == 'insert' ? 1 : -1;
+    if (postId == null) return;
+
+    final updated = current.posts.map((p) {
+      if (p.id == postId) {
+        return p.copyWith(commentsCount: (p.commentsCount + delta).clamp(0, 999999));
+      }
+      return p;
+    }).toList();
+    emit(current.copyWith(posts: updated));
+  }
+
+  /// 피드 로드 후 Realtime 구독 시작
+  void subscribeRealtime(String userId) {
+    _realtimeService.subscribeToNotifications(userId);
+    _realtimeService.likeStream.listen((data) {
+      add(RealtimeLikeReceived(data));
+    });
+    _realtimeService.commentStream.listen((data) {
+      add(RealtimeCommentReceived(data));
+    });
   }
 }

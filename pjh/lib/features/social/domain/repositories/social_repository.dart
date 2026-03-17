@@ -85,6 +85,13 @@ abstract class SocialRepository {
   Future<Either<Failure, void>> sharePost(String postId, String userId);
   Future<Either<Failure, List<Post>>> getSharedPosts(String userId);
 
+
+  // Bookmark operations
+  Future<Either<Failure, void>> savePost(String postId, String userId);
+  Future<Either<Failure, void>> unsavePost(String postId, String userId);
+  Future<Either<Failure, List<Post>>> getSavedPosts({required String userId, int limit = 20});
+  Future<Either<Failure, bool>> isPostSaved(String postId, String userId);
+
   // Report operations
   Future<Either<Failure, void>> reportPost(String postId, String userId, String reason);
   Future<Either<Failure, void>> reportUser(String reportedUserId, String reporterId, String reason);

@@ -231,6 +231,8 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
                 log('Auth: subscribing realtime for $userId', name: 'main.realtime');
                 RealtimeService().subscribeToNotifications(userId);
                 RealtimeService().subscribeToChatMessages(userId);
+                // FeedBloc Realtime 구독 (좋아요·댓글 실시간 반영)
+                context.read<FeedBloc>().subscribeRealtime(userId);
               } else if (state is AuthUnauthenticated) {
                 log('Auth: unsubscribing realtime', name: 'main.realtime');
                 RealtimeService().unsubscribeAll();

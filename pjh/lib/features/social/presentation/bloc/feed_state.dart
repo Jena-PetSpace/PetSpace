@@ -70,3 +70,26 @@ class FeedError extends FeedState {
   @override
   List<Object?> get props => [message];
 }
+class FeedSavedPostsLoaded extends FeedState {
+  final List<Post> savedPosts;
+  const FeedSavedPostsLoaded(this.savedPosts);
+
+  @override
+  List<Object?> get props => [savedPosts];
+}
+
+class FeedPostSaved extends FeedState {
+  final String postId;
+  const FeedPostSaved(this.postId);
+
+  @override
+  List<Object?> get props => [postId];
+}
+
+class FeedPostUnsaved extends FeedState {
+  final String postId;
+  const FeedPostUnsaved(this.postId);
+
+  @override
+  List<Object?> get props => [postId];
+}

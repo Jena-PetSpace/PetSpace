@@ -10,6 +10,7 @@ import '../../domain/entities/post.dart';
 import '../../domain/entities/social_user.dart';
 import '../../domain/repositories/social_repository.dart';
 import '../datasources/social_remote_data_source.dart';
+import '../models/post_model.dart';
 
 class SocialRepositoryImpl implements SocialRepository {
   final SocialRemoteDataSource remoteDataSource;
@@ -710,6 +711,82 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(hashtags);
     } catch (e) {
       return Left(ServerFailure(message: '트렌딩 해시태그 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  // ─── Bookmark operations ────────────────────────────────────────────────
+
+  @override
+  Future<Either<Failure, void>> savePost(String postId, String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      }
+      await remoteDataSource.supabaseClient
+          .from('saved_posts')
+          .upsert({'post_id': postId, 'user_id': userId, 'created_at': DateTime.now().toIso8601String()});
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '북마크 저장 실패: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> unsavePost(String postId, String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      }
+      await remoteDataSource.supabaseClient
+          .from('saved_posts')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', userId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '북마크 해제 실패: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Post>>> getSavedPosts({required String userId, int limit = 20}) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      }
+      final response = await remoteDataSource.supabaseClient
+          .from('saved_posts')
+          .select('post_id, posts(*, users(display_name, photo_url))')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(limit);
+
+      final posts = (response as List)
+          .map((item) {
+            final postData = item['posts'] as Map<String, dynamic>?;
+            if (postData == null) return null;
+            return PostModel.fromJson(postData).toEntity();
+          })
+          .whereType<Post>()
+          .toList();
+      return Right(posts);
+    } catch (e) {
+      return Left(ServerFailure(message: '저장된 게시글 조회 실패: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> isPostSaved(String postId, String userId) async {
+    try {
+      final response = await remoteDataSource.supabaseClient
+          .from('saved_posts')
+          .select('post_id')
+          .eq('post_id', postId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      return Right(response != null);
+    } catch (e) {
+      return const Right(false);
     }
   }
 }

@@ -41,6 +41,9 @@ import '../features/social/domain/usecases/update_post.dart';
 import '../features/social/domain/usecases/delete_post.dart';
 import '../features/social/domain/usecases/like_post.dart';
 import '../features/social/domain/usecases/unlike_post.dart';
+import '../features/social/domain/usecases/save_post.dart';
+import '../features/social/domain/usecases/unsave_post.dart';
+import '../features/social/domain/usecases/get_saved_posts.dart';
 import '../features/social/domain/usecases/get_comments.dart';
 import '../features/social/domain/usecases/create_comment.dart';
 import '../features/social/domain/usecases/delete_comment.dart';
@@ -208,6 +211,9 @@ Future<void> _initSocial() async {
   sl.registerLazySingleton(() => DeletePost(sl<SocialRepository>()));
   sl.registerLazySingleton(() => LikePost(sl<SocialRepository>()));
   sl.registerLazySingleton(() => UnlikePost(sl<SocialRepository>()));
+  sl.registerLazySingleton(() => SavePost(sl<SocialRepository>()));
+  sl.registerLazySingleton(() => UnsavePost(sl<SocialRepository>()));
+  sl.registerLazySingleton(() => GetSavedPosts(sl<SocialRepository>()));
   sl.registerLazySingleton(() => GetComments(sl<SocialRepository>()));
   sl.registerLazySingleton(() => CreateComment(sl<SocialRepository>()));
   sl.registerLazySingleton(() => DeleteComment(sl<SocialRepository>()));
@@ -228,6 +234,9 @@ Future<void> _initSocial() async {
       deletePost: sl<DeletePost>(),
       likePost: sl<LikePost>(),
       unlikePost: sl<UnlikePost>(),
+      savePost: sl<SavePost>(),
+      unsavePost: sl<UnsavePost>(),
+      getSavedPosts: sl<GetSavedPosts>(),
     ),
   );
 

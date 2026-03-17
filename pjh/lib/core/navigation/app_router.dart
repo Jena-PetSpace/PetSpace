@@ -27,6 +27,7 @@ import '../../features/health/presentation/pages/health_main_page.dart';
 import '../../features/feed_hub/presentation/pages/feed_hub_page.dart';
 import '../../features/my/presentation/pages/my_page.dart';
 import '../../features/my/presentation/pages/my_posts_page.dart';
+import '../../features/my/presentation/pages/my_saved_posts_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_slides_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_login_page.dart';
@@ -186,6 +187,11 @@ class AppRouter {
                 path: 'posts',
                 name: 'my-posts',
                 builder: (context, state) => const MyPostsPage(),
+              ),
+              GoRoute(
+                path: 'saved',
+                name: 'my-saved',
+                builder: (context, state) => const MySavedPostsPage(),
               ),
             ],
           ),
