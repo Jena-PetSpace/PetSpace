@@ -7,9 +7,6 @@ on:
     branches: [ main ]
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────────────────
-  # 1. 분석 + 테스트
-  # ─────────────────────────────────────────────────────────────────────────────
   test:
     name: Analyze & Test
     runs-on: ubuntu-latest
@@ -23,7 +20,6 @@ jobs:
       - name: Flutter SDK 설치
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
           channel: 'stable'
           cache: true
 
@@ -35,7 +31,7 @@ jobs:
         working-directory: pjh
         run: |
           mkdir -p lib/config
-          cat > lib/config/secrets.dart << 'DART'
+          cat > lib/config/secrets.dart << 'EOF'
           class Secrets {
             static const String geminiApiKey = 'dummy';
             static const String supabaseUrl = 'https://dummy.supabase.co';
@@ -44,7 +40,7 @@ jobs:
             static const String googleClientId = 'dummy';
             static const String kakaoAppKey = 'dummy';
           }
-          DART
+          EOF
 
       - name: 코드 포맷 적용
         working-directory: pjh
@@ -73,9 +69,6 @@ jobs:
             test/features/social/presentation/bloc/feed_bloc_test.dart \
             --reporter=expanded
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # 2. Android 빌드 (main 브랜치 push 시)
-  # ─────────────────────────────────────────────────────────────────────────────
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
@@ -95,7 +88,6 @@ jobs:
       - name: Flutter SDK 설치
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
           channel: 'stable'
           cache: true
 
@@ -107,16 +99,16 @@ jobs:
         working-directory: pjh
         run: |
           mkdir -p lib/config
-          cat > lib/config/secrets.dart << 'DART'
+          cat > lib/config/secrets.dart << 'EOF'
           class Secrets {
             static const String geminiApiKey = 'dummy';
             static const String supabaseUrl = 'https://dummy.supabase.co';
-            static const String kakaoPasswordSalt = 'dummy';
             static const String supabaseAnonKey = 'dummy';
+            static const String kakaoPasswordSalt = 'dummy';
             static const String googleClientId = 'dummy';
             static const String kakaoAppKey = 'dummy';
           }
-          DART
+          EOF
 
       - name: Android APK 빌드
         working-directory: pjh
