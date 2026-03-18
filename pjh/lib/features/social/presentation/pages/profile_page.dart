@@ -328,7 +328,7 @@ class _ProfilePageState extends State<ProfilePage>
     } else {
       final authState = context.read<AuthBloc>().state;
       final myName = authState is AuthAuthenticated
-          ? authState.user.displayName ?? '사용자'
+          ? authState.user.displayName
           : '사용자';
       context.read<ProfileBloc>().add(FollowUserRequested(
         followerId: currentUserId,

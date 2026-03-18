@@ -1,8 +1,7 @@
 import 'dart:developer' as dev;
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart' show FlutterLocalNotificationsPlugin, AndroidNotificationDetails, AndroidNotificationChannel, DarwinNotificationDetails, NotificationDetails, Importance, Priority;
 import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart' show BuildContext, GlobalKey, NavigatorState;
+import 'package:flutter/material.dart' show GlobalKey, NavigatorState;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Firebase Cloud Messaging 서비스

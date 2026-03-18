@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import 'dart:developer' as dev;
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_viewer_page.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/post.dart';
 import '../../../emotion/presentation/widgets/emotion_chart.dart';
 import '../../../../core/utils/hashtag_utils.dart';
@@ -579,52 +577,6 @@ class _PostCardState extends State<PostCard> {
         ),
       ),
     );
-  }
-
-  Future<void> _blockUser(BuildContext ctx, String blockedId, String blockedName) async {
-    final supabase = Supabase.instance.client;
-    final myId = supabase.auth.currentUser?.id;
-    if (myId == null) return;
-
-    try {
-      await supabase.from('user_blocks').upsert({
-        'blocker_id': myId,
-        'blocked_id': blockedId,
-        'created_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'blocker_id,blocked_id');
-
-      if (!ctx.mounted) return;
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(
-          content: Text('$blockedName님을 차단했습니다.'),
-          backgroundColor: AppTheme.errorColor,
-          action: SnackBarAction(
-            label: '취소',
-            textColor: Colors.white,
-            onPressed: () => _unblockUser(ctx, myId, blockedId, blockedName),
-          ),
-        ),
-      );
-    } catch (e) {
-      dev.log('차단 실패: $e', name: 'PostCard');
-    }
-  }
-
-  Future<void> _unblockUser(BuildContext ctx, String myId, String blockedId, String blockedName) async {
-    try {
-      await Supabase.instance.client
-          .from('user_blocks')
-          .delete()
-          .eq('blocker_id', myId)
-          .eq('blocked_id', blockedId);
-
-      if (!ctx.mounted) return;
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text('$blockedName님 차단을 해제했습니다.')),
-      );
-    } catch (e) {
-      dev.log('차단 해제 실패: $e', name: 'PostCard');
-    }
   }
 
   void _showBlockDialog(BuildContext context) {

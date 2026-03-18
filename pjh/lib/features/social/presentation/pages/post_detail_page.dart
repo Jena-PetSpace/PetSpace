@@ -68,7 +68,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     if (content.isEmpty) return;
     final authState = context.read<AuthBloc>().state;
     final senderName = authState is AuthAuthenticated
-        ? authState.user.displayName ?? '사용자' : '사용자';
+        ? authState.user.displayName : '사용자';
     context.read<CommentBloc>().add(CreateCommentRequested(
       postId: widget.postId,
       content: content,
@@ -128,7 +128,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                             : null,
                         );
                       },
-                      childCount: state is CommentLoaded ? state.comments.length + 1 : 0,
+                      childCount: state.comments.length + 1,
                     )),
                 ],
               ),

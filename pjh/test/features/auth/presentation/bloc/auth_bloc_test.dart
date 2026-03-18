@@ -7,7 +7,6 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:meong_nyang_diary/core/error/failures.dart';
 import 'package:meong_nyang_diary/features/auth/domain/entities/user.dart';
-import 'package:meong_nyang_diary/features/auth/domain/entities/user_profile.dart';
 import 'package:meong_nyang_diary/features/auth/domain/repositories/auth_repository.dart';
 import 'package:meong_nyang_diary/features/auth/domain/usecases/sign_in_with_google.dart';
 import 'package:meong_nyang_diary/features/auth/domain/usecases/sign_in_with_kakao.dart';

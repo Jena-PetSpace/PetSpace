@@ -32,8 +32,6 @@ void main() {
 
   // ── GetHealthRecords ───────────────────────────────────────────────────────
   group('GetHealthRecords', () {
-    final usecase = GetHealthRecords;
-
     test('성공 → Right(List<HealthRecord>)', () async {
       when(() => repo.getHealthRecords(petId: any(named: 'petId'), limit: any(named: 'limit')))
           .thenAnswer((_) async => Right([_tRecord]));

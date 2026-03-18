@@ -133,7 +133,7 @@ class _FeedHubPageState extends State<FeedHubPage>
                     builder: (_) => const CreateCommunityPostPage()),
               );
               if (created == true) {
-                final cat = _categories[_selectedCategory]['value'] as String?;
+                final cat = _categories[_selectedCategory]['value'];
                 _loadCommunityPosts(category: cat);
               }
             },
@@ -182,7 +182,7 @@ class _FeedHubPageState extends State<FeedHubPage>
                     color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
                 onSelected: (_) {
                   setState(() => _selectedCategory = index);
-                  final cat = _categories[index]['value'] as String?;
+                  final cat = _categories[index]['value'];
                   _loadCommunityPosts(category: cat);
                 },
               );
@@ -198,7 +198,7 @@ class _FeedHubPageState extends State<FeedHubPage>
                   ? _buildEmpty()
                   : RefreshIndicator(
                       onRefresh: () async {
-                        final cat = _categories[_selectedCategory]['value'] as String?;
+                        final cat = _categories[_selectedCategory]['value'];
                         await _loadCommunityPosts(category: cat);
                       },
                       child: ListView.builder(

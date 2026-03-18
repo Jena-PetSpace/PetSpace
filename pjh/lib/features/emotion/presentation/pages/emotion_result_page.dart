@@ -494,7 +494,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     final post = Post(
       id: '',
       authorId: authState.user.uid,
-      authorName: authState.user.displayName ?? '사용자',
+      authorName: authState.user.displayName,
       authorProfileImage: authState.user.photoURL,
       type: PostType.emotionAnalysis,
       content: caption.isEmpty ? null : caption,
