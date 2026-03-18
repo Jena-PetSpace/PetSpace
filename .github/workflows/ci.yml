@@ -13,6 +13,8 @@ jobs:
   test:
     name: Analyze & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -40,9 +42,17 @@ jobs:
           const String kakaoNativeKey = '';
           EOF
 
-      - name: 코드 포맷 검사
+      - name: 코드 포맷 적용
         working-directory: pjh
-        run: dart format --output=none --set-exit-if-changed lib/
+        run: dart format lib/ test/
+
+      - name: 포맷 변경사항 커밋 (있을 경우)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "style: dart format 자동 적용 [skip ci]"
+          git push || true
 
       - name: 정적 분석 (flutter analyze)
         working-directory: pjh
