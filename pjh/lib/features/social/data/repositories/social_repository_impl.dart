@@ -348,7 +348,8 @@ class SocialRepositoryImpl implements SocialRepository {
     bool followingOnly = false,
   }) async {
     // userId가 null이거나 빈 문자열이면 전체 피드 조회 (explore)
-    final effectiveUserId = (userId != null && userId.isNotEmpty) ? userId : null;
+    final effectiveUserId =
+        (userId != null && userId.isNotEmpty) ? userId : null;
 
     if (effectiveUserId == null) {
       return await getExplorePosts(limit: limit, lastPostId: lastPostId);
