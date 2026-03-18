@@ -31,6 +31,19 @@
 -keep class com.google.android.gms.auth.** { *; }
 -keep class com.google.android.gms.common.** { *; }
 
+# Google Play Core (Flutter deferred components)
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
+
+# Google ML Kit - missing text recognizer options
+-dontwarn com.google.mlkit.vision.text.chinese.**
+-dontwarn com.google.mlkit.vision.text.devanagari.**
+-dontwarn com.google.mlkit.vision.text.japanese.**
+-dontwarn com.google.mlkit.vision.text.korean.**
+
+# Firebase IID (deprecated, referenced by mlkit)
+-dontwarn com.google.firebase.iid.**
+
 # 일반 규칙
 -keepattributes SourceFile,LineNumberTable
 -keep public class * extends java.lang.Exception

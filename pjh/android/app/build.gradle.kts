@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -12,6 +14,7 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -28,7 +31,7 @@ android {
     //   keyAlias=petspace
     //   storeFile=../petspace-release.jks
     val keystorePropertiesFile = rootProject.file("key.properties")
-    val keystoreProperties = java.util.Properties()
+    val keystoreProperties = Properties()
     if (keystorePropertiesFile.exists()) {
         keystoreProperties.load(keystorePropertiesFile.inputStream())
     }
@@ -46,7 +49,7 @@ android {
 
     defaultConfig {
         applicationId = "com.petspace.app"
-        minSdk = 21                      // Android 5.0+ (Lollipop)
+        minSdk = flutter.minSdkVersion                      // Android 5.0+ (Lollipop)
         targetSdk = 34                   // Android 14
         versionCode = 1
         versionName = "1.0.0"
@@ -79,6 +82,7 @@ flutter {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-messaging-ktx")
