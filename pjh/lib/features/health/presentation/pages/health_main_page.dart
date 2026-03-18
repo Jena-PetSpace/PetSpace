@@ -68,14 +68,14 @@ class _HealthMainViewState extends State<_HealthMainView> {
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryTextColor,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
                 Text(
                   '$petName의 건강 기록',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: AppTheme.secondaryTextColor,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -135,7 +135,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
               style: TextStyle(
                 fontSize: 15.sp,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.primaryTextColor,
+                color: Theme.of(context).textTheme.titleMedium?.color,
               ),
             ),
             SizedBox(height: 12.h),
@@ -151,14 +151,14 @@ class _HealthMainViewState extends State<_HealthMainView> {
                   style: TextStyle(
                     fontSize: 15.sp,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryTextColor,
+                    color: Theme.of(context).textTheme.titleMedium?.color,
                   ),
                 ),
                 Text(
                   '${state.records.length}건',
                   style: TextStyle(
                     fontSize: 13.sp,
-                    color: AppTheme.secondaryTextColor,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],

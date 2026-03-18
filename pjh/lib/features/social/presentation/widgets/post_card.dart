@@ -93,7 +93,7 @@ class _PostCardState extends State<PostCard> {
                 Text(
                   _formatDateTime(post.createdAt),
                   style: TextStyle(
-                    color: AppTheme.secondaryTextColor,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                     fontSize: 12.sp,
                   ),
                 ),
@@ -146,7 +146,7 @@ class _PostCardState extends State<PostCard> {
         style: TextStyle(
           fontSize: 14.sp,
           height: 1.4,
-          color: Colors.black87,
+          color: Theme.of(context).textTheme.bodyMedium?.color,
         ),
         children: segments.map((segment) {
           if (segment['isHashtag'] == true) {
@@ -362,7 +362,7 @@ class _PostCardState extends State<PostCard> {
                   '신뢰도 ${(emotionAnalysis.confidence * 100).toInt()}%',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: AppTheme.secondaryTextColor,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],
@@ -546,7 +546,7 @@ class _PostCardState extends State<PostCard> {
             children: [
               Text(
                 '신고 사유를 선택해주세요',
-                style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 14.sp, color: Theme.of(context).textTheme.bodySmall?.color),
               ),
               SizedBox(height: 12.h),
               ...reasons.map((reason) => RadioListTile<String>(

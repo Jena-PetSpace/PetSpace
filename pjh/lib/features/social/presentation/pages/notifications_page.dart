@@ -7,6 +7,7 @@ import "../../../../config/injection_container.dart" as di;
 import "../../domain/entities/notification.dart" as app;
 import "../bloc/notifications_bloc.dart";
 import "../../../../shared/widgets/shimmer_loading.dart";
+import "../../../../shared/widgets/empty_state_widget.dart";
 
 class NotificationsPage extends StatelessWidget {
   final String userId;
@@ -54,8 +55,10 @@ class NotificationsPage extends StatelessWidget {
             return const NotificationShimmerLoading();
           } else if (state is NotificationsLoaded) {
             if (state.notifications.isEmpty) {
-              return Center(
-                child: Text("새로운 알림이 없습니다.", style: TextStyle(fontSize: 14.sp)),
+              return const EmptyStateWidget(
+                icon: Icons.notifications_none_rounded,
+                title: '새로운 알림이 없습니다',
+                subtitle: '활동이 생기면 여기에 알림이 표시됩니다.',
               );
             }
             return ListView.builder(

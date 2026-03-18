@@ -97,7 +97,8 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget _buildCustomBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).bottomNavigationBarTheme.backgroundColor ??
+            Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),

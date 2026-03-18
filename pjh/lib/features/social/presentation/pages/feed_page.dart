@@ -7,6 +7,7 @@ import '../widgets/post_card.dart';
 import '../widgets/create_post_bottom_sheet.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
+import '../../../../shared/widgets/empty_state_widget.dart';
 
 class FeedPage extends StatefulWidget {
   final String? userId;
@@ -178,39 +179,12 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.feed_outlined,
-            size: 64.w,
-            color: Colors.grey[400],
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            '아직 게시물이 없습니다',
-            style: TextStyle(
-              fontSize: 18.sp,
-              color: Colors.grey[600],
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            '첫 번째 게시물을 작성해보세요!',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.grey[500],
-            ),
-          ),
-          SizedBox(height: 24.h),
-          ElevatedButton.icon(
-            onPressed: _showCreatePostBottomSheet,
-            icon: const Icon(Icons.add),
-            label: Text('게시물 작성', style: TextStyle(fontSize: 14.sp)),
-          ),
-        ],
-      ),
+    return EmptyStateWidget(
+      icon: Icons.feed_outlined,
+      title: '아직 게시물이 없습니다',
+      subtitle: '첫 번째 게시물을 작성해보세요!',
+      actionLabel: '게시물 작성',
+      onAction: _showCreatePostBottomSheet,
     );
   }
 
@@ -229,7 +203,7 @@ class _FeedPageState extends State<FeedPage> {
             '오류가 발생했습니다',
             style: TextStyle(
               fontSize: 18.sp,
-              color: Colors.grey[800],
+              color: Theme.of(context).textTheme.titleMedium?.color,
             ),
           ),
           SizedBox(height: 8.h),

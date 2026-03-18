@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../../shared/themes/app_theme.dart';
 import '../widgets/my_profile_header.dart';
 import '../widgets/my_menu_list.dart';
 
@@ -20,7 +19,7 @@ class MyPage extends StatelessWidget {
           style: TextStyle(
             fontSize: 18.sp,
             fontWeight: FontWeight.bold,
-            color: AppTheme.primaryTextColor,
+            color: Theme.of(context).appBarTheme.foregroundColor,
           ),
         ),
         centerTitle: true,
