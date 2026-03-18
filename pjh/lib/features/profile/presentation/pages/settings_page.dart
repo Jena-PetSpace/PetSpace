@@ -6,7 +6,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import 'notification_settings_page.dart';
 import 'privacy_settings_page.dart';
 import 'help_page.dart';
-import '../../../../shared/themes/theme_cubit.dart';
+
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -189,19 +189,6 @@ class SettingsPage extends StatelessWidget {
                 applicationLegalese: '© 2026 PetSpace',
               );
             },
-          ),
-          BlocBuilder<ThemeCubit, ThemeMode>(
-            builder: (context, themeMode) => SwitchListTile(
-              secondary: Icon(
-                themeMode == ThemeMode.dark
-                    ? Icons.dark_mode
-                    : Icons.light_mode,
-                size: 24.w,
-              ),
-              title: Text('다크 모드', style: TextStyle(fontSize: 14.sp)),
-              value: themeMode == ThemeMode.dark,
-              onChanged: (_) => context.read<ThemeCubit>().toggleTheme(),
-            ),
           ),
           const Divider(),
           ListTile(

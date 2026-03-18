@@ -347,12 +347,18 @@ class SocialRepositoryImpl implements SocialRepository {
     String? lastPostId,
     bool followingOnly = false,
   }) async {
-    if (followingOnly && userId != null && userId.isNotEmpty) {
+    // userId가 null이거나 빈 문자열이면 전체 피드 조회 (explore)
+    final effectiveUserId = (userId != null && userId.isNotEmpty) ? userId : null;
+
+    if (effectiveUserId == null) {
+      return await getExplorePosts(limit: limit, lastPostId: lastPostId);
+    }
+    if (followingOnly) {
       return await getFeedPosts(
-          userId: userId, limit: limit, lastPostId: lastPostId);
+          userId: effectiveUserId, limit: limit, lastPostId: lastPostId);
     }
     return await getFeedPosts(
-        userId: userId ?? '', limit: limit, lastPostId: lastPostId);
+        userId: effectiveUserId, limit: limit, lastPostId: lastPostId);
   }
 
   @override

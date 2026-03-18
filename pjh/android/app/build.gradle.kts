@@ -71,8 +71,7 @@ android {
             }
         }
         debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            // applicationIdSuffix 제거 — google-services.json과 패키지명 일치 필요
         }
     }
 }

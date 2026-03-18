@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/feed_bloc.dart';
 import '../widgets/post_card.dart';
 import '../widgets/create_post_bottom_sheet.dart';
@@ -26,12 +27,19 @@ class FeedPage extends StatefulWidget {
 class _FeedPageState extends State<FeedPage> {
   final ScrollController _scrollController = ScrollController();
 
+  String? get _effectiveUserId {
+    if (widget.userId != null && widget.userId!.isNotEmpty) return widget.userId;
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) return authState.user.id;
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
     context.read<FeedBloc>().add(LoadFeedRequested(
-        userId: widget.userId, followingOnly: widget.followingOnly));
+        userId: _effectiveUserId, followingOnly: widget.followingOnly));
   }
 
   @override
