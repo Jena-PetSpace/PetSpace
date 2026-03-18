@@ -1,6 +1,8 @@
 -- ================================================================
 -- PetSpace 전체 데이터베이스 설정 (통합 SQL)
--- 최종 수정: 2026-03-17 (saved_posts 추가, Realtime 설정, 스키마 버그 수정)
+-- 최종 수정: 2026-03-18
+-- 포함: 테이블 17개, 인덱스, RLS, 트리거, 함수, 스토리지,
+--       Realtime, 채팅, Soft Delete, search_path 보안 수정
 -- ================================================================
 --
 -- 이 파일 하나만 Supabase SQL Editor에서 실행하면
@@ -23,7 +25,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 
 -- ================================================================
--- PART 2: Tables (13개)
+-- PART 2: Tables (17개)
 -- ================================================================
 
 -- 1. Users
@@ -59,7 +61,7 @@ CREATE TABLE IF NOT EXISTS pets (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 3. Posts
+-- 3. Posts (soft delete 포함)
 CREATE TABLE IF NOT EXISTS posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -71,7 +73,8 @@ CREATE TABLE IF NOT EXISTS posts (
     likes_count INTEGER DEFAULT 0,
     comments_count INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ DEFAULT NULL
 );
 
 -- 4. Emotion History
@@ -85,14 +88,15 @@ CREATE TABLE IF NOT EXISTS emotion_history (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. Comments
+-- 5. Comments (soft delete 포함)
 CREATE TABLE IF NOT EXISTS comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     likes_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ DEFAULT NULL
 );
 
 -- 6. Follows
@@ -191,7 +195,6 @@ CREATE TABLE IF NOT EXISTS health_records (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-
 -- 14. Saved Posts (북마크)
 CREATE TABLE IF NOT EXISTS saved_posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -201,13 +204,56 @@ CREATE TABLE IF NOT EXISTS saved_posts (
     UNIQUE(post_id, user_id)
 );
 
+-- 15. Chat Rooms
+CREATE TABLE IF NOT EXISTS chat_rooms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type VARCHAR(10) NOT NULL CHECK (type IN ('direct', 'group')),
+    name VARCHAR(100),
+    description TEXT,
+    avatar_url TEXT,
+    created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_message TEXT,
+    last_message_at TIMESTAMP WITH TIME ZONE,
+    last_message_sender_id UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 16. Chat Participants
+CREATE TABLE IF NOT EXISTS chat_participants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id UUID NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(10) DEFAULT 'member' CHECK (role IN ('admin', 'member')),
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_read_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT TRUE,
+    UNIQUE(room_id, user_id)
+);
+
+-- 17. Chat Messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    room_id UUID NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
+    sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT,
+    type VARCHAR(10) NOT NULL DEFAULT 'text' CHECK (type IN ('text', 'image', 'system')),
+    image_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    is_deleted BOOLEAN DEFAULT FALSE
+);
+
 -- Users 테이블 컬럼 보강 (기존 테이블 대비)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_onboarding_completed BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS pets UUID[] DEFAULT ARRAY[]::UUID[];
 ALTER TABLE users ADD COLUMN IF NOT EXISTS following UUID[] DEFAULT ARRAY[]::UUID[];
 ALTER TABLE users ADD COLUMN IF NOT EXISTS followers UUID[] DEFAULT ARRAY[]::UUID[];
-
 ALTER TABLE users ADD COLUMN IF NOT EXISTS provider VARCHAR(20) DEFAULT 'email';
+
+-- Soft delete 컬럼 보강 (기존 테이블 대비)
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+
 COMMENT ON COLUMN users.provider IS '가입 방식 (email, google, kakao)';
 COMMENT ON COLUMN users.is_onboarding_completed IS '온보딩 프로세스 완료 여부';
 COMMENT ON COLUMN users.pets IS '사용자가 소유한 반려동물 UUID 배열';
@@ -219,47 +265,91 @@ COMMENT ON COLUMN users.followers IS '사용자를 팔로우하는 사용자 UUI
 -- PART 3: Indexes
 -- ================================================================
 
+-- Pets
 CREATE INDEX IF NOT EXISTS idx_pets_user_id ON pets(user_id);
+
+-- Posts
 CREATE INDEX IF NOT EXISTS idx_posts_author_id ON posts(author_id);
 CREATE INDEX IF NOT EXISTS idx_posts_pet_id ON posts(pet_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_posts_emotion_analysis ON posts USING GIN(emotion_analysis);
+CREATE INDEX IF NOT EXISTS idx_posts_hashtags ON posts USING GIN(hashtags);
+CREATE INDEX IF NOT EXISTS idx_posts_deleted_at ON posts(deleted_at) WHERE deleted_at IS NULL;
+
+-- Emotion History
 CREATE INDEX IF NOT EXISTS idx_emotion_history_user_id ON emotion_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_emotion_history_pet_id ON emotion_history(pet_id);
 CREATE INDEX IF NOT EXISTS idx_emotion_history_created_at ON emotion_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_emotion_history_emotion_analysis ON emotion_history USING GIN(emotion_analysis);
+CREATE INDEX IF NOT EXISTS idx_emotion_history_user_created_at ON emotion_history(user_id, created_at DESC);
+
+-- Comments
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_author_id ON comments(author_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comments_deleted_at ON comments(deleted_at) WHERE deleted_at IS NULL;
+
+-- Follows
 CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);
 CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id);
+
+-- Likes
 CREATE INDEX IF NOT EXISTS idx_likes_user_id ON likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_likes_post_id ON likes(post_id);
+
+-- Notifications
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created_at ON notifications(user_id, created_at DESC);
+
+-- Users
 CREATE INDEX IF NOT EXISTS idx_users_pets ON users USING GIN(pets);
 CREATE INDEX IF NOT EXISTS idx_users_following ON users USING GIN(following);
 CREATE INDEX IF NOT EXISTS idx_users_followers ON users USING GIN(followers);
 CREATE INDEX IF NOT EXISTS idx_users_onboarding ON users(is_onboarding_completed);
-CREATE INDEX IF NOT EXISTS idx_posts_emotion_analysis ON posts USING GIN(emotion_analysis);
-CREATE INDEX IF NOT EXISTS idx_emotion_history_emotion_analysis ON emotion_history USING GIN(emotion_analysis);
-CREATE INDEX IF NOT EXISTS idx_posts_hashtags ON posts USING GIN(hashtags);
+
+-- Comment Likes
 CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id);
 CREATE INDEX IF NOT EXISTS idx_comment_likes_user_id ON comment_likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_comment_likes_created_at ON comment_likes(created_at DESC);
+
+-- Reports
 CREATE INDEX IF NOT EXISTS idx_reports_reporter_id ON reports(reporter_id);
 CREATE INDEX IF NOT EXISTS idx_reports_reported_user_id ON reports(reported_user_id);
 CREATE INDEX IF NOT EXISTS idx_reports_reported_post_id ON reports(reported_post_id);
 CREATE INDEX IF NOT EXISTS idx_reports_reported_comment_id ON reports(reported_comment_id);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_created_at ON reports(created_at DESC);
+
+-- User Blocks
 CREATE INDEX IF NOT EXISTS idx_user_blocks_blocker_id ON user_blocks(blocker_id);
 CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked_id ON user_blocks(blocked_id);
+
+-- Health Records
 CREATE INDEX IF NOT EXISTS idx_health_records_pet_id ON health_records(pet_id);
 CREATE INDEX IF NOT EXISTS idx_health_records_user_id ON health_records(user_id);
 CREATE INDEX IF NOT EXISTS idx_health_records_record_date ON health_records(record_date DESC);
+
+-- Saved Posts
 CREATE INDEX IF NOT EXISTS idx_saved_posts_user_id ON saved_posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_saved_posts_post_id ON saved_posts(post_id);
 CREATE INDEX IF NOT EXISTS idx_saved_posts_created_at ON saved_posts(created_at DESC);
 
+-- Chat Rooms
+CREATE INDEX IF NOT EXISTS idx_chat_rooms_created_by ON chat_rooms(created_by);
+CREATE INDEX IF NOT EXISTS idx_chat_rooms_last_message_at ON chat_rooms(last_message_at DESC NULLS LAST);
+
+-- Chat Participants
+CREATE INDEX IF NOT EXISTS idx_chat_participants_room_id ON chat_participants(room_id);
+CREATE INDEX IF NOT EXISTS idx_chat_participants_user_id ON chat_participants(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_participants_room_user ON chat_participants(room_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_participants_active ON chat_participants(user_id, is_active);
+
+-- Chat Messages
+CREATE INDEX IF NOT EXISTS idx_chat_messages_room_id ON chat_messages(room_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_sender_id ON chat_messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(room_id, created_at DESC);
 
 
 -- ================================================================
@@ -268,7 +358,9 @@ CREATE INDEX IF NOT EXISTS idx_saved_posts_created_at ON saved_posts(created_at 
 
 -- updated_at 자동 갱신
 CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
@@ -277,7 +369,9 @@ $$ language 'plpgsql';
 
 -- 좋아요 카운터
 CREATE OR REPLACE FUNCTION increment_likes_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     UPDATE posts SET likes_count = likes_count + 1 WHERE id = NEW.post_id;
     RETURN NEW;
@@ -285,7 +379,9 @@ END;
 $$ language 'plpgsql';
 
 CREATE OR REPLACE FUNCTION decrement_likes_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     UPDATE posts SET likes_count = likes_count - 1 WHERE id = OLD.post_id;
     RETURN OLD;
@@ -294,7 +390,9 @@ $$ language 'plpgsql';
 
 -- 댓글 카운터
 CREATE OR REPLACE FUNCTION increment_comments_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     UPDATE posts SET comments_count = comments_count + 1 WHERE id = NEW.post_id;
     RETURN NEW;
@@ -302,7 +400,9 @@ END;
 $$ language 'plpgsql';
 
 CREATE OR REPLACE FUNCTION decrement_comments_count()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     UPDATE posts SET comments_count = comments_count - 1 WHERE id = OLD.post_id;
     RETURN OLD;
@@ -311,7 +411,9 @@ $$ language 'plpgsql';
 
 -- Reports updated_at
 CREATE OR REPLACE FUNCTION update_reports_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SET search_path = public
+AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
@@ -320,14 +422,18 @@ $$ LANGUAGE plpgsql;
 
 -- 게시물 좋아요 RPC
 CREATE OR REPLACE FUNCTION increment_post_likes(post_id UUID)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     UPDATE posts SET likes_count = likes_count + 1 WHERE id = post_id;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION decrement_post_likes(post_id UUID)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     UPDATE posts SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = post_id;
 END;
@@ -335,14 +441,18 @@ $$;
 
 -- 댓글 좋아요 RPC
 CREATE OR REPLACE FUNCTION increment_comment_likes(comment_id UUID)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     UPDATE comments SET likes_count = likes_count + 1 WHERE id = comment_id;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION decrement_comment_likes(comment_id UUID)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     UPDATE comments SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = comment_id;
 END;
@@ -388,7 +498,10 @@ RETURNS TABLE (
     gender VARCHAR,
     avatar_url TEXT,
     created_at TIMESTAMPTZ
-) AS $$
+)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     RETURN QUERY
     SELECT p.id, p.name, p.type, p.breed, p.birth_date, p.gender, p.avatar_url, p.created_at
@@ -396,9 +509,9 @@ BEGIN
     WHERE p.user_id = user_uuid
     ORDER BY p.created_at DESC;
 END;
-$$ language 'plpgsql' SECURITY DEFINER;
+$$;
 
--- 피드 포스트 조회
+-- 피드 포스트 조회 (soft delete 반영)
 DROP FUNCTION IF EXISTS get_feed_posts(uuid, integer, integer);
 CREATE OR REPLACE FUNCTION get_feed_posts(user_uuid UUID, limit_count INTEGER DEFAULT 20, offset_count INTEGER DEFAULT 0)
 RETURNS TABLE (
@@ -417,7 +530,10 @@ RETURNS TABLE (
     comments_count INTEGER,
     created_at TIMESTAMPTZ,
     is_liked BOOLEAN
-) AS $$
+)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     RETURN QUERY
     SELECT
@@ -430,15 +546,18 @@ BEGIN
     FROM posts p
     LEFT JOIN users u ON p.author_id = u.id
     LEFT JOIN pets pet ON p.pet_id = pet.id
-    WHERE p.author_id IN (
-        SELECT following_id FROM follows WHERE follower_id = user_uuid
-        UNION
-        SELECT user_uuid
-    ) OR user_uuid IS NULL
+    WHERE p.deleted_at IS NULL
+    AND (
+        p.author_id IN (
+            SELECT following_id FROM follows WHERE follower_id = user_uuid
+            UNION
+            SELECT user_uuid
+        ) OR user_uuid IS NULL
+    )
     ORDER BY p.created_at DESC
     LIMIT limit_count OFFSET offset_count;
 END;
-$$ language 'plpgsql' SECURITY DEFINER;
+$$;
 
 -- 감정 통계 조회
 CREATE OR REPLACE FUNCTION get_emotion_statistics(
@@ -450,7 +569,10 @@ RETURNS TABLE (
     emotion VARCHAR,
     avg_score NUMERIC,
     count BIGINT
-) AS $$
+)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
     RETURN QUERY
     SELECT
@@ -464,7 +586,144 @@ BEGIN
     GROUP BY jsonb_object_keys(eh.emotion_analysis)
     ORDER BY avg_score DESC;
 END;
-$$ language 'plpgsql' SECURITY DEFINER;
+$$;
+
+-- 새 메시지 INSERT 시 chat_rooms.last_message 자동 갱신
+CREATE OR REPLACE FUNCTION update_chat_room_last_message()
+RETURNS TRIGGER
+SET search_path = public
+AS $$
+BEGIN
+    UPDATE chat_rooms
+    SET
+        last_message = CASE
+            WHEN NEW.type = 'image' THEN '사진을 보냈습니다'
+            WHEN NEW.type = 'system' THEN NEW.content
+            ELSE NEW.content
+        END,
+        last_message_at = NEW.created_at,
+        last_message_sender_id = NEW.sender_id
+    WHERE id = NEW.room_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 전체 안읽은 메시지 수 조회 (뱃지용)
+CREATE OR REPLACE FUNCTION get_total_unread_count(p_user_id UUID)
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    total_count INTEGER;
+BEGIN
+    SELECT COALESCE(SUM(unread), 0) INTO total_count
+    FROM (
+        SELECT COUNT(cm.id) as unread
+        FROM chat_participants cp
+        JOIN chat_messages cm ON cm.room_id = cp.room_id
+        WHERE cp.user_id = p_user_id
+          AND cp.is_active = TRUE
+          AND cm.created_at > cp.last_read_at
+          AND cm.sender_id != p_user_id
+        GROUP BY cp.room_id
+    ) sub;
+    RETURN total_count;
+END;
+$$;
+
+-- 채팅방별 안읽은 메시지 수 조회
+CREATE OR REPLACE FUNCTION get_room_unread_count(p_room_id UUID, p_user_id UUID)
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    unread_count INTEGER;
+BEGIN
+    SELECT COUNT(cm.id) INTO unread_count
+    FROM chat_messages cm
+    JOIN chat_participants cp ON cp.room_id = cm.room_id AND cp.user_id = p_user_id
+    WHERE cm.room_id = p_room_id
+      AND cm.created_at > cp.last_read_at
+      AND cm.sender_id != p_user_id;
+    RETURN COALESCE(unread_count, 0);
+END;
+$$;
+
+-- RLS 무한 재귀 방지용 헬퍼 함수
+-- SECURITY DEFINER로 실행되어 RLS를 우회하여 chat_participants 조회
+CREATE OR REPLACE FUNCTION is_room_member(p_room_id UUID, p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM chat_participants
+        WHERE room_id = p_room_id
+          AND user_id = p_user_id
+          AND is_active = TRUE
+    );
+END;
+$$;
+
+-- 기존 1:1 채팅방 찾기 (중복 방지)
+CREATE OR REPLACE FUNCTION find_direct_chat(p_user1_id UUID, p_user2_id UUID)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    room_uuid UUID;
+BEGIN
+    SELECT cr.id INTO room_uuid
+    FROM chat_rooms cr
+    WHERE cr.type = 'direct'
+      AND EXISTS (
+          SELECT 1 FROM chat_participants cp1
+          WHERE cp1.room_id = cr.id AND cp1.user_id = p_user1_id AND cp1.is_active = TRUE
+      )
+      AND EXISTS (
+          SELECT 1 FROM chat_participants cp2
+          WHERE cp2.room_id = cr.id AND cp2.user_id = p_user2_id AND cp2.is_active = TRUE
+      )
+    LIMIT 1;
+    RETURN room_uuid;
+END;
+$$;
+
+-- 게시물 soft delete 헬퍼
+CREATE OR REPLACE FUNCTION soft_delete_post(post_uuid UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    UPDATE posts
+    SET deleted_at = NOW()
+    WHERE id = post_uuid
+    AND author_id = auth.uid()
+    AND deleted_at IS NULL;
+END;
+$$;
+
+-- 댓글 soft delete 헬퍼
+CREATE OR REPLACE FUNCTION soft_delete_comment(comment_uuid UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    UPDATE comments
+    SET deleted_at = NOW()
+    WHERE id = comment_uuid
+    AND author_id = auth.uid()
+    AND deleted_at IS NULL;
+END;
+$$;
 
 
 -- ================================================================
@@ -519,6 +778,17 @@ CREATE TRIGGER on_auth_user_created
     FOR EACH ROW
     EXECUTE FUNCTION handle_new_user();
 
+-- Chat 트리거
+DROP TRIGGER IF EXISTS update_chat_rooms_updated_at ON chat_rooms;
+CREATE TRIGGER update_chat_rooms_updated_at BEFORE UPDATE ON chat_rooms
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS on_chat_message_insert ON chat_messages;
+CREATE TRIGGER on_chat_message_insert
+    AFTER INSERT ON chat_messages
+    FOR EACH ROW
+    EXECUTE FUNCTION update_chat_room_last_message();
+
 
 -- ================================================================
 -- PART 6: Row Level Security (테이블)
@@ -538,6 +808,9 @@ ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_blocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE health_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saved_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 
 -- Users
 -- 인증된 유저는 모든 프로필 조회 가능 (채팅 유저 검색, 소셜 기능 등)
@@ -572,10 +845,10 @@ DROP POLICY IF EXISTS "Users can delete own pets" ON pets;
 CREATE POLICY "Users can delete own pets" ON pets
     FOR DELETE USING (auth.uid() = user_id);
 
--- Posts
+-- Posts (soft delete 반영)
 DROP POLICY IF EXISTS "Posts are viewable by everyone" ON posts;
 CREATE POLICY "Posts are viewable by everyone" ON posts
-    FOR SELECT USING (true);
+    FOR SELECT USING (deleted_at IS NULL);
 
 DROP POLICY IF EXISTS "Users can insert own posts" ON posts;
 CREATE POLICY "Users can insert own posts" ON posts
@@ -583,21 +856,21 @@ CREATE POLICY "Users can insert own posts" ON posts
 
 DROP POLICY IF EXISTS "Users can update own posts" ON posts;
 CREATE POLICY "Users can update own posts" ON posts
-    FOR UPDATE USING (auth.uid() = author_id);
+    FOR UPDATE USING (auth.uid() = author_id AND deleted_at IS NULL);
 
 DROP POLICY IF EXISTS "Users can delete own posts" ON posts;
 CREATE POLICY "Users can delete own posts" ON posts
-    FOR DELETE USING (auth.uid() = author_id);
+    FOR DELETE USING (auth.uid() = author_id AND deleted_at IS NULL);
 
 -- Emotion History
 DROP POLICY IF EXISTS "Users can only see own emotion history" ON emotion_history;
 CREATE POLICY "Users can only see own emotion history" ON emotion_history
     FOR ALL USING (auth.uid() = user_id);
 
--- Comments
+-- Comments (soft delete 반영)
 DROP POLICY IF EXISTS "Comments are viewable by everyone" ON comments;
 CREATE POLICY "Comments are viewable by everyone" ON comments
-    FOR SELECT USING (true);
+    FOR SELECT USING (deleted_at IS NULL);
 
 DROP POLICY IF EXISTS "Users can insert comments" ON comments;
 CREATE POLICY "Users can insert comments" ON comments
@@ -605,11 +878,11 @@ CREATE POLICY "Users can insert comments" ON comments
 
 DROP POLICY IF EXISTS "Users can update own comments" ON comments;
 CREATE POLICY "Users can update own comments" ON comments
-    FOR UPDATE USING (auth.uid() = author_id);
+    FOR UPDATE USING (auth.uid() = author_id AND deleted_at IS NULL);
 
 DROP POLICY IF EXISTS "Users can delete own comments" ON comments;
 CREATE POLICY "Users can delete own comments" ON comments
-    FOR DELETE USING (auth.uid() = author_id);
+    FOR DELETE USING (auth.uid() = author_id AND deleted_at IS NULL);
 
 -- Follows
 DROP POLICY IF EXISTS "Users can view follows" ON follows;
@@ -703,12 +976,73 @@ DROP POLICY IF EXISTS "Users can delete own pet health records" ON health_record
 CREATE POLICY "Users can delete own pet health records" ON health_records
     FOR DELETE USING (auth.uid() = user_id);
 
-
 -- Saved Posts (북마크)
 DROP POLICY IF EXISTS "Users can manage own saved posts" ON saved_posts;
 CREATE POLICY "Users can manage own saved posts" ON saved_posts
     FOR ALL USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
+
+-- Chat Rooms
+DROP POLICY IF EXISTS "Users can view rooms they participate in" ON chat_rooms;
+CREATE POLICY "Users can view rooms they participate in" ON chat_rooms
+    FOR SELECT USING (
+        created_by = auth.uid()
+        OR is_room_member(chat_rooms.id, auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Authenticated users can create chat rooms" ON chat_rooms;
+CREATE POLICY "Authenticated users can create chat rooms" ON chat_rooms
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = created_by);
+
+DROP POLICY IF EXISTS "Room creator or admin can update room" ON chat_rooms;
+CREATE POLICY "Room creator or admin can update room" ON chat_rooms
+    FOR UPDATE USING (
+        auth.uid() = created_by
+        OR is_room_member(chat_rooms.id, auth.uid())
+    );
+
+-- Chat Participants
+-- NOTE: SELECT 정책에서 자기 자신(chat_participants)을 서브쿼리로 참조하면
+-- 무한 재귀(infinite recursion) 오류가 발생함.
+-- 해결: SECURITY DEFINER 함수로 RLS를 우회하여 참여 여부 확인
+DROP POLICY IF EXISTS "Users can view participants of their rooms" ON chat_participants;
+CREATE POLICY "Users can view participants of their rooms" ON chat_participants
+    FOR SELECT USING (
+        is_room_member(chat_participants.room_id, auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Authenticated users can insert participants" ON chat_participants;
+CREATE POLICY "Authenticated users can insert participants" ON chat_participants
+    FOR INSERT TO authenticated
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM chat_rooms
+            WHERE chat_rooms.id = room_id
+              AND chat_rooms.created_by = auth.uid()
+        )
+        OR auth.uid() = user_id
+    );
+
+DROP POLICY IF EXISTS "Users can update own participant record" ON chat_participants;
+CREATE POLICY "Users can update own participant record" ON chat_participants
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Chat Messages
+DROP POLICY IF EXISTS "Users can view messages in their rooms" ON chat_messages;
+CREATE POLICY "Users can view messages in their rooms" ON chat_messages
+    FOR SELECT USING (
+        is_room_member(chat_messages.room_id, auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Users can send messages to rooms they belong to" ON chat_messages;
+CREATE POLICY "Users can send messages to rooms they belong to" ON chat_messages
+    FOR INSERT TO authenticated
+    WITH CHECK (
+        auth.uid() = sender_id
+        AND is_room_member(room_id, auth.uid())
+    );
+
 
 -- ================================================================
 -- PART 7: Storage Bucket
@@ -722,6 +1056,41 @@ ON CONFLICT (id) DO NOTHING;
 -- ================================================================
 -- PART 8: Storage RLS Policies
 -- ================================================================
+--
+-- Storage RLS 구성 요약:
+--   버킷: 'images' (public: true)
+--   폴더 구조: images/{folder}/{user_id}/{filename}
+--
+--   SQL로 설정된 Storage RLS 정책:
+--     - profiles/   : INSERT/UPDATE/DELETE는 본인만, SELECT는 public
+--     - pets/       : INSERT/UPDATE/DELETE는 본인만, SELECT는 public
+--     - posts/      : INSERT/UPDATE/DELETE는 본인만, SELECT는 public
+--     - emotion_analysis/ : INSERT/UPDATE/DELETE는 본인만, SELECT는 public
+--     - chat/       : INSERT는 본인만, SELECT는 authenticated
+--
+--   [추가 확인/개선 사항 - Supabase Dashboard에서 확인 필요]
+--
+--   1. 파일 크기 제한:
+--      Dashboard > Storage > Settings에서 max file size 설정 권장
+--      - 프로필/펫 이미지: 5MB 제한 권장
+--      - 게시물 이미지: 10MB 제한 권장
+--
+--   2. MIME 타입 제한:
+--      Dashboard > Storage > Policies에서 allowed MIME types 설정 권장
+--      - image/jpeg, image/png, image/webp만 허용 권장
+--      - 악성 파일 업로드 방지
+--
+--   3. 버킷 public 설정 확인:
+--      현재 images 버킷이 public=true로 설정됨.
+--      이는 SELECT 정책과 무관하게 URL을 아는 사람은 누구나 파일 접근 가능.
+--      공개 SNS 특성상 적절하나, emotion_analysis 이미지는
+--      private 버킷으로 분리하는 것을 고려할 수 있음.
+--
+--   4. soft delete된 게시물의 이미지 정리:
+--      soft delete된 게시물의 이미지는 Storage에 그대로 남아있음.
+--      주기적으로 deleted_at이 오래된 게시물의 이미지를 정리하는
+--      Edge Function 또는 cron job 구성을 권장.
+--
 
 -- 프로필 이미지
 DROP POLICY IF EXISTS "Users can upload own profile images" ON storage.objects;
@@ -811,13 +1180,31 @@ CREATE POLICY "Public can view emotion analysis images" ON storage.objects
     FOR SELECT TO public
     USING (bucket_id = 'images' AND (storage.foldername(name))[1] = 'emotion_analysis');
 
+-- 채팅 이미지
+DROP POLICY IF EXISTS "Users can upload chat images" ON storage.objects;
+CREATE POLICY "Users can upload chat images" ON storage.objects
+    FOR INSERT TO authenticated
+    WITH CHECK (
+        bucket_id = 'images'
+        AND (storage.foldername(name))[1] = 'chat'
+        AND (storage.foldername(name))[2] = auth.uid()::text
+    );
+
+DROP POLICY IF EXISTS "Users can view chat images" ON storage.objects;
+CREATE POLICY "Users can view chat images" ON storage.objects
+    FOR SELECT TO authenticated
+    USING (
+        bucket_id = 'images'
+        AND (storage.foldername(name))[1] = 'chat'
+    );
 
 
 -- ================================================================
 -- PART 9: Realtime Publication
 -- ================================================================
 -- Supabase Realtime을 통한 실시간 업데이트를 위해
--- likes, comments, notifications 테이블을 publication에 추가합니다.
+-- likes, comments, notifications, chat_messages, chat_participants
+-- 테이블을 publication에 추가합니다.
 -- (supabase_realtime publication은 Supabase가 자동 생성함)
 
 DO $$
@@ -846,7 +1233,23 @@ BEGIN
         ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
     END IF;
 
-    RAISE NOTICE 'Realtime publication 설정 완료 (likes, comments, notifications)';
+    -- chat_messages
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND tablename = 'chat_messages'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+    END IF;
+
+    -- chat_participants
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND tablename = 'chat_participants'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE chat_participants;
+    END IF;
+
+    RAISE NOTICE 'Realtime publication 설정 완료 (likes, comments, notifications, chat_messages, chat_participants)';
 END $$;
 
 -- ================================================================
@@ -860,7 +1263,12 @@ BEGIN
     RAISE NOTICE '  PetSpace 데이터베이스 설정 완료!';
     RAISE NOTICE '================================================';
     RAISE NOTICE '';
-    RAISE NOTICE '테이블 14개, 인덱스, RLS, 트리거, 함수, 스토리지, Realtime 설정 완료';
-    RAISE NOTICE '  추가된 테이블: saved_posts (북마크)';
+    RAISE NOTICE '테이블 17개, 인덱스, RLS, 트리거, 함수, 스토리지, Realtime 설정 완료';
+    RAISE NOTICE '  1-14: users, pets, posts, emotion_history, comments, follows,';
+    RAISE NOTICE '        likes, notifications, user_devices, comment_likes,';
+    RAISE NOTICE '        reports, user_blocks, health_records, saved_posts';
+    RAISE NOTICE '  15-17: chat_rooms, chat_participants, chat_messages';
+    RAISE NOTICE '  + soft delete (posts, comments)';
+    RAISE NOTICE '  + search_path 보안 수정 (모든 함수)';
     RAISE NOTICE '================================================';
 END $$;
