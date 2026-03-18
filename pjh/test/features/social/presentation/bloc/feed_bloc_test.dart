@@ -15,8 +15,6 @@ import 'package:meong_nyang_diary/features/social/domain/usecases/save_post.dart
 import 'package:meong_nyang_diary/features/social/domain/usecases/unsave_post.dart';
 import 'package:meong_nyang_diary/features/social/domain/usecases/get_saved_posts.dart';
 import 'package:meong_nyang_diary/features/social/presentation/bloc/feed_bloc.dart';
-import 'package:meong_nyang_diary/features/social/presentation/bloc/feed_event.dart';
-import 'package:meong_nyang_diary/features/social/presentation/bloc/feed_state.dart';
 import 'package:meong_nyang_diary/core/services/realtime_service.dart';
 
 // Mocks

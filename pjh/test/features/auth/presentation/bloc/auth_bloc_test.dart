@@ -31,7 +31,11 @@ final _tUser = User(
   pets: const [],
   following: const [],
   followers: const [],
-  settings: const UserSettings(),
+  settings: const UserSettings(
+    notificationsEnabled: true,
+    privacyLevel: PrivacyLevel.public,
+    showEmotionAnalysisToPublic: false,
+  ),
   isOnboardingCompleted: true,
 );
 

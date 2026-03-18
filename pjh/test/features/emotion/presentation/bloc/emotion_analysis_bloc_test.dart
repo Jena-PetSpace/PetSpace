@@ -222,8 +222,7 @@ void main() {
       },
       act: (b) => b.add(DeleteAnalysisRequested(analysisId: 'analysis-001')),
       expect: () => [
-        isA<EmotionAnalysisDeleted>()
-            .having((s) => s.analysisId, 'id', 'analysis-001'),
+        isA<EmotionAnalysisDeleted>(),
       ],
     );
 

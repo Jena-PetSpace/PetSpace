@@ -798,4 +798,53 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(false);
     }
   }
+
+  // ─── Block operations ───────────────────────────────────────────────────
+
+  @override
+  Future<Either<Failure, void>> blockUser(String blockerId, String blockedId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.supabaseClient
+          .from('user_blocks')
+          .upsert({'blocker_id': blockerId, 'blocked_id': blockedId, 'created_at': DateTime.now().toIso8601String()});
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '차단 처리 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> unblockUser(String blockerId, String blockedId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.supabaseClient
+          .from('user_blocks')
+          .delete()
+          .eq('blocker_id', blockerId)
+          .eq('blocked_id', blockedId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '차단 해제 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> isBlocked(String blockerId, String blockedId) async {
+    try {
+      final response = await remoteDataSource.supabaseClient
+          .from('user_blocks')
+          .select('id')
+          .eq('blocker_id', blockerId)
+          .eq('blocked_id', blockedId)
+          .maybeSingle();
+      return Right(response != null);
+    } catch (e) {
+      return const Right(false);
+    }
+  }
 }

@@ -118,7 +118,7 @@ class _TestPageState extends State<TestPage> {
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
-                    const Text('Supabase URL: ${SupabaseOptions.supabaseUrl}'),
+                    Text('Supabase URL: ${SupabaseOptions.supabaseUrl}'),
                     const SizedBox(height: 8),
                     Text(
                         '설정 상태: ${SupabaseOptions.isConfigured ? "완료" : "미완료"}'),

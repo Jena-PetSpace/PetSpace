@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/error/error_messages.dart';
+import '../themes/app_theme.dart';
 
 /// 에러 심각도에 따른 색상과 아이콘 정의
 class ErrorSnackbarConfig {

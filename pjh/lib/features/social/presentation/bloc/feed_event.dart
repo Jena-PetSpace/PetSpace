@@ -122,7 +122,7 @@ class LoadSavedPostsRequested extends FeedEvent {
 
 class SubscribeToFeedRealtime extends FeedEvent {
   final String userId;
-  const SubscribeToFealRealtime({required this.userId});
+  const SubscribeToFeedRealtime({required this.userId});
 
   @override
   List<Object?> get props => [userId];

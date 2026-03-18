@@ -26,13 +26,13 @@ class AppTheme {
   static const Color curiosityColor = Color(0xFF0077B6); // 브라이트 블루 (호기심)
 
   // 시맨틱 컬러 — 상태/피드백
-  static const Color successColor = AppTheme.successColor; // 성공·완료 (초록)
+  static const Color successColor = Color(0xFF4CAF50); // 성공·완료 (초록)
   static const Color errorColor = Color(0xFFE53935);   // 에러·삭제 (빨강)
   static const Color warningColor = Color(0xFFFF9800); // 경고 (주황)
   static const Color infoColor = Color(0xFF0077B6);    // 정보 (accentColor 동일)
 
   // 중간 회색 계열 토큰
-  static const Color dividerColor = AppTheme.dividerColor;
+  static const Color dividerColor = Color(0xFFE0E0E0);
   static const Color disabledColor = Color(0xFFBDBDBD);
   static const Color hintColor = Color(0xFF9E9E9E);
   static const Color subtleBackground = Color(0xFFF5F5F5);

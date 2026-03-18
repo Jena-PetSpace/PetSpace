@@ -61,17 +61,17 @@ class _FeedHubPageState extends State<FeedHubPage>
   Future<void> _loadCommunityPosts({String? category}) async {
     setState(() => _communityLoading = true);
     try {
-      var query = _supabase
+      var baseQuery = _supabase
           .from('community_posts')
-          .select('id, author_id, category, title, content, likes_count, comments_count, created_at, users(display_name, photo_url)')
-          .order('created_at', ascending: false)
-          .limit(30);
+          .select('id, author_id, category, title, content, likes_count, comments_count, created_at, users(display_name, photo_url)');
 
       if (category != null) {
-        query = query.eq('category', category);
+        baseQuery = baseQuery.eq('category', category);
       }
 
-      final response = await query;
+      final response = await baseQuery
+          .order('created_at', ascending: false)
+          .limit(30);
       setState(() {
         _communityPosts = List<Map<String, dynamic>>.from(response);
         _communityLoading = false;

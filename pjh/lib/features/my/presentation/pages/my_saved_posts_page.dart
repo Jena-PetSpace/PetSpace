@@ -5,8 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/presentation/bloc/feed_bloc.dart';
-import '../../../social/presentation/bloc/feed_event.dart';
-import '../../../social/presentation/bloc/feed_state.dart';
 
 
 class MySavedPostsPage extends StatefulWidget {
