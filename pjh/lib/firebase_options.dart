@@ -27,11 +27,11 @@ class DefaultFirebaseOptions {
 
   /// Android — android/app/google-services.json 기반
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBc6Q5SJV4FgER-6RWzRNyh70qvGuX3rVE',
-    appId: '1:295912994007:android:petspace',
+    apiKey: 'AIzaSyBSfhhpmlOp4wGTom1gcNEnrGPgEd-sslY',
+    appId: '1:295912994007:android:6a5e8553afe699e46c6c92',
     messagingSenderId: '295912994007',
     projectId: 'project-5e5638c5-de70-498d-8f2',
-    storageBucket: 'project-5e5638c5-de70-498d-8f2.appspot.com',
+    storageBucket: 'project-5e5638c5-de70-498d-8f2.firebasestorage.app',
   );
 
   // iOS 설정 추가 시 아래 주석 해제 후 값 채우기
