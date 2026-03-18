@@ -21,7 +21,8 @@ class CacheManager {
   }
 
   // Data caching
-  Future<void> cacheData(String key, Map<String, dynamic> data, {Duration? ttl}) async {
+  Future<void> cacheData(String key, Map<String, dynamic> data,
+      {Duration? ttl}) async {
     final cacheItem = CacheItem(
       data: data,
       timestamp: DateTime.now(),
@@ -58,11 +59,13 @@ class CacheManager {
     await file.writeAsBytes(bytes);
 
     // Store metadata
-    await _prefs?.setString('img_$fileName', jsonEncode({
-      'url': url,
-      'timestamp': DateTime.now().toIso8601String(),
-      'size': bytes.length,
-    }));
+    await _prefs?.setString(
+        'img_$fileName',
+        jsonEncode({
+          'url': url,
+          'timestamp': DateTime.now().toIso8601String(),
+          'size': bytes.length,
+        }));
   }
 
   Future<File?> getCachedImage(String url) async {
@@ -97,7 +100,8 @@ class CacheManager {
   }
 
   // User data caching
-  Future<void> cacheUserProfile(String userId, Map<String, dynamic> profile) async {
+  Future<void> cacheUserProfile(
+      String userId, Map<String, dynamic> profile) async {
     await cacheData('user_$userId', profile, ttl: const Duration(minutes: 30));
   }
 
@@ -106,8 +110,10 @@ class CacheManager {
   }
 
   // Post data caching
-  Future<void> cachePosts(String feedType, List<Map<String, dynamic>> posts) async {
-    await cacheData('posts_$feedType', {'posts': posts}, ttl: const Duration(minutes: 15));
+  Future<void> cachePosts(
+      String feedType, List<Map<String, dynamic>> posts) async {
+    await cacheData('posts_$feedType', {'posts': posts},
+        ttl: const Duration(minutes: 15));
   }
 
   Future<List<Map<String, dynamic>>?> getCachedPosts(String feedType) async {
@@ -119,8 +125,10 @@ class CacheManager {
   }
 
   // Comments caching
-  Future<void> cacheComments(String postId, List<Map<String, dynamic>> comments) async {
-    await cacheData('comments_$postId', {'comments': comments}, ttl: const Duration(minutes: 10));
+  Future<void> cacheComments(
+      String postId, List<Map<String, dynamic>> comments) async {
+    await cacheData('comments_$postId', {'comments': comments},
+        ttl: const Duration(minutes: 10));
   }
 
   Future<List<Map<String, dynamic>>?> getCachedComments(String postId) async {
@@ -132,8 +140,10 @@ class CacheManager {
   }
 
   // Notification caching
-  Future<void> cacheNotifications(List<Map<String, dynamic>> notifications) async {
-    await cacheData('notifications', {'notifications': notifications}, ttl: const Duration(minutes: 5));
+  Future<void> cacheNotifications(
+      List<Map<String, dynamic>> notifications) async {
+    await cacheData('notifications', {'notifications': notifications},
+        ttl: const Duration(minutes: 5));
   }
 
   Future<List<Map<String, dynamic>>?> getCachedNotifications() async {

@@ -39,7 +39,8 @@ class ChatDetailLoaded extends ChatDetailState {
   }
 
   @override
-  List<Object?> get props => [messages, hasReachedMax, isLoadingMore, isSending];
+  List<Object?> get props =>
+      [messages, hasReachedMax, isLoadingMore, isSending];
 }
 
 class ChatDetailError extends ChatDetailState {

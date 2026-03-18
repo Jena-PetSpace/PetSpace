@@ -24,8 +24,12 @@ class FollowModel extends Follow {
       followerProfileImage: json['follower_profile_image'],
       followingProfileImage: json['following_profile_image'],
       status: _parseStatus(json['status']),
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
-      acceptedAt: json['accepted_at'] != null ? DateTime.parse(json['accepted_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      acceptedAt: json['accepted_at'] != null
+          ? DateTime.parse(json['accepted_at'])
+          : null,
     );
   }
 
@@ -94,7 +98,8 @@ class FollowModel extends Follow {
       followerName: followerName ?? this.followerName,
       followingName: followingName ?? this.followingName,
       followerProfileImage: followerProfileImage ?? this.followerProfileImage,
-      followingProfileImage: followingProfileImage ?? this.followingProfileImage,
+      followingProfileImage:
+          followingProfileImage ?? this.followingProfileImage,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       acceptedAt: acceptedAt ?? this.acceptedAt,

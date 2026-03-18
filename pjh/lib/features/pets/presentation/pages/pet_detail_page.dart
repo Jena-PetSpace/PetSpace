@@ -125,7 +125,8 @@ class PetDetailPage extends StatelessWidget {
                 children: [
                   Icon(Icons.delete, color: Colors.red, size: 20.w),
                   SizedBox(width: 8.w),
-                  Text('삭제', style: TextStyle(color: Colors.red, fontSize: 14.sp)),
+                  Text('삭제',
+                      style: TextStyle(color: Colors.red, fontSize: 14.sp)),
                 ],
               ),
             ),
@@ -178,7 +179,8 @@ class PetDetailPage extends StatelessWidget {
                   Icon(
                     pet.type == PetType.dog ? Icons.pets : Icons.pets,
                     size: 16.w,
-                    color: pet.type == PetType.dog ? Colors.brown : Colors.orange,
+                    color:
+                        pet.type == PetType.dog ? Colors.brown : Colors.orange,
                   ),
                   SizedBox(width: 4.w),
                   Text(
@@ -186,7 +188,9 @@ class PetDetailPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
-                      color: pet.type == PetType.dog ? Colors.brown : Colors.orange,
+                      color: pet.type == PetType.dog
+                          ? Colors.brown
+                          : Colors.orange,
                     ),
                   ),
                 ],
@@ -338,7 +342,8 @@ class PetDetailPage extends StatelessWidget {
           child: ElevatedButton.icon(
             onPressed: () {
               // 감정 분석 페이지로 이동 (GoRouter 사용)
-              context.push('/emotion?petId=${pet.id}&petName=${Uri.encodeComponent(pet.name)}');
+              context.push(
+                  '/emotion?petId=${pet.id}&petName=${Uri.encodeComponent(pet.name)}');
             },
             icon: Icon(Icons.psychology, size: 20.w),
             label: Text('감정 분석하기', style: TextStyle(fontSize: 14.sp)),
@@ -358,7 +363,8 @@ class PetDetailPage extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: () {
               // 게시물 작성 페이지로 이동 (GoRouter 사용)
-              context.push('/create-post?petId=${pet.id}&petName=${Uri.encodeComponent(pet.name)}');
+              context.push(
+                  '/create-post?petId=${pet.id}&petName=${Uri.encodeComponent(pet.name)}');
             },
             icon: Icon(Icons.add_photo_alternate, size: 20.w),
             label: Text('게시물 작성', style: TextStyle(fontSize: 14.sp)),

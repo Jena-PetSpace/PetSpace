@@ -10,7 +10,8 @@ part 'chat_badge_state.dart';
 class ChatBadgeBloc extends Bloc<ChatBadgeEvent, ChatBadgeState> {
   final GetUnreadCount getUnreadCount;
 
-  ChatBadgeBloc({required this.getUnreadCount}) : super(const ChatBadgeState()) {
+  ChatBadgeBloc({required this.getUnreadCount})
+      : super(const ChatBadgeState()) {
     on<ChatBadgeLoadRequested>(_onLoadRequested);
     on<ChatBadgeRefreshRequested>(_onRefreshRequested);
     on<ChatBadgeIncrementRequested>(_onIncrementRequested);

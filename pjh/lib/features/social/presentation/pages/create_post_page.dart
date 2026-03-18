@@ -224,7 +224,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.psychology, color: AppTheme.primaryColor, size: 24.w),
+                  Icon(Icons.psychology,
+                      color: AppTheme.primaryColor, size: 24.w),
                   SizedBox(width: 8.w),
                   Text(
                     'AI 감정 분석 결과',
@@ -346,7 +347,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   });
                 },
                 backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                labelStyle: TextStyle(color: AppTheme.primaryColor, fontSize: 12.sp),
+                labelStyle:
+                    TextStyle(color: AppTheme.primaryColor, fontSize: 12.sp),
                 deleteIconColor: AppTheme.primaryColor,
               ),
             ),
@@ -394,14 +396,16 @@ class _CreatePostPageState extends State<CreatePostPage> {
                 RadioListTile<bool>(
                   value: true,
                   title: Text('전체 공개', style: TextStyle(fontSize: 14.sp)),
-                  subtitle: Text('모든 사용자가 볼 수 있습니다', style: TextStyle(fontSize: 12.sp)),
+                  subtitle: Text('모든 사용자가 볼 수 있습니다',
+                      style: TextStyle(fontSize: 12.sp)),
                   activeColor: AppTheme.primaryColor,
                   contentPadding: EdgeInsets.zero,
                 ),
                 RadioListTile<bool>(
                   value: false,
                   title: Text('팔로워만', style: TextStyle(fontSize: 14.sp)),
-                  subtitle: Text('나를 팔로우하는 사용자만 볼 수 있습니다', style: TextStyle(fontSize: 12.sp)),
+                  subtitle: Text('나를 팔로우하는 사용자만 볼 수 있습니다',
+                      style: TextStyle(fontSize: 12.sp)),
                   activeColor: AppTheme.primaryColor,
                   contentPadding: EdgeInsets.zero,
                 ),
@@ -499,7 +503,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
 
     final userId = user.id;
-    final userName = user.userMetadata?['display_name'] as String? ?? user.email ?? '사용자';
+    final userName =
+        user.userMetadata?['display_name'] as String? ?? user.email ?? '사용자';
 
     // 이미지 업로드 처리
     String? uploadedImageUrl = _imageUrl;
@@ -514,14 +519,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
         // Supabase Storage에 이미지 업로드 (사용자 ID 폴더 구조)
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final fileName = 'posts/$userId/temp/$timestamp.jpg';
-        await supabase.storage
-            .from('images')
-            .upload(fileName, _selectedImage!);
+        await supabase.storage.from('images').upload(fileName, _selectedImage!);
 
         // 업로드된 이미지의 공개 URL 가져오기
-        uploadedImageUrl = supabase.storage
-            .from('images')
-            .getPublicUrl(fileName);
+        uploadedImageUrl =
+            supabase.storage.from('images').getPublicUrl(fileName);
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

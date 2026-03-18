@@ -14,9 +14,13 @@ import 'package:meong_nyang_diary/features/emotion/presentation/bloc/emotion_ana
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 class MockAnalyzeEmotion extends Mock implements AnalyzeEmotion {}
+
 class MockSaveEmotionAnalysis extends Mock implements SaveEmotionAnalysis {}
+
 class MockGetEmotionHistory extends Mock implements GetEmotionHistory {}
+
 class MockGetEmotionStatistics extends Mock implements GetEmotionStatistics {}
+
 class MockDeleteEmotionAnalysis extends Mock implements DeleteEmotionAnalysis {}
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -40,10 +44,18 @@ final _tAnalysis = EmotionAnalysis(
 
 // AnalyzeEmotionParams fallback 등록
 class FakeAnalyzeEmotionParams extends Fake implements AnalyzeEmotionParams {}
-class FakeSaveEmotionAnalysisParams extends Fake implements SaveEmotionAnalysisParams {}
-class FakeGetEmotionHistoryParams extends Fake implements GetEmotionHistoryParams {}
-class FakeGetEmotionStatisticsParams extends Fake implements GetEmotionStatisticsParams {}
-class FakeDeleteEmotionAnalysisParams extends Fake implements DeleteEmotionAnalysisParams {}
+
+class FakeSaveEmotionAnalysisParams extends Fake
+    implements SaveEmotionAnalysisParams {}
+
+class FakeGetEmotionHistoryParams extends Fake
+    implements GetEmotionHistoryParams {}
+
+class FakeGetEmotionStatisticsParams extends Fake
+    implements GetEmotionStatisticsParams {}
+
+class FakeDeleteEmotionAnalysisParams extends Fake
+    implements DeleteEmotionAnalysisParams {}
 
 void main() {
   late EmotionAnalysisBloc bloc;
@@ -110,8 +122,8 @@ void main() {
     blocTest<EmotionAnalysisBloc, EmotionAnalysisState>(
       '실패 → [Loading, Error]',
       build: () {
-        when(() => mockAnalyze(any()))
-            .thenAnswer((_) async => const Left(ServerFailure(message: 'AI 서버 오류')));
+        when(() => mockAnalyze(any())).thenAnswer(
+            (_) async => const Left(ServerFailure(message: 'AI 서버 오류')));
         return bloc;
       },
       act: (b) => b.add(AnalyzeEmotionRequested(imagePaths: ['/tmp/img.jpg'])),
@@ -128,8 +140,7 @@ void main() {
     blocTest<EmotionAnalysisBloc, EmotionAnalysisState>(
       '성공 → [Saving, Saved]',
       build: () {
-        when(() => mockSave(any()))
-            .thenAnswer((_) async => const Right(null));
+        when(() => mockSave(any())).thenAnswer((_) async => const Right(null));
         return bloc;
       },
       seed: () => EmotionAnalysisSuccess(_tAnalysis),
@@ -151,8 +162,8 @@ void main() {
     blocTest<EmotionAnalysisBloc, EmotionAnalysisState>(
       '저장 실패 → Error',
       build: () {
-        when(() => mockSave(any()))
-            .thenAnswer((_) async => const Left(DatabaseFailure(message: 'DB 저장 실패')));
+        when(() => mockSave(any())).thenAnswer(
+            (_) async => const Left(DatabaseFailure(message: 'DB 저장 실패')));
         return bloc;
       },
       seed: () => EmotionAnalysisSuccess(_tAnalysis),
@@ -184,8 +195,7 @@ void main() {
     blocTest<EmotionAnalysisBloc, EmotionAnalysisState>(
       '빈 결과 → HistoryLoaded (빈 리스트)',
       build: () {
-        when(() => mockHistory(any()))
-            .thenAnswer((_) async => const Right([]));
+        when(() => mockHistory(any())).thenAnswer((_) async => const Right([]));
         return bloc;
       },
       act: (b) => b.add(LoadAnalysisHistory(userId: 'user-001')),
@@ -199,8 +209,8 @@ void main() {
     blocTest<EmotionAnalysisBloc, EmotionAnalysisState>(
       '실패 → Error',
       build: () {
-        when(() => mockHistory(any()))
-            .thenAnswer((_) async => const Left(NetworkFailure(message: '네트워크 오류')));
+        when(() => mockHistory(any())).thenAnswer(
+            (_) async => const Left(NetworkFailure(message: '네트워크 오류')));
         return bloc;
       },
       act: (b) => b.add(LoadAnalysisHistory(userId: 'user-001')),
@@ -229,8 +239,8 @@ void main() {
     blocTest<EmotionAnalysisBloc, EmotionAnalysisState>(
       '실패 → Error',
       build: () {
-        when(() => mockDelete(any()))
-            .thenAnswer((_) async => const Left(DatabaseFailure(message: '삭제 실패')));
+        when(() => mockDelete(any())).thenAnswer(
+            (_) async => const Left(DatabaseFailure(message: '삭제 실패')));
         return bloc;
       },
       act: (b) => b.add(DeleteAnalysisRequested(analysisId: 'analysis-001')),

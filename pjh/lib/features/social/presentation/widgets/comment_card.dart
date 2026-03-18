@@ -109,7 +109,8 @@ class CommentCard extends StatelessWidget {
                       ? Icons.favorite
                       : Icons.favorite_border,
                   size: 14.w,
-                  color: comment.isLikedByCurrentUser ? Colors.red : Colors.grey,
+                  color:
+                      comment.isLikedByCurrentUser ? Colors.red : Colors.grey,
                 ),
                 if (comment.likesCount > 0) ...[
                   SizedBox(width: 4.w),
@@ -166,7 +167,8 @@ class CommentCard extends StatelessWidget {
                   children: [
                     Icon(Icons.delete, size: 16.w, color: Colors.red),
                     SizedBox(width: 8.w),
-                    Text('삭제', style: TextStyle(color: Colors.red, fontSize: 14.sp)),
+                    Text('삭제',
+                        style: TextStyle(color: Colors.red, fontSize: 14.sp)),
                   ],
                 ),
               ),

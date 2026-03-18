@@ -3,12 +3,12 @@ import 'package:equatable/equatable.dart';
 import '../../../pets/domain/entities/pet.dart';
 
 enum OnboardingStep {
-  welcome,      // 환영 메시지
-  profile,      // 프로필 설정
+  welcome, // 환영 메시지
+  profile, // 프로필 설정
   petRegistration, // 반려동물 등록
-  features,     // 주요 기능 소개
-  permissions,  // 권한 요청
-  complete,     // 완료
+  features, // 주요 기능 소개
+  permissions, // 권한 요청
+  complete, // 완료
 }
 
 class OnboardingState extends Equatable {

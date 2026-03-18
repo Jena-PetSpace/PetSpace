@@ -37,8 +37,8 @@ class _MyPostsPageState extends State<MyPostsPage>
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       context.read<FeedBloc>().add(
-        LoadFeedRequested(userId: authState.user.uid),
-      );
+            LoadFeedRequested(userId: authState.user.uid),
+          );
       _loadEmotionData();
     }
   }
@@ -48,16 +48,17 @@ class _MyPostsPageState extends State<MyPostsPage>
     if (authState is AuthAuthenticated) {
       // 전체 및 기타는 서버에서 전체 로드 후 클라이언트 필터링
       // 특정 반려동물은 서버에서 petId로 필터링
-      final petId = (_selectedPetFilter == null || _selectedPetFilter == _kNoPet)
-          ? null
-          : _selectedPetFilter;
+      final petId =
+          (_selectedPetFilter == null || _selectedPetFilter == _kNoPet)
+              ? null
+              : _selectedPetFilter;
       context.read<EmotionAnalysisBloc>().add(
-        LoadAnalysisHistory(
-          userId: authState.user.uid,
-          petId: petId,
-          limit: 50,
-        ),
-      );
+            LoadAnalysisHistory(
+              userId: authState.user.uid,
+              petId: petId,
+              limit: 50,
+            ),
+          );
     }
   }
 
@@ -149,13 +150,14 @@ class _MyPostsPageState extends State<MyPostsPage>
               itemBuilder: (context, index) {
                 final post = state.posts[index];
                 final authState = context.read<AuthBloc>().state;
-                final userId = authState is AuthAuthenticated ? authState.user.uid : '';
+                final userId =
+                    authState is AuthAuthenticated ? authState.user.uid : '';
                 return PostCard(
                   post: post,
                   currentUserId: userId,
                   onLike: () => context.read<FeedBloc>().add(
-                    LikePostRequested(postId: post.id, userId: userId),
-                  ),
+                        LikePostRequested(postId: post.id, userId: userId),
+                      ),
                   onComment: () => context.push('/post/${post.id}'),
                   onShare: () {},
                 );
@@ -170,9 +172,12 @@ class _MyPostsPageState extends State<MyPostsPage>
               children: [
                 Icon(Icons.error_outline, size: 48.w, color: Colors.grey[400]),
                 SizedBox(height: 12.h),
-                Text(state.message, style: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
+                Text(state.message,
+                    style: TextStyle(
+                        fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
                 SizedBox(height: 16.h),
-                ElevatedButton(onPressed: _loadData, child: const Text('다시 시도')),
+                ElevatedButton(
+                    onPressed: _loadData, child: const Text('다시 시도')),
               ],
             ),
           );
@@ -226,11 +231,17 @@ class _MyPostsPageState extends State<MyPostsPage>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 48.w, color: Colors.grey[400]),
+                      Icon(Icons.error_outline,
+                          size: 48.w, color: Colors.grey[400]),
                       SizedBox(height: 12.h),
-                      Text(state.message, style: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
+                      Text(state.message,
+                          style: TextStyle(
+                              fontSize: 14.sp,
+                              color: AppTheme.secondaryTextColor)),
                       SizedBox(height: 16.h),
-                      ElevatedButton(onPressed: _loadEmotionData, child: const Text('다시 시도')),
+                      ElevatedButton(
+                          onPressed: _loadEmotionData,
+                          child: const Text('다시 시도')),
                     ],
                   ),
                 );
@@ -270,13 +281,18 @@ class _MyPostsPageState extends State<MyPostsPage>
                     '전체',
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.secondaryTextColor,
                     ),
                   ),
                   selected: isSelected,
                   selectedColor: AppTheme.primaryColor,
                   backgroundColor: Colors.white,
-                  side: BorderSide(color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
+                  side: BorderSide(
+                      color: isSelected
+                          ? AppTheme.primaryColor
+                          : AppTheme.dividerColor),
                   onSelected: (_) {
                     setState(() => _selectedPetFilter = null);
                     _loadEmotionData();
@@ -289,18 +305,24 @@ class _MyPostsPageState extends State<MyPostsPage>
                 return FilterChip(
                   avatar: isSelected
                       ? null
-                      : Icon(Icons.help_outline, size: 14.w, color: AppTheme.secondaryTextColor),
+                      : Icon(Icons.help_outline,
+                          size: 14.w, color: AppTheme.secondaryTextColor),
                   label: Text(
                     '기타',
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.secondaryTextColor,
                     ),
                   ),
                   selected: isSelected,
                   selectedColor: AppTheme.primaryColor,
                   backgroundColor: Colors.white,
-                  side: BorderSide(color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
+                  side: BorderSide(
+                      color: isSelected
+                          ? AppTheme.primaryColor
+                          : AppTheme.dividerColor),
                   onSelected: (_) {
                     setState(() => _selectedPetFilter = _kNoPet);
                     _loadEmotionData();
@@ -314,7 +336,9 @@ class _MyPostsPageState extends State<MyPostsPage>
                 avatar: isSelected
                     ? null
                     : Icon(
-                        pet.type == PetType.dog ? Icons.pets : Icons.catching_pokemon,
+                        pet.type == PetType.dog
+                            ? Icons.pets
+                            : Icons.catching_pokemon,
                         size: 14.w,
                         color: AppTheme.secondaryTextColor,
                       ),
@@ -322,13 +346,17 @@ class _MyPostsPageState extends State<MyPostsPage>
                   pet.name,
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                    color:
+                        isSelected ? Colors.white : AppTheme.secondaryTextColor,
                   ),
                 ),
                 selected: isSelected,
                 selectedColor: AppTheme.primaryColor,
                 backgroundColor: Colors.white,
-                side: BorderSide(color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
+                side: BorderSide(
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : AppTheme.dividerColor),
                 onSelected: (_) {
                   setState(() => _selectedPetFilter = pet.id);
                   _loadEmotionData();
@@ -448,11 +476,13 @@ class _MyPostsPageState extends State<MyPostsPage>
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildMiniBar(analysis.emotions.happiness, AppTheme.happinessColor),
+                _buildMiniBar(
+                    analysis.emotions.happiness, AppTheme.happinessColor),
                 SizedBox(height: 2.h),
                 _buildMiniBar(analysis.emotions.anxiety, AppTheme.anxietyColor),
                 SizedBox(height: 2.h),
-                _buildMiniBar(analysis.emotions.curiosity, AppTheme.curiosityColor),
+                _buildMiniBar(
+                    analysis.emotions.curiosity, AppTheme.curiosityColor),
               ],
             ),
           ],
@@ -487,34 +517,52 @@ class _MyPostsPageState extends State<MyPostsPage>
 
   String _getEmotionKorean(String emotion) {
     switch (emotion) {
-      case 'happiness': return '기쁨';
-      case 'sadness': return '슬픔';
-      case 'anxiety': return '불안';
-      case 'sleepiness': return '졸림';
-      case 'curiosity': return '호기심';
-      default: return emotion;
+      case 'happiness':
+        return '기쁨';
+      case 'sadness':
+        return '슬픔';
+      case 'anxiety':
+        return '불안';
+      case 'sleepiness':
+        return '졸림';
+      case 'curiosity':
+        return '호기심';
+      default:
+        return emotion;
     }
   }
 
   String _getEmotionEmoji(String emotion) {
     switch (emotion) {
-      case 'happiness': return '😊';
-      case 'sadness': return '😢';
-      case 'anxiety': return '😰';
-      case 'sleepiness': return '😴';
-      case 'curiosity': return '🧐';
-      default: return '🐾';
+      case 'happiness':
+        return '😊';
+      case 'sadness':
+        return '😢';
+      case 'anxiety':
+        return '😰';
+      case 'sleepiness':
+        return '😴';
+      case 'curiosity':
+        return '🧐';
+      default:
+        return '🐾';
     }
   }
 
   Color _getEmotionColor(String emotion) {
     switch (emotion) {
-      case 'happiness': return AppTheme.happinessColor;
-      case 'sadness': return AppTheme.sadnessColor;
-      case 'anxiety': return AppTheme.anxietyColor;
-      case 'sleepiness': return AppTheme.sleepinessColor;
-      case 'curiosity': return AppTheme.curiosityColor;
-      default: return AppTheme.primaryColor;
+      case 'happiness':
+        return AppTheme.happinessColor;
+      case 'sadness':
+        return AppTheme.sadnessColor;
+      case 'anxiety':
+        return AppTheme.anxietyColor;
+      case 'sleepiness':
+        return AppTheme.sleepinessColor;
+      case 'curiosity':
+        return AppTheme.curiosityColor;
+      default:
+        return AppTheme.primaryColor;
     }
   }
 }

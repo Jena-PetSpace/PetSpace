@@ -32,7 +32,8 @@ class OfflineManager {
     await _cacheManager.initialize();
     _isOnline = await _networkInfo.isConnected;
 
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((results) {
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen((results) {
       _handleConnectivityChange(results);
     });
 
@@ -44,7 +45,8 @@ class OfflineManager {
 
   void _handleConnectivityChange(List<ConnectivityResult> results) async {
     final wasOnline = _isOnline;
-    _isOnline = results.isNotEmpty && !results.contains(ConnectivityResult.none);
+    _isOnline =
+        results.isNotEmpty && !results.contains(ConnectivityResult.none);
 
     if (_isOnline && !wasOnline) {
       // Just came online
@@ -105,30 +107,36 @@ class OfflineManager {
         await _syncUpdateProfile(action);
         break;
       default:
-        log('Unknown offline action type: $type', name: 'OfflineManager.execute');
+        log('Unknown offline action type: $type',
+            name: 'OfflineManager.execute');
     }
   }
 
   Future<void> _syncCreatePost(Map<String, dynamic> action) async {
     // Implementation would call actual repository methods
     // This is a placeholder for the sync logic
-    log('Syncing create post: ${action['data']}', name: 'OfflineManager.syncPost');
+    log('Syncing create post: ${action['data']}',
+        name: 'OfflineManager.syncPost');
   }
 
   Future<void> _syncLikePost(Map<String, dynamic> action) async {
-    log('Syncing like post: ${action['data']}', name: 'OfflineManager.syncLike');
+    log('Syncing like post: ${action['data']}',
+        name: 'OfflineManager.syncLike');
   }
 
   Future<void> _syncCreateComment(Map<String, dynamic> action) async {
-    log('Syncing create comment: ${action['data']}', name: 'OfflineManager.syncComment');
+    log('Syncing create comment: ${action['data']}',
+        name: 'OfflineManager.syncComment');
   }
 
   Future<void> _syncFollowUser(Map<String, dynamic> action) async {
-    log('Syncing follow user: ${action['data']}', name: 'OfflineManager.syncFollow');
+    log('Syncing follow user: ${action['data']}',
+        name: 'OfflineManager.syncFollow');
   }
 
   Future<void> _syncUpdateProfile(Map<String, dynamic> action) async {
-    log('Syncing update profile: ${action['data']}', name: 'OfflineManager.syncProfile');
+    log('Syncing update profile: ${action['data']}',
+        name: 'OfflineManager.syncProfile');
   }
 
   // Public methods for queueing offline actions
@@ -157,7 +165,8 @@ class OfflineManager {
     });
   }
 
-  Future<void> queueFollowUser(String followerId, String followingId, bool isFollow) async {
+  Future<void> queueFollowUser(
+      String followerId, String followingId, bool isFollow) async {
     await _cacheManager.queueOfflineAction({
       'type': 'follow_user',
       'data': {
@@ -176,7 +185,8 @@ class OfflineManager {
   }
 
   // Cache-first data access methods
-  Future<List<Map<String, dynamic>>?> getPostsOfflineFirst(String feedType) async {
+  Future<List<Map<String, dynamic>>?> getPostsOfflineFirst(
+      String feedType) async {
     if (_isOnline) {
       // Try to fetch fresh data, but return cached if network fails
       try {
@@ -192,7 +202,8 @@ class OfflineManager {
     return await _cacheManager.getCachedPosts(feedType);
   }
 
-  Future<Map<String, dynamic>?> getUserProfileOfflineFirst(String userId) async {
+  Future<Map<String, dynamic>?> getUserProfileOfflineFirst(
+      String userId) async {
     if (_isOnline) {
       try {
         // This would call the actual repository method
@@ -207,7 +218,8 @@ class OfflineManager {
     return await _cacheManager.getCachedUserProfile(userId);
   }
 
-  Future<List<Map<String, dynamic>>?> getCommentsOfflineFirst(String postId) async {
+  Future<List<Map<String, dynamic>>?> getCommentsOfflineFirst(
+      String postId) async {
     if (_isOnline) {
       try {
         // This would call the actual repository method
@@ -238,7 +250,8 @@ class OfflineManager {
   }
 
   // Optimistic updates
-  Future<void> optimisticLikePost(String postId, String userId, bool isLike) async {
+  Future<void> optimisticLikePost(
+      String postId, String userId, bool isLike) async {
     // Update local cache immediately
     final cachedPosts = await _cacheManager.getCachedPosts('home') ?? [];
     for (final post in cachedPosts) {
@@ -257,12 +270,14 @@ class OfflineManager {
     }
   }
 
-  Future<void> optimisticFollowUser(String followerId, String followingId, bool isFollow) async {
+  Future<void> optimisticFollowUser(
+      String followerId, String followingId, bool isFollow) async {
     // Update local cache immediately
     final cachedProfile = await _cacheManager.getCachedUserProfile(followingId);
     if (cachedProfile != null) {
       final currentFollowers = cachedProfile['followersCount'] as int? ?? 0;
-      cachedProfile['followersCount'] = isFollow ? currentFollowers + 1 : currentFollowers - 1;
+      cachedProfile['followersCount'] =
+          isFollow ? currentFollowers + 1 : currentFollowers - 1;
       cachedProfile['isFollowing'] = isFollow;
       await _cacheManager.cacheUserProfile(followingId, cachedProfile);
     }

@@ -144,7 +144,9 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: _allAgreed ? Colors.orange : Colors.grey.shade300,
+                            color: _allAgreed
+                                ? Colors.orange
+                                : Colors.grey.shade300,
                             width: 1.5,
                           ),
                           borderRadius: BorderRadius.circular(12),
@@ -152,7 +154,9 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                         child: Row(
                           children: [
                             Icon(
-                              _allAgreed ? Icons.check_circle : Icons.circle_outlined,
+                              _allAgreed
+                                  ? Icons.check_circle
+                                  : Icons.circle_outlined,
                               color: _allAgreed ? Colors.orange : Colors.grey,
                               size: 24,
                             ),
@@ -293,7 +297,9 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _canProceed ? const Color(0xFFFEE500) : Colors.grey[300],
+                    backgroundColor: _canProceed
+                        ? const Color(0xFFFEE500)
+                        : Colors.grey[300],
                     foregroundColor: Colors.black87,
                     elevation: 0,
                     shape: RoundedRectangleBorder(

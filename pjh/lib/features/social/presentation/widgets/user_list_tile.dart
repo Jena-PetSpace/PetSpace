@@ -39,7 +39,9 @@ class UserListTile extends StatelessWidget {
         userName,
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
       ),
-      subtitle: subtitle != null ? Text(subtitle!, style: TextStyle(fontSize: 12.sp)) : null,
+      subtitle: subtitle != null
+          ? Text(subtitle!, style: TextStyle(fontSize: 12.sp))
+          : null,
       trailing: trailing ?? Icon(Icons.chevron_right, size: 20.w),
       onTap: onTap,
     );

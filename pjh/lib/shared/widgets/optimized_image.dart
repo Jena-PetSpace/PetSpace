@@ -39,7 +39,8 @@ class OptimizedImage extends StatelessWidget {
     this.placeholderFadeInDuration,
     this.memCacheWidth,
     this.memCacheHeight,
-  }) : assert(imageUrl != null || localPath != null, 'Either imageUrl or localPath must be provided');
+  }) : assert(imageUrl != null || localPath != null,
+            'Either imageUrl or localPath must be provided');
 
   @override
   Widget build(BuildContext context) {
@@ -96,13 +97,17 @@ class OptimizedImage extends StatelessWidget {
       height: height,
       fit: fit,
       placeholder: (context, url) => placeholder ?? _buildDefaultPlaceholder(),
-      errorWidget: (context, url, error) => errorWidget ?? _buildDefaultErrorWidget(),
+      errorWidget: (context, url, error) =>
+          errorWidget ?? _buildDefaultErrorWidget(),
       fadeInDuration: fadeInDuration ?? const Duration(milliseconds: 300),
-      placeholderFadeInDuration: placeholderFadeInDuration ?? const Duration(milliseconds: 300),
+      placeholderFadeInDuration:
+          placeholderFadeInDuration ?? const Duration(milliseconds: 300),
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,
       useOldImageOnUrlChange: true,
-      cacheManager: enableDiskCache ? null : null, // Custom cache manager could be used here
+      cacheManager: enableDiskCache
+          ? null
+          : null, // Custom cache manager could be used here
     );
   }
 
@@ -150,7 +155,8 @@ class OptimizedProfileImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return CircleAvatar(
       radius: radius,
-      backgroundColor: backgroundColor ?? AppTheme.primaryColor.withValues(alpha: 0.1),
+      backgroundColor:
+          backgroundColor ?? AppTheme.primaryColor.withValues(alpha: 0.1),
       child: imageUrl != null && imageUrl!.isNotEmpty
           ? ClipOval(
               child: OptimizedImage(

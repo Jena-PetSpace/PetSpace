@@ -36,7 +36,8 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     Emitter<ChatDetailState> emit,
   ) async {
     emit(ChatDetailLoading());
-    final result = await getChatMessages(GetChatMessagesParams(roomId: event.roomId));
+    final result =
+        await getChatMessages(GetChatMessagesParams(roomId: event.roomId));
     result.fold(
       (failure) => emit(ChatDetailError(message: failure.message)),
       (messages) => emit(ChatDetailLoaded(
@@ -51,11 +52,14 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     Emitter<ChatDetailState> emit,
   ) async {
     final currentState = state;
-    if (currentState is! ChatDetailLoaded || currentState.hasReachedMax || currentState.isLoadingMore) return;
+    if (currentState is! ChatDetailLoaded ||
+        currentState.hasReachedMax ||
+        currentState.isLoadingMore) return;
 
     emit(currentState.copyWith(isLoadingMore: true));
 
-    final lastMessageId = currentState.messages.isNotEmpty ? currentState.messages.last.id : null;
+    final lastMessageId =
+        currentState.messages.isNotEmpty ? currentState.messages.last.id : null;
     final result = await getChatMessages(GetChatMessagesParams(
       roomId: event.roomId,
       lastMessageId: lastMessageId,

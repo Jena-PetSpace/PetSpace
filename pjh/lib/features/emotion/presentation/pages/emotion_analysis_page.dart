@@ -31,14 +31,37 @@ class EmotionAnalysisPage extends StatefulWidget {
 // 품종 데이터
 const Map<String, List<String>> _breedsByType = {
   'dog': [
-    '골든 리트리버', '래브라도 리트리버', '비글', '시바견', '진돗개',
-    '포메라니안', '말티즈', '푸들', '치와와', '요크셔테리어',
-    '시츄', '웰시코기', '보더콜리', '허스키', '사모예드', '기타',
+    '골든 리트리버',
+    '래브라도 리트리버',
+    '비글',
+    '시바견',
+    '진돗개',
+    '포메라니안',
+    '말티즈',
+    '푸들',
+    '치와와',
+    '요크셔테리어',
+    '시츄',
+    '웰시코기',
+    '보더콜리',
+    '허스키',
+    '사모예드',
+    '기타',
   ],
   'cat': [
-    '코리안 숏헤어', '페르시안', '러시안 블루', '브리티시 숏헤어',
-    '스코티시 폴드', '아메리칸 숏헤어', '샴', '뱅갈',
-    '메인쿤', '노르웨이 숲', '랙돌', '터키시 앙고라', '기타',
+    '코리안 숏헤어',
+    '페르시안',
+    '러시안 블루',
+    '브리티시 숏헤어',
+    '스코티시 폴드',
+    '아메리칸 숏헤어',
+    '샴',
+    '뱅갈',
+    '메인쿤',
+    '노르웨이 숲',
+    '랙돌',
+    '터키시 앙고라',
+    '기타',
   ],
 };
 
@@ -286,8 +309,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
             SizedBox(height: 8.h),
             Text(
               '카메라 또는 갤러리에서 사진을 추가하세요',
-              style:
-                  TextStyle(fontSize: 12.sp, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade500),
             ),
           ],
         ),
@@ -338,16 +360,14 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 bottom: 4.h,
                 left: 4.w,
                 child: Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryColor.withValues(alpha: 0.85),
                     borderRadius: BorderRadius.circular(4.r),
                   ),
                   child: Text(
                     '대표',
-                    style:
-                        TextStyle(fontSize: 9.sp, color: Colors.white),
+                    style: TextStyle(fontSize: 9.sp, color: Colors.white),
                   ),
                 ),
               ),
@@ -395,18 +415,19 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       child: Container(
         height: 52.h,
         decoration: BoxDecoration(
-          color: isEnabled ? color.withValues(alpha: 0.1) : Colors.grey.shade100,
+          color:
+              isEnabled ? color.withValues(alpha: 0.1) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isEnabled ? color.withValues(alpha: 0.4) : Colors.grey.shade200,
+            color:
+                isEnabled ? color.withValues(alpha: 0.4) : Colors.grey.shade200,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon,
-                size: 18.w,
-                color: isEnabled ? color : Colors.grey.shade400),
+                size: 18.w, color: isEnabled ? color : Colors.grey.shade400),
             SizedBox(width: 6.w),
             Text(
               label,
@@ -463,7 +484,9 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
               isDense: true,
             ),
             items: breeds
-                .map((b) => DropdownMenuItem(value: b, child: Text(b, style: TextStyle(fontSize: 13.sp))))
+                .map((b) => DropdownMenuItem(
+                    value: b,
+                    child: Text(b, style: TextStyle(fontSize: 13.sp))))
                 .toList(),
             onChanged: (value) => setState(() => _manualBreed = value),
           ),
@@ -494,9 +517,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
               : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: isSelected
-                ? AppTheme.primaryColor
-                : Colors.grey.shade300,
+            color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -613,8 +634,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
             Text(message, style: TextStyle(fontSize: 14.sp)),
             SizedBox(height: 16.h),
             Text('가능한 원인:',
-                style:
-                    TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp)),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp)),
             SizedBox(height: 8.h),
             Text('• 네트워크 연결 문제', style: TextStyle(fontSize: 14.sp)),
             Text('• 이미지가 너무 크거나 손상됨', style: TextStyle(fontSize: 14.sp)),

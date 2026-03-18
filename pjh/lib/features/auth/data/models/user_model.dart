@@ -39,16 +39,27 @@ class UserModel extends User {
     return UserModel(
       uid: data['uid'] ?? data['id'] ?? '',
       email: data['email'] ?? '',
-      displayName: data['displayName'] ?? data['display_name'] ?? data['full_name'] ?? '',
+      displayName: data['displayName'] ??
+          data['display_name'] ??
+          data['full_name'] ??
+          '',
       photoURL: data['photoURL'] ?? data['photo_url'] ?? data['avatar_url'],
-      createdAt: data['createdAt'] != null ? DateTime.parse(data['createdAt']) : DateTime.now(),
-      updatedAt: data['updatedAt'] != null ? DateTime.parse(data['updatedAt']) : DateTime.now(),
+      createdAt: data['createdAt'] != null
+          ? DateTime.parse(data['createdAt'])
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null
+          ? DateTime.parse(data['updatedAt'])
+          : DateTime.now(),
       pets: List<String>.from(data['pets'] ?? []),
       following: List<String>.from(data['following'] ?? []),
       followers: List<String>.from(data['followers'] ?? []),
       settings: UserSettingsModel.fromMap(data['settings'] ?? {}),
-      isOnboardingCompleted: data['isOnboardingCompleted'] ?? data['is_onboarding_completed'] ?? false,
-      emailConfirmedAt: data['emailConfirmedAt'] != null ? DateTime.parse(data['emailConfirmedAt']) : null,
+      isOnboardingCompleted: data['isOnboardingCompleted'] ??
+          data['is_onboarding_completed'] ??
+          false,
+      emailConfirmedAt: data['emailConfirmedAt'] != null
+          ? DateTime.parse(data['emailConfirmedAt'])
+          : null,
     );
   }
 
@@ -58,14 +69,22 @@ class UserModel extends User {
       email: map['email'] ?? '',
       displayName: map['displayName'] ?? map['full_name'] ?? '',
       photoURL: map['photoURL'] ?? map['avatar_url'],
-      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : DateTime.now(),
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'])
+          : DateTime.now(),
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.parse(map['updatedAt'])
+          : DateTime.now(),
       pets: List<String>.from(map['pets'] ?? []),
       following: List<String>.from(map['following'] ?? []),
       followers: List<String>.from(map['followers'] ?? []),
       settings: UserSettingsModel.fromMap(map['settings'] ?? {}),
-      isOnboardingCompleted: map['isOnboardingCompleted'] ?? map['is_onboarding_completed'] ?? false,
-      emailConfirmedAt: map['emailConfirmedAt'] != null ? DateTime.parse(map['emailConfirmedAt']) : null,
+      isOnboardingCompleted: map['isOnboardingCompleted'] ??
+          map['is_onboarding_completed'] ??
+          false,
+      emailConfirmedAt: map['emailConfirmedAt'] != null
+          ? DateTime.parse(map['emailConfirmedAt'])
+          : null,
     );
   }
 
@@ -111,7 +130,8 @@ class UserModel extends User {
       following: following ?? this.following,
       followers: followers ?? this.followers,
       settings: settings ?? this.settings,
-      isOnboardingCompleted: isOnboardingCompleted ?? this.isOnboardingCompleted,
+      isOnboardingCompleted:
+          isOnboardingCompleted ?? this.isOnboardingCompleted,
       emailConfirmedAt: emailConfirmedAt ?? this.emailConfirmedAt,
     );
   }

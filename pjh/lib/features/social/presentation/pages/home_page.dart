@@ -44,8 +44,8 @@ class _HomePageState extends State<HomePage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       context.read<ChatBadgeBloc>().add(
-        ChatBadgeLoadRequested(userId: authState.user.id),
-      );
+            ChatBadgeLoadRequested(userId: authState.user.id),
+          );
     }
   }
 
@@ -295,7 +295,8 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          Icon(Icons.arrow_forward_ios, size: 14.w, color: AppTheme.secondaryTextColor),
+          Icon(Icons.arrow_forward_ios,
+              size: 14.w, color: AppTheme.secondaryTextColor),
         ],
       ),
     );

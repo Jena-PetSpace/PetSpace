@@ -75,8 +75,10 @@ class AppConfig {
   static const String termsOfServiceUrl = 'https://meongnyangdiary.com/terms';
 
   // App Store URLs
-  static const String appStoreUrl = 'https://apps.apple.com/app/meongnyangdiary';
-  static const String playStoreUrl = 'https://play.google.com/store/apps/details?id=com.meongnyangdiary';
+  static const String appStoreUrl =
+      'https://apps.apple.com/app/meongnyangdiary';
+  static const String playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.meongnyangdiary';
 
   // Social Media
   static const String instagramUrl = 'https://instagram.com/meongnyangdiary';

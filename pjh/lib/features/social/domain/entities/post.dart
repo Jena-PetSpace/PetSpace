@@ -29,7 +29,8 @@ class Post extends Equatable {
   const Post({
     required this.id,
     required this.authorId,
-    String? userId, // userId parameter for compatibility - ignored since we use authorId
+    String?
+        userId, // userId parameter for compatibility - ignored since we use authorId
     required this.authorName,
     this.authorProfileImage,
     required this.type,

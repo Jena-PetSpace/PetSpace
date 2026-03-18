@@ -16,13 +16,15 @@ class GetNotificationsParams {
   });
 }
 
-class GetNotifications extends UseCase<List<Notification>, GetNotificationsParams> {
+class GetNotifications
+    extends UseCase<List<Notification>, GetNotificationsParams> {
   final SocialRepository repository;
 
   GetNotifications(this.repository);
 
   @override
-  Future<Either<Failure, List<Notification>>> call(GetNotificationsParams params) async {
+  Future<Either<Failure, List<Notification>>> call(
+      GetNotificationsParams params) async {
     return await repository.getNotifications(
       userId: params.userId,
       limit: params.limit,

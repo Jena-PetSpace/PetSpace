@@ -11,7 +11,8 @@ class CreateCommunityPostPage extends StatefulWidget {
   const CreateCommunityPostPage({super.key});
 
   @override
-  State<CreateCommunityPostPage> createState() => _CreateCommunityPostPageState();
+  State<CreateCommunityPostPage> createState() =>
+      _CreateCommunityPostPageState();
 }
 
 class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
@@ -113,8 +114,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
           children: [
             // 카테고리
             Text('카테고리',
-                style: TextStyle(
-                    fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
             SizedBox(height: 8.h),
             Wrap(
               spacing: 8.w,
@@ -143,8 +143,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
 
             // 제목
             Text('제목',
-                style: TextStyle(
-                    fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
             SizedBox(height: 8.h),
             TextField(
               controller: _titleController,
@@ -155,16 +154,15 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
                 hintStyle: TextStyle(color: AppTheme.hintColor),
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r)),
-                contentPadding: EdgeInsets.symmetric(
-                    horizontal: 14.w, vertical: 12.h),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
               ),
             ),
             SizedBox(height: 16.h),
 
             // 내용
             Text('내용',
-                style: TextStyle(
-                    fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
             SizedBox(height: 8.h),
             TextField(
               controller: _contentController,

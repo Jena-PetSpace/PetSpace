@@ -65,7 +65,8 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     Emitter<HealthState> emit,
   ) async {
     final currentState = state;
-    final result = await addHealthRecord(AddHealthRecordParams(record: event.record));
+    final result =
+        await addHealthRecord(AddHealthRecordParams(record: event.record));
 
     result.fold(
       (failure) {
@@ -91,7 +92,8 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     Emitter<HealthState> emit,
   ) async {
     final currentState = state;
-    final result = await updateHealthRecord(UpdateHealthRecordParams(record: event.record));
+    final result = await updateHealthRecord(
+        UpdateHealthRecordParams(record: event.record));
 
     result.fold(
       (failure) {
@@ -120,9 +122,8 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     if (currentState is! HealthLoaded) return;
 
     // 낙관적 삭제 → 실패 시 원복
-    final optimistic = currentState.records
-        .where((r) => r.id != event.recordId)
-        .toList();
+    final optimistic =
+        currentState.records.where((r) => r.id != event.recordId).toList();
     emit(currentState.copyWith(records: optimistic));
 
     final result = await deleteHealthRecord(

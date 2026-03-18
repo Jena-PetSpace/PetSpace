@@ -97,9 +97,10 @@ class AuthRepositoryImpl implements AuthRepository {
           uid: supabaseUser.id,
           email: supabaseUser.email!,
           displayName: supabaseUser.userMetadata?['display_name'] ??
-                       supabaseUser.userMetadata?['full_name'] ?? '사용자',
+              supabaseUser.userMetadata?['full_name'] ??
+              '사용자',
           photoURL: supabaseUser.userMetadata?['photo_url'] ??
-                    supabaseUser.userMetadata?['avatar_url'],
+              supabaseUser.userMetadata?['avatar_url'],
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
           pets: const [],
@@ -158,14 +159,16 @@ class AuthRepositoryImpl implements AuthRepository {
       final kakaoUser = await kakao.UserApi.instance.me();
 
       // 3. Supabase에 카카오 계정으로 로그인 (카카오 ID를 이메일 형식으로 변환)
-      final kakaoEmail = kakaoUser.kakaoAccount?.email ??
-                        'kakao_${kakaoUser.id}@kakao.user';
+      final kakaoEmail =
+          kakaoUser.kakaoAccount?.email ?? 'kakao_${kakaoUser.id}@kakao.user';
       final kakaoId = kakaoUser.id.toString();
 
-      log('🔵 [Kakao Login] 카카오 사용자 정보 - email: $kakaoEmail, id: $kakaoId, nickname: ${kakaoUser.kakaoAccount?.profile?.nickname}', name: 'AuthRepository');
+      log('🔵 [Kakao Login] 카카오 사용자 정보 - email: $kakaoEmail, id: $kakaoId, nickname: ${kakaoUser.kakaoAccount?.profile?.nickname}',
+          name: 'AuthRepository');
 
       // 카카오 ID + 시크릿 솔트로 SHA-256 해싱 비밀번호 생성 (소스코드만으로 유추 불가)
-      final saltedInput = '${kakaoId}_${Secrets.kakaoPasswordSalt}_petspace_kakao_auth';
+      final saltedInput =
+          '${kakaoId}_${Secrets.kakaoPasswordSalt}_petspace_kakao_auth';
       final hash = sha256.convert(utf8.encode(saltedInput));
       final newPassword = 'K_${hash.toString()}';
       // 기존 비밀번호 패턴 (마이그레이션용)
@@ -184,10 +187,12 @@ class AuthRepositoryImpl implements AuthRepository {
         );
         supabaseUser = authResult.user;
         debugLog += '성공!';
-        log('✅ [Kakao Login] 새 비밀번호로 로그인 성공: ${supabaseUser?.id}', name: 'AuthRepository');
+        log('✅ [Kakao Login] 새 비밀번호로 로그인 성공: ${supabaseUser?.id}',
+            name: 'AuthRepository');
       } on AuthException catch (e) {
         debugLog += '실패→';
-        log('⚠️ [Kakao Login] 새 비밀번호 signIn 실패: ${e.message}', name: 'AuthRepository');
+        log('⚠️ [Kakao Login] 새 비밀번호 signIn 실패: ${e.message}',
+            name: 'AuthRepository');
       }
 
       // Step 1-b: 새 비밀번호 실패 시 기존 비밀번호로 시도 (마이그레이션)
@@ -200,7 +205,8 @@ class AuthRepositoryImpl implements AuthRepository {
           );
           supabaseUser = authResult.user;
           debugLog += '성공→';
-          log('✅ [Kakao Login] 기존 비밀번호로 로그인 성공 (마이그레이션 필요): ${supabaseUser?.id}', name: 'AuthRepository');
+          log('✅ [Kakao Login] 기존 비밀번호로 로그인 성공 (마이그레이션 필요): ${supabaseUser?.id}',
+              name: 'AuthRepository');
 
           // 기존 비밀번호로 로그인 성공 → 새 비밀번호로 업데이트
           try {
@@ -210,12 +216,14 @@ class AuthRepositoryImpl implements AuthRepository {
             log('✅ [Kakao Login] 비밀번호 마이그레이션 완료', name: 'AuthRepository');
             debugLog += '비밀번호갱신성공→';
           } catch (updateError) {
-            log('⚠️ [Kakao Login] 비밀번호 갱신 실패 (다음 로그인 시 재시도): $updateError', name: 'AuthRepository');
+            log('⚠️ [Kakao Login] 비밀번호 갱신 실패 (다음 로그인 시 재시도): $updateError',
+                name: 'AuthRepository');
             debugLog += '비밀번호갱신실패→';
           }
         } on AuthException catch (e) {
           debugLog += '실패(${e.message})→';
-          log('⚠️ [Kakao Login] 기존 비밀번호 signIn도 실패: ${e.message}', name: 'AuthRepository');
+          log('⚠️ [Kakao Login] 기존 비밀번호 signIn도 실패: ${e.message}',
+              name: 'AuthRepository');
         }
       }
 
@@ -227,7 +235,8 @@ class AuthRepositoryImpl implements AuthRepository {
             email: kakaoEmail,
             password: newPassword,
             data: {
-              'display_name': kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
+              'display_name':
+                  kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
               'photo_url': kakaoUser.kakaoAccount?.profile?.profileImageUrl,
               'provider': 'kakao',
               'kakao_id': kakaoId,
@@ -235,10 +244,12 @@ class AuthRepositoryImpl implements AuthRepository {
           );
           supabaseUser = signUpResult.user;
           debugLog += '성공(id:${supabaseUser?.id})→';
-          log('✅ [Kakao Login] 회원가입 성공: ${supabaseUser?.id}', name: 'AuthRepository');
+          log('✅ [Kakao Login] 회원가입 성공: ${supabaseUser?.id}',
+              name: 'AuthRepository');
         } on AuthException catch (signUpError) {
           debugLog += 'signUp에러(${signUpError.message})→';
-          log('⚠️ [Kakao Login] signUp 에러: ${signUpError.message}', name: 'AuthRepository');
+          log('⚠️ [Kakao Login] signUp 에러: ${signUpError.message}',
+              name: 'AuthRepository');
         } catch (e) {
           debugLog += 'signUp예외($e)→';
           log('❌ [Kakao Login] signUp 예외: $e', name: 'AuthRepository');
@@ -266,7 +277,8 @@ class AuthRepositoryImpl implements AuthRepository {
           );
           supabaseUser = retryResult.user;
           debugLog += '성공!';
-          log('✅ [Kakao Login] 재로그인 성공: ${supabaseUser?.id}', name: 'AuthRepository');
+          log('✅ [Kakao Login] 재로그인 성공: ${supabaseUser?.id}',
+              name: 'AuthRepository');
         } on AuthException catch (e) {
           debugLog += '실패(${e.message})';
           log('❌ [Kakao Login] 재로그인 실패: ${e.message}', name: 'AuthRepository');
@@ -282,7 +294,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // 최종 실패 시 디버그 로그와 함께 반환
       if (supabaseUser == null) {
-        log('❌ [Kakao Login] 최종 실패 - debugLog: $debugLog', name: 'AuthRepository');
+        log('❌ [Kakao Login] 최종 실패 - debugLog: $debugLog',
+            name: 'AuthRepository');
         return Left(AuthFailure(message: '[디버그] $debugLog'));
       }
 
@@ -304,7 +317,8 @@ class AuthRepositoryImpl implements AuthRepository {
           await supabaseClient.from('users').insert({
             'id': supabaseUser.id,
             'email': kakaoEmail,
-            'display_name': kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
+            'display_name':
+                kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
             'photo_url': kakaoUser.kakaoAccount?.profile?.profileImageUrl,
             'provider': 'kakao',
             'is_onboarding_completed': false,
@@ -321,7 +335,8 @@ class AuthRepositoryImpl implements AuthRepository {
             log('✅ [Kakao Login] 프로필 직접 생성 성공', name: 'AuthRepository');
           }
         } catch (profileError) {
-          log('⚠️ [Kakao Login] 프로필 직접 생성 실패: $profileError', name: 'AuthRepository');
+          log('⚠️ [Kakao Login] 프로필 직접 생성 실패: $profileError',
+              name: 'AuthRepository');
           // 동시성 문제로 이미 생성되었을 수 있으므로 다시 조회
           await Future.delayed(const Duration(milliseconds: 500));
           final retryResponse = await supabaseClient
@@ -346,15 +361,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
       return Right(authenticatedUser);
     } on kakao.KakaoException catch (e) {
-      log('❌ [Kakao Login] KakaoException: ${e.message}', name: 'AuthRepository');
+      log('❌ [Kakao Login] KakaoException: ${e.message}',
+          name: 'AuthRepository');
       return Left(AuthFailure(message: '[카카오SDK] ${e.message}'));
     } on AuthException catch (e) {
-      log('❌ [Kakao Login] AuthException: ${e.message} (statusCode: ${e.statusCode})', name: 'AuthRepository');
+      log('❌ [Kakao Login] AuthException: ${e.message} (statusCode: ${e.statusCode})',
+          name: 'AuthRepository');
       return Left(AuthFailure(message: '[Supabase] ${e.message}'));
     } catch (e, stackTrace) {
-      log('❌ [Kakao Login] Unknown Exception: ${e.toString()}', name: 'AuthRepository', stackTrace: stackTrace);
-      return Left(
-          AuthFailure(message: '[오류] ${e.toString()}'));
+      log('❌ [Kakao Login] Unknown Exception: ${e.toString()}',
+          name: 'AuthRepository', stackTrace: stackTrace);
+      return Left(AuthFailure(message: '[오류] ${e.toString()}'));
     }
   }
 
@@ -407,7 +424,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, user_entity.User>> signUpWithEmail(
-      String email, String password, {String? displayName}) async {
+      String email, String password,
+      {String? displayName}) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
     }
@@ -431,9 +449,11 @@ class AuthRepositoryImpl implements AuthRepository {
         return const Left(AuthFailure(message: '회원가입에 실패했습니다.'));
       }
 
-      log('✅ [SignUp] 2단계: 회원가입 완료 (User ID: ${supabaseUser.id})', name: 'AuthRepository');
+      log('✅ [SignUp] 2단계: 회원가입 완료 (User ID: ${supabaseUser.id})',
+          name: 'AuthRepository');
       log('   - Supabase가 자동으로 확인 이메일 발송 (6자리 OTP 포함)', name: 'AuthRepository');
-      log('   - 이메일 인증 상태: ${supabaseUser.emailConfirmedAt}', name: 'AuthRepository');
+      log('   - 이메일 인증 상태: ${supabaseUser.emailConfirmedAt}',
+          name: 'AuthRepository');
 
       // signOut()을 제거하여 세션 유지 (verifyOtp를 위해 필요)
       // 대신 BLoC에서 email_confirmed_at 체크하여 AuthEmailVerificationRequired 상태로 처리
@@ -468,7 +488,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // TODO: SMTP 설정 후 다시 활성화
       // 이메일 전송 실패는 무시하고 진행 (SendGrid 만료)
-      if (e.message.toLowerCase().contains('error sending confirmation email') ||
+      if (e.message
+              .toLowerCase()
+              .contains('error sending confirmation email') ||
           e.message.toLowerCase().contains('unexpected_failure')) {
         log('⚠️ [SignUp] 이메일 전송 실패 무시 (SMTP 미설정)', name: 'AuthRepository');
         // 사용자 생성은 완료되었을 수 있으므로 로그인 시도
@@ -597,10 +619,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final updateData = updatedUser.toMap();
 
-      await supabaseClient
-          .from('users')
-          .update(updateData)
-          .eq('id', user.uid);
+      await supabaseClient.from('users').update(updateData).eq('id', user.uid);
 
       return Right(updatedUser);
     } catch (e) {
@@ -624,7 +643,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final file = File(imagePath);
       final fileExt = imagePath.split('.').last;
-      final fileName = 'profiles/${user.id}/profile_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final fileName =
+          'profiles/${user.id}/profile_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
 
       await supabaseClient.storage.from('images').upload(fileName, file);
 

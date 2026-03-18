@@ -39,7 +39,8 @@ class NotificationsLoaded extends NotificationsState {
   }
 
   @override
-  List<Object?> get props => [notifications, hasReachedMax, isLoadingMore, error];
+  List<Object?> get props =>
+      [notifications, hasReachedMax, isLoadingMore, error];
 }
 
 class NotificationsError extends NotificationsState {

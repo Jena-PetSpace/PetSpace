@@ -74,7 +74,8 @@ class _PostCardState extends State<PostCard> {
                   ? CachedNetworkImageProvider(post.authorProfileImage!)
                   : null,
               child: post.authorProfileImage == null
-                  ? Text(post.authorName.isNotEmpty ? post.authorName[0] : '?', style: TextStyle(fontSize: 14.sp))
+                  ? Text(post.authorName.isNotEmpty ? post.authorName[0] : '?',
+                      style: TextStyle(fontSize: 14.sp))
                   : null,
             ),
           ),
@@ -234,8 +235,8 @@ class _PostCardState extends State<PostCard> {
                   Icon(Icons.error, color: Colors.red, size: 24.w),
                   SizedBox(height: 8.h),
                   Text('이미지 로드 실패',
-                      style: TextStyle(
-                          color: Colors.grey[600], fontSize: 14.sp)),
+                      style:
+                          TextStyle(color: Colors.grey[600], fontSize: 14.sp)),
                 ],
               ),
             ),
@@ -322,7 +323,8 @@ class _PostCardState extends State<PostCard> {
         color: AppTheme.getEmotionColor(dominantEmotion).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
-          color: AppTheme.getEmotionColor(dominantEmotion).withValues(alpha: 0.3),
+          color:
+              AppTheme.getEmotionColor(dominantEmotion).withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -395,7 +397,8 @@ class _PostCardState extends State<PostCard> {
                   },
                   borderRadius: BorderRadius.circular(20.r),
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
                     child: Icon(
                       post.isLikedByCurrentUser
                           ? Icons.favorite
@@ -546,20 +549,22 @@ class _PostCardState extends State<PostCard> {
             children: [
               Text(
                 '신고 사유를 선택해주세요',
-                style: TextStyle(fontSize: 14.sp, color: Theme.of(context).textTheme.bodySmall?.color),
+                style: TextStyle(
+                    fontSize: 14.sp,
+                    color: Theme.of(context).textTheme.bodySmall?.color),
               ),
               SizedBox(height: 12.h),
               ...reasons.map((reason) => RadioListTile<String>(
-                title: Text(reason, style: TextStyle(fontSize: 14.sp)),
-                value: reason,
-                groupValue: selectedReason,
-                onChanged: (value) {
-                  setDialogState(() => selectedReason = value);
-                },
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                activeColor: AppTheme.primaryColor,
-              )),
+                    title: Text(reason, style: TextStyle(fontSize: 14.sp)),
+                    value: reason,
+                    groupValue: selectedReason,
+                    onChanged: (value) {
+                      setDialogState(() => selectedReason = value);
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    activeColor: AppTheme.primaryColor,
+                  )),
             ],
           ),
           actions: [
@@ -669,23 +674,35 @@ class _PostCardState extends State<PostCard> {
 
   String _getEmotionName(String emotion) {
     switch (emotion) {
-      case 'happiness': return '기쁨';
-      case 'sadness': return '슬픔';
-      case 'anxiety': return '불안';
-      case 'sleepiness': return '졸림';
-      case 'curiosity': return '호기심';
-      default: return '알 수 없음';
+      case 'happiness':
+        return '기쁨';
+      case 'sadness':
+        return '슬픔';
+      case 'anxiety':
+        return '불안';
+      case 'sleepiness':
+        return '졸림';
+      case 'curiosity':
+        return '호기심';
+      default:
+        return '알 수 없음';
     }
   }
 
   IconData _getEmotionIcon(String emotion) {
     switch (emotion) {
-      case 'happiness': return Icons.mood;
-      case 'sadness': return Icons.mood_bad;
-      case 'anxiety': return Icons.warning;
-      case 'sleepiness': return Icons.bedtime;
-      case 'curiosity': return Icons.psychology;
-      default: return Icons.help_outline;
+      case 'happiness':
+        return Icons.mood;
+      case 'sadness':
+        return Icons.mood_bad;
+      case 'anxiety':
+        return Icons.warning;
+      case 'sleepiness':
+        return Icons.bedtime;
+      case 'curiosity':
+        return Icons.psychology;
+      default:
+        return Icons.help_outline;
     }
   }
 }

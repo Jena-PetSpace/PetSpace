@@ -39,7 +39,9 @@ class RegisterPage extends StatelessWidget {
                     SocialLoginButton(
                       text: 'Google로 시작하기',
                       onPressed: () {
-                        context.read<AuthBloc>().add(AuthSignInWithGoogleRequested());
+                        context
+                            .read<AuthBloc>()
+                            .add(AuthSignInWithGoogleRequested());
                       },
                       backgroundColor: Colors.white,
                       textColor: Colors.black,
@@ -49,7 +51,9 @@ class RegisterPage extends StatelessWidget {
                     SocialLoginButton(
                       text: 'Kakao로 시작하기',
                       onPressed: () {
-                        context.read<AuthBloc>().add(AuthSignInWithKakaoRequested());
+                        context
+                            .read<AuthBloc>()
+                            .add(AuthSignInWithKakaoRequested());
                       },
                       backgroundColor: const Color(0xFFFFE812),
                       textColor: Colors.black,

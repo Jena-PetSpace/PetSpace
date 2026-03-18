@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 typedef LazyLoadCallback = Future<List<T>> Function<T>();
-typedef ItemBuilder<T> = Widget Function(BuildContext context, T item, int index);
+typedef ItemBuilder<T> = Widget Function(
+    BuildContext context, T item, int index);
 
 class LazyLoadList<T> extends StatefulWidget {
   final Future<List<T>> Function() onLoadInitial;
@@ -70,7 +71,8 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - (widget.loadThreshold * 100)) {
+        _scrollController.position.maxScrollExtent -
+            (widget.loadThreshold * 100)) {
       _loadMoreData();
     }
   }

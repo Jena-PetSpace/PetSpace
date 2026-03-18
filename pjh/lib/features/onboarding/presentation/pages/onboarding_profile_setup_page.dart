@@ -448,7 +448,8 @@ class _OnboardingProfileSetupPageState
 
       // 이미지가 선택되었으면 업로드
       if (_selectedImageFile != null) {
-        uploadedImageUrl = await _profileService.updateProfileImage(_selectedImageFile!);
+        uploadedImageUrl =
+            await _profileService.updateProfileImage(_selectedImageFile!);
       }
 
       // 프로필 정보 저장

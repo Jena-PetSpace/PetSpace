@@ -14,12 +14,14 @@ class NotificationService {
 
   Future<void> initialize() async {
     if (_isInitialized) return;
-    log('Notification service initialized (stub)', name: 'NotificationService.init');
+    log('Notification service initialized (stub)',
+        name: 'NotificationService.init');
     _isInitialized = true;
   }
 
   Future<void> requestPermission() async {
-    log('Notification permission requested (stub)', name: 'NotificationService.permission');
+    log('Notification permission requested (stub)',
+        name: 'NotificationService.permission');
   }
 
   Future<String?> getToken() async {
@@ -28,11 +30,13 @@ class NotificationService {
   }
 
   Future<void> subscribeToTopic(String topic) async {
-    log('Subscribed to topic: $topic (stub)', name: 'NotificationService.subscribe');
+    log('Subscribed to topic: $topic (stub)',
+        name: 'NotificationService.subscribe');
   }
 
   Future<void> unsubscribeFromTopic(String topic) async {
-    log('Unsubscribed from topic: $topic (stub)', name: 'NotificationService.unsubscribe');
+    log('Unsubscribed from topic: $topic (stub)',
+        name: 'NotificationService.unsubscribe');
   }
 
   Future<void> sendNotification({
@@ -41,7 +45,8 @@ class NotificationService {
     String? userId,
     Map<String, dynamic>? data,
   }) async {
-    log('Sending notification: $title - $body (stub)', name: 'NotificationService.send');
+    log('Sending notification: $title - $body (stub)',
+        name: 'NotificationService.send');
   }
 
   Future<void> showLocalNotification({
@@ -50,7 +55,8 @@ class NotificationService {
     required String body,
     Map<String, dynamic>? payload,
   }) async {
-    log('Showing local notification: $title - $body (stub)', name: 'NotificationService.local');
+    log('Showing local notification: $title - $body (stub)',
+        name: 'NotificationService.local');
   }
 
   Future<void> scheduleNotification({
@@ -60,14 +66,17 @@ class NotificationService {
     required DateTime scheduledDate,
     Map<String, dynamic>? payload,
   }) async {
-    log('Scheduled notification: $title at $scheduledDate (stub)', name: 'NotificationService.schedule');
+    log('Scheduled notification: $title at $scheduledDate (stub)',
+        name: 'NotificationService.schedule');
   }
 
   Future<void> cancelNotification(int id) async {
-    log('Cancelled notification: $id (stub)', name: 'NotificationService.cancel');
+    log('Cancelled notification: $id (stub)',
+        name: 'NotificationService.cancel');
   }
 
   Future<void> cancelAllNotifications() async {
-    log('Cancelled all notifications (stub)', name: 'NotificationService.cancelAll');
+    log('Cancelled all notifications (stub)',
+        name: 'NotificationService.cancelAll');
   }
 }

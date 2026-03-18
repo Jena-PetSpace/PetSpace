@@ -27,8 +27,8 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<ChatRoomsBloc>().add(
-          ChatRoomsLoadRequested(userId: _currentUserId),
-        );
+              ChatRoomsLoadRequested(userId: _currentUserId),
+            );
       }
     });
   }
@@ -52,8 +52,8 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
             context.push('/chat/${state.room.id}');
             // 목록 새로고침
             context.read<ChatRoomsBloc>().add(
-              ChatRoomsLoadRequested(userId: _currentUserId),
-            );
+                  ChatRoomsLoadRequested(userId: _currentUserId),
+                );
           }
           if (state is ChatRoomsError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -76,8 +76,8 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
             return RefreshIndicator(
               onRefresh: () async {
                 context.read<ChatRoomsBloc>().add(
-                  ChatRoomsRefreshRequested(userId: _currentUserId),
-                );
+                      ChatRoomsRefreshRequested(userId: _currentUserId),
+                    );
               },
               child: ListView.separated(
                 itemCount: state.rooms.length,
@@ -147,8 +147,8 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
           ElevatedButton(
             onPressed: () {
               context.read<ChatRoomsBloc>().add(
-                ChatRoomsLoadRequested(userId: _currentUserId),
-              );
+                    ChatRoomsLoadRequested(userId: _currentUserId),
+                  );
             },
             child: const Text('다시 시도'),
           ),

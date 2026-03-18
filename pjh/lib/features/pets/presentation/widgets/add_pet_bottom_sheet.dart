@@ -437,7 +437,8 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
                     height: 20.w,
                     child: const CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(widget.pet == null ? '추가하기' : '수정하기', style: TextStyle(fontSize: 16.sp)),
+                : Text(widget.pet == null ? '추가하기' : '수정하기',
+                    style: TextStyle(fontSize: 16.sp)),
           ),
         ),
       ],
@@ -499,7 +500,8 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
       // 새 이미지가 선택된 경우 업로드
       if (_selectedImageFile != null) {
         final imageService = di.sl<ImageUploadService>();
-        final petId = widget.pet?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+        final petId =
+            widget.pet?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
 
         uploadedAvatarUrl = await imageService.uploadPetAvatar(
           _selectedImageFile!,

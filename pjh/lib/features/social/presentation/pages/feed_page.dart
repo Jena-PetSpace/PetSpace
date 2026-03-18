@@ -30,7 +30,8 @@ class _FeedPageState extends State<FeedPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    context.read<FeedBloc>().add(LoadFeedRequested(userId: widget.userId, followingOnly: widget.followingOnly));
+    context.read<FeedBloc>().add(LoadFeedRequested(
+        userId: widget.userId, followingOnly: widget.followingOnly));
   }
 
   @override
@@ -42,7 +43,8 @@ class _FeedPageState extends State<FeedPage> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent * 0.8) {
-      context.read<FeedBloc>().add(LoadMorePostsRequested(userId: widget.userId, followingOnly: widget.followingOnly));
+      context.read<FeedBloc>().add(LoadMorePostsRequested(
+          userId: widget.userId, followingOnly: widget.followingOnly));
     }
   }
 
@@ -66,7 +68,9 @@ class _FeedPageState extends State<FeedPage> {
                 label: '재시도',
                 textColor: Colors.white,
                 onPressed: () {
-                  context.read<FeedBloc>().add(LoadMorePostsRequested(userId: widget.userId));
+                  context
+                      .read<FeedBloc>()
+                      .add(LoadMorePostsRequested(userId: widget.userId));
                 },
               ),
             ),
@@ -86,7 +90,8 @@ class _FeedPageState extends State<FeedPage> {
         } else if (state is FeedLoaded) {
           return RefreshIndicator(
             onRefresh: () async {
-              context.read<FeedBloc>().add(RefreshFeedRequested(userId: widget.userId, followingOnly: widget.followingOnly));
+              context.read<FeedBloc>().add(RefreshFeedRequested(
+                  userId: widget.userId, followingOnly: widget.followingOnly));
             },
             child: _buildFeedList(state),
           );
@@ -123,14 +128,14 @@ class _FeedPageState extends State<FeedPage> {
           onLike: () {
             if (post.isLikedByCurrentUser) {
               context.read<FeedBloc>().add(UnlikePostRequested(
-                postId: post.id,
-                userId: widget.userId ?? '',
-              ));
+                    postId: post.id,
+                    userId: widget.userId ?? '',
+                  ));
             } else {
               context.read<FeedBloc>().add(LikePostRequested(
-                postId: post.id,
-                userId: widget.userId ?? '',
-              ));
+                    postId: post.id,
+                    userId: widget.userId ?? '',
+                  ));
             }
           },
           onComment: () {
@@ -154,16 +159,16 @@ class _FeedPageState extends State<FeedPage> {
                 post: post,
                 onSave: (updatedPost) {
                   context.read<FeedBloc>().add(
-                    UpdatePostRequested(post: updatedPost),
-                  );
+                        UpdatePostRequested(post: updatedPost),
+                      );
                 },
               ),
             );
           },
           onDelete: () {
             context.read<FeedBloc>().add(
-              DeletePostRequested(postId: post.id),
-            );
+                  DeletePostRequested(postId: post.id),
+                );
           },
           onHashtagTap: (hashtag) {
             // Navigate to search page with hashtag
@@ -218,7 +223,8 @@ class _FeedPageState extends State<FeedPage> {
           SizedBox(height: 16.h),
           ElevatedButton(
             onPressed: () {
-              context.read<FeedBloc>().add(LoadFeedRequested(userId: widget.userId, followingOnly: widget.followingOnly));
+              context.read<FeedBloc>().add(LoadFeedRequested(
+                  userId: widget.userId, followingOnly: widget.followingOnly));
             },
             child: Text('다시 시도', style: TextStyle(fontSize: 14.sp)),
           ),

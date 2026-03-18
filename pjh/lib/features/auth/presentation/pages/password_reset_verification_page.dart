@@ -278,7 +278,8 @@ class _PasswordResetVerificationPageState
                         ),
                         decoration: InputDecoration(
                           counterText: '',
-                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 16),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
@@ -323,7 +324,8 @@ class _PasswordResetVerificationPageState
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                      Icon(Icons.error_outline,
+                          color: Colors.red[700], size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -358,7 +360,8 @@ class _PasswordResetVerificationPageState
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Text(
@@ -389,9 +392,7 @@ class _PasswordResetVerificationPageState
                         ? null
                         : _resendOtp,
                     child: Text(
-                      _resendCountdown > 0
-                          ? '재발송 ($_resendCountdown초)'
-                          : '재발송',
+                      _resendCountdown > 0 ? '재발송 ($_resendCountdown초)' : '재발송',
                       style: TextStyle(
                         color: (_isResending || _resendCountdown > 0)
                             ? Colors.grey

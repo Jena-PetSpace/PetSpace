@@ -42,14 +42,16 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ) async {
     emit(ProfileLoading());
 
-    final result = await _getUserProfile(GetUserProfileParams(userId: event.userId));
+    final result =
+        await _getUserProfile(GetUserProfileParams(userId: event.userId));
 
     await result.fold(
       (failure) async => emit(ProfileError(failure.message)),
       (user) async {
         // 현재 사용자 ID와 프로필 사용자 ID가 다를 경우에만 팔로우 여부 확인
         bool isFollowing = false;
-        if (event.currentUserId != null && event.currentUserId != event.userId) {
+        if (event.currentUserId != null &&
+            event.currentUserId != event.userId) {
           final followResult = await _socialRepository.isFollowing(
             event.currentUserId!,
             event.userId,
@@ -154,14 +156,16 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     RefreshProfileRequested event,
     Emitter<ProfileState> emit,
   ) async {
-    final result = await _getUserProfile(GetUserProfileParams(userId: event.userId));
+    final result =
+        await _getUserProfile(GetUserProfileParams(userId: event.userId));
 
     await result.fold(
       (failure) async => emit(ProfileError(failure.message)),
       (user) async {
         // 현재 사용자 ID와 프로필 사용자 ID가 다를 경우에만 팔로우 여부 확인
         bool isFollowing = false;
-        if (event.currentUserId != null && event.currentUserId != event.userId) {
+        if (event.currentUserId != null &&
+            event.currentUserId != event.userId) {
           final followResult = await _socialRepository.isFollowing(
             event.currentUserId!,
             event.userId,

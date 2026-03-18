@@ -56,7 +56,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
       (failure) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(failure.message), backgroundColor: Colors.red),
+            SnackBar(
+                content: Text(failure.message), backgroundColor: Colors.red),
           );
           setState(() => _isSearching = false);
         }
@@ -64,7 +65,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
       (users) {
         if (mounted) {
           setState(() {
-            _searchResults = users.where((u) => u.userId != _currentUserId).toList();
+            _searchResults =
+                users.where((u) => u.userId != _currentUserId).toList();
             _isSearching = false;
           });
         }
@@ -135,7 +137,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
           }
           if (state is ChatRoomsError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+              SnackBar(
+                  content: Text(state.message), backgroundColor: Colors.red),
             );
           }
         },
@@ -167,9 +170,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
             avatar: CircleAvatar(
               radius: 12.r,
               backgroundColor: Colors.grey[200],
-              backgroundImage: user.photoUrl != null
-                  ? NetworkImage(user.photoUrl!)
-                  : null,
+              backgroundImage:
+                  user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
               child: user.photoUrl == null
                   ? Icon(Icons.person, size: 12.w, color: Colors.grey[500])
                   : null,
@@ -199,7 +201,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.r),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         ),
       ),
     );
@@ -230,7 +233,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.r),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          contentPadding:
+              EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         ),
       ),
     );
@@ -276,9 +280,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
           leading: CircleAvatar(
             radius: 20.r,
             backgroundColor: Colors.grey[200],
-            backgroundImage: user.photoUrl != null
-                ? NetworkImage(user.photoUrl!)
-                : null,
+            backgroundImage:
+                user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
             child: user.photoUrl == null
                 ? Icon(Icons.person, size: 20.w, color: Colors.grey[500])
                 : null,
@@ -288,7 +291,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
             style: TextStyle(fontSize: 15.sp),
           ),
           trailing: isSelected
-              ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
+              ? Icon(Icons.check_circle,
+                  color: Theme.of(context).colorScheme.primary)
               : Icon(Icons.circle_outlined, color: Colors.grey[400]),
           onTap: () => _toggleUserSelection(user),
         );

@@ -18,8 +18,7 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
   bool _privacyAgreed = false;
   bool _marketingAgreed = false;
 
-  bool get _canProceed =>
-      _ageAgreed && _termsAgreed && _privacyAgreed;
+  bool get _canProceed => _ageAgreed && _termsAgreed && _privacyAgreed;
 
   void _toggleAll(bool? value) {
     setState(() {
@@ -33,7 +32,8 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
 
   void _updateAllAgreedState() {
     setState(() {
-      _allAgreed = _ageAgreed && _termsAgreed && _privacyAgreed && _marketingAgreed;
+      _allAgreed =
+          _ageAgreed && _termsAgreed && _privacyAgreed && _marketingAgreed;
     });
   }
 
@@ -77,11 +77,15 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _allAgreed ? AppTheme.primaryColor : Colors.grey.shade300,
+                      color: _allAgreed
+                          ? AppTheme.primaryColor
+                          : Colors.grey.shade300,
                       width: 1.5,
                     ),
                     borderRadius: BorderRadius.circular(12),
-                    color: _allAgreed ? AppTheme.primaryColor.withValues(alpha: 0.05) : Colors.transparent,
+                    color: _allAgreed
+                        ? AppTheme.primaryColor.withValues(alpha: 0.05)
+                        : Colors.transparent,
                   ),
                   child: Row(
                     children: [
@@ -212,7 +216,8 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
               // 안내 문구
               Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                   child: Text(
                     '\'선택\' 항목에 동의하지 않아도 서비스 이용이 가능합니다.\n개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있으나,\n동의 거부시 회원제 서비스 이용이 제한됩니다.',
                     style: TextStyle(
@@ -237,7 +242,9 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _canProceed ? AppTheme.primaryColor : Colors.grey.shade300,
+                    backgroundColor: _canProceed
+                        ? AppTheme.primaryColor
+                        : Colors.grey.shade300,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -292,7 +299,8 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                     TextSpan(
                       text: isRequired ? '(필수) ' : '(선택) ',
                       style: TextStyle(
-                        color: isRequired ? AppTheme.highlightColor : Colors.grey,
+                        color:
+                            isRequired ? AppTheme.highlightColor : Colors.grey,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

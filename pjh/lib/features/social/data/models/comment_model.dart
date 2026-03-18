@@ -29,9 +29,16 @@ class CommentModel extends Comment {
       parentCommentId: json['parent_comment_id'],
       likesCount: json['likes_count'] ?? 0,
       isLikedByCurrentUser: json['is_liked_by_current_user'] ?? false,
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
-      replies: (json['replies'] as List<dynamic>?)?.map((reply) => CommentModel.fromJson(reply)).toList() ?? [],
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
+      replies: (json['replies'] as List<dynamic>?)
+              ?.map((reply) => CommentModel.fromJson(reply))
+              .toList() ??
+          [],
     );
   }
 
@@ -48,7 +55,8 @@ class CommentModel extends Comment {
       'is_liked_by_current_user': isLikedByCurrentUser,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
-      'replies': replies.map((reply) => (reply as CommentModel).toJson()).toList(),
+      'replies':
+          replies.map((reply) => (reply as CommentModel).toJson()).toList(),
     };
   }
 
@@ -82,7 +90,9 @@ class CommentModel extends Comment {
       isLikedByCurrentUser: comment.isLikedByCurrentUser,
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,
-      replies: comment.replies.map((reply) => CommentModel.fromEntity(reply)).toList(),
+      replies: comment.replies
+          .map((reply) => CommentModel.fromEntity(reply))
+          .toList(),
     );
   }
 

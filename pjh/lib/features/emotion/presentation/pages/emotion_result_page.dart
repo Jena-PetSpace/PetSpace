@@ -18,8 +18,6 @@ import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/emotion_radar_chart.dart';
 import '../../../../core/services/image_upload_service.dart';
 
-
-
 class EmotionResultPage extends StatefulWidget {
   final EmotionAnalysis analysis;
   final List<String> imagePaths;
@@ -100,14 +98,16 @@ class _EmotionResultPageState extends State<EmotionResultPage>
         },
         (history) {
           // 현재 분석이 히스토리에 아직 없으면 추가
-          final hasCurrentAnalysis = history.any((a) => a.id == widget.analysis.id);
+          final hasCurrentAnalysis =
+              history.any((a) => a.id == widget.analysis.id);
           if (!hasCurrentAnalysis) {
             _fullHistory = [widget.analysis, ...history];
           } else {
             _fullHistory = history;
           }
           // A-5: 이전 분석 찾기
-          final prev = _fullHistory.where((a) => a.id != widget.analysis.id).toList();
+          final prev =
+              _fullHistory.where((a) => a.id != widget.analysis.id).toList();
           if (prev.isNotEmpty) {
             _previousAnalysis = prev.first;
           }
@@ -180,7 +180,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       final mondayOfThisWeek = DateTime(now.year, now.month, now.day)
           .subtract(Duration(days: weekday - 1));
       final weekHistory = _fullHistory
-          .where((a) => a.analyzedAt.isAfter(mondayOfThisWeek) ||
+          .where((a) =>
+              a.analyzedAt.isAfter(mondayOfThisWeek) ||
               a.analyzedAt.isAtSameMomentAs(mondayOfThisWeek))
           .toList();
 
@@ -327,7 +328,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     final dominantName = _getEmotionNameForShare(dominant);
     final dominantPct = (_getEmotionValueForShare(dominant) * 100).toInt();
 
-    captionController.text = '$dominantName $dominantPct% 🐾 AI 감정 분석 결과를 공유합니다';
+    captionController.text =
+        '$dominantName $dominantPct% 🐾 AI 감정 분석 결과를 공유합니다';
 
     showModalBottomSheet(
       context: context,
@@ -379,7 +381,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   ),
                 ),
                 Text('피드에 공유',
-                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        fontSize: 18.sp, fontWeight: FontWeight.bold)),
                 SizedBox(height: 16.h),
 
                 // 감정 미리보기 카드
@@ -388,18 +391,22 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   decoration: BoxDecoration(
                     color: AppTheme.primaryColor.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12.r),
-                    border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.2)),
+                    border: Border.all(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.psychology, color: AppTheme.primaryColor, size: 28.w),
+                      Icon(Icons.psychology,
+                          color: AppTheme.primaryColor, size: 28.w),
                       SizedBox(width: 12.w),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('AI 감정 분석 결과 첨부됨',
-                                style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
+                                style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: AppTheme.secondaryTextColor)),
                             Text(
                               '$dominantName $dominantPct% · 신뢰도 ${(widget.analysis.confidence * 100).toInt()}%',
                               style: TextStyle(
@@ -422,8 +429,10 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   style: TextStyle(fontSize: 14.sp),
                   decoration: InputDecoration(
                     hintText: '한 마디를 적어주세요...',
-                    hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey[400]),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                    hintStyle:
+                        TextStyle(fontSize: 14.sp, color: Colors.grey[400]),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r)),
                     contentPadding: EdgeInsets.all(14.w),
                   ),
                 ),
@@ -436,7 +445,10 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                     return SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: isPosting ? null : () => _postToFeed(ctx, captionController.text.trim(), selectedTags),
+                        onPressed: isPosting
+                            ? null
+                            : () => _postToFeed(ctx,
+                                captionController.text.trim(), selectedTags),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryColor,
                           foregroundColor: Colors.white,
@@ -454,7 +466,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                               )
                             : Text('피드에 올리기',
                                 style: TextStyle(
-                                    fontSize: 15.sp, fontWeight: FontWeight.w600)),
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w600)),
                       ),
                     );
                   },
@@ -467,7 +480,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
   }
 
-  Future<void> _postToFeed(BuildContext ctx, String caption, List<String> tags) async {
+  Future<void> _postToFeed(
+      BuildContext ctx, String caption, List<String> tags) async {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
 
@@ -521,16 +535,22 @@ class _EmotionResultPageState extends State<EmotionResultPage>
   double _getEmotionValueForShare(String emotion) {
     final e = widget.analysis.emotions;
     switch (emotion) {
-      case 'happiness': return e.happiness;
-      case 'sadness': return e.sadness;
-      case 'anxiety': return e.anxiety;
-      case 'sleepiness': return e.sleepiness;
-      case 'curiosity': return e.curiosity;
-      default: return 0.0;
+      case 'happiness':
+        return e.happiness;
+      case 'sadness':
+        return e.sadness;
+      case 'anxiety':
+        return e.anxiety;
+      case 'sleepiness':
+        return e.sleepiness;
+      case 'curiosity':
+        return e.curiosity;
+      default:
+        return 0.0;
     }
   }
 
-    Future<void> _shareResult() async {
+  Future<void> _shareResult() async {
     try {
       final dominant = widget.analysis.emotions.dominantEmotion;
       final value = _getEmotionValue(dominant);
@@ -579,45 +599,69 @@ class _EmotionResultPageState extends State<EmotionResultPage>
 
   double _getEmotionValue(String emotion) {
     switch (emotion) {
-      case 'happiness': return widget.analysis.emotions.happiness;
-      case 'sadness':   return widget.analysis.emotions.sadness;
-      case 'anxiety':   return widget.analysis.emotions.anxiety;
-      case 'sleepiness':return widget.analysis.emotions.sleepiness;
-      case 'curiosity': return widget.analysis.emotions.curiosity;
-      default: return 0.0;
+      case 'happiness':
+        return widget.analysis.emotions.happiness;
+      case 'sadness':
+        return widget.analysis.emotions.sadness;
+      case 'anxiety':
+        return widget.analysis.emotions.anxiety;
+      case 'sleepiness':
+        return widget.analysis.emotions.sleepiness;
+      case 'curiosity':
+        return widget.analysis.emotions.curiosity;
+      default:
+        return 0.0;
     }
   }
 
   String _getEmotionName(String emotion) {
     switch (emotion) {
-      case 'happiness': return '기쁨';
-      case 'sadness':   return '슬픔';
-      case 'anxiety':   return '불안';
-      case 'sleepiness':return '졸림';
-      case 'curiosity': return '호기심';
-      default: return '알 수 없음';
+      case 'happiness':
+        return '기쁨';
+      case 'sadness':
+        return '슬픔';
+      case 'anxiety':
+        return '불안';
+      case 'sleepiness':
+        return '졸림';
+      case 'curiosity':
+        return '호기심';
+      default:
+        return '알 수 없음';
     }
   }
 
   IconData _getEmotionIcon(String emotion) {
     switch (emotion) {
-      case 'happiness': return Icons.sentiment_very_satisfied;
-      case 'sadness':   return Icons.sentiment_very_dissatisfied;
-      case 'anxiety':   return Icons.psychology_alt;
-      case 'sleepiness':return Icons.bedtime;
-      case 'curiosity': return Icons.explore;
-      default: return Icons.pets;
+      case 'happiness':
+        return Icons.sentiment_very_satisfied;
+      case 'sadness':
+        return Icons.sentiment_very_dissatisfied;
+      case 'anxiety':
+        return Icons.psychology_alt;
+      case 'sleepiness':
+        return Icons.bedtime;
+      case 'curiosity':
+        return Icons.explore;
+      default:
+        return Icons.pets;
     }
   }
 
   String _getShortDescription(String emotion) {
     switch (emotion) {
-      case 'happiness': return '지금 이 순간, 아이가 행복해 보여요!';
-      case 'sadness':   return '오늘은 조금 기운이 없어 보이네요.';
-      case 'anxiety':   return '살짝 긴장하고 있는 것 같아요. 안심시켜 주세요.';
-      case 'sleepiness':return '스르르 졸음이 오고 있어요. 편히 쉬게 해주세요.';
-      case 'curiosity': return '무언가에 호기심이 가득한 눈빛이에요!';
-      default: return '오늘 아이의 상태를 확인했어요';
+      case 'happiness':
+        return '지금 이 순간, 아이가 행복해 보여요!';
+      case 'sadness':
+        return '오늘은 조금 기운이 없어 보이네요.';
+      case 'anxiety':
+        return '살짝 긴장하고 있는 것 같아요. 안심시켜 주세요.';
+      case 'sleepiness':
+        return '스르르 졸음이 오고 있어요. 편히 쉬게 해주세요.';
+      case 'curiosity':
+        return '무언가에 호기심이 가득한 눈빛이에요!';
+      default:
+        return '오늘 아이의 상태를 확인했어요';
     }
   }
 
@@ -666,8 +710,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
   // Methods from emotion_result_hero.dart
   // ══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildHeroCard(String dominant, String name, IconData icon,
-      double value, Color color) {
+  Widget _buildHeroCard(
+      String dominant, String name, IconData icon, double value, Color color) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -860,18 +904,24 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                 if (pct == 0) return const SizedBox.shrink();
                 final isUp = delta > 0;
                 return Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                   decoration: BoxDecoration(
-                    color: (isUp ? Colors.green : Colors.red).withValues(alpha: 0.08),
+                    color: (isUp ? Colors.green : Colors.red)
+                        .withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(d.$1, style: TextStyle(fontSize: 12.sp, color: Colors.grey[700])),
+                      Text(d.$1,
+                          style: TextStyle(
+                              fontSize: 12.sp, color: Colors.grey[700])),
                       SizedBox(width: 4.w),
                       Icon(
-                        isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                        isUp
+                            ? Icons.arrow_upward_rounded
+                            : Icons.arrow_downward_rounded,
                         size: 14.w,
                         color: isUp ? Colors.green : Colors.red,
                       ),
@@ -1008,7 +1058,9 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   icon: Icons.radar,
                   isActive: _chartMode == _ChartMode.radar,
                   onTap: () => setState(() => _chartMode =
-                      _chartMode == _ChartMode.radar ? _ChartMode.none : _ChartMode.radar),
+                      _chartMode == _ChartMode.radar
+                          ? _ChartMode.none
+                          : _ChartMode.radar),
                 ),
               ),
               if (hasFacial) ...[
@@ -1019,7 +1071,9 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                     icon: Icons.visibility_outlined,
                     isActive: _chartMode == _ChartMode.facial,
                     onTap: () => setState(() => _chartMode =
-                        _chartMode == _ChartMode.facial ? _ChartMode.none : _ChartMode.facial),
+                        _chartMode == _ChartMode.facial
+                            ? _ChartMode.none
+                            : _ChartMode.facial),
                   ),
                 ),
               ],
@@ -1146,11 +1200,13 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   Expanded(
                     child: Text(
                       feature.state,
-                      style: TextStyle(fontSize: 12.sp, color: Colors.grey[700]),
+                      style:
+                          TextStyle(fontSize: 12.sp, color: Colors.grey[700]),
                     ),
                   ),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6.r),
@@ -1341,10 +1397,12 @@ class _EmotionResultPageState extends State<EmotionResultPage>
 
     // 감정별 스트레스 영향 분석
     if (emotions.anxiety > 0.3) {
-      analysisItems.add('불안 수치가 ${(emotions.anxiety * 100).toInt()}%로 다소 높아 스트레스에 영향을 줄 수 있어요.');
+      analysisItems.add(
+          '불안 수치가 ${(emotions.anxiety * 100).toInt()}%로 다소 높아 스트레스에 영향을 줄 수 있어요.');
     }
     if (emotions.sadness > 0.3) {
-      analysisItems.add('슬픔 수치가 ${(emotions.sadness * 100).toInt()}%로 감정적 피로가 누적되었을 수 있어요.');
+      analysisItems.add(
+          '슬픔 수치가 ${(emotions.sadness * 100).toInt()}%로 감정적 피로가 누적되었을 수 있어요.');
     }
     if (emotions.happiness < 0.2) {
       analysisItems.add('기쁨 수치가 낮아 전반적인 기분 개선이 필요해 보여요.');
@@ -1378,8 +1436,11 @@ class _EmotionResultPageState extends State<EmotionResultPage>
 
     // 감정 균형도 분석
     final emotionValues = [
-      emotions.happiness, emotions.sadness, emotions.anxiety,
-      emotions.sleepiness, emotions.curiosity,
+      emotions.happiness,
+      emotions.sadness,
+      emotions.anxiety,
+      emotions.sleepiness,
+      emotions.curiosity,
     ];
     final maxEmotion = emotionValues.reduce((a, b) => a > b ? a : b);
     final minEmotion = emotionValues.reduce((a, b) => a < b ? a : b);
@@ -1530,33 +1591,33 @@ class _EmotionResultPageState extends State<EmotionResultPage>
           ),
           SizedBox(height: 8.h),
           ...items.map((item) => Padding(
-            padding: EdgeInsets.only(bottom: 5.h),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  margin: EdgeInsets.only(top: 6.h),
-                  width: 4.w,
-                  height: 4.w,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(
-                    item,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: Colors.grey[700],
-                      height: 1.4,
+                padding: EdgeInsets.only(bottom: 5.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: EdgeInsets.only(top: 6.h),
+                      width: 4.w,
+                      height: 4.w,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: Colors.grey[700],
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          )),
+              )),
         ],
       ),
     );
@@ -1586,22 +1647,25 @@ class _EmotionResultPageState extends State<EmotionResultPage>
             ),
             SizedBox(height: 10.h),
             ...tips.map((tip) => Padding(
-              padding: EdgeInsets.only(bottom: 6.h),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.check_circle_outline,
-                      size: 16.w, color: const Color(0xFF2ECC71)),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text(
-                      tip,
-                      style: TextStyle(fontSize: 12.sp, color: Colors.grey[700], height: 1.4),
-                    ),
+                  padding: EdgeInsets.only(bottom: 6.h),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.check_circle_outline,
+                          size: 16.w, color: const Color(0xFF2ECC71)),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          tip,
+                          style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[700],
+                              height: 1.4),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )),
+                )),
             SizedBox(height: 6.h),
             Text(
               '* AI 분석 결과로 참고용입니다. 정확한 진단은 수의사와 상담하세요.',
@@ -1618,7 +1682,13 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     if (_otherPetAnalyses.isEmpty) return const SizedBox.shrink();
 
     final cur = widget.analysis.emotions;
-    final emotionNames = {'happiness': '기쁨', 'sadness': '슬픔', 'anxiety': '불안', 'sleepiness': '졸림', 'curiosity': '호기심'};
+    final emotionNames = {
+      'happiness': '기쁨',
+      'sadness': '슬픔',
+      'anxiety': '불안',
+      'sleepiness': '졸림',
+      'curiosity': '호기심'
+    };
 
     return Padding(
       padding: EdgeInsets.only(bottom: 14.h),
@@ -1660,10 +1730,13 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                       Row(
                         children: [
                           ...emotionNames.entries.map((entry) {
-                            final curVal = _getEmotionValueByKey(cur, entry.key);
-                            final otherVal = _getEmotionValueByKey(otherE, entry.key);
+                            final curVal =
+                                _getEmotionValueByKey(cur, entry.key);
+                            final otherVal =
+                                _getEmotionValueByKey(otherE, entry.key);
                             final diff = curVal - otherVal;
-                            if (diff.abs() < 0.05) return const SizedBox.shrink();
+                            if (diff.abs() < 0.05)
+                              return const SizedBox.shrink();
                             return Padding(
                               padding: EdgeInsets.only(right: 8.w),
                               child: Text(
@@ -1691,12 +1764,18 @@ class _EmotionResultPageState extends State<EmotionResultPage>
 
   double _getEmotionValueByKey(EmotionScores e, String key) {
     switch (key) {
-      case 'happiness': return e.happiness;
-      case 'sadness': return e.sadness;
-      case 'anxiety': return e.anxiety;
-      case 'sleepiness': return e.sleepiness;
-      case 'curiosity': return e.curiosity;
-      default: return 0.0;
+      case 'happiness':
+        return e.happiness;
+      case 'sadness':
+        return e.sadness;
+      case 'anxiety':
+        return e.anxiety;
+      case 'sleepiness':
+        return e.sleepiness;
+      case 'curiosity':
+        return e.curiosity;
+      default:
+        return 0.0;
     }
   }
 
@@ -1753,7 +1832,9 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   children: [
                     SizedBox(
                       width: 44.w,
-                      child: Text(name, style: TextStyle(fontSize: 12.sp, color: Colors.grey[700])),
+                      child: Text(name,
+                          style: TextStyle(
+                              fontSize: 12.sp, color: Colors.grey[700])),
                     ),
                     Expanded(
                       child: Stack(
@@ -1767,7 +1848,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                           ),
                           // 품종 평균 마커
                           Positioned(
-                            left: (breedAvg * 100).clamp(0, 100) / 100 *
+                            left: (breedAvg * 100).clamp(0, 100) /
+                                100 *
                                 (MediaQuery.of(context).size.width - 130.w),
                             child: Container(
                               width: 2.w,
@@ -1781,7 +1863,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                             child: Container(
                               height: 8.h,
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryColor.withValues(alpha: 0.6),
+                                color: AppTheme.primaryColor
+                                    .withValues(alpha: 0.6),
                                 borderRadius: BorderRadius.circular(4.r),
                               ),
                             ),
@@ -2018,7 +2101,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                     : const Color(0xFFF39C12);
 
                 return Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8.r),
@@ -2029,11 +2113,13 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                     children: [
                       Text(
                         name,
-                        style: TextStyle(fontSize: 12.sp, color: Colors.grey[700]),
+                        style:
+                            TextStyle(fontSize: 12.sp, color: Colors.grey[700]),
                       ),
                       SizedBox(width: 6.w),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 6.w, vertical: 2.h),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(4.r),
@@ -2112,7 +2198,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                       ? SizedBox(
                           width: 16.w,
                           height: 16.w,
-                          child: const CircularProgressIndicator(strokeWidth: 2),
+                          child:
+                              const CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Icon(Icons.auto_awesome, size: 16.w),
                   label: Text(
@@ -2362,7 +2449,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),
                     ),
-                    side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.5)),
+                    side: BorderSide(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.5)),
                   ),
                   child: Icon(Icons.dynamic_feed_outlined,
                       size: 20.w, color: AppTheme.primaryColor),
@@ -2414,5 +2502,6 @@ class _Recommendation {
   final IconData icon;
   final String title;
   final String body;
-  _Recommendation({required this.icon, required this.title, required this.body});
+  _Recommendation(
+      {required this.icon, required this.title, required this.body});
 }

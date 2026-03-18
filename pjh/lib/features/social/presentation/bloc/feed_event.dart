@@ -94,6 +94,7 @@ class DeletePostRequested extends FeedEvent {
   @override
   List<Object?> get props => [postId];
 }
+
 class SavePostRequested extends FeedEvent {
   final String postId;
   final String userId;

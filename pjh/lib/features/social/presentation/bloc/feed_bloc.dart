@@ -124,7 +124,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
       final result = await _getFeed(GetFeedParams(
         userId: event.userId,
         limit: 20,
-        lastPostId: currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
+        lastPostId:
+            currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
         followingOnly: event.followingOnly,
       ));
 
@@ -211,9 +212,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
         },
         (_) {
           // 성공 시 게시글 작성자에게 알림 발송 (자기 자신 제외)
-          final likedPost = currentState.posts
-              .where((p) => p.id == event.postId)
-              .firstOrNull;
+          final likedPost =
+              currentState.posts.where((p) => p.id == event.postId).firstOrNull;
           if (likedPost != null && likedPost.authorId != event.userId) {
             _pushService.sendLikeNotification(
               toUserId: likedPost.authorId,
@@ -316,9 +316,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
       final currentState = state as FeedLoaded;
 
       // 낙관적 삭제: 먼저 UI에서 제거
-      final updatedPosts = currentState.posts
-          .where((post) => post.id != event.postId)
-          .toList();
+      final updatedPosts =
+          currentState.posts.where((post) => post.id != event.postId).toList();
       emit(currentState.copyWith(posts: updatedPosts));
 
       // 서버 요청
@@ -336,12 +335,12 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     }
   }
 
-
   Future<void> _onSavePostRequested(
     SavePostRequested event,
     Emitter<FeedState> emit,
   ) async {
-    final result = await _savePost(SavePostParams(postId: event.postId, userId: event.userId));
+    final result = await _savePost(
+        SavePostParams(postId: event.postId, userId: event.userId));
     result.fold(
       (failure) => emit(FeedError(failure.message)),
       (_) => emit(FeedPostSaved(event.postId)),
@@ -352,7 +351,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     UnsavePostRequested event,
     Emitter<FeedState> emit,
   ) async {
-    final result = await _unsavePost(UnsavePostParams(postId: event.postId, userId: event.userId));
+    final result = await _unsavePost(
+        UnsavePostParams(postId: event.postId, userId: event.userId));
     result.fold(
       (failure) => emit(FeedError(failure.message)),
       (_) => emit(FeedPostUnsaved(event.postId)),
@@ -364,13 +364,13 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     Emitter<FeedState> emit,
   ) async {
     emit(FeedLoading());
-    final result = await _getSavedPosts(GetSavedPostsParams(userId: event.userId));
+    final result =
+        await _getSavedPosts(GetSavedPostsParams(userId: event.userId));
     result.fold(
       (failure) => emit(FeedError(failure.message)),
       (posts) => emit(FeedSavedPostsLoaded(posts)),
     );
   }
-
 
   Future<void> _onRealtimeLikeReceived(
     RealtimeLikeReceived event,
@@ -403,7 +403,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
     final updated = current.posts.map((p) {
       if (p.id == postId) {
-        return p.copyWith(commentsCount: (p.commentsCount + delta).clamp(0, 999999));
+        return p.copyWith(
+            commentsCount: (p.commentsCount + delta).clamp(0, 999999));
       }
       return p;
     }).toList();

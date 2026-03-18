@@ -41,7 +41,8 @@ class _SearchPageState extends State<SearchPage>
     // initialHashtag이 있으면 해시태그로 검색
     if (widget.initialHashtag != null) {
       _searchController.text = '#${widget.initialHashtag}';
-      _searchBloc.add(SearchPostsByHashtagRequested(hashtag: widget.initialHashtag!));
+      _searchBloc
+          .add(SearchPostsByHashtagRequested(hashtag: widget.initialHashtag!));
     }
     // initialQuery가 있으면 해당 쿼리로 검색
     else if (widget.initialQuery != null) {
@@ -212,7 +213,8 @@ class _SearchPageState extends State<SearchPage>
                   // 게시물 탭으로 이동하고 해시태그로 검색
                   _tabController.animateTo(0);
                   _searchController.text = '#$hashtag';
-                  _searchBloc.add(SearchPostsByHashtagRequested(hashtag: hashtag));
+                  _searchBloc
+                      .add(SearchPostsByHashtagRequested(hashtag: hashtag));
                 },
               );
             },
@@ -233,7 +235,8 @@ class _SearchPageState extends State<SearchPage>
                   // 게시물 탭으로 이동하고 해시태그로 검색
                   _tabController.animateTo(0);
                   _searchController.text = '#$hashtag';
-                  _searchBloc.add(SearchPostsByHashtagRequested(hashtag: hashtag));
+                  _searchBloc
+                      .add(SearchPostsByHashtagRequested(hashtag: hashtag));
                 },
               );
             },
@@ -409,14 +412,17 @@ class _SearchPageState extends State<SearchPage>
             ? NetworkImage(user.profileImageUrl!)
             : null,
         child: user.profileImageUrl == null
-            ? Text(user.displayName[0].toUpperCase(), style: TextStyle(fontSize: 16.sp))
+            ? Text(user.displayName[0].toUpperCase(),
+                style: TextStyle(fontSize: 16.sp))
             : null,
       ),
       title: Text(
         user.displayName,
         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
       ),
-      subtitle: user.bio != null ? Text(user.bio!, style: TextStyle(fontSize: 12.sp)) : null,
+      subtitle: user.bio != null
+          ? Text(user.bio!, style: TextStyle(fontSize: 12.sp))
+          : null,
       trailing: Icon(Icons.chevron_right, size: 20.w),
       onTap: () {
         // 사용자 프로필로 이동

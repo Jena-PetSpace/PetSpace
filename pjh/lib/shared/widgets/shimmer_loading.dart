@@ -63,7 +63,8 @@ class _PostCardShimmer extends StatelessWidget {
             ),
             SizedBox(height: 12.h),
             // 텍스트 영역
-            Container(width: double.infinity, height: 14.h, color: Colors.white),
+            Container(
+                width: double.infinity, height: 14.h, color: Colors.white),
             SizedBox(height: 6.h),
             Container(width: 200.w, height: 14.h, color: Colors.white),
             SizedBox(height: 16.h),
@@ -104,13 +105,17 @@ class ProfileShimmerLoading extends StatelessWidget {
             // 통계
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: List.generate(3, (_) => Column(
-                children: [
-                  Container(width: 30.w, height: 16.h, color: Colors.white),
-                  SizedBox(height: 4.h),
-                  Container(width: 50.w, height: 12.h, color: Colors.white),
-                ],
-              )),
+              children: List.generate(
+                  3,
+                  (_) => Column(
+                        children: [
+                          Container(
+                              width: 30.w, height: 16.h, color: Colors.white),
+                          SizedBox(height: 4.h),
+                          Container(
+                              width: 50.w, height: 12.h, color: Colors.white),
+                        ],
+                      )),
             ),
           ],
         ),
@@ -148,7 +153,10 @@ class NotificationShimmerLoading extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(width: double.infinity, height: 12.h, color: Colors.white),
+                    Container(
+                        width: double.infinity,
+                        height: 12.h,
+                        color: Colors.white),
                     SizedBox(height: 6.h),
                     Container(width: 150.w, height: 10.h, color: Colors.white),
                   ],

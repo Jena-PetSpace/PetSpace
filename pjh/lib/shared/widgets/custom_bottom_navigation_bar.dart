@@ -62,7 +62,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Icon(Icons.psychology, color: Colors.white, size: 28.w),
+                    child:
+                        Icon(Icons.psychology, color: Colors.white, size: 28.w),
                   ),
                 );
               }
@@ -90,9 +91,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
                         item.label,
                         style: TextStyle(
                           fontSize: 10.sp,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w400,
                           color: isSelected
                               ? AppTheme.primaryColor
                               : AppTheme.secondaryTextColor,

@@ -18,12 +18,14 @@ class LikesBottomSheet extends StatefulWidget {
     this.currentUserId,
   });
 
-  static void show(BuildContext context, {required String postId, String? currentUserId}) {
+  static void show(BuildContext context,
+      {required String postId, String? currentUserId}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => LikesBottomSheet(postId: postId, currentUserId: currentUserId),
+      builder: (_) =>
+          LikesBottomSheet(postId: postId, currentUserId: currentUserId),
     );
   }
 
@@ -89,7 +91,8 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
   Widget _buildContent(ScrollController scrollController) {
     if (_error != null) {
       return Center(
-        child: Text('오류: $_error', style: TextStyle(fontSize: 14.sp, color: Colors.red)),
+        child: Text('오류: $_error',
+            style: TextStyle(fontSize: 14.sp, color: Colors.red)),
       );
     }
 
@@ -99,7 +102,8 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
 
     if (_users!.isEmpty) {
       return Center(
-        child: Text('아직 좋아요가 없습니다', style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
+        child: Text('아직 좋아요가 없습니다',
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
       );
     }
 
@@ -121,13 +125,17 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
                   )
                 : null,
           ),
-          title: Text(user.displayName, style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
+          title: Text(user.displayName,
+              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
           subtitle: user.username != null
-              ? Text('@${user.username}', style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor))
+              ? Text('@${user.username}',
+                  style: TextStyle(
+                      fontSize: 12.sp, color: AppTheme.secondaryTextColor))
               : null,
           onTap: () {
             Navigator.pop(context);
-            context.push('/user-profile/${user.id}?currentUserId=${widget.currentUserId ?? ''}');
+            context.push(
+                '/user-profile/${user.id}?currentUserId=${widget.currentUserId ?? ''}');
           },
         );
       },

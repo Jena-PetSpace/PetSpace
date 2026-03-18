@@ -81,7 +81,8 @@ class _OnboardingEmailVerificationPageState
         email: widget.email,
       );
 
-      developer.log('재발송 성공: ${response.toString()}', name: 'EmailVerification');
+      developer.log('재발송 성공: ${response.toString()}',
+          name: 'EmailVerification');
 
       if (mounted) {
         setState(() {
@@ -290,7 +291,8 @@ class _OnboardingEmailVerificationPageState
                         ),
                         decoration: InputDecoration(
                           counterText: '',
-                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 16),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
@@ -335,7 +337,8 @@ class _OnboardingEmailVerificationPageState
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                      Icon(Icons.error_outline,
+                          color: Colors.red[700], size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -367,7 +370,8 @@ class _OnboardingEmailVerificationPageState
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Text(
@@ -398,9 +402,7 @@ class _OnboardingEmailVerificationPageState
                         ? null
                         : _sendOtp,
                     child: Text(
-                      _resendCountdown > 0
-                          ? '재발송 ($_resendCountdown초)'
-                          : '재발송',
+                      _resendCountdown > 0 ? '재발송 ($_resendCountdown초)' : '재발송',
                       style: TextStyle(
                         color: (_isResending || _resendCountdown > 0)
                             ? Colors.grey

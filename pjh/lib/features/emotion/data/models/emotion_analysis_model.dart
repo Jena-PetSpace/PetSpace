@@ -142,18 +142,17 @@ class EmotionScoresModel extends EmotionScores {
     final rawFeatures = map['facial_features'];
     if (rawFeatures is Map<String, dynamic>) {
       facialFeatures = rawFeatures.map((k, v) => MapEntry(
-        k,
-        v is Map<String, dynamic>
-            ? FacialFeature.fromJson(v)
-            : const FacialFeature(state: '', signal: ''),
-      ));
+            k,
+            v is Map<String, dynamic>
+                ? FacialFeature.fromJson(v)
+                : const FacialFeature(state: '', signal: ''),
+          ));
     }
 
     // 건강 팁
     final rawTips = map['health_tips'];
-    final healthTips = rawTips is List
-        ? List<String>.from(rawTips)
-        : <String>[];
+    final healthTips =
+        rawTips is List ? List<String>.from(rawTips) : <String>[];
 
     return EmotionScoresModel(
       happiness: (map['happiness'] ?? 0.0).toDouble(),
@@ -191,8 +190,8 @@ class EmotionScoresModel extends EmotionScores {
       'comfort_level': comfortLevel,
     };
     if (facialFeatures != null) {
-      map['facial_features'] = facialFeatures!.map(
-          (k, v) => MapEntry(k, v.toJson()));
+      map['facial_features'] =
+          facialFeatures!.map((k, v) => MapEntry(k, v.toJson()));
     }
     if (healthTips.isNotEmpty) {
       map['health_tips'] = healthTips;

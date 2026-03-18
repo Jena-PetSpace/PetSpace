@@ -213,8 +213,10 @@ class EmotionInterpretationCard extends StatelessWidget {
           subtitle: '기쁨이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.happinessColor,
           reason: _getHappinessReason(dominantValue, secondaryEmotion),
-          behaviorAnalysis: '꼬리를 흔들거나, 입을 살짝 벌리고 있거나, 편안하게 누워있는 모습이 감지되었습니다. 이는 반려동물이 현재 환경에 만족하고 있다는 긍정적인 신호입니다.',
-          environmentFactors: '현재 환경이 반려동물에게 안정감을 주고 있습니다. 적절한 온도, 편안한 공간, 그리고 보호자와의 긍정적인 상호작용이 이러한 행복감에 기여했을 수 있습니다.',
+          behaviorAnalysis:
+              '꼬리를 흔들거나, 입을 살짝 벌리고 있거나, 편안하게 누워있는 모습이 감지되었습니다. 이는 반려동물이 현재 환경에 만족하고 있다는 긍정적인 신호입니다.',
+          environmentFactors:
+              '현재 환경이 반려동물에게 안정감을 주고 있습니다. 적절한 온도, 편안한 공간, 그리고 보호자와의 긍정적인 상호작용이 이러한 행복감에 기여했을 수 있습니다.',
         );
       case 'sadness':
         return _EmotionInterpretation(
@@ -223,8 +225,10 @@ class EmotionInterpretationCard extends StatelessWidget {
           subtitle: '슬픔이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.sadnessColor,
           reason: _getSadnessReason(dominantValue, secondaryEmotion),
-          behaviorAnalysis: '귀가 처져있거나, 눈이 축 처진 모습, 또는 활력이 떨어진 자세가 감지되었습니다. 반려동물이 무언가를 그리워하거나 외로움을 느끼고 있을 수 있습니다.',
-          environmentFactors: '최근 환경 변화(이사, 가족 구성원 변화, 일상 패턴 변화)가 있었다면 이것이 원인일 수 있습니다. 반려동물은 루틴 변화에 민감하게 반응합니다.',
+          behaviorAnalysis:
+              '귀가 처져있거나, 눈이 축 처진 모습, 또는 활력이 떨어진 자세가 감지되었습니다. 반려동물이 무언가를 그리워하거나 외로움을 느끼고 있을 수 있습니다.',
+          environmentFactors:
+              '최근 환경 변화(이사, 가족 구성원 변화, 일상 패턴 변화)가 있었다면 이것이 원인일 수 있습니다. 반려동물은 루틴 변화에 민감하게 반응합니다.',
         );
       case 'anxiety':
         return _EmotionInterpretation(
@@ -233,8 +237,10 @@ class EmotionInterpretationCard extends StatelessWidget {
           subtitle: '불안이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.anxietyColor,
           reason: _getAnxietyReason(dominantValue, secondaryEmotion),
-          behaviorAnalysis: '경계하는 자세, 귀를 뒤로 젖힌 모습, 또는 긴장된 표정이 감지되었습니다. 주변에 스트레스 요인이 있거나 낯선 상황에 처해 있을 수 있습니다.',
-          environmentFactors: '큰 소리, 낯선 사람/동물의 방문, 또는 익숙하지 않은 환경이 불안의 원인일 수 있습니다. 조용하고 안전한 공간을 제공해주세요.',
+          behaviorAnalysis:
+              '경계하는 자세, 귀를 뒤로 젖힌 모습, 또는 긴장된 표정이 감지되었습니다. 주변에 스트레스 요인이 있거나 낯선 상황에 처해 있을 수 있습니다.',
+          environmentFactors:
+              '큰 소리, 낯선 사람/동물의 방문, 또는 익숙하지 않은 환경이 불안의 원인일 수 있습니다. 조용하고 안전한 공간을 제공해주세요.',
         );
       case 'sleepiness':
         return _EmotionInterpretation(
@@ -243,8 +249,10 @@ class EmotionInterpretationCard extends StatelessWidget {
           subtitle: '졸림이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.sleepinessColor,
           reason: _getSleepinessReason(dominantValue, secondaryEmotion),
-          behaviorAnalysis: '눈이 반쯤 감긴 모습, 하품하는 표정, 또는 편안하게 웅크린 자세가 감지되었습니다. 휴식이 필요하거나 식사 후 소화 중일 수 있습니다.',
-          environmentFactors: '적절한 활동량 후의 자연스러운 피로일 수 있습니다. 편안하고 조용한 휴식 공간을 마련해주세요. 충분한 수면은 건강에 필수적입니다.',
+          behaviorAnalysis:
+              '눈이 반쯤 감긴 모습, 하품하는 표정, 또는 편안하게 웅크린 자세가 감지되었습니다. 휴식이 필요하거나 식사 후 소화 중일 수 있습니다.',
+          environmentFactors:
+              '적절한 활동량 후의 자연스러운 피로일 수 있습니다. 편안하고 조용한 휴식 공간을 마련해주세요. 충분한 수면은 건강에 필수적입니다.',
         );
       case 'curiosity':
         return _EmotionInterpretation(
@@ -253,8 +261,10 @@ class EmotionInterpretationCard extends StatelessWidget {
           subtitle: '호기심이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.curiosityColor,
           reason: _getCuriosityReason(dominantValue, secondaryEmotion),
-          behaviorAnalysis: '귀가 쫑긋 세워진 모습, 집중하는 눈빛, 또는 무언가를 탐색하는 자세가 감지되었습니다. 주변 환경에 관심을 가지고 있으며 정신적으로 활발한 상태입니다.',
-          environmentFactors: '새로운 소리, 냄새, 또는 움직임이 호기심을 자극했을 수 있습니다. 이런 상태에서 새로운 장난감이나 퍼즐 피더를 제공하면 좋습니다.',
+          behaviorAnalysis:
+              '귀가 쫑긋 세워진 모습, 집중하는 눈빛, 또는 무언가를 탐색하는 자세가 감지되었습니다. 주변 환경에 관심을 가지고 있으며 정신적으로 활발한 상태입니다.',
+          environmentFactors:
+              '새로운 소리, 냄새, 또는 움직임이 호기심을 자극했을 수 있습니다. 이런 상태에서 새로운 장난감이나 퍼즐 피더를 제공하면 좋습니다.',
         );
       default:
         return _EmotionInterpretation(

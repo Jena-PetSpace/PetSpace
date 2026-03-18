@@ -32,14 +32,16 @@ class FeedPreviewWidget extends StatelessWidget {
                       CircleAvatar(
                         radius: 20,
                         backgroundImage: post.authorProfileImage != null
-                            ? CachedNetworkImageProvider(post.authorProfileImage!)
+                            ? CachedNetworkImageProvider(
+                                post.authorProfileImage!)
                             : null,
                         child: post.authorProfileImage == null
                             ? Text(
                                 post.authorName.isNotEmpty
                                     ? post.authorName[0].toUpperCase()
                                     : '?',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
                               )
                             : null,
                       ),

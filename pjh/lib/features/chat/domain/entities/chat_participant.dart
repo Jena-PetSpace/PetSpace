@@ -51,7 +51,14 @@ class ChatParticipant extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, roomId, userId, displayName, photoUrl,
-        role, joinedAt, lastReadAt, isActive,
+        id,
+        roomId,
+        userId,
+        displayName,
+        photoUrl,
+        role,
+        joinedAt,
+        lastReadAt,
+        isActive,
       ];
 }

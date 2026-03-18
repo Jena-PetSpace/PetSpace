@@ -14,6 +14,7 @@ import '../widgets/user_posts_list.dart';
 class ProfilePage extends StatefulWidget {
   final String userId;
   final String? currentUserId;
+
   /// true면 상단에 설정 버튼 표시 (내 프로필 진입 시)
   final bool isMyProfile;
 
@@ -37,9 +38,9 @@ class _ProfilePageState extends State<ProfilePage>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     context.read<ProfileBloc>().add(LoadUserProfileRequested(
-      userId: widget.userId,
-      currentUserId: widget.currentUserId,
-    ));
+          userId: widget.userId,
+          currentUserId: widget.currentUserId,
+        ));
   }
 
   @override
@@ -133,7 +134,8 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildProfileHeader(SocialUser user, bool isFollowing, bool isOwnProfile) {
+  Widget _buildProfileHeader(
+      SocialUser user, bool isFollowing, bool isOwnProfile) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
       decoration: BoxDecoration(
@@ -206,7 +208,8 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Widget _buildActionButtons(SocialUser user, bool isFollowing, bool isOwnProfile) {
+  Widget _buildActionButtons(
+      SocialUser user, bool isFollowing, bool isOwnProfile) {
     if (isOwnProfile) {
       return Row(
         children: [
@@ -239,11 +242,14 @@ class _ProfilePageState extends State<ProfilePage>
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () => _toggleFollow(user.id, isFollowing),
-            icon: Icon(isFollowing ? Icons.person_remove : Icons.person_add, size: 20.w),
-            label: Text(isFollowing ? '언팔로우' : '팔로우', style: TextStyle(fontSize: 14.sp)),
+            icon: Icon(isFollowing ? Icons.person_remove : Icons.person_add,
+                size: 20.w),
+            label: Text(isFollowing ? '언팔로우' : '팔로우',
+                style: TextStyle(fontSize: 14.sp)),
             style: ElevatedButton.styleFrom(
               backgroundColor: isFollowing ? Colors.grey : Colors.white,
-              foregroundColor: isFollowing ? Colors.white : AppTheme.primaryColor,
+              foregroundColor:
+                  isFollowing ? Colors.white : AppTheme.primaryColor,
             ),
           ),
         ),
@@ -303,11 +309,11 @@ class _ProfilePageState extends State<ProfilePage>
           ElevatedButton(
             onPressed: () {
               context.read<ProfileBloc>().add(
-                LoadUserProfileRequested(
-                  userId: widget.userId,
-                  currentUserId: widget.currentUserId,
-                ),
-              );
+                    LoadUserProfileRequested(
+                      userId: widget.userId,
+                      currentUserId: widget.currentUserId,
+                    ),
+                  );
             },
             child: Text('다시 시도', style: TextStyle(fontSize: 14.sp)),
           ),
@@ -322,19 +328,18 @@ class _ProfilePageState extends State<ProfilePage>
 
     if (isCurrentlyFollowing) {
       context.read<ProfileBloc>().add(UnfollowUserRequested(
-        followerId: currentUserId,
-        followingId: userId,
-      ));
+            followerId: currentUserId,
+            followingId: userId,
+          ));
     } else {
       final authState = context.read<AuthBloc>().state;
-      final myName = authState is AuthAuthenticated
-          ? authState.user.displayName
-          : '사용자';
+      final myName =
+          authState is AuthAuthenticated ? authState.user.displayName : '사용자';
       context.read<ProfileBloc>().add(FollowUserRequested(
-        followerId: currentUserId,
-        followingId: userId,
-        followerName: myName,
-      ));
+            followerId: currentUserId,
+            followingId: userId,
+            followerName: myName,
+          ));
     }
   }
 
@@ -343,9 +348,9 @@ class _ProfilePageState extends State<ProfilePage>
     if (updated == true && mounted) {
       // 프로필 정보 갱신
       context.read<ProfileBloc>().add(LoadUserProfileRequested(
-        userId: widget.userId,
-        currentUserId: widget.currentUserId,
-      ));
+            userId: widget.userId,
+            currentUserId: widget.currentUserId,
+          ));
     }
   }
 

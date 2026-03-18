@@ -26,8 +26,8 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       context.read<EmotionAnalysisBloc>().add(
-        LoadAnalysisHistory(userId: authState.user.uid, limit: 50),
-      );
+            LoadAnalysisHistory(userId: authState.user.uid, limit: 50),
+          );
     }
   }
 
@@ -61,11 +61,15 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 48.w, color: Colors.grey[400]),
+                  Icon(Icons.error_outline,
+                      size: 48.w, color: Colors.grey[400]),
                   SizedBox(height: 12.h),
-                  Text(state.message, style: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
+                  Text(state.message,
+                      style: TextStyle(
+                          fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
                   SizedBox(height: 16.h),
-                  ElevatedButton(onPressed: _loadHistory, child: const Text('다시 시도')),
+                  ElevatedButton(
+                      onPressed: _loadHistory, child: const Text('다시 시도')),
                 ],
               ),
             );
@@ -86,13 +90,19 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
           SizedBox(height: 16.h),
           Text(
             '감정분석 기록이 없습니다',
-            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600, color: AppTheme.primaryTextColor),
+            style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryTextColor),
           ),
           SizedBox(height: 8.h),
           Text(
             'AI분석 탭에서 반려동물의\n감정을 분석해보세요!',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13.sp, color: AppTheme.secondaryTextColor, height: 1.5),
+            style: TextStyle(
+                fontSize: 13.sp,
+                color: AppTheme.secondaryTextColor,
+                height: 1.5),
           ),
           SizedBox(height: 24.h),
           ElevatedButton.icon(
@@ -180,11 +190,14 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildMiniBar('기쁨', analysis.emotions.happiness, AppTheme.happinessColor),
+                _buildMiniBar(
+                    '기쁨', analysis.emotions.happiness, AppTheme.happinessColor),
                 SizedBox(height: 2.h),
-                _buildMiniBar('불안', analysis.emotions.anxiety, AppTheme.anxietyColor),
+                _buildMiniBar(
+                    '불안', analysis.emotions.anxiety, AppTheme.anxietyColor),
                 SizedBox(height: 2.h),
-                _buildMiniBar('호기심', analysis.emotions.curiosity, AppTheme.curiosityColor),
+                _buildMiniBar('호기심', analysis.emotions.curiosity,
+                    AppTheme.curiosityColor),
               ],
             ),
           ],
@@ -224,34 +237,52 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
 
   String _getEmotionKorean(String emotion) {
     switch (emotion) {
-      case 'happiness': return '기쁨';
-      case 'sadness': return '슬픔';
-      case 'anxiety': return '불안';
-      case 'sleepiness': return '졸림';
-      case 'curiosity': return '호기심';
-      default: return emotion;
+      case 'happiness':
+        return '기쁨';
+      case 'sadness':
+        return '슬픔';
+      case 'anxiety':
+        return '불안';
+      case 'sleepiness':
+        return '졸림';
+      case 'curiosity':
+        return '호기심';
+      default:
+        return emotion;
     }
   }
 
   String _getEmotionEmoji(String emotion) {
     switch (emotion) {
-      case 'happiness': return '😊';
-      case 'sadness': return '😢';
-      case 'anxiety': return '😰';
-      case 'sleepiness': return '😴';
-      case 'curiosity': return '🧐';
-      default: return '🐾';
+      case 'happiness':
+        return '😊';
+      case 'sadness':
+        return '😢';
+      case 'anxiety':
+        return '😰';
+      case 'sleepiness':
+        return '😴';
+      case 'curiosity':
+        return '🧐';
+      default:
+        return '🐾';
     }
   }
 
   Color _getEmotionColor(String emotion) {
     switch (emotion) {
-      case 'happiness': return AppTheme.happinessColor;
-      case 'sadness': return AppTheme.sadnessColor;
-      case 'anxiety': return AppTheme.anxietyColor;
-      case 'sleepiness': return AppTheme.sleepinessColor;
-      case 'curiosity': return AppTheme.curiosityColor;
-      default: return AppTheme.primaryColor;
+      case 'happiness':
+        return AppTheme.happinessColor;
+      case 'sadness':
+        return AppTheme.sadnessColor;
+      case 'anxiety':
+        return AppTheme.anxietyColor;
+      case 'sleepiness':
+        return AppTheme.sleepinessColor;
+      case 'curiosity':
+        return AppTheme.curiosityColor;
+      default:
+        return AppTheme.primaryColor;
     }
   }
 }

@@ -114,22 +114,30 @@ class EmotionAnalysis extends Equatable {
 
   @override
   List<Object?> get props => [
-        id, userId, petId, imageUrl, localImagePath,
-        emotions, confidence, analyzedAt, memo, tags,
+        id,
+        userId,
+        petId,
+        imageUrl,
+        localImagePath,
+        emotions,
+        confidence,
+        analyzedAt,
+        memo,
+        tags,
       ];
 }
 
 // 부위별 분석 결과
 class FacialFeature extends Equatable {
-  final String state;   // 예: "귀가 뒤로 눕혀짐"
-  final String signal;  // 예: "불안"
+  final String state; // 예: "귀가 뒤로 눕혀짐"
+  final String signal; // 예: "불안"
 
   const FacialFeature({required this.state, required this.signal});
 
   factory FacialFeature.fromJson(Map<String, dynamic> json) => FacialFeature(
-    state: json['state'] as String? ?? '',
-    signal: json['signal'] as String? ?? '',
-  );
+        state: json['state'] as String? ?? '',
+        signal: json['signal'] as String? ?? '',
+      );
 
   Map<String, dynamic> toJson() => {'state': state, 'signal': signal};
 
@@ -188,7 +196,8 @@ class EmotionScores extends Equatable {
   // A-2: 감정 복합도 (Shannon Entropy, 0.0~1.0)
   double get complexityIndex {
     final values = [happiness, sadness, anxiety, sleepiness, curiosity]
-        .where((v) => v > 0).toList();
+        .where((v) => v > 0)
+        .toList();
     if (values.isEmpty) return 0.0;
     double entropy = 0.0;
     for (final v in values) {
@@ -214,18 +223,17 @@ class EmotionScores extends Equatable {
     final rawFeatures = json['facial_features'];
     if (rawFeatures is Map<String, dynamic>) {
       facialFeatures = rawFeatures.map((k, v) => MapEntry(
-        k,
-        v is Map<String, dynamic>
-            ? FacialFeature.fromJson(v)
-            : const FacialFeature(state: '', signal: ''),
-      ));
+            k,
+            v is Map<String, dynamic>
+                ? FacialFeature.fromJson(v)
+                : const FacialFeature(state: '', signal: ''),
+          ));
     }
 
     // 건강 팁 파싱
     final rawTips = json['health_tips'];
-    final healthTips = rawTips is List
-        ? List<String>.from(rawTips)
-        : <String>[];
+    final healthTips =
+        rawTips is List ? List<String>.from(rawTips) : <String>[];
 
     return EmotionScores(
       happiness: (json['happiness'] as num?)?.toDouble() ?? 0.0,
@@ -256,8 +264,8 @@ class EmotionScores extends Equatable {
       'comfort_level': comfortLevel,
     };
     if (facialFeatures != null) {
-      json['facial_features'] = facialFeatures!.map(
-          (k, v) => MapEntry(k, v.toJson()));
+      json['facial_features'] =
+          facialFeatures!.map((k, v) => MapEntry(k, v.toJson()));
     }
     if (healthTips.isNotEmpty) {
       json['health_tips'] = healthTips;
@@ -300,8 +308,17 @@ class EmotionScores extends Equatable {
 
   @override
   List<Object?> get props => [
-        happiness, sadness, anxiety, sleepiness, curiosity,
-        stressLevel, activityLevel, healthSignal, comfortLevel,
-        facialFeatures, healthTips, breedInsight,
+        happiness,
+        sadness,
+        anxiety,
+        sleepiness,
+        curiosity,
+        stressLevel,
+        activityLevel,
+        healthSignal,
+        comfortLevel,
+        facialFeatures,
+        healthTips,
+        breedInsight,
       ];
 }

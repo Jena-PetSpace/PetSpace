@@ -26,11 +26,8 @@ class ProfileService {
     try {
       final userId = _currentUserId;
 
-      final response = await _supabase
-          .from('users')
-          .select()
-          .eq('id', userId)
-          .maybeSingle();
+      final response =
+          await _supabase.from('users').select().eq('id', userId).maybeSingle();
 
       return response;
     } catch (e) {
@@ -69,7 +66,8 @@ class ProfileService {
     try {
       // 이미지 업로드 시도
       try {
-        final imageUrl = await _imageUploadService.uploadProfileImage(imageFile);
+        final imageUrl =
+            await _imageUploadService.uploadProfileImage(imageFile);
 
         // DB 업데이트
         await updateProfile(photoUrl: imageUrl);
@@ -94,8 +92,7 @@ class ProfileService {
         return localPath;
       }
     } catch (e) {
-      log('프로필 이미지 업데이트 오류: $e',
-          name: 'ProfileService.updateProfileImage');
+      log('프로필 이미지 업데이트 오류: $e', name: 'ProfileService.updateProfileImage');
       rethrow;
     }
   }
@@ -121,10 +118,8 @@ class ProfileService {
       final userId = _currentUserId;
 
       // 게시물 수
-      final postsResponse = await _supabase
-          .from('posts')
-          .select('id')
-          .eq('user_id', userId);
+      final postsResponse =
+          await _supabase.from('posts').select('id').eq('user_id', userId);
       final postsCount = (postsResponse as List).length;
 
       // 팔로워 수
@@ -178,8 +173,7 @@ class ProfileService {
 
       return response == null;
     } catch (e) {
-      log('사용자 이름 중복 체크 오류: $e',
-          name: 'ProfileService.isUsernameAvailable');
+      log('사용자 이름 중복 체크 오류: $e', name: 'ProfileService.isUsernameAvailable');
       return false;
     }
   }

@@ -110,7 +110,8 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     UnlikePostRequested event,
     Emitter<SocialState> emit,
   ) async {
-    final result = await socialRepository.unlikePost(event.postId, event.userId);
+    final result =
+        await socialRepository.unlikePost(event.postId, event.userId);
 
     result.fold(
       (failure) => emit(SocialError(failure.message)),
@@ -160,7 +161,8 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     FollowUserRequested event,
     Emitter<SocialState> emit,
   ) async {
-    final result = await socialRepository.followUser(event.followerId, event.followingId);
+    final result =
+        await socialRepository.followUser(event.followerId, event.followingId);
 
     result.fold(
       (failure) => emit(SocialError(failure.message)),
@@ -172,7 +174,8 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     UnfollowUserRequested event,
     Emitter<SocialState> emit,
   ) async {
-    final result = await socialRepository.unfollowUser(event.followerId, event.followingId);
+    final result = await socialRepository.unfollowUser(
+        event.followerId, event.followingId);
 
     result.fold(
       (failure) => emit(SocialError(failure.message)),
@@ -211,7 +214,8 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
       final result = await socialRepository.getFeedPosts(
         userId: event.userId,
         limit: 20,
-        lastPostId: currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
+        lastPostId:
+            currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
       );
 
       result.fold(

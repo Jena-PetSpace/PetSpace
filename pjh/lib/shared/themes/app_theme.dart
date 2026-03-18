@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // JENA 브랜드 컬러 팔레트
-  static const Color primaryColor = Color(0xFF1E3A5F); // Primary Deep Blue - 신뢰와 전문성
-  static const Color secondaryColor = Color(0xFF2C4482); // JENA Signature Indigo - 리더십과 혁신
-  static const Color accentColor = Color(0xFF0077B6); // Accent Bright Blue - 미래지향적 기술
-  static const Color highlightColor = Color(0xFFFF6F61); // Highlight Coral Red - 고객 중심적 사고
+  static const Color primaryColor =
+      Color(0xFF1E3A5F); // Primary Deep Blue - 신뢰와 전문성
+  static const Color secondaryColor =
+      Color(0xFF2C4482); // JENA Signature Indigo - 리더십과 혁신
+  static const Color accentColor =
+      Color(0xFF0077B6); // Accent Bright Blue - 미래지향적 기술
+  static const Color highlightColor =
+      Color(0xFFFF6F61); // Highlight Coral Red - 고객 중심적 사고
   static const Color subColor = Color(0xFF5BC0EB); // Sub Sky Blue - 투명한 네트워크
 
   // 배경 컬러
@@ -27,9 +31,9 @@ class AppTheme {
 
   // 시맨틱 컬러 — 상태/피드백
   static const Color successColor = Color(0xFF4CAF50); // 성공·완료 (초록)
-  static const Color errorColor = Color(0xFFE53935);   // 에러·삭제 (빨강)
+  static const Color errorColor = Color(0xFFE53935); // 에러·삭제 (빨강)
   static const Color warningColor = Color(0xFFFF9800); // 경고 (주황)
-  static const Color infoColor = Color(0xFF0077B6);    // 정보 (accentColor 동일)
+  static const Color infoColor = Color(0xFF0077B6); // 정보 (accentColor 동일)
 
   // 중간 회색 계열 토큰
   static const Color dividerColor = Color(0xFFE0E0E0);
@@ -52,12 +56,13 @@ class AppTheme {
 
   // 카드 데코레이션
   static BoxDecoration get cardDecoration => BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(14),
-    boxShadow: const [
-      BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
-    ],
-  );
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      );
 
   // 그라데이션
   static const LinearGradient primaryGradient = LinearGradient(
@@ -143,7 +148,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppTheme.dividerColor),
@@ -352,7 +358,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: primaryColor, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
 
       // Divider
@@ -382,8 +389,12 @@ class AppTheme {
         displayMedium: TextStyle(color: darkText, fontFamily: 'Pretendard'),
         bodyLarge: TextStyle(color: darkText, fontFamily: 'Pretendard'),
         bodyMedium: TextStyle(color: darkText, fontFamily: 'Pretendard'),
-        bodySmall: TextStyle(color: darkSecondaryText, fontFamily: 'Pretendard'),
-        labelLarge: TextStyle(color: darkText, fontWeight: FontWeight.w600, fontFamily: 'Pretendard'),
+        bodySmall:
+            TextStyle(color: darkSecondaryText, fontFamily: 'Pretendard'),
+        labelLarge: TextStyle(
+            color: darkText,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Pretendard'),
       ),
 
       // SnackBar
@@ -422,7 +433,9 @@ class AppTheme {
       // Switch
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected) ? primaryColor : darkSecondaryText,
+          (states) => states.contains(WidgetState.selected)
+              ? primaryColor
+              : darkSecondaryText,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)

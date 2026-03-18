@@ -23,24 +23,34 @@ class AppLogger {
     }
   }
 
-  void debug(String message, {String? tag, dynamic error, StackTrace? stackTrace}) {
-    _log(LogLevel.debug, message, tag: tag, error: error, stackTrace: stackTrace);
+  void debug(String message,
+      {String? tag, dynamic error, StackTrace? stackTrace}) {
+    _log(LogLevel.debug, message,
+        tag: tag, error: error, stackTrace: stackTrace);
   }
 
-  void info(String message, {String? tag, dynamic error, StackTrace? stackTrace}) {
-    _log(LogLevel.info, message, tag: tag, error: error, stackTrace: stackTrace);
+  void info(String message,
+      {String? tag, dynamic error, StackTrace? stackTrace}) {
+    _log(LogLevel.info, message,
+        tag: tag, error: error, stackTrace: stackTrace);
   }
 
-  void warning(String message, {String? tag, dynamic error, StackTrace? stackTrace}) {
-    _log(LogLevel.warning, message, tag: tag, error: error, stackTrace: stackTrace);
+  void warning(String message,
+      {String? tag, dynamic error, StackTrace? stackTrace}) {
+    _log(LogLevel.warning, message,
+        tag: tag, error: error, stackTrace: stackTrace);
   }
 
-  void error(String message, {String? tag, dynamic error, StackTrace? stackTrace}) {
-    _log(LogLevel.error, message, tag: tag, error: error, stackTrace: stackTrace);
+  void error(String message,
+      {String? tag, dynamic error, StackTrace? stackTrace}) {
+    _log(LogLevel.error, message,
+        tag: tag, error: error, stackTrace: stackTrace);
   }
 
-  void fatal(String message, {String? tag, dynamic error, StackTrace? stackTrace}) {
-    _log(LogLevel.fatal, message, tag: tag, error: error, stackTrace: stackTrace);
+  void fatal(String message,
+      {String? tag, dynamic error, StackTrace? stackTrace}) {
+    _log(LogLevel.fatal, message,
+        tag: tag, error: error, stackTrace: stackTrace);
   }
 
   void _log(
@@ -106,7 +116,8 @@ class AppLogger {
     }
   }
 
-  void _sendToCrashlytics(String message, dynamic error, StackTrace? stackTrace) {
+  void _sendToCrashlytics(
+      String message, dynamic error, StackTrace? stackTrace) {
     // Implement Supabase error logging here
     // Can use Supabase Edge Functions or integrate with third-party services like Sentry
     // supabase.functions.invoke('log-error', body: {'message': message, 'error': error.toString()});
@@ -157,11 +168,14 @@ class AppLogger {
     info('Screen View: $screenName', tag: 'ANALYTICS');
 
     // Send to analytics service
-    _sendToAnalytics('screen_view', {'screen_name': screenName, ...?parameters});
+    _sendToAnalytics(
+        'screen_view', {'screen_name': screenName, ...?parameters});
   }
 
-  void logPerformance(String operation, Duration duration, {Map<String, dynamic>? parameters}) {
-    info('Performance: $operation took ${duration.inMilliseconds}ms', tag: 'PERFORMANCE');
+  void logPerformance(String operation, Duration duration,
+      {Map<String, dynamic>? parameters}) {
+    info('Performance: $operation took ${duration.inMilliseconds}ms',
+        tag: 'PERFORMANCE');
 
     // Send to analytics service
     _sendToAnalytics('performance', {
@@ -178,7 +192,8 @@ class AppLogger {
   }
 
   // API logging
-  void logApiRequest(String method, String url, {Map<String, dynamic>? headers, dynamic body}) {
+  void logApiRequest(String method, String url,
+      {Map<String, dynamic>? headers, dynamic body}) {
     debug('API Request: $method $url', tag: 'API');
     if (headers != null) {
       debug('Headers: $headers', tag: 'API');
@@ -188,16 +203,20 @@ class AppLogger {
     }
   }
 
-  void logApiResponse(String method, String url, int statusCode, {dynamic response, Duration? duration}) {
-    final durationStr = duration != null ? ' (${duration.inMilliseconds}ms)' : '';
+  void logApiResponse(String method, String url, int statusCode,
+      {dynamic response, Duration? duration}) {
+    final durationStr =
+        duration != null ? ' (${duration.inMilliseconds}ms)' : '';
     info('API Response: $method $url - $statusCode$durationStr', tag: 'API');
     if (response != null && !kReleaseMode) {
       debug('Response: $response', tag: 'API');
     }
   }
 
-  void logApiError(String method, String url, dynamic error, {StackTrace? stackTrace}) {
-    this.error('API Error: $method $url', tag: 'API', error: error, stackTrace: stackTrace);
+  void logApiError(String method, String url, dynamic error,
+      {StackTrace? stackTrace}) {
+    this.error('API Error: $method $url',
+        tag: 'API', error: error, stackTrace: stackTrace);
   }
 }
 
@@ -226,6 +245,7 @@ extension LoggerExtension on Object {
   }
 
   void logError(String message, {dynamic error, StackTrace? stackTrace}) {
-    logger.error(message, tag: runtimeType.toString(), error: error, stackTrace: stackTrace);
+    logger.error(message,
+        tag: runtimeType.toString(), error: error, stackTrace: stackTrace);
   }
 }

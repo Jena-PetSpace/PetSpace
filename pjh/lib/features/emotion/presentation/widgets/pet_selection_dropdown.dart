@@ -82,16 +82,22 @@ class PetSelectionDropdown extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: analyzeWithoutPet ? Colors.orange.shade50 : Colors.grey.shade50,
+              color: analyzeWithoutPet
+                  ? Colors.orange.shade50
+                  : Colors.grey.shade50,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: analyzeWithoutPet ? Colors.orange.shade300 : Colors.grey.shade300,
+                color: analyzeWithoutPet
+                    ? Colors.orange.shade300
+                    : Colors.grey.shade300,
               ),
             ),
             child: Row(
               children: [
                 Icon(
-                  analyzeWithoutPet ? Icons.check_box : Icons.check_box_outline_blank,
+                  analyzeWithoutPet
+                      ? Icons.check_box
+                      : Icons.check_box_outline_blank,
                   color: analyzeWithoutPet ? Colors.orange : Colors.grey,
                 ),
                 const SizedBox(width: 12),

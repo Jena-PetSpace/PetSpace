@@ -5,13 +5,15 @@ import '../../../../core/usecases/usecase.dart';
 import '../entities/chat_message.dart';
 import '../repositories/chat_repository.dart';
 
-class GetChatMessages extends UseCase<List<ChatMessage>, GetChatMessagesParams> {
+class GetChatMessages
+    extends UseCase<List<ChatMessage>, GetChatMessagesParams> {
   final ChatRepository repository;
 
   GetChatMessages(this.repository);
 
   @override
-  Future<Either<Failure, List<ChatMessage>>> call(GetChatMessagesParams params) {
+  Future<Either<Failure, List<ChatMessage>>> call(
+      GetChatMessagesParams params) {
     return repository.getChatMessages(
       roomId: params.roomId,
       limit: params.limit,

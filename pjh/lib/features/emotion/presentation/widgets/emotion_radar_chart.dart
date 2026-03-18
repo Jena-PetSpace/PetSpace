@@ -53,7 +53,8 @@ class EmotionRadarChart extends StatelessWidget {
               _EmotionTitle('🤔 호기심', emotions.curiosity),
             ];
             return RadarChartTitle(
-              text: '${titles[index].label}\n${(titles[index].value * 100).toInt()}%',
+              text:
+                  '${titles[index].label}\n${(titles[index].value * 100).toInt()}%',
             );
           },
           dataSets: [
@@ -225,11 +226,16 @@ class EmotionComparisonBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final emotionList = [
-      _EmotionData('기쁨', emotions.happiness, AppTheme.happinessColor, Icons.mood),
-      _EmotionData('슬픔', emotions.sadness, AppTheme.sadnessColor, Icons.mood_bad),
-      _EmotionData('불안', emotions.anxiety, AppTheme.anxietyColor, Icons.warning_amber),
-      _EmotionData('졸림', emotions.sleepiness, AppTheme.sleepinessColor, Icons.bedtime),
-      _EmotionData('호기심', emotions.curiosity, AppTheme.curiosityColor, Icons.psychology),
+      _EmotionData(
+          '기쁨', emotions.happiness, AppTheme.happinessColor, Icons.mood),
+      _EmotionData(
+          '슬픔', emotions.sadness, AppTheme.sadnessColor, Icons.mood_bad),
+      _EmotionData(
+          '불안', emotions.anxiety, AppTheme.anxietyColor, Icons.warning_amber),
+      _EmotionData(
+          '졸림', emotions.sleepiness, AppTheme.sleepinessColor, Icons.bedtime),
+      _EmotionData(
+          '호기심', emotions.curiosity, AppTheme.curiosityColor, Icons.psychology),
     ];
 
     // 값으로 정렬
@@ -251,7 +257,8 @@ class EmotionComparisonBar extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: emotion.color.withValues(alpha: isTop ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(8.r),
-                  border: isTop ? Border.all(color: emotion.color, width: 2) : null,
+                  border:
+                      isTop ? Border.all(color: emotion.color, width: 2) : null,
                 ),
                 child: Icon(
                   emotion.icon,
@@ -273,13 +280,15 @@ class EmotionComparisonBar extends StatelessWidget {
                               emotion.label,
                               style: TextStyle(
                                 fontSize: 13.sp,
-                                fontWeight: isTop ? FontWeight.bold : FontWeight.w500,
+                                fontWeight:
+                                    isTop ? FontWeight.bold : FontWeight.w500,
                               ),
                             ),
                             if (isTop) ...[
                               SizedBox(width: 6.w),
                               Container(
-                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 6.w, vertical: 2.h),
                                 decoration: BoxDecoration(
                                   color: emotion.color,
                                   borderRadius: BorderRadius.circular(4.r),
@@ -320,7 +329,8 @@ class EmotionComparisonBar extends StatelessWidget {
                           duration: Duration(milliseconds: 600 + (index * 100)),
                           curve: Curves.easeOutCubic,
                           height: 6.h,
-                          width: (MediaQuery.of(context).size.width - 100.w) * emotion.value,
+                          width: (MediaQuery.of(context).size.width - 100.w) *
+                              emotion.value,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -332,7 +342,8 @@ class EmotionComparisonBar extends StatelessWidget {
                             boxShadow: isTop
                                 ? [
                                     BoxShadow(
-                                      color: emotion.color.withValues(alpha: 0.4),
+                                      color:
+                                          emotion.color.withValues(alpha: 0.4),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
                                     ),

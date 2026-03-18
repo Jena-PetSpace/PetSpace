@@ -115,7 +115,8 @@ class EmotionRecommendationsCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.warning_amber, color: Colors.red, size: 18.w),
+                        Icon(Icons.warning_amber,
+                            color: Colors.red, size: 18.w),
                         SizedBox(width: 8.w),
                         Text(
                           '주의사항',
@@ -129,24 +130,26 @@ class EmotionRecommendationsCard extends StatelessWidget {
                     ),
                     SizedBox(height: 8.h),
                     ...recommendations.warnings.map((warning) => Padding(
-                      padding: EdgeInsets.only(bottom: 4.h),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('• ', style: TextStyle(color: Colors.red, fontSize: 13.sp)),
-                          Expanded(
-                            child: Text(
-                              warning,
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                color: Colors.red.shade700,
-                                height: 1.4,
+                          padding: EdgeInsets.only(bottom: 4.h),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('• ',
+                                  style: TextStyle(
+                                      color: Colors.red, fontSize: 13.sp)),
+                              Expanded(
+                                child: Text(
+                                  warning,
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    color: Colors.red.shade700,
+                                    height: 1.4,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                    )),
+                        )),
                   ],
                 ),
               ),
@@ -304,7 +307,10 @@ class EmotionRecommendationsCard extends StatelessWidget {
             ),
           ],
           warnings: dominantValue > 0.7
-              ? ['슬픔이 지속된다면 수의사 상담을 고려해보세요.', '식욕 저하나 무기력함이 계속되면 건강 문제일 수 있습니다.']
+              ? [
+                  '슬픔이 지속된다면 수의사 상담을 고려해보세요.',
+                  '식욕 저하나 무기력함이 계속되면 건강 문제일 수 있습니다.'
+                ]
               : [],
         );
 
@@ -377,9 +383,7 @@ class EmotionRecommendationsCard extends StatelessWidget {
               description: '낮 동안 적절한 활동으로 밤에 숙면을 취하게 해주세요.',
             ),
           ],
-          warnings: dominantValue > 0.8
-              ? ['과도한 졸음이 계속된다면 건강 상태를 확인해보세요.']
-              : [],
+          warnings: dominantValue > 0.8 ? ['과도한 졸음이 계속된다면 건강 상태를 확인해보세요.'] : [],
         );
 
       case 'curiosity':

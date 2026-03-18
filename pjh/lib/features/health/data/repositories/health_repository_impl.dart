@@ -28,10 +28,8 @@ class HealthRepositoryImpl implements HealthRepository {
     }
 
     try {
-      var query = supabaseClient
-          .from('health_records')
-          .select()
-          .eq('pet_id', petId);
+      var query =
+          supabaseClient.from('health_records').select().eq('pet_id', petId);
 
       if (type != null) {
         query = query.eq('record_type', type.name);
@@ -49,7 +47,8 @@ class HealthRepositoryImpl implements HealthRepository {
     } on PostgrestException catch (e) {
       return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
     } catch (e) {
-      return Left(GeneralFailure(message: ErrorMessages.healthRecordLoadFailed));
+      return Left(
+          GeneralFailure(message: ErrorMessages.healthRecordLoadFailed));
     }
   }
 
@@ -117,10 +116,7 @@ class HealthRepositoryImpl implements HealthRepository {
     }
 
     try {
-      await supabaseClient
-          .from('health_records')
-          .delete()
-          .eq('id', recordId);
+      await supabaseClient.from('health_records').delete().eq('id', recordId);
 
       return const Right(null);
     } on PostgrestException catch (e) {

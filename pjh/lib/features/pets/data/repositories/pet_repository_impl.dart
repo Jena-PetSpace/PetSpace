@@ -70,8 +70,7 @@ class PetRepositoryImpl implements PetRepository {
           .maybeSingle();
 
       if (response == null) {
-        return const Left(
-            DatabaseFailure(message: '해당 반려동물을 찾을 수 없습니다.'));
+        return const Left(DatabaseFailure(message: '해당 반려동물을 찾을 수 없습니다.'));
       }
 
       final pet = PetModel.fromJson(response);
@@ -79,8 +78,7 @@ class PetRepositoryImpl implements PetRepository {
     } on PostgrestException catch (e) {
       return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
     } catch (e) {
-      return Left(
-          GeneralFailure(message: '반려동물 조회 중 오류 발생: ${e.toString()}'));
+      return Left(GeneralFailure(message: '반려동물 조회 중 오류 발생: ${e.toString()}'));
     }
   }
 
@@ -106,17 +104,14 @@ class PetRepositoryImpl implements PetRepository {
     } on PostgrestException catch (e) {
       if (e.code == '23503') {
         // Foreign Key Violation
-        return const Left(
-            DatabaseFailure(message: '유효하지 않은 사용자입니다.'));
+        return const Left(DatabaseFailure(message: '유효하지 않은 사용자입니다.'));
       } else if (e.code == '23505') {
         // Unique Violation (unlikely for pets)
-        return const Left(
-            DatabaseFailure(message: '이미 존재하는 반려동물입니다.'));
+        return const Left(DatabaseFailure(message: '이미 존재하는 반려동물입니다.'));
       }
       return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
     } catch (e) {
-      return Left(
-          GeneralFailure(message: '반려동물 등록 중 오류 발생: ${e.toString()}'));
+      return Left(GeneralFailure(message: '반려동물 등록 중 오류 발생: ${e.toString()}'));
     }
   }
 
@@ -142,8 +137,7 @@ class PetRepositoryImpl implements PetRepository {
       return Right(updatedPet);
     } on PostgrestException catch (e) {
       if (e.code == '404' || e.message.contains('No rows found')) {
-        return const Left(
-            DatabaseFailure(message: '해당 반려동물을 찾을 수 없습니다.'));
+        return const Left(DatabaseFailure(message: '해당 반려동물을 찾을 수 없습니다.'));
       }
       return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
     } catch (e) {
@@ -183,13 +177,11 @@ class PetRepositoryImpl implements PetRepository {
       return const Right(null);
     } on PostgrestException catch (e) {
       if (e.code == '404' || e.message.contains('No rows found')) {
-        return const Left(
-            DatabaseFailure(message: '해당 반려동물을 찾을 수 없습니다.'));
+        return const Left(DatabaseFailure(message: '해당 반려동물을 찾을 수 없습니다.'));
       }
       return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
     } catch (e) {
-      return Left(
-          GeneralFailure(message: '반려동물 삭제 중 오류 발생: ${e.toString()}'));
+      return Left(GeneralFailure(message: '반려동물 삭제 중 오류 발생: ${e.toString()}'));
     }
   }
 
@@ -215,8 +207,7 @@ class PetRepositoryImpl implements PetRepository {
             // 이미지 업로드 (Supabase Storage: images 버킷)
             final userId = supabaseClient.auth.currentUser?.id;
             if (userId == null) {
-              return const Left(
-                  AuthFailure(message: '로그인이 필요합니다.'));
+              return const Left(AuthFailure(message: '로그인이 필요합니다.'));
             }
 
             // 기존 이미지가 있으면 삭제
@@ -256,14 +247,13 @@ class PetRepositoryImpl implements PetRepository {
 
             return Right(photoUrl);
           } catch (e) {
-            return Left(GeneralFailure(
-                message: '이미지 업로드 중 오류 발생: ${e.toString()}'));
+            return Left(
+                GeneralFailure(message: '이미지 업로드 중 오류 발생: ${e.toString()}'));
           }
         },
       );
     } catch (e) {
-      return Left(
-          GeneralFailure(message: '이미지 업로드 중 오류 발생: ${e.toString()}'));
+      return Left(GeneralFailure(message: '이미지 업로드 중 오류 발생: ${e.toString()}'));
     }
   }
 
@@ -315,9 +305,8 @@ class PetRepositoryImpl implements PetRepository {
         );
 
         if (response != null && response is List) {
-          final breeds = response
-              .map((item) => item['name_ko'] as String)
-              .toList();
+          final breeds =
+              response.map((item) => item['name_ko'] as String).toList();
 
           return Right(breeds);
         }
@@ -344,8 +333,30 @@ class PetRepositoryImpl implements PetRepository {
     } catch (e) {
       // 에러 발생 시 기본 품종 목록 반환 (폴백)
       final fallbackBreeds = petType == PetType.dog
-          ? ['말티즈', '푸들', '치와와', '포메라니안', '시바견', '비글', '웰시코기', '골든 리트리버', '래브라도 리트리버', '진돗개']
-          : ['코리안 숏헤어', '페르시안', '러시안 블루', '샴', '스코티시 폴드', '먼치킨', '아메리칸 숏헤어', '메인쿤', '브리티시 숏헤어', '뱅갈'];
+          ? [
+              '말티즈',
+              '푸들',
+              '치와와',
+              '포메라니안',
+              '시바견',
+              '비글',
+              '웰시코기',
+              '골든 리트리버',
+              '래브라도 리트리버',
+              '진돗개'
+            ]
+          : [
+              '코리안 숏헤어',
+              '페르시안',
+              '러시안 블루',
+              '샴',
+              '스코티시 폴드',
+              '먼치킨',
+              '아메리칸 숏헤어',
+              '메인쿤',
+              '브리티시 숏헤어',
+              '뱅갈'
+            ];
 
       final filtered = fallbackBreeds
           .where((breed) => breed.toLowerCase().contains(query.toLowerCase()))
@@ -372,9 +383,8 @@ class PetRepositoryImpl implements PetRepository {
         );
 
         if (response != null && response is List) {
-          final breeds = response
-              .map((item) => item['name_ko'] as String)
-              .toList();
+          final breeds =
+              response.map((item) => item['name_ko'] as String).toList();
 
           return Right(breeds);
         }
@@ -391,13 +401,13 @@ class PetRepositoryImpl implements PetRepository {
           .order('display_order')
           .order('name_ko');
 
-      final breeds = (response as List)
-          .map((item) => item['name_ko'] as String)
-          .toList();
+      final breeds =
+          (response as List).map((item) => item['name_ko'] as String).toList();
 
       return Right(breeds);
     } catch (e) {
-      return Left(ServerFailure(message: '품종 목록 조회 중 오류가 발생했습니다: ${e.toString()}'));
+      return Left(
+          ServerFailure(message: '품종 목록 조회 중 오류가 발생했습니다: ${e.toString()}'));
     }
   }
 }

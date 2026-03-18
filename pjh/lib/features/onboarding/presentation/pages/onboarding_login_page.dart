@@ -42,7 +42,8 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        developer.log('AuthBloc 상태 변경: ${state.runtimeType}', name: 'LoginPage');
+        developer.log('AuthBloc 상태 변경: ${state.runtimeType}',
+            name: 'LoginPage');
 
         if (state is AuthEmailVerificationRequired) {
           // state의 user 객체에서 이메일을 가져옴
@@ -57,7 +58,8 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
             _isGoogleLoginInProgress = false;
             _isEmailLoginInProgress = false;
           });
-          final route = '/onboarding/email-verification?email=${Uri.encodeComponent(email)}';
+          final route =
+              '/onboarding/email-verification?email=${Uri.encodeComponent(email)}';
           developer.log('이메일 인증 페이지로 이동: $route', name: 'LoginPage');
           context.go(route);
         } else if (state is AuthAuthenticated) {
@@ -138,12 +140,15 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
               ),
             ),
             // 로딩 오버레이
-            if (_isKakaoLoginInProgress || _isGoogleLoginInProgress || _isEmailLoginInProgress)
+            if (_isKakaoLoginInProgress ||
+                _isGoogleLoginInProgress ||
+                _isEmailLoginInProgress)
               Container(
                 color: Colors.black.withValues(alpha: 0.3),
                 child: const Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
                   ),
                 ),
               ),
@@ -363,7 +368,9 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
             width: double.infinity,
             height: 50.h,
             child: ElevatedButton(
-              onPressed: (_isSigningUp || _isEmailLoginInProgress) ? null : _emailLogin,
+              onPressed: (_isSigningUp || _isEmailLoginInProgress)
+                  ? null
+                  : _emailLogin,
               child: (_isSigningUp || _isEmailLoginInProgress)
                   ? SizedBox(
                       width: 20.w,
@@ -373,7 +380,8 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : Text(_isLogin ? '로그인' : '회원가입', style: TextStyle(fontSize: 16.sp)),
+                  : Text(_isLogin ? '로그인' : '회원가입',
+                      style: TextStyle(fontSize: 16.sp)),
             ),
           ),
         ],
@@ -421,7 +429,8 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
       developer.log('AuthSignInWithKakaoRequested 이벤트 발생', name: 'LoginPage');
       context.read<AuthBloc>().add(AuthSignInWithKakaoRequested());
     } catch (e, stackTrace) {
-      developer.log('이벤트 발생 중 오류: $e', name: 'LoginPage', error: e, stackTrace: stackTrace);
+      developer.log('이벤트 발생 중 오류: $e',
+          name: 'LoginPage', error: e, stackTrace: stackTrace);
       setState(() {
         _isKakaoLoginInProgress = false;
       });
@@ -447,8 +456,8 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
       if (_isLogin) {
         // 로그인
         context.read<AuthBloc>().add(
-          AuthSignInWithEmailRequested(email: email, password: password),
-        );
+              AuthSignInWithEmailRequested(email: email, password: password),
+            );
       } else {
         // 회원가입
         setState(() {
@@ -456,12 +465,12 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         });
         final displayName = _displayNameController.text.trim();
         context.read<AuthBloc>().add(
-          AuthSignUpWithEmailRequested(
-            email: email,
-            password: password,
-            displayName: displayName,
-          ),
-        );
+              AuthSignUpWithEmailRequested(
+                email: email,
+                password: password,
+                displayName: displayName,
+              ),
+            );
       }
     }
   }

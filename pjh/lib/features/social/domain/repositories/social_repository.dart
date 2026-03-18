@@ -57,14 +57,17 @@ abstract class SocialRepository {
   Future<Either<Failure, void>> unlikeComment(String commentId, String userId);
 
   // Follow operations
-  Future<Either<Failure, Follow>> followUser(String followerId, String followingId);
-  Future<Either<Failure, void>> unfollowUser(String followerId, String followingId);
+  Future<Either<Failure, Follow>> followUser(
+      String followerId, String followingId);
+  Future<Either<Failure, void>> unfollowUser(
+      String followerId, String followingId);
   Future<Either<Failure, void>> acceptFollowRequest(String followId);
   Future<Either<Failure, void>> rejectFollowRequest(String followId);
   Future<Either<Failure, List<Follow>>> getFollowers(String userId);
   Future<Either<Failure, List<Follow>>> getFollowing(String userId);
   Future<Either<Failure, List<Follow>>> getPendingFollowRequests(String userId);
-  Future<Either<Failure, bool>> isFollowing(String followerId, String followingId);
+  Future<Either<Failure, bool>> isFollowing(
+      String followerId, String followingId);
 
   // Notification operations
   Future<Either<Failure, List<Notification>>> getNotifications({
@@ -86,11 +89,11 @@ abstract class SocialRepository {
   Future<Either<Failure, void>> sharePost(String postId, String userId);
   Future<Either<Failure, List<Post>>> getSharedPosts(String userId);
 
-
   // Bookmark operations
   Future<Either<Failure, void>> savePost(String postId, String userId);
   Future<Either<Failure, void>> unsavePost(String postId, String userId);
-  Future<Either<Failure, List<Post>>> getSavedPosts({required String userId, int limit = 20});
+  Future<Either<Failure, List<Post>>> getSavedPosts(
+      {required String userId, int limit = 20});
   Future<Either<Failure, bool>> isPostSaved(String postId, String userId);
 
   // Block operations
@@ -99,8 +102,10 @@ abstract class SocialRepository {
   Future<Either<Failure, bool>> isBlocked(String blockerId, String blockedId);
 
   // Report operations
-  Future<Either<Failure, void>> reportPost(String postId, String userId, String reason);
-  Future<Either<Failure, void>> reportUser(String reportedUserId, String reporterId, String reason);
+  Future<Either<Failure, void>> reportPost(
+      String postId, String userId, String reason);
+  Future<Either<Failure, void>> reportUser(
+      String reportedUserId, String reporterId, String reason);
 
   // Search operations
   Future<Either<Failure, List<Post>>> searchPosts({

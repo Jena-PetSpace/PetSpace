@@ -46,7 +46,8 @@ class Follow extends Equatable {
       followerName: followerName ?? this.followerName,
       followingName: followingName ?? this.followingName,
       followerProfileImage: followerProfileImage ?? this.followerProfileImage,
-      followingProfileImage: followingProfileImage ?? this.followingProfileImage,
+      followingProfileImage:
+          followingProfileImage ?? this.followingProfileImage,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       acceptedAt: acceptedAt ?? this.acceptedAt,

@@ -38,7 +38,8 @@ class CommunityPostCard extends StatelessWidget {
               CircleAvatar(
                 radius: 16.r,
                 backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                child: Icon(Icons.person, size: 16.w, color: AppTheme.primaryColor),
+                child: Icon(Icons.person,
+                    size: 16.w, color: AppTheme.primaryColor),
               ),
               SizedBox(width: 8.w),
               Text(
@@ -104,18 +105,22 @@ class CommunityPostCard extends StatelessWidget {
           // 좋아요 / 댓글
           Row(
             children: [
-              Icon(Icons.favorite_border, size: 14.w, color: AppTheme.secondaryTextColor),
+              Icon(Icons.favorite_border,
+                  size: 14.w, color: AppTheme.secondaryTextColor),
               SizedBox(width: 4.w),
               Text(
                 '$likes',
-                style: TextStyle(fontSize: 10.sp, color: AppTheme.secondaryTextColor),
+                style: TextStyle(
+                    fontSize: 10.sp, color: AppTheme.secondaryTextColor),
               ),
               SizedBox(width: 16.w),
-              Icon(Icons.chat_bubble_outline, size: 14.w, color: AppTheme.secondaryTextColor),
+              Icon(Icons.chat_bubble_outline,
+                  size: 14.w, color: AppTheme.secondaryTextColor),
               SizedBox(width: 4.w),
               Text(
                 '$comments',
-                style: TextStyle(fontSize: 10.sp, color: AppTheme.secondaryTextColor),
+                style: TextStyle(
+                    fontSize: 10.sp, color: AppTheme.secondaryTextColor),
               ),
             ],
           ),

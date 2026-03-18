@@ -125,8 +125,7 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
       builder: (_, __) {
         return Stack(
           children: List.generate(3, (i) {
-            final offset =
-                sin(_blobController.value * 2 * pi + i * 1.2) * 15;
+            final offset = sin(_blobController.value * 2 * pi + i * 1.2) * 15;
             final size = (160.0 + i * 50).w;
 
             return Positioned(
@@ -173,8 +172,7 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
             CustomPaint(
               size: Size(180.w, 180.w),
               painter: BlobPainter(
-                animationValue:
-                    (_blobController.value + 0.3) % 1.0,
+                animationValue: (_blobController.value + 0.3) % 1.0,
                 color1: emotionColors.$2,
                 color2: emotionColors.$1,
                 opacity: 0.15,
@@ -191,8 +189,7 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
     return AnimatedBuilder(
       animation: _blobController,
       builder: (_, __) {
-        final pulseScale =
-            1.0 + sin(_blobController.value * 2 * pi) * 0.04;
+        final pulseScale = 1.0 + sin(_blobController.value * 2 * pi) * 0.04;
         return Transform.scale(
           scale: pulseScale,
           child: AnimatedSwitcher(

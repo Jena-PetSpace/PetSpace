@@ -132,7 +132,8 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+              borderSide:
+                  const BorderSide(color: AppTheme.primaryColor, width: 2),
             ),
             filled: true,
             fillColor: Colors.grey[50],
@@ -169,7 +170,8 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
                   });
                 },
                 backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                labelStyle: TextStyle(color: AppTheme.primaryColor, fontSize: 12.sp),
+                labelStyle:
+                    TextStyle(color: AppTheme.primaryColor, fontSize: 12.sp),
                 deleteIconColor: AppTheme.primaryColor,
               ),
             ),
@@ -212,9 +214,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
                   ),
                 ),
                 Text(
-                  _isPublic
-                      ? '모든 사용자가 볼 수 있습니다'
-                      : '나를 팔로우하는 사용자만 볼 수 있습니다',
+                  _isPublic ? '모든 사용자가 볼 수 있습니다' : '나를 팔로우하는 사용자만 볼 수 있습니다',
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: AppTheme.secondaryTextColor,

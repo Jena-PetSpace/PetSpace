@@ -32,10 +32,12 @@ class ChatRoomModel {
     this.unreadCount = 0,
   });
 
-  factory ChatRoomModel.fromJson(Map<String, dynamic> json, {int unreadCount = 0}) {
+  factory ChatRoomModel.fromJson(Map<String, dynamic> json,
+      {int unreadCount = 0}) {
     final participantsList = json['chat_participants'] as List<dynamic>?;
     final participants = participantsList
-            ?.map((p) => ChatParticipantModel.fromJson(p as Map<String, dynamic>))
+            ?.map(
+                (p) => ChatParticipantModel.fromJson(p as Map<String, dynamic>))
             .toList() ??
         [];
 

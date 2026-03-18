@@ -13,7 +13,8 @@ import '../../domain/usecases/delete_emotion_analysis.dart';
 part 'emotion_analysis_event.dart';
 part 'emotion_analysis_state.dart';
 
-class EmotionAnalysisBloc extends Bloc<EmotionAnalysisEvent, EmotionAnalysisState> {
+class EmotionAnalysisBloc
+    extends Bloc<EmotionAnalysisEvent, EmotionAnalysisState> {
   final AnalyzeEmotion _analyzeEmotion;
   final SaveEmotionAnalysis _saveEmotionAnalysis;
   final GetEmotionHistory _getEmotionHistory;

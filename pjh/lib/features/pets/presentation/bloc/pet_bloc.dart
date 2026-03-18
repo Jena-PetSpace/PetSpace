@@ -33,9 +33,8 @@ class PetBloc extends Bloc<PetEvent, PetState> {
     Emitter<PetState> emit,
   ) async {
     // 기존 선택된 반려동물 ID 보존
-    final previousSelectedPetId = state is PetLoaded
-        ? (state as PetLoaded).selectedPet?.id
-        : null;
+    final previousSelectedPetId =
+        state is PetLoaded ? (state as PetLoaded).selectedPet?.id : null;
 
     emit(PetLoading());
 
@@ -55,9 +54,9 @@ class PetBloc extends Bloc<PetEvent, PetState> {
           Pet? selectedPet;
           if (previousSelectedPetId != null) {
             selectedPet = pets.cast<Pet?>().firstWhere(
-              (pet) => pet?.id == previousSelectedPetId,
-              orElse: () => null,
-            );
+                  (pet) => pet?.id == previousSelectedPetId,
+                  orElse: () => null,
+                );
           }
           selectedPet ??= pets.isNotEmpty ? pets.first : null;
 
@@ -154,9 +153,8 @@ class PetBloc extends Bloc<PetEvent, PetState> {
       result.fold(
         (failure) => emit(PetError(failure.message)),
         (_) {
-          final updatedPets = currentState.pets
-              .where((pet) => pet.id != event.petId)
-              .toList();
+          final updatedPets =
+              currentState.pets.where((pet) => pet.id != event.petId).toList();
 
           Pet? newSelectedPet = currentState.selectedPet;
           if (currentState.selectedPet?.id == event.petId) {

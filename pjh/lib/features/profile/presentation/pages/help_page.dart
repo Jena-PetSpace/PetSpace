@@ -36,8 +36,8 @@ class HelpPage extends StatelessWidget {
           ListTile(
             leading: Icon(Icons.email, size: 24.w),
             title: Text('이메일 문의', style: TextStyle(fontSize: 14.sp)),
-            subtitle: Text('support@petspace.app',
-                style: TextStyle(fontSize: 12.sp)),
+            subtitle:
+                Text('support@petspace.app', style: TextStyle(fontSize: 12.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(

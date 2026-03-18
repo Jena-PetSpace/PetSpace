@@ -121,32 +121,37 @@ class _MainNavigationState extends State<MainNavigation> {
               // 중앙 AI분석 FAB 버튼
               if (index == 2) {
                 return Semantics(
-                  label: 'AI 감정 분석',
-                  button: true,
-                  selected: _currentIndex == 2,
-                  child: GestureDetector(
-                  onTap: () => _onTabTapped(index),
-                  child: Container(
-                    width: 56.w,
-                    height: 56.w,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18.r),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppTheme.primaryColor, AppTheme.accentColor],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                    label: 'AI 감정 분석',
+                    button: true,
+                    selected: _currentIndex == 2,
+                    child: GestureDetector(
+                      onTap: () => _onTabTapped(index),
+                      child: Container(
+                        width: 56.w,
+                        height: 56.w,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18.r),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppTheme.primaryColor,
+                              AppTheme.accentColor
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  AppTheme.primaryColor.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Icon(Icons.psychology, color: Colors.white, size: 28.w),
-                  ),
-                ));
+                        child: Icon(Icons.psychology,
+                            color: Colors.white, size: 28.w),
+                      ),
+                    ));
               }
 
               return Semantics(
@@ -179,9 +184,8 @@ class _MainNavigationState extends State<MainNavigation> {
                           item.label,
                           style: TextStyle(
                             fontSize: 10.sp,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+                            fontWeight:
+                                isSelected ? FontWeight.w600 : FontWeight.w400,
                             color: isSelected
                                 ? AppTheme.primaryColor
                                 : AppTheme.secondaryTextColor,
@@ -204,9 +208,8 @@ class _MainNavigationState extends State<MainNavigation> {
       builder: (context, badgeState) {
         final icon = Icon(
           isSelected ? item.selectedIcon : item.icon,
-          color: isSelected
-              ? AppTheme.primaryColor
-              : AppTheme.secondaryTextColor,
+          color:
+              isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
           size: 24.w,
         );
 
@@ -293,8 +296,7 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _refreshNotificationBadge() {
-    final userId =
-        Supabase.instance.client.auth.currentUser?.id;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) {
       context.read<NotificationBadgeBloc>().add(
             NotificationBadgeRefreshRequested(userId: userId),

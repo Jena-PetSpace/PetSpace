@@ -54,7 +54,8 @@ class PetCard extends StatelessWidget {
                       children: [
                         if (isSelected) ...[
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 6.w, vertical: 2.h),
                             decoration: BoxDecoration(
                               color: AppTheme.primaryColor,
                               borderRadius: BorderRadius.circular(4.r),

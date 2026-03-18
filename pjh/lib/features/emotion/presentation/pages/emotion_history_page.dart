@@ -40,13 +40,13 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
 
   void _loadHistory() {
     context.read<EmotionAnalysisBloc>().add(
-      LoadAnalysisHistory(
-        userId: widget.userId,
-        petId: widget.petId,
-        startDate: _startDate,
-        endDate: _endDate,
-      ),
-    );
+          LoadAnalysisHistory(
+            userId: widget.userId,
+            petId: widget.petId,
+            startDate: _startDate,
+            endDate: _endDate,
+          ),
+        );
   }
 
   @override
@@ -106,7 +106,9 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
       child: Column(
         children: [
           // 활성 필터 표시
-          if (_startDate != null || _endDate != null || _selectedEmotion != null)
+          if (_startDate != null ||
+              _endDate != null ||
+              _selectedEmotion != null)
             _buildActiveFilters(),
           Expanded(
             child: ListView.builder(
@@ -132,12 +134,19 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
     }
 
     final now = DateTime.now();
-    final daysInMonth = DateUtils.getDaysInMonth(_calendarMonth.year, _calendarMonth.month);
-    final firstWeekday = DateTime(_calendarMonth.year, _calendarMonth.month, 1).weekday % 7; // 0=Sun
+    final daysInMonth =
+        DateUtils.getDaysInMonth(_calendarMonth.year, _calendarMonth.month);
+    final firstWeekday =
+        DateTime(_calendarMonth.year, _calendarMonth.month, 1).weekday %
+            7; // 0=Sun
 
     // Selected day's analyses
-    final selectedKey = _selectedDay != null ? DateFormat('yyyy-MM-dd').format(_selectedDay!) : null;
-    final selectedAnalyses = selectedKey != null ? (grouped[selectedKey] ?? []) : <EmotionAnalysis>[];
+    final selectedKey = _selectedDay != null
+        ? DateFormat('yyyy-MM-dd').format(_selectedDay!)
+        : null;
+    final selectedAnalyses = selectedKey != null
+        ? (grouped[selectedKey] ?? [])
+        : <EmotionAnalysis>[];
 
     return Column(
       children: [
@@ -151,7 +160,8 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
                 icon: const Icon(Icons.chevron_left),
                 onPressed: () {
                   setState(() {
-                    _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month - 1);
+                    _calendarMonth =
+                        DateTime(_calendarMonth.year, _calendarMonth.month - 1);
                     _selectedDay = null;
                   });
                 },
@@ -163,10 +173,12 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
               IconButton(
                 icon: const Icon(Icons.chevron_right),
                 onPressed: _calendarMonth.year < now.year ||
-                    (_calendarMonth.year == now.year && _calendarMonth.month < now.month)
+                        (_calendarMonth.year == now.year &&
+                            _calendarMonth.month < now.month)
                     ? () {
                         setState(() {
-                          _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month + 1);
+                          _calendarMonth = DateTime(
+                              _calendarMonth.year, _calendarMonth.month + 1);
                           _selectedDay = null;
                         });
                       }
@@ -188,7 +200,11 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
                     style: TextStyle(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w600,
-                      color: day == '일' ? Colors.red : day == '토' ? Colors.blue : AppTheme.secondaryTextColor,
+                      color: day == '일'
+                          ? Colors.red
+                          : day == '토'
+                              ? Colors.blue
+                              : AppTheme.secondaryTextColor,
                     ),
                   ),
                 ),
@@ -213,14 +229,17 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
               if (index < firstWeekday) return const SizedBox.shrink();
 
               final day = index - firstWeekday + 1;
-              final date = DateTime(_calendarMonth.year, _calendarMonth.month, day);
+              final date =
+                  DateTime(_calendarMonth.year, _calendarMonth.month, day);
               final dateKey = DateFormat('yyyy-MM-dd').format(date);
               final dayAnalyses = grouped[dateKey];
               final isSelected = _selectedDay != null &&
                   _selectedDay!.year == date.year &&
                   _selectedDay!.month == date.month &&
                   _selectedDay!.day == date.day;
-              final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+              final isToday = date.year == now.year &&
+                  date.month == now.month &&
+                  date.day == now.day;
 
               return GestureDetector(
                 onTap: dayAnalyses != null && dayAnalyses.isNotEmpty
@@ -235,7 +254,9 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
                             ? Colors.grey.withValues(alpha: 0.1)
                             : null,
                     borderRadius: BorderRadius.circular(8.r),
-                    border: isToday ? Border.all(color: AppTheme.primaryColor, width: 1) : null,
+                    border: isToday
+                        ? Border.all(color: AppTheme.primaryColor, width: 1)
+                        : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -244,7 +265,8 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
                         '$day',
                         style: TextStyle(
                           fontSize: 13.sp,
-                          fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isToday ? FontWeight.bold : FontWeight.normal,
                           color: date.isAfter(now) ? Colors.grey[300] : null,
                         ),
                       ),
@@ -288,19 +310,22 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
             child: ListView.builder(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               itemCount: selectedAnalyses.length,
-              itemBuilder: (context, index) => _buildHistoryItem(selectedAnalyses[index]),
+              itemBuilder: (context, index) =>
+                  _buildHistoryItem(selectedAnalyses[index]),
             ),
           )
         else if (_selectedDay != null)
           Expanded(
             child: Center(
-              child: Text('이 날의 분석 기록이 없습니다', style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
+              child: Text('이 날의 분석 기록이 없습니다',
+                  style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
             ),
           )
         else
           Expanded(
             child: Center(
-              child: Text('날짜를 선택하면 분석 기록을 볼 수 있습니다', style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
+              child: Text('날짜를 선택하면 분석 기록을 볼 수 있습니다',
+                  style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
             ),
           ),
       ],
@@ -372,7 +397,8 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
                               style: TextStyle(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.getEmotionColor(dominantEmotion),
+                                color:
+                                    AppTheme.getEmotionColor(dominantEmotion),
                               ),
                             ),
                           ],
@@ -385,7 +411,8 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
                             color: AppTheme.secondaryTextColor,
                           ),
                         ),
-                        if (analysis.memo != null && analysis.memo!.isNotEmpty) ...[
+                        if (analysis.memo != null &&
+                            analysis.memo!.isNotEmpty) ...[
                           SizedBox(height: 4.h),
                           Text(
                             analysis.memo!,
@@ -544,7 +571,8 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
                 _getEmotionName(_selectedEmotion!),
                 style: TextStyle(fontSize: 12.sp),
               ),
-              backgroundColor: AppTheme.getEmotionColor(_selectedEmotion!).withValues(alpha: 0.2),
+              backgroundColor: AppTheme.getEmotionColor(_selectedEmotion!)
+                  .withValues(alpha: 0.2),
               deleteIcon: Icon(Icons.close, size: 18.w),
               onDeleted: () {
                 setState(() {
@@ -573,12 +601,14 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
                 const SizedBox(height: 8),
                 ListTile(
                   title: const Text('시작일'),
-                  subtitle: Text(_startDate?.toString().split(' ')[0] ?? '선택되지 않음'),
+                  subtitle:
+                      Text(_startDate?.toString().split(' ')[0] ?? '선택되지 않음'),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
-                      initialDate: _startDate ?? DateTime.now().subtract(const Duration(days: 30)),
+                      initialDate: _startDate ??
+                          DateTime.now().subtract(const Duration(days: 30)),
                       firstDate: DateTime(2020),
                       lastDate: DateTime.now(),
                     );
@@ -590,7 +620,8 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
                 ),
                 ListTile(
                   title: const Text('종료일'),
-                  subtitle: Text(_endDate?.toString().split(' ')[0] ?? '선택되지 않음'),
+                  subtitle:
+                      Text(_endDate?.toString().split(' ')[0] ?? '선택되지 않음'),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: () async {
                     final date = await showDatePicker(
@@ -652,7 +683,8 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
     );
   }
 
-  Widget _buildEmotionFilterChip(String emotion, String label, StateSetter setDialogState) {
+  Widget _buildEmotionFilterChip(
+      String emotion, String label, StateSetter setDialogState) {
     final isSelected = _selectedEmotion == emotion;
     return FilterChip(
       label: Text(label),
@@ -669,13 +701,13 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
 
   void _showStatistics() {
     context.read<EmotionAnalysisBloc>().add(
-      LoadEmotionStatistics(
-        userId: widget.userId,
-        petId: widget.petId,
-        startDate: _startDate,
-        endDate: _endDate,
-      ),
-    );
+          LoadEmotionStatistics(
+            userId: widget.userId,
+            petId: widget.petId,
+            startDate: _startDate,
+            endDate: _endDate,
+          ),
+        );
 
     showModalBottomSheet(
       context: context,
@@ -693,7 +725,8 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
               if (state is EmotionStatisticsLoading) {
                 return const Center(child: CircularProgressIndicator());
               } else if (state is EmotionStatisticsLoaded) {
-                return _buildStatisticsSheet(state.statistics, scrollController);
+                return _buildStatisticsSheet(
+                    state.statistics, scrollController);
               } else if (state is EmotionAnalysisError) {
                 return Center(child: Text(state.message));
               }
@@ -705,8 +738,10 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
     );
   }
 
-  Widget _buildStatisticsSheet(Map<String, dynamic> statistics, ScrollController scrollController) {
-    final averageEmotions = statistics['averageEmotions'] as Map<String, dynamic>;
+  Widget _buildStatisticsSheet(
+      Map<String, dynamic> statistics, ScrollController scrollController) {
+    final averageEmotions =
+        statistics['averageEmotions'] as Map<String, dynamic>;
     final totalAnalyses = statistics['totalAnalyses'] as int;
     final dominantEmotion = statistics['dominantEmotion'] as String?;
 
@@ -725,23 +760,24 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
               ),
             ),
             SizedBox(height: 20.h),
-
             Row(
               children: [
                 Expanded(
-                  child: _buildStatCard('총 분석 횟수', '$totalAnalyses회', Icons.analytics),
+                  child: _buildStatCard(
+                      '총 분석 횟수', '$totalAnalyses회', Icons.analytics),
                 ),
                 SizedBox(width: 16.w),
                 Expanded(
                   child: _buildStatCard(
                     '주요 감정',
-                    dominantEmotion != null ? _getEmotionName(dominantEmotion) : '없음',
+                    dominantEmotion != null
+                        ? _getEmotionName(dominantEmotion)
+                        : '없음',
                     _getEmotionIcon(dominantEmotion ?? ''),
                   ),
                 ),
               ],
             ),
-
             SizedBox(height: 20.h),
             Text(
               '평균 감정 분포',
@@ -751,7 +787,6 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
               ),
             ),
             SizedBox(height: 16.h),
-
             if (averageEmotions.isNotEmpty)
               EmotionBarChart(
                 emotions: EmotionScores(
@@ -804,7 +839,9 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
       MaterialPageRoute(
         builder: (context) => EmotionResultPage(
           analysis: analysis,
-          imagePaths: analysis.localImagePath.isNotEmpty ? [analysis.localImagePath] : [],
+          imagePaths: analysis.localImagePath.isNotEmpty
+              ? [analysis.localImagePath]
+              : [],
         ),
       ),
     );
@@ -812,34 +849,52 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
 
   double _getEmotionValue(EmotionScores emotions, String emotion) {
     switch (emotion) {
-      case 'happiness': return emotions.happiness;
-      case 'sadness': return emotions.sadness;
-      case 'anxiety': return emotions.anxiety;
-      case 'sleepiness': return emotions.sleepiness;
-      case 'curiosity': return emotions.curiosity;
-      default: return 0.0;
+      case 'happiness':
+        return emotions.happiness;
+      case 'sadness':
+        return emotions.sadness;
+      case 'anxiety':
+        return emotions.anxiety;
+      case 'sleepiness':
+        return emotions.sleepiness;
+      case 'curiosity':
+        return emotions.curiosity;
+      default:
+        return 0.0;
     }
   }
 
   String _getEmotionName(String emotion) {
     switch (emotion) {
-      case 'happiness': return '기쁨';
-      case 'sadness': return '슬픔';
-      case 'anxiety': return '불안';
-      case 'sleepiness': return '졸림';
-      case 'curiosity': return '호기심';
-      default: return '알 수 없음';
+      case 'happiness':
+        return '기쁨';
+      case 'sadness':
+        return '슬픔';
+      case 'anxiety':
+        return '불안';
+      case 'sleepiness':
+        return '졸림';
+      case 'curiosity':
+        return '호기심';
+      default:
+        return '알 수 없음';
     }
   }
 
   IconData _getEmotionIcon(String emotion) {
     switch (emotion) {
-      case 'happiness': return Icons.mood;
-      case 'sadness': return Icons.mood_bad;
-      case 'anxiety': return Icons.warning;
-      case 'sleepiness': return Icons.bedtime;
-      case 'curiosity': return Icons.psychology;
-      default: return Icons.help_outline;
+      case 'happiness':
+        return Icons.mood;
+      case 'sadness':
+        return Icons.mood_bad;
+      case 'anxiety':
+        return Icons.warning;
+      case 'sleepiness':
+        return Icons.bedtime;
+      case 'curiosity':
+        return Icons.psychology;
+      default:
+        return Icons.help_outline;
     }
   }
 

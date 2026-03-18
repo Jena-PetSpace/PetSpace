@@ -19,7 +19,8 @@ abstract class SocialRemoteDataSource {
   Future<SocialUser> getUser(String userId);
   Future<SocialUser> updateUser(SocialUser user);
   Future<void> deleteUser(String userId);
-  Future<List<SocialUser>> searchUsers(String query, int limit, String? lastUserId);
+  Future<List<SocialUser>> searchUsers(
+      String query, int limit, String? lastUserId);
 
   Future<Post> createPost(Post post, List<File> images);
   Future<Post> getPost(String postId);
@@ -36,7 +37,8 @@ abstract class SocialRemoteDataSource {
 
   Future<Comment> createComment(Comment comment);
   Future<Comment> getComment(String commentId);
-  Future<List<Comment>> getPostComments(String postId, int limit, String? lastCommentId);
+  Future<List<Comment>> getPostComments(
+      String postId, int limit, String? lastCommentId);
   Future<Comment> updateComment(Comment comment);
   Future<void> deleteComment(String commentId);
   Future<void> likeComment(String commentId, String userId);
@@ -45,18 +47,23 @@ abstract class SocialRemoteDataSource {
   Future<void> followUser(String followerId, String followingId);
   Future<void> unfollowUser(String followerId, String followingId);
   Future<bool> isFollowing(String followerId, String followingId);
-  Future<List<SocialUser>> getFollowers(String userId, int limit, String? lastUserId);
-  Future<List<SocialUser>> getFollowing(String userId, int limit, String? lastUserId);
+  Future<List<SocialUser>> getFollowers(
+      String userId, int limit, String? lastUserId);
+  Future<List<SocialUser>> getFollowing(
+      String userId, int limit, String? lastUserId);
 
-  Future<List<Notification>> getUserNotifications(String userId, int limit, String? lastNotificationId);
+  Future<List<Notification>> getUserNotifications(
+      String userId, int limit, String? lastNotificationId);
   Future<void> markNotificationAsRead(String notificationId);
   Future<void> markAllNotificationsAsRead(String userId);
   Future<void> createNotification(Notification notification);
   Future<void> deleteNotification(String notificationId);
 
   Future<void> reportPost(String postId, String reporterId, String reason);
-  Future<void> reportComment(String commentId, String reporterId, String reason);
-  Future<void> reportUser(String reportedUserId, String reporterId, String reason);
+  Future<void> reportComment(
+      String commentId, String reporterId, String reason);
+  Future<void> reportUser(
+      String reportedUserId, String reporterId, String reason);
 
   // Search operations
   Future<List<Post>> searchPosts({
@@ -123,10 +130,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             : DateTime.now(),
       ).toEntity();
 
-      _logger.debug('Successfully created user: ${createdUser.displayName}', tag: 'SocialDataSource');
+      _logger.debug('Successfully created user: ${createdUser.displayName}',
+          tag: 'SocialDataSource');
       return createdUser;
     } catch (e, stackTrace) {
-      _logger.error('Failed to create user', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to create user',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('사용자 생성 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -157,10 +166,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             : DateTime.now(),
       ).toEntity();
 
-      _logger.debug('Successfully fetched user: ${user.displayName}', tag: 'SocialDataSource');
+      _logger.debug('Successfully fetched user: ${user.displayName}',
+          tag: 'SocialDataSource');
       return user;
     } catch (e, stackTrace) {
-      _logger.error('Failed to get user', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get user',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('사용자 정보를 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -200,10 +211,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             : DateTime.now(),
       ).toEntity();
 
-      _logger.debug('Successfully updated user: ${updatedUser.displayName}', tag: 'SocialDataSource');
+      _logger.debug('Successfully updated user: ${updatedUser.displayName}',
+          tag: 'SocialDataSource');
       return updatedUser;
     } catch (e, stackTrace) {
-      _logger.error('Failed to update user', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to update user',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('사용자 정보 업데이트 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -213,20 +226,20 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     try {
       _logger.debug('Deleting user: $userId', tag: 'SocialDataSource');
 
-      await supabaseClient
-          .from('users')
-          .delete()
-          .eq('id', userId);
+      await supabaseClient.from('users').delete().eq('id', userId);
 
-      _logger.debug('Successfully deleted user: $userId', tag: 'SocialDataSource');
+      _logger.debug('Successfully deleted user: $userId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to delete user', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to delete user',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('사용자 삭제 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
   @override
-  Future<List<SocialUser>> searchUsers(String query, int limit, String? lastUserId) async {
+  Future<List<SocialUser>> searchUsers(
+      String query, int limit, String? lastUserId) async {
     try {
       _logger.debug('Searching users: $query', tag: 'SocialDataSource');
 
@@ -254,10 +267,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         ).toEntity();
       }).toList();
 
-      _logger.debug('Found ${users.length} users matching "$query"', tag: 'SocialDataSource');
+      _logger.debug('Found ${users.length} users matching "$query"',
+          tag: 'SocialDataSource');
       return users;
     } catch (e, stackTrace) {
-      _logger.error('Failed to search users', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to search users',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('사용자 검색 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -279,16 +294,17 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           .select('''
             *,
             users!posts_author_id_fkey(id, display_name, photo_url)
-          ''')
-          .single();
+          ''').single();
 
-      _logger.debug('Post created successfully: ${response['id']}', tag: 'SocialDataSource');
+      _logger.debug('Post created successfully: ${response['id']}',
+          tag: 'SocialDataSource');
 
       // 응답을 PostModel로 변환 후 Entity로 변환
       final createdPostModel = PostModel.fromJson(response);
       return createdPostModel.toEntity();
     } catch (e, stackTrace) {
-      _logger.error('Failed to create post', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to create post',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물 작성 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -298,37 +314,33 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     try {
       _logger.debug('Getting post: $postId', tag: 'SocialDataSource');
 
-      final response = await supabaseClient
-          .from('posts')
-          .select('''
+      final response = await supabaseClient.from('posts').select('''
             *,
             users!posts_author_id_fkey(id, display_name, photo_url)
-          ''')
-          .eq('id', postId)
-          .single();
+          ''').eq('id', postId).single();
 
       final post = PostModel.fromJson(response).toEntity();
 
-      _logger.debug('Successfully fetched post: $postId', tag: 'SocialDataSource');
+      _logger.debug('Successfully fetched post: $postId',
+          tag: 'SocialDataSource');
       return post;
     } catch (e, stackTrace) {
-      _logger.error('Failed to get post', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get post',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
   @override
-  Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId) async {
+  Future<List<Post>> getUserPosts(
+      String userId, int limit, String? lastPostId) async {
     try {
       _logger.debug('Getting user posts: $userId', tag: 'SocialDataSource');
 
-      var query = supabaseClient
-          .from('posts')
-          .select('''
+      var query = supabaseClient.from('posts').select('''
             *,
             users!posts_author_id_fkey(id, display_name, photo_url)
-          ''')
-          .eq('author_id', userId);
+          ''').eq('author_id', userId);
 
       if (lastPostId != null) {
         final lastPost = await supabaseClient
@@ -340,26 +352,29 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         query = query.lt('created_at', lastPost['created_at']);
       }
 
-      final response = await query
-          .order('created_at', ascending: false)
-          .limit(limit);
+      final response =
+          await query.order('created_at', ascending: false).limit(limit);
 
       final posts = (response as List)
           .map((json) => PostModel.fromJson(json).toEntity())
           .toList();
 
-      _logger.debug('Found ${posts.length} posts for user', tag: 'SocialDataSource');
+      _logger.debug('Found ${posts.length} posts for user',
+          tag: 'SocialDataSource');
       return posts;
     } catch (e, stackTrace) {
-      _logger.error('Failed to get user posts', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get user posts',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('사용자 게시물을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
   @override
-  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId) async {
+  Future<List<Post>> getFeedPosts(
+      String userId, int limit, String? lastPostId) async {
     try {
-      _logger.debug('Getting feed posts for user: $userId', tag: 'SocialDataSource');
+      _logger.debug('Getting feed posts for user: $userId',
+          tag: 'SocialDataSource');
 
       // 내가 차단한 사용자 ID 목록 조회
       final blockedRes = await supabaseClient
@@ -367,9 +382,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           .select('blocked_id')
           .eq('blocker_id', userId);
 
-      final blockedIds = (blockedRes as List)
-          .map((b) => b['blocked_id'] as String)
-          .toList();
+      final blockedIds =
+          (blockedRes as List).map((b) => b['blocked_id'] as String).toList();
 
       // 기본 쿼리 (필터를 먼저 적용한 후 order/limit)
       var query = supabaseClient
@@ -378,7 +392,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       // 차단 사용자 제외
       if (blockedIds.isNotEmpty) {
-        query = query.not('author_id', 'in', '(${blockedIds.map((id) => "'$id'").join(',')})');
+        query = query.not('author_id', 'in',
+            '(${blockedIds.map((id) => "'$id'").join(',')})');
       }
 
       // cursor 페이지네이션
@@ -393,16 +408,17 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         }
       }
 
-      final response = await query
-          .order('created_at', ascending: false)
-          .limit(limit);
-      _logger.debug('Fetched ${response.length} feed posts', tag: 'SocialDataSource');
+      final response =
+          await query.order('created_at', ascending: false).limit(limit);
+      _logger.debug('Fetched ${response.length} feed posts',
+          tag: 'SocialDataSource');
 
       return (response as List)
           .map((json) => PostModel.fromJson(json).toEntity())
           .toList();
     } catch (e, stackTrace) {
-      _logger.error('Failed to fetch feed posts', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to fetch feed posts',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('피드를 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -412,9 +428,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     try {
       _logger.debug('Getting explore posts', tag: 'SocialDataSource');
 
-      var query = supabaseClient
-          .from('posts')
-          .select('''
+      var query = supabaseClient.from('posts').select('''
             *,
             users!posts_author_id_fkey(id, display_name, photo_url)
           ''');
@@ -438,10 +452,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           .map((json) => PostModel.fromJson(json).toEntity())
           .toList();
 
-      _logger.debug('Found ${posts.length} explore posts', tag: 'SocialDataSource');
+      _logger.debug('Found ${posts.length} explore posts',
+          tag: 'SocialDataSource');
       return posts;
     } catch (e, stackTrace) {
-      _logger.error('Failed to get explore posts', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get explore posts',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('탐색 게시물을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -469,10 +485,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       final updatedPost = PostModel.fromJson(response).toEntity();
 
-      _logger.debug('Successfully updated post: ${post.id}', tag: 'SocialDataSource');
+      _logger.debug('Successfully updated post: ${post.id}',
+          tag: 'SocialDataSource');
       return updatedPost;
     } catch (e, stackTrace) {
-      _logger.error('Failed to update post', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to update post',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물 수정 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -483,14 +501,13 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _logger.debug('Deleting post: $postId', tag: 'SocialDataSource');
 
       // Supabase에서 게시글 삭제
-      await supabaseClient
-          .from('posts')
-          .delete()
-          .eq('id', postId);
+      await supabaseClient.from('posts').delete().eq('id', postId);
 
-      _logger.debug('Post deleted successfully: $postId', tag: 'SocialDataSource');
+      _logger.debug('Post deleted successfully: $postId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to delete post', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to delete post',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물 삭제 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -508,11 +525,14 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       });
 
       // posts 테이블의 likes_count 증가
-      await supabaseClient.rpc('increment_post_likes', params: {'post_id': postId});
+      await supabaseClient
+          .rpc('increment_post_likes', params: {'post_id': postId});
 
-      _logger.debug('Successfully liked post: $postId', tag: 'SocialDataSource');
+      _logger.debug('Successfully liked post: $postId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to like post', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to like post',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('좋아요 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -520,7 +540,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<void> unlikePost(String postId, String userId) async {
     try {
-      _logger.debug('Unliking post: $postId by $userId', tag: 'SocialDataSource');
+      _logger.debug('Unliking post: $postId by $userId',
+          tag: 'SocialDataSource');
 
       // likes 테이블에서 좋아요 제거
       await supabaseClient
@@ -530,11 +551,14 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           .eq('user_id', userId);
 
       // posts 테이블의 likes_count 감소
-      await supabaseClient.rpc('decrement_post_likes', params: {'post_id': postId});
+      await supabaseClient
+          .rpc('decrement_post_likes', params: {'post_id': postId});
 
-      _logger.debug('Successfully unliked post: $postId', tag: 'SocialDataSource');
+      _logger.debug('Successfully unliked post: $postId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to unlike post', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to unlike post',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('좋아요 취소 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -542,7 +566,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<bool> isPostLiked(String postId, String userId) async {
     try {
-      _logger.debug('Checking if post liked: $postId by $userId', tag: 'SocialDataSource');
+      _logger.debug('Checking if post liked: $postId by $userId',
+          tag: 'SocialDataSource');
 
       final response = await supabaseClient
           .from('likes')
@@ -553,7 +578,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       return response != null;
     } catch (e, stackTrace) {
-      _logger.error('Failed to check like status', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to check like status',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       return false;
     }
   }
@@ -570,14 +596,14 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           .order('created_at', ascending: false)
           .limit(limit);
 
-      final userIds = (response as List)
-          .map((json) => json['user_id'] as String)
-          .toList();
+      final userIds =
+          (response as List).map((json) => json['user_id'] as String).toList();
 
       _logger.debug('Found ${userIds.length} likes', tag: 'SocialDataSource');
       return userIds;
     } catch (e, stackTrace) {
-      _logger.error('Failed to get post likes', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get post likes',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('좋아요 목록을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -593,22 +619,19 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       final commentModel = CommentModel.fromEntity(comment);
 
       // Supabase에 댓글 생성
-      final response = await supabaseClient
-          .from('comments')
-          .insert({
-            'id': commentModel.id,
-            'post_id': commentModel.postId,
-            'author_id': commentModel.authorId,
-            'content': commentModel.content,
-            'created_at': commentModel.createdAt.toIso8601String(),
-          })
-          .select('''
+      final response = await supabaseClient.from('comments').insert({
+        'id': commentModel.id,
+        'post_id': commentModel.postId,
+        'author_id': commentModel.authorId,
+        'content': commentModel.content,
+        'created_at': commentModel.createdAt.toIso8601String(),
+      }).select('''
             *,
             users!comments_author_id_fkey(id, display_name, photo_url)
-          ''')
-          .single();
+          ''').single();
 
-      _logger.debug('Comment created successfully: ${response['id']}', tag: 'SocialDataSource');
+      _logger.debug('Comment created successfully: ${response['id']}',
+          tag: 'SocialDataSource');
 
       // 응답을 CommentModel로 변환
       final createdComment = CommentModel.fromJson({
@@ -619,7 +642,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       return createdComment.toEntity();
     } catch (e, stackTrace) {
-      _logger.error('Failed to create comment', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to create comment',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('댓글 작성 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -629,14 +653,10 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     try {
       _logger.debug('Getting comment: $commentId', tag: 'SocialDataSource');
 
-      final response = await supabaseClient
-          .from('comments')
-          .select('''
+      final response = await supabaseClient.from('comments').select('''
             *,
             users!comments_author_id_fkey(id, display_name, photo_url)
-          ''')
-          .eq('id', commentId)
-          .single();
+          ''').eq('id', commentId).single();
 
       final comment = CommentModel.fromJson({
         ...response,
@@ -646,23 +666,22 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       return comment.toEntity();
     } catch (e, stackTrace) {
-      _logger.error('Failed to get comment', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get comment',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('댓글을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
   @override
-  Future<List<Comment>> getPostComments(String postId, int limit, String? lastCommentId) async {
+  Future<List<Comment>> getPostComments(
+      String postId, int limit, String? lastCommentId) async {
     try {
       _logger.debug('Getting post comments: $postId', tag: 'SocialDataSource');
 
-      var queryBuilder = supabaseClient
-          .from('comments')
-          .select('''
+      var queryBuilder = supabaseClient.from('comments').select('''
             *,
             users!comments_author_id_fkey(id, display_name, photo_url)
-          ''')
-          .eq('post_id', postId);
+          ''').eq('post_id', postId);
 
       if (lastCommentId != null) {
         // 페이지네이션 구현
@@ -675,11 +694,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         queryBuilder = queryBuilder.lt('created_at', lastComment['created_at']);
       }
 
-      final response = await queryBuilder
-          .order('created_at', ascending: false)
-          .limit(limit);
+      final response =
+          await queryBuilder.order('created_at', ascending: false).limit(limit);
 
-      _logger.debug('Fetched ${response.length} comments', tag: 'SocialDataSource');
+      _logger.debug('Fetched ${response.length} comments',
+          tag: 'SocialDataSource');
 
       final comments = (response as List)
           .map((json) => CommentModel.fromJson({
@@ -691,7 +710,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       return comments;
     } catch (e, stackTrace) {
-      _logger.error('Failed to fetch comments', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to fetch comments',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('댓글을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -722,7 +742,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       return updatedComment.toEntity();
     } catch (e, stackTrace) {
-      _logger.error('Failed to update comment', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to update comment',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('댓글 수정 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -732,14 +753,13 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     try {
       _logger.debug('Deleting comment: $commentId', tag: 'SocialDataSource');
 
-      await supabaseClient
-          .from('comments')
-          .delete()
-          .eq('id', commentId);
+      await supabaseClient.from('comments').delete().eq('id', commentId);
 
-      _logger.debug('Comment deleted successfully: $commentId', tag: 'SocialDataSource');
+      _logger.debug('Comment deleted successfully: $commentId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to delete comment', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to delete comment',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('댓글 삭제 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -747,7 +767,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<void> likeComment(String commentId, String userId) async {
     try {
-      _logger.debug('Liking comment: $commentId by $userId', tag: 'SocialDataSource');
+      _logger.debug('Liking comment: $commentId by $userId',
+          tag: 'SocialDataSource');
 
       // comment_likes 테이블에 좋아요 추가
       await supabaseClient.from('comment_likes').insert({
@@ -756,9 +777,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      _logger.debug('Successfully liked comment: $commentId', tag: 'SocialDataSource');
+      _logger.debug('Successfully liked comment: $commentId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to like comment', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to like comment',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       // 이미 좋아요한 경우 에러를 무시
       if (!e.toString().contains('duplicate')) {
         throw Exception('댓글 좋아요 중 오류가 발생했습니다: ${e.toString()}');
@@ -769,7 +792,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<void> unlikeComment(String commentId, String userId) async {
     try {
-      _logger.debug('Unliking comment: $commentId by $userId', tag: 'SocialDataSource');
+      _logger.debug('Unliking comment: $commentId by $userId',
+          tag: 'SocialDataSource');
 
       // comment_likes 테이블에서 좋아요 제거
       await supabaseClient
@@ -778,9 +802,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           .eq('comment_id', commentId)
           .eq('user_id', userId);
 
-      _logger.debug('Successfully unliked comment: $commentId', tag: 'SocialDataSource');
+      _logger.debug('Successfully unliked comment: $commentId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to unlike comment', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to unlike comment',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('댓글 좋아요 취소 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -790,7 +816,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<void> followUser(String followerId, String followingId) async {
     try {
-      _logger.debug('Following user: $followerId following $followingId', tag: 'SocialDataSource');
+      _logger.debug('Following user: $followerId following $followingId',
+          tag: 'SocialDataSource');
 
       // follows 테이블에 관계 추가
       await supabaseClient.from('follows').insert({
@@ -799,9 +826,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      _logger.debug('Successfully followed user: $followingId', tag: 'SocialDataSource');
+      _logger.debug('Successfully followed user: $followingId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to follow user', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to follow user',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('팔로우 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -809,7 +838,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<void> unfollowUser(String followerId, String followingId) async {
     try {
-      _logger.debug('Unfollowing user: $followerId unfollowing $followingId', tag: 'SocialDataSource');
+      _logger.debug('Unfollowing user: $followerId unfollowing $followingId',
+          tag: 'SocialDataSource');
 
       // follows 테이블에서 관계 제거
       await supabaseClient
@@ -818,9 +848,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           .eq('follower_id', followerId)
           .eq('following_id', followingId);
 
-      _logger.debug('Successfully unfollowed user: $followingId', tag: 'SocialDataSource');
+      _logger.debug('Successfully unfollowed user: $followingId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to unfollow user', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to unfollow user',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('언팔로우 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -828,7 +860,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<bool> isFollowing(String followerId, String followingId) async {
     try {
-      _logger.debug('Checking if following: $followerId following $followingId', tag: 'SocialDataSource');
+      _logger.debug('Checking if following: $followerId following $followingId',
+          tag: 'SocialDataSource');
 
       final response = await supabaseClient
           .from('follows')
@@ -839,15 +872,18 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       return response != null;
     } catch (e, stackTrace) {
-      _logger.error('Failed to check following status', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to check following status',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       return false;
     }
   }
 
   @override
-  Future<List<SocialUser>> getFollowers(String userId, int limit, String? lastUserId) async {
+  Future<List<SocialUser>> getFollowers(
+      String userId, int limit, String? lastUserId) async {
     try {
-      _logger.debug('Getting followers for user: $userId', tag: 'SocialDataSource');
+      _logger.debug('Getting followers for user: $userId',
+          tag: 'SocialDataSource');
 
       var queryBuilder = supabaseClient
           .from('follows')
@@ -888,18 +924,22 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         ).toEntity();
       }).toList();
 
-      _logger.debug('Found ${followers.length} followers', tag: 'SocialDataSource');
+      _logger.debug('Found ${followers.length} followers',
+          tag: 'SocialDataSource');
       return followers;
     } catch (e, stackTrace) {
-      _logger.error('Failed to get followers', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get followers',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('팔로워 목록을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
   @override
-  Future<List<SocialUser>> getFollowing(String userId, int limit, String? lastUserId) async {
+  Future<List<SocialUser>> getFollowing(
+      String userId, int limit, String? lastUserId) async {
     try {
-      _logger.debug('Getting following for user: $userId', tag: 'SocialDataSource');
+      _logger.debug('Getting following for user: $userId',
+          tag: 'SocialDataSource');
 
       var queryBuilder = supabaseClient
           .from('follows')
@@ -940,10 +980,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         ).toEntity();
       }).toList();
 
-      _logger.debug('Found ${following.length} following', tag: 'SocialDataSource');
+      _logger.debug('Found ${following.length} following',
+          tag: 'SocialDataSource');
       return following;
     } catch (e, stackTrace) {
-      _logger.error('Failed to get following', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get following',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('팔로잉 목록을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -951,9 +993,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   // ==================== Notification Operations ====================
 
   @override
-  Future<List<Notification>> getUserNotifications(String userId, int limit, String? lastNotificationId) async {
+  Future<List<Notification>> getUserNotifications(
+      String userId, int limit, String? lastNotificationId) async {
     try {
-      _logger.debug('Getting user notifications: $userId', tag: 'SocialDataSource');
+      _logger.debug('Getting user notifications: $userId',
+          tag: 'SocialDataSource');
 
       var query = supabaseClient
           .from('notifications')
@@ -971,9 +1015,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         query = query.lt('created_at', lastNotification['created_at']);
       }
 
-      final response = await query
-          .order('created_at', ascending: false)
-          .limit(limit);
+      final response =
+          await query.order('created_at', ascending: false).limit(limit);
 
       final notifications = (response as List).map((json) {
         return NotificationModel(
@@ -998,10 +1041,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         ).toEntity();
       }).toList();
 
-      _logger.debug('Found ${notifications.length} notifications', tag: 'SocialDataSource');
+      _logger.debug('Found ${notifications.length} notifications',
+          tag: 'SocialDataSource');
       return notifications;
     } catch (e, stackTrace) {
-      _logger.error('Failed to get notifications', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get notifications',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('알림을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -1009,16 +1054,18 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<void> markNotificationAsRead(String notificationId) async {
     try {
-      _logger.debug('Marking notification as read: $notificationId', tag: 'SocialDataSource');
+      _logger.debug('Marking notification as read: $notificationId',
+          tag: 'SocialDataSource');
 
       await supabaseClient
           .from('notifications')
-          .update({'is_read': true})
-          .eq('id', notificationId);
+          .update({'is_read': true}).eq('id', notificationId);
 
-      _logger.debug('Successfully marked notification as read: $notificationId', tag: 'SocialDataSource');
+      _logger.debug('Successfully marked notification as read: $notificationId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to mark notification as read', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to mark notification as read',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('알림 읽음 처리 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -1026,7 +1073,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<void> markAllNotificationsAsRead(String userId) async {
     try {
-      _logger.debug('Marking all notifications as read for user: $userId', tag: 'SocialDataSource');
+      _logger.debug('Marking all notifications as read for user: $userId',
+          tag: 'SocialDataSource');
 
       // Bulk update - 모든 안 읽은 알림을 한 번의 쿼리로 업데이트
       await supabaseClient
@@ -1035,9 +1083,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           .eq('user_id', userId)
           .eq('is_read', false);
 
-      _logger.debug('Successfully marked all notifications as read for user: $userId', tag: 'SocialDataSource');
+      _logger.debug(
+          'Successfully marked all notifications as read for user: $userId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to mark all notifications as read', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to mark all notifications as read',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('모든 알림 읽음 처리 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -1045,7 +1096,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<void> createNotification(Notification notification) async {
     try {
-      _logger.debug('Creating notification: ${notification.id}', tag: 'SocialDataSource');
+      _logger.debug('Creating notification: ${notification.id}',
+          tag: 'SocialDataSource');
 
       final notificationModel = NotificationModel.fromEntity(notification);
 
@@ -1065,9 +1117,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         'data': notificationModel.data,
       });
 
-      _logger.debug('Successfully created notification: ${notification.id}', tag: 'SocialDataSource');
+      _logger.debug('Successfully created notification: ${notification.id}',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to create notification', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to create notification',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('알림 생성 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -1075,16 +1129,19 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override
   Future<void> deleteNotification(String notificationId) async {
     try {
-      _logger.debug('Deleting notification: $notificationId', tag: 'SocialDataSource');
+      _logger.debug('Deleting notification: $notificationId',
+          tag: 'SocialDataSource');
 
       await supabaseClient
           .from('notifications')
           .delete()
           .eq('id', notificationId);
 
-      _logger.debug('Successfully deleted notification: $notificationId', tag: 'SocialDataSource');
+      _logger.debug('Successfully deleted notification: $notificationId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to delete notification', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to delete notification',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('알림 삭제 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -1092,9 +1149,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   // ==================== Report Operations ====================
 
   @override
-  Future<void> reportPost(String postId, String reporterId, String reason) async {
+  Future<void> reportPost(
+      String postId, String reporterId, String reason) async {
     try {
-      _logger.debug('Reporting post: $postId by $reporterId', tag: 'SocialDataSource');
+      _logger.debug('Reporting post: $postId by $reporterId',
+          tag: 'SocialDataSource');
 
       await supabaseClient.from('reports').insert({
         'reporter_id': reporterId,
@@ -1104,17 +1163,21 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      _logger.debug('Successfully reported post: $postId', tag: 'SocialDataSource');
+      _logger.debug('Successfully reported post: $postId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to report post', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to report post',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물 신고 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
   @override
-  Future<void> reportComment(String commentId, String reporterId, String reason) async {
+  Future<void> reportComment(
+      String commentId, String reporterId, String reason) async {
     try {
-      _logger.debug('Reporting comment: $commentId by $reporterId', tag: 'SocialDataSource');
+      _logger.debug('Reporting comment: $commentId by $reporterId',
+          tag: 'SocialDataSource');
 
       await supabaseClient.from('reports').insert({
         'reporter_id': reporterId,
@@ -1124,17 +1187,21 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      _logger.debug('Successfully reported comment: $commentId', tag: 'SocialDataSource');
+      _logger.debug('Successfully reported comment: $commentId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to report comment', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to report comment',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('댓글 신고 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 
   @override
-  Future<void> reportUser(String reportedUserId, String reporterId, String reason) async {
+  Future<void> reportUser(
+      String reportedUserId, String reporterId, String reason) async {
     try {
-      _logger.debug('Reporting user: $reportedUserId by $reporterId', tag: 'SocialDataSource');
+      _logger.debug('Reporting user: $reportedUserId by $reporterId',
+          tag: 'SocialDataSource');
 
       await supabaseClient.from('reports').insert({
         'reporter_id': reporterId,
@@ -1144,9 +1211,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      _logger.debug('Successfully reported user: $reportedUserId', tag: 'SocialDataSource');
+      _logger.debug('Successfully reported user: $reportedUserId',
+          tag: 'SocialDataSource');
     } catch (e, stackTrace) {
-      _logger.error('Failed to report user', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to report user',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('사용자 신고 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -1160,15 +1229,13 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     String? lastPostId,
   }) async {
     try {
-      _logger.debug('Searching posts with query: $query, limit: $limit', tag: 'SocialDataSource');
+      _logger.debug('Searching posts with query: $query, limit: $limit',
+          tag: 'SocialDataSource');
 
-      var baseQuery = supabaseClient
-          .from('posts')
-          .select('''
+      var baseQuery = supabaseClient.from('posts').select('''
             *,
             users!posts_author_id_fkey(id, display_name, photo_url)
-          ''')
-          .or('caption.ilike.%$query%,hashtags.cs.{$query}');
+          ''').or('caption.ilike.%$query%,hashtags.cs.{$query}');
 
       if (lastPostId != null) {
         final lastPost = await supabaseClient
@@ -1176,12 +1243,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             .select('created_at')
             .eq('id', lastPostId)
             .single();
-        baseQuery = baseQuery.filter('created_at', 'lt', lastPost['created_at']);
+        baseQuery =
+            baseQuery.filter('created_at', 'lt', lastPost['created_at']);
       }
 
-      final response = await baseQuery
-          .order('created_at', ascending: false)
-          .limit(limit);
+      final response =
+          await baseQuery.order('created_at', ascending: false).limit(limit);
 
       final posts = (response as List)
           .map((json) => PostModel.fromJson(json).toEntity())
@@ -1190,7 +1257,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _logger.debug('Found ${posts.length} posts', tag: 'SocialDataSource');
       return posts;
     } catch (e, stackTrace) {
-      _logger.error('Failed to search posts', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to search posts',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물 검색 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -1202,15 +1270,13 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     String? lastPostId,
   }) async {
     try {
-      _logger.debug('Searching posts by hashtag: $hashtag, limit: $limit', tag: 'SocialDataSource');
+      _logger.debug('Searching posts by hashtag: $hashtag, limit: $limit',
+          tag: 'SocialDataSource');
 
-      var baseQuery = supabaseClient
-          .from('posts')
-          .select('''
+      var baseQuery = supabaseClient.from('posts').select('''
             *,
             users!posts_author_id_fkey(id, display_name, photo_url)
-          ''')
-          .contains('hashtags', [hashtag]);
+          ''').contains('hashtags', [hashtag]);
 
       if (lastPostId != null) {
         final lastPost = await supabaseClient
@@ -1218,21 +1284,23 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             .select('created_at')
             .eq('id', lastPostId)
             .single();
-        baseQuery = baseQuery.filter('created_at', 'lt', lastPost['created_at']);
+        baseQuery =
+            baseQuery.filter('created_at', 'lt', lastPost['created_at']);
       }
 
-      final response = await baseQuery
-          .order('created_at', ascending: false)
-          .limit(limit);
+      final response =
+          await baseQuery.order('created_at', ascending: false).limit(limit);
 
       final posts = (response as List)
           .map((json) => PostModel.fromJson(json).toEntity())
           .toList();
 
-      _logger.debug('Found ${posts.length} posts with hashtag: $hashtag', tag: 'SocialDataSource');
+      _logger.debug('Found ${posts.length} posts with hashtag: $hashtag',
+          tag: 'SocialDataSource');
       return posts;
     } catch (e, stackTrace) {
-      _logger.error('Failed to search posts by hashtag', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to search posts by hashtag',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('해시태그 검색 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
@@ -1242,10 +1310,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     int limit = 20,
   }) async {
     try {
-      _logger.debug('Fetching popular hashtags, limit: $limit', tag: 'SocialDataSource');
+      _logger.debug('Fetching popular hashtags, limit: $limit',
+          tag: 'SocialDataSource');
 
       // PostgreSQL: unnest로 배열을 행으로 펼치고, 빈도수 계산
-      final response = await supabaseClient.rpc('get_popular_hashtags', params: {
+      final response =
+          await supabaseClient.rpc('get_popular_hashtags', params: {
         'limit_count': limit,
       });
 
@@ -1274,14 +1344,15 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         return sortedTags.take(limit).map((e) => e.key).toList();
       }
 
-      final hashtags = (response as List)
-          .map((item) => item['hashtag'].toString())
-          .toList();
+      final hashtags =
+          (response as List).map((item) => item['hashtag'].toString()).toList();
 
-      _logger.debug('Found ${hashtags.length} popular hashtags', tag: 'SocialDataSource');
+      _logger.debug('Found ${hashtags.length} popular hashtags',
+          tag: 'SocialDataSource');
       return hashtags;
     } catch (e, stackTrace) {
-      _logger.error('Failed to get popular hashtags', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get popular hashtags',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
 
       // 실패 시 빈 배열 반환
       return [];
@@ -1294,13 +1365,15 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     int days = 7,
   }) async {
     try {
-      _logger.debug('Fetching trending hashtags, limit: $limit, days: $days', tag: 'SocialDataSource');
+      _logger.debug('Fetching trending hashtags, limit: $limit, days: $days',
+          tag: 'SocialDataSource');
 
       final cutoffDate = DateTime.now().subtract(Duration(days: days));
 
       // PostgreSQL RPC 사용 (없으면 클라이언트 측 계산)
       try {
-        final response = await supabaseClient.rpc('get_trending_hashtags', params: {
+        final response =
+            await supabaseClient.rpc('get_trending_hashtags', params: {
           'limit_count': limit,
           'days_ago': days,
         });
@@ -1310,11 +1383,13 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
               .map((item) => item['hashtag'].toString())
               .toList();
 
-          _logger.debug('Found ${hashtags.length} trending hashtags', tag: 'SocialDataSource');
+          _logger.debug('Found ${hashtags.length} trending hashtags',
+              tag: 'SocialDataSource');
           return hashtags;
         }
       } catch (rpcError) {
-        _logger.debug('RPC not available, using client-side calculation', tag: 'SocialDataSource');
+        _logger.debug('RPC not available, using client-side calculation',
+            tag: 'SocialDataSource');
       }
 
       // 폴백: 클라이언트 측 계산
@@ -1341,7 +1416,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       return sortedTags.take(limit).map((e) => e.key).toList();
     } catch (e, stackTrace) {
-      _logger.error('Failed to get trending hashtags', error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      _logger.error('Failed to get trending hashtags',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
 
       // 실패 시 빈 배열 반환
       return [];

@@ -80,9 +80,8 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       final currentState = state as PostSearchSuccess;
       if (!currentState.hasMore) return;
 
-      final lastPostId = currentState.posts.isNotEmpty
-          ? currentState.posts.last.id
-          : null;
+      final lastPostId =
+          currentState.posts.isNotEmpty ? currentState.posts.last.id : null;
 
       final result = await repository.searchPosts(
         query: event.query,
@@ -130,9 +129,8 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       final currentState = state as PostSearchSuccess;
       if (!currentState.hasMore) return;
 
-      final lastPostId = currentState.posts.isNotEmpty
-          ? currentState.posts.last.id
-          : null;
+      final lastPostId =
+          currentState.posts.isNotEmpty ? currentState.posts.last.id : null;
 
       final result = await repository.searchPostsByHashtag(
         hashtag: event.hashtag,

@@ -6,7 +6,8 @@ import '../../../../core/usecases/usecase.dart';
 import '../entities/health_record.dart';
 import '../repositories/health_repository.dart';
 
-class UpdateHealthRecord implements UseCase<HealthRecord, UpdateHealthRecordParams> {
+class UpdateHealthRecord
+    implements UseCase<HealthRecord, UpdateHealthRecordParams> {
   final HealthRepository repository;
 
   UpdateHealthRecord(this.repository);

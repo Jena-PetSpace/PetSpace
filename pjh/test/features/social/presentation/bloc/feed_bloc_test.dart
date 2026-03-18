@@ -19,23 +19,38 @@ import 'package:meong_nyang_diary/core/services/realtime_service.dart';
 
 // Mocks
 class MockGetFeed extends Mock implements GetFeed {}
+
 class MockCreatePost extends Mock implements CreatePost {}
+
 class MockUpdatePost extends Mock implements UpdatePost {}
+
 class MockDeletePost extends Mock implements DeletePost {}
+
 class MockLikePost extends Mock implements LikePost {}
+
 class MockUnlikePost extends Mock implements UnlikePost {}
+
 class MockSavePost extends Mock implements SavePost {}
+
 class MockUnsavePost extends Mock implements UnsavePost {}
+
 class MockGetSavedPosts extends Mock implements GetSavedPosts {}
+
 class MockRealtimeService extends Mock implements RealtimeService {}
 
 // Fallbacks
 class FakeGetFeedParams extends Fake implements GetFeedParams {}
+
 class FakeCreatePostParams extends Fake implements CreatePostParams {}
+
 class FakeLikePostParams extends Fake implements LikePostParams {}
+
 class FakeUnlikePostParams extends Fake implements UnlikePostParams {}
+
 class FakeSavePostParams extends Fake implements SavePostParams {}
+
 class FakeUnsavePostParams extends Fake implements UnsavePostParams {}
+
 class FakeGetSavedPostsParams extends Fake implements GetSavedPostsParams {}
 
 final _tPost = Post(
@@ -111,8 +126,8 @@ void main() {
       '실패 → FeedLoading → FeedError',
       build: () {
         final getFeed = MockGetFeed();
-        when(() => getFeed(any()))
-            .thenAnswer((_) async => const Left(ServerFailure(message: '서버 오류')));
+        when(() => getFeed(any())).thenAnswer(
+            (_) async => const Left(ServerFailure(message: '서버 오류')));
         return _buildBloc(getFeed: getFeed);
       },
       act: (bloc) => bloc.add(const LoadFeedRequested(userId: 'user-001')),
@@ -203,8 +218,8 @@ void main() {
       '북마크 실패 → FeedError',
       build: () {
         final savePost = MockSavePost();
-        when(() => savePost(any()))
-            .thenAnswer((_) async => const Left(NetworkFailure(message: '네트워크 오류')));
+        when(() => savePost(any())).thenAnswer(
+            (_) async => const Left(NetworkFailure(message: '네트워크 오류')));
         return _buildBloc(savePost: savePost);
       },
       act: (bloc) =>

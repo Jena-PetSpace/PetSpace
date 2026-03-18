@@ -33,7 +33,8 @@ class UserProfile extends Equatable {
       displayName: displayName ?? this.displayName,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       provider: provider ?? this.provider,
-      isOnboardingCompleted: isOnboardingCompleted ?? this.isOnboardingCompleted,
+      isOnboardingCompleted:
+          isOnboardingCompleted ?? this.isOnboardingCompleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

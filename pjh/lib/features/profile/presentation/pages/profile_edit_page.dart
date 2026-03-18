@@ -152,7 +152,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 padding: EdgeInsets.all(16.w),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade700, size: 24.w),
+                    Icon(Icons.info_outline,
+                        color: Colors.blue.shade700, size: 24.w),
                     SizedBox(width: 12.w),
                     Expanded(
                       child: Text(

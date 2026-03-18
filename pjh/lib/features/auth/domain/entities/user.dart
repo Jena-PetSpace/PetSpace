@@ -58,7 +58,8 @@ class User extends Equatable {
       following: following ?? this.following,
       followers: followers ?? this.followers,
       settings: settings ?? this.settings,
-      isOnboardingCompleted: isOnboardingCompleted ?? this.isOnboardingCompleted,
+      isOnboardingCompleted:
+          isOnboardingCompleted ?? this.isOnboardingCompleted,
       emailConfirmedAt: emailConfirmedAt ?? this.emailConfirmedAt,
     );
   }

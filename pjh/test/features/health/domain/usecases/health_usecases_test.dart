@@ -33,19 +33,24 @@ void main() {
   // ── GetHealthRecords ───────────────────────────────────────────────────────
   group('GetHealthRecords', () {
     test('성공 → Right(List<HealthRecord>)', () async {
-      when(() => repo.getHealthRecords(petId: any(named: 'petId'), limit: any(named: 'limit')))
+      when(() => repo.getHealthRecords(
+              petId: any(named: 'petId'), limit: any(named: 'limit')))
           .thenAnswer((_) async => Right([_tRecord]));
 
       final uc = GetHealthRecords(repo);
       final result = await uc(GetHealthRecordsParams(petId: 'pet-001'));
 
       expect(result, Right([_tRecord]));
-      verify(() => repo.getHealthRecords(petId: 'pet-001', limit: 50)).called(1);
+      verify(() => repo.getHealthRecords(petId: 'pet-001', limit: 50))
+          .called(1);
     });
 
     test('네트워크 실패 → Left(NetworkFailure)', () async {
-      when(() => repo.getHealthRecords(petId: any(named: 'petId'), limit: any(named: 'limit')))
-          .thenAnswer((_) async => const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.')));
+      when(() =>
+          repo.getHealthRecords(
+              petId: any(named: 'petId'),
+              limit: any(named: 'limit'))).thenAnswer(
+          (_) async => const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.')));
 
       final uc = GetHealthRecords(repo);
       final result = await uc(GetHealthRecordsParams(petId: 'pet-001'));
@@ -55,10 +60,10 @@ void main() {
 
     test('type 필터 파라미터 전달 확인', () async {
       when(() => repo.getHealthRecords(
-        petId: any(named: 'petId'),
-        type: any(named: 'type'),
-        limit: any(named: 'limit'),
-      )).thenAnswer((_) async => const Right([]));
+            petId: any(named: 'petId'),
+            type: any(named: 'type'),
+            limit: any(named: 'limit'),
+          )).thenAnswer((_) async => const Right([]));
 
       final uc = GetHealthRecords(repo);
       await uc(GetHealthRecordsParams(
@@ -67,10 +72,10 @@ void main() {
       ));
 
       verify(() => repo.getHealthRecords(
-        petId: 'pet-001',
-        type: HealthRecordType.vaccination,
-        limit: 50,
-      )).called(1);
+            petId: 'pet-001',
+            type: HealthRecordType.vaccination,
+            limit: 50,
+          )).called(1);
     });
   });
 
@@ -87,8 +92,8 @@ void main() {
     });
 
     test('실패 → Left(DatabaseFailure)', () async {
-      when(() => repo.addHealthRecord(any()))
-          .thenAnswer((_) async => const Left(DatabaseFailure(message: 'DB 오류')));
+      when(() => repo.addHealthRecord(any())).thenAnswer(
+          (_) async => const Left(DatabaseFailure(message: 'DB 오류')));
 
       final uc = AddHealthRecord(repo);
       final result = await uc(AddHealthRecordParams(record: _tRecord));
@@ -142,22 +147,23 @@ void main() {
   group('GetUpcomingRecords', () {
     test('성공 → Right(List) 30일 이내 예정', () async {
       when(() => repo.getUpcomingRecords(
-        userId: any(named: 'userId'),
-        daysAhead: any(named: 'daysAhead'),
-      )).thenAnswer((_) async => Right([_tRecord]));
+            userId: any(named: 'userId'),
+            daysAhead: any(named: 'daysAhead'),
+          )).thenAnswer((_) async => Right([_tRecord]));
 
       final uc = GetUpcomingRecords(repo);
       final result = await uc(GetUpcomingRecordsParams(userId: 'user-001'));
 
       expect(result.isRight(), true);
-      verify(() => repo.getUpcomingRecords(userId: 'user-001', daysAhead: 30)).called(1);
+      verify(() => repo.getUpcomingRecords(userId: 'user-001', daysAhead: 30))
+          .called(1);
     });
 
     test('빈 결과 → Right([])', () async {
       when(() => repo.getUpcomingRecords(
-        userId: any(named: 'userId'),
-        daysAhead: any(named: 'daysAhead'),
-      )).thenAnswer((_) async => const Right([]));
+            userId: any(named: 'userId'),
+            daysAhead: any(named: 'daysAhead'),
+          )).thenAnswer((_) async => const Right([]));
 
       final uc = GetUpcomingRecords(repo);
       final result = await uc(GetUpcomingRecordsParams(userId: 'user-001'));

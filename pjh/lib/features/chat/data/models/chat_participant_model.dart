@@ -31,8 +31,10 @@ class ChatParticipantModel {
       id: json['id'] as String,
       roomId: json['room_id'] as String,
       userId: json['user_id'] as String,
-      displayName: userData?['display_name'] as String? ?? json['display_name'] as String?,
-      photoUrl: userData?['photo_url'] as String? ?? json['photo_url'] as String?,
+      displayName: userData?['display_name'] as String? ??
+          json['display_name'] as String?,
+      photoUrl:
+          userData?['photo_url'] as String? ?? json['photo_url'] as String?,
       role: json['role'] as String? ?? 'member',
       joinedAt: DateTime.parse(json['joined_at'] as String),
       lastReadAt: DateTime.parse(json['last_read_at'] as String),

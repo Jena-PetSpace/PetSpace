@@ -48,27 +48,23 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   @override
   Future<List<ChatRoomModel>> getChatRooms(String userId) async {
     // 사용자가 참여 중인 채팅방 조회 (참여자 + 유저 정보 JOIN)
-    final response = await supabaseClient
-        .from('chat_rooms')
-        .select('''
+    final response = await supabaseClient.from('chat_rooms').select('''
           *,
           chat_participants!inner(
             *,
             users(id, display_name, photo_url)
           )
-        ''')
-        .order('last_message_at', ascending: false, nullsFirst: false);
+        ''').order('last_message_at', ascending: false, nullsFirst: false);
 
     final roomDataList = (response as List).cast<Map<String, dynamic>>();
 
     // 모든 채팅방의 안읽은 메시지 수를 병렬로 조회 (N+1 → 1+N 병렬)
     final unreadCounts = await Future.wait(
-      roomDataList.map((roomData) => supabaseClient
-          .rpc('get_room_unread_count', params: {
-            'p_room_id': roomData['id'],
-            'p_user_id': userId,
-          })
-          .then((v) => v as int? ?? 0)),
+      roomDataList.map(
+          (roomData) => supabaseClient.rpc('get_room_unread_count', params: {
+                'p_room_id': roomData['id'],
+                'p_user_id': userId,
+              }).then((v) => v as int? ?? 0)),
     );
 
     return [
@@ -125,19 +121,15 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     required String senderId,
     required String content,
   }) async {
-    final response = await supabaseClient
-        .from('chat_messages')
-        .insert({
-          'room_id': roomId,
-          'sender_id': senderId,
-          'content': content,
-          'type': 'text',
-        })
-        .select('''
+    final response = await supabaseClient.from('chat_messages').insert({
+      'room_id': roomId,
+      'sender_id': senderId,
+      'content': content,
+      'type': 'text',
+    }).select('''
           *,
           users:sender_id(id, display_name, photo_url)
-        ''')
-        .single();
+        ''').single();
 
     return ChatMessageModel.fromJson(response);
   }
@@ -152,29 +144,22 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final filePath = 'chat/$senderId/$timestamp.jpg';
 
-    await supabaseClient.storage
-        .from('images')
-        .upload(filePath, imageFile);
+    await supabaseClient.storage.from('images').upload(filePath, imageFile);
 
-    final imageUrl = supabaseClient.storage
-        .from('images')
-        .getPublicUrl(filePath);
+    final imageUrl =
+        supabaseClient.storage.from('images').getPublicUrl(filePath);
 
     // 이미지 메시지 전송
-    final response = await supabaseClient
-        .from('chat_messages')
-        .insert({
-          'room_id': roomId,
-          'sender_id': senderId,
-          'content': null,
-          'type': 'image',
-          'image_url': imageUrl,
-        })
-        .select('''
+    final response = await supabaseClient.from('chat_messages').insert({
+      'room_id': roomId,
+      'sender_id': senderId,
+      'content': null,
+      'type': 'image',
+      'image_url': imageUrl,
+    }).select('''
           *,
           users:sender_id(id, display_name, photo_url)
-        ''')
-        .single();
+        ''').single();
 
     return ChatMessageModel.fromJson(response);
   }
@@ -185,25 +170,21 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     required String otherUserId,
   }) async {
     // 기존 1:1 채팅방 검색
-    final existingRoomId = await supabaseClient
-        .rpc('find_direct_chat', params: {
+    final existingRoomId =
+        await supabaseClient.rpc('find_direct_chat', params: {
       'p_user1_id': currentUserId,
       'p_user2_id': otherUserId,
     });
 
     if (existingRoomId != null) {
       // 기존 채팅방 반환
-      final response = await supabaseClient
-          .from('chat_rooms')
-          .select('''
+      final response = await supabaseClient.from('chat_rooms').select('''
             *,
             chat_participants(
               *,
               users(id, display_name, photo_url)
             )
-          ''')
-          .eq('id', existingRoomId)
-          .single();
+          ''').eq('id', existingRoomId).single();
 
       return ChatRoomModel.fromJson(response);
     }
@@ -227,17 +208,13 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     ]);
 
     // 완성된 채팅방 조회
-    final response = await supabaseClient
-        .from('chat_rooms')
-        .select('''
+    final response = await supabaseClient.from('chat_rooms').select('''
           *,
           chat_participants(
             *,
             users(id, display_name, photo_url)
           )
-        ''')
-        .eq('id', roomId)
-        .single();
+        ''').eq('id', roomId).single();
 
     return ChatRoomModel.fromJson(response);
   }
@@ -267,7 +244,8 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     ];
     for (final memberId in memberIds) {
       if (memberId != creatorId) {
-        participants.add({'room_id': roomId, 'user_id': memberId, 'role': 'member'});
+        participants
+            .add({'room_id': roomId, 'user_id': memberId, 'role': 'member'});
       }
     }
     await supabaseClient.from('chat_participants').insert(participants);
@@ -281,23 +259,20 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     });
 
     // 완성된 채팅방 조회
-    final response = await supabaseClient
-        .from('chat_rooms')
-        .select('''
+    final response = await supabaseClient.from('chat_rooms').select('''
           *,
           chat_participants(
             *,
             users(id, display_name, photo_url)
           )
-        ''')
-        .eq('id', roomId)
-        .single();
+        ''').eq('id', roomId).single();
 
     return ChatRoomModel.fromJson(response);
   }
 
   @override
-  Future<void> updateLastRead({required String roomId, required String userId}) async {
+  Future<void> updateLastRead(
+      {required String roomId, required String userId}) async {
     await supabaseClient
         .from('chat_participants')
         .update({'last_read_at': DateTime.now().toIso8601String()})
@@ -324,12 +299,14 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         .limit(20);
 
     return (response as List)
-        .map((json) => ChatParticipantModel.fromUserJson(json as Map<String, dynamic>))
+        .map((json) =>
+            ChatParticipantModel.fromUserJson(json as Map<String, dynamic>))
         .toList();
   }
 
   @override
-  Future<void> leaveChatRoom({required String roomId, required String userId}) async {
+  Future<void> leaveChatRoom(
+      {required String roomId, required String userId}) async {
     await supabaseClient
         .from('chat_participants')
         .update({'is_active': false})

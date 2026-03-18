@@ -19,7 +19,8 @@ class ImageUploadService {
     return user.id;
   }
 
-  Future<Map<String, String>> uploadPostImage(File imageFile, {String? postId}) async {
+  Future<Map<String, String>> uploadPostImage(File imageFile,
+      {String? postId}) async {
     try {
       final userId = _currentUserId;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -27,7 +28,8 @@ class ImageUploadService {
       final destinationPath = 'posts/$userId/${postId ?? 'temp'}/$fileName';
       final thumbnailPath = 'posts/$userId/${postId ?? 'temp'}/thumb_$fileName';
 
-      log('Uploading post image to: $destinationPath', name: 'ImageUploadService');
+      log('Uploading post image to: $destinationPath',
+          name: 'ImageUploadService');
 
       // Compress image before upload
       final compressedImage = await _compressImage(imageFile);
@@ -55,8 +57,10 @@ class ImageUploadService {
                 upsert: false,
               ));
 
-      final imageUrl = _supabase.storage.from('images').getPublicUrl(destinationPath);
-      final thumbnailUrl = _supabase.storage.from('images').getPublicUrl(thumbnailPath);
+      final imageUrl =
+          _supabase.storage.from('images').getPublicUrl(destinationPath);
+      final thumbnailUrl =
+          _supabase.storage.from('images').getPublicUrl(thumbnailPath);
 
       log('Image uploaded successfully: $imageUrl', name: 'ImageUploadService');
 
@@ -65,7 +69,8 @@ class ImageUploadService {
         'thumbnailUrl': thumbnailUrl,
       };
     } catch (e) {
-      log('Failed to upload post image: $e', name: 'ImageUploadService', error: e);
+      log('Failed to upload post image: $e',
+          name: 'ImageUploadService', error: e);
       throw Exception('Failed to upload post image: $e');
     }
   }
@@ -93,7 +98,8 @@ class ImageUploadService {
 
       return _supabase.storage.from('images').getPublicUrl(destinationPath);
     } catch (e) {
-      log('Failed to upload profile image: $e', name: 'ImageUploadService.uploadProfileImage');
+      log('Failed to upload profile image: $e',
+          name: 'ImageUploadService.uploadProfileImage');
       throw Exception('Failed to upload profile image: $e');
     }
   }
@@ -129,7 +135,8 @@ class ImageUploadService {
       final fileName = 'pet_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final destinationPath = 'pets/$userId/$petId/$fileName';
 
-      log('Uploading pet avatar to: $destinationPath', name: 'ImageUploadService');
+      log('Uploading pet avatar to: $destinationPath',
+          name: 'ImageUploadService');
 
       // 반려동물 아바타는 프로필 이미지와 비슷한 크기로 처리 (정사각형)
       final processedImage = await _processPetAvatar(imageFile);
@@ -146,12 +153,15 @@ class ImageUploadService {
       // 이전 아바타 이미지 삭제
       await _deleteOldPetAvatars(userId, petId, fileName);
 
-      final avatarUrl = _supabase.storage.from('images').getPublicUrl(destinationPath);
-      log('Pet avatar uploaded successfully: $avatarUrl', name: 'ImageUploadService');
+      final avatarUrl =
+          _supabase.storage.from('images').getPublicUrl(destinationPath);
+      log('Pet avatar uploaded successfully: $avatarUrl',
+          name: 'ImageUploadService');
 
       return avatarUrl;
     } catch (e) {
-      log('Failed to upload pet avatar: $e', name: 'ImageUploadService', error: e);
+      log('Failed to upload pet avatar: $e',
+          name: 'ImageUploadService', error: e);
       throw Exception('Failed to upload pet avatar: $e');
     }
   }
@@ -170,7 +180,8 @@ class ImageUploadService {
 
       if (oldFiles.isNotEmpty) {
         await _supabase.storage.from('images').remove(oldFiles);
-        log('Deleted ${oldFiles.length} old pet avatar(s)', name: 'ImageUploadService');
+        log('Deleted ${oldFiles.length} old pet avatar(s)',
+            name: 'ImageUploadService');
       }
     } catch (e) {
       // Don't throw error for cleanup failures
@@ -200,7 +211,8 @@ class ImageUploadService {
     }
   }
 
-  Future<List<Map<String, String>>> uploadMultiplePostImages(List<File> imageFiles,
+  Future<List<Map<String, String>>> uploadMultiplePostImages(
+      List<File> imageFiles,
       {String? postId}) async {
     try {
       final List<Map<String, String>> results = [];
@@ -213,9 +225,11 @@ class ImageUploadService {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final fileName = '${i}_${timestamp}_${path.basename(imageFile.path)}';
         final destinationPath = 'posts/$userId/${postId ?? 'temp'}/$fileName';
-        final thumbnailPath = 'posts/$userId/${postId ?? 'temp'}/thumb_$fileName';
+        final thumbnailPath =
+            'posts/$userId/${postId ?? 'temp'}/thumb_$fileName';
 
-        log('Uploading image ${i + 1}/${imageFiles.length}', name: 'ImageUploadService');
+        log('Uploading image ${i + 1}/${imageFiles.length}',
+            name: 'ImageUploadService');
 
         final compressedImage = await _compressImage(imageFile);
         final thumbnail = await _generateThumbnail(imageFile);
@@ -240,8 +254,10 @@ class ImageUploadService {
                   upsert: false,
                 ));
 
-        final imageUrl = _supabase.storage.from('images').getPublicUrl(destinationPath);
-        final thumbnailUrl = _supabase.storage.from('images').getPublicUrl(thumbnailPath);
+        final imageUrl =
+            _supabase.storage.from('images').getPublicUrl(destinationPath);
+        final thumbnailUrl =
+            _supabase.storage.from('images').getPublicUrl(thumbnailPath);
 
         results.add({
           'imageUrl': imageUrl,
@@ -249,10 +265,12 @@ class ImageUploadService {
         });
       }
 
-      log('Successfully uploaded ${results.length} images', name: 'ImageUploadService');
+      log('Successfully uploaded ${results.length} images',
+          name: 'ImageUploadService');
       return results;
     } catch (e) {
-      log('Failed to upload multiple post images: $e', name: 'ImageUploadService', error: e);
+      log('Failed to upload multiple post images: $e',
+          name: 'ImageUploadService', error: e);
       throw Exception('Failed to upload multiple post images: $e');
     }
   }
@@ -325,12 +343,14 @@ class ImageUploadService {
       final imageBytes = await imageFile.readAsBytes();
       final fileSizeBytes = imageBytes.length;
 
-      log('Original image size: $fileSizeBytes bytes', name: 'ImageUploadService');
+      log('Original image size: $fileSizeBytes bytes',
+          name: 'ImageUploadService');
 
       // If file exceeds 5MB, force resize to maxWidth and compress
       const maxFileSizeBytes = 5 * 1024 * 1024; // 5MB
       if (fileSizeBytes > maxFileSizeBytes) {
-        log('File exceeds 5MB limit ($fileSizeBytes bytes), will resize and compress', name: 'ImageUploadService');
+        log('File exceeds 5MB limit ($fileSizeBytes bytes), will resize and compress',
+            name: 'ImageUploadService');
       }
 
       final image = img.decodeImage(imageBytes);
@@ -339,27 +359,36 @@ class ImageUploadService {
         throw Exception('Failed to decode image');
       }
 
-      log('Original dimensions: ${image.width}x${image.height}', name: 'ImageUploadService');
+      log('Original dimensions: ${image.width}x${image.height}',
+          name: 'ImageUploadService');
 
       // Resize if dimensions exceed maxWidth or file exceeds 5MB
       img.Image resizedImage = image;
-      final longestSide = image.width > image.height ? image.width : image.height;
+      final longestSide =
+          image.width > image.height ? image.width : image.height;
       final targetSize = longestSide > maxWidth ? maxWidth : longestSide;
 
-      if (image.width > maxWidth || image.height > maxWidth || fileSizeBytes > maxFileSizeBytes) {
+      if (image.width > maxWidth ||
+          image.height > maxWidth ||
+          fileSizeBytes > maxFileSizeBytes) {
         // 가로/세로 중 긴 쪽을 targetSize로 맞춤 (절대 확대하지 않음)
         if (image.width > image.height) {
           final aspectRatio = image.height / image.width;
           final newHeight = (targetSize * aspectRatio).round();
-          resizedImage =
-              img.copyResize(image, width: targetSize, height: newHeight, interpolation: img.Interpolation.linear);
+          resizedImage = img.copyResize(image,
+              width: targetSize,
+              height: newHeight,
+              interpolation: img.Interpolation.linear);
         } else {
           final aspectRatio = image.width / image.height;
           final newWidth = (targetSize * aspectRatio).round();
-          resizedImage =
-              img.copyResize(image, width: newWidth, height: targetSize, interpolation: img.Interpolation.linear);
+          resizedImage = img.copyResize(image,
+              width: newWidth,
+              height: targetSize,
+              interpolation: img.Interpolation.linear);
         }
-        log('Resized dimensions: ${resizedImage.width}x${resizedImage.height}', name: 'ImageUploadService');
+        log('Resized dimensions: ${resizedImage.width}x${resizedImage.height}',
+            name: 'ImageUploadService');
       }
 
       // Compress as JPEG with optimized quality
@@ -440,7 +469,8 @@ class ImageUploadService {
 
       return Uint8List.fromList(compressedBytes);
     } catch (e) {
-      log('Failed to generate thumbnail: $e', name: 'ImageUploadService', error: e);
+      log('Failed to generate thumbnail: $e',
+          name: 'ImageUploadService', error: e);
       throw Exception('Failed to generate thumbnail: $e');
     }
   }

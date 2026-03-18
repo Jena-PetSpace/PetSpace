@@ -61,17 +61,15 @@ class _FeedHubPageState extends State<FeedHubPage>
   Future<void> _loadCommunityPosts({String? category}) async {
     setState(() => _communityLoading = true);
     try {
-      var baseQuery = _supabase
-          .from('community_posts')
-          .select('id, author_id, category, title, content, likes_count, comments_count, created_at, users(display_name, photo_url)');
+      var baseQuery = _supabase.from('community_posts').select(
+          'id, author_id, category, title, content, likes_count, comments_count, created_at, users(display_name, photo_url)');
 
       if (category != null) {
         baseQuery = baseQuery.eq('category', category);
       }
 
-      final response = await baseQuery
-          .order('created_at', ascending: false)
-          .limit(30);
+      final response =
+          await baseQuery.order('created_at', ascending: false).limit(30);
       setState(() {
         _communityPosts = List<Map<String, dynamic>>.from(response);
         _communityLoading = false;
@@ -172,14 +170,17 @@ class _FeedHubPageState extends State<FeedHubPage>
                   _categories[index]['label'] as String,
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                    color:
+                        isSelected ? Colors.white : AppTheme.secondaryTextColor,
                   ),
                 ),
                 selected: isSelected,
                 selectedColor: AppTheme.primaryColor,
                 backgroundColor: Colors.white,
                 side: BorderSide(
-                    color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor),
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : AppTheme.dividerColor),
                 onSelected: (_) {
                   setState(() => _selectedCategory = index);
                   final cat = _categories[index]['value'];
@@ -208,13 +209,16 @@ class _FeedHubPageState extends State<FeedHubPage>
                           final post = _communityPosts[index];
                           final user = post['users'] as Map<String, dynamic>?;
                           return CommunityPostCard(
-                            authorName: user?['display_name'] as String? ?? '익명',
-                            category: _categoryLabel(post['category'] as String? ?? ''),
+                            authorName:
+                                user?['display_name'] as String? ?? '익명',
+                            category: _categoryLabel(
+                                post['category'] as String? ?? ''),
                             title: post['title'] as String? ?? '',
                             content: post['content'] as String? ?? '',
                             likes: post['likes_count'] as int? ?? 0,
                             comments: post['comments_count'] as int? ?? 0,
-                            timeAgo: _timeAgo(post['created_at'] as String? ?? ''),
+                            timeAgo:
+                                _timeAgo(post['created_at'] as String? ?? ''),
                           );
                         },
                       ),

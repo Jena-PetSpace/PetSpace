@@ -15,8 +15,11 @@ import 'package:meong_nyang_diary/features/auth/presentation/bloc/auth_bloc.dart
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 class MockAuthRepository extends Mock implements AuthRepository {}
+
 class MockSignInWithGoogle extends Mock implements SignInWithGoogle {}
+
 class MockSignInWithKakao extends Mock implements SignInWithKakao {}
+
 class MockSignOut extends Mock implements SignOut {}
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -92,7 +95,8 @@ void main() {
       },
       act: (b) => b.add(AuthStarted()),
       expect: () => [
-        isA<AuthAuthenticated>().having((s) => s.user.uid, 'uid', 'test-uid-001'),
+        isA<AuthAuthenticated>()
+            .having((s) => s.user.uid, 'uid', 'test-uid-001'),
       ],
     );
 
@@ -124,15 +128,16 @@ void main() {
       act: (b) => b.add(AuthSignInWithGoogleRequested()),
       expect: () => [
         isA<AuthLoading>(),
-        isA<AuthAuthenticated>().having((s) => s.user.email, 'email', 'test@petspace.kr'),
+        isA<AuthAuthenticated>()
+            .having((s) => s.user.email, 'email', 'test@petspace.kr'),
       ],
     );
 
     blocTest<AuthBloc, AuthState>(
       '실패 → AuthError',
       build: () {
-        when(() => mockGoogle())
-            .thenAnswer((_) async => const Left(AuthFailure(message: '구글 로그인 실패')));
+        when(() => mockGoogle()).thenAnswer(
+            (_) async => const Left(AuthFailure(message: '구글 로그인 실패')));
         return bloc;
       },
       act: (b) => b.add(AuthSignInWithGoogleRequested()),
@@ -161,8 +166,8 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       '실패 → AuthError',
       build: () {
-        when(() => mockKakao())
-            .thenAnswer((_) async => const Left(AuthFailure(message: '카카오 로그인 실패')));
+        when(() => mockKakao()).thenAnswer(
+            (_) async => const Left(AuthFailure(message: '카카오 로그인 실패')));
         return bloc;
       },
       act: (b) => b.add(AuthSignInWithKakaoRequested()),
@@ -189,8 +194,8 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       '실패 → AuthError',
       build: () {
-        when(() => mockSignOut())
-            .thenAnswer((_) async => const Left(AuthFailure(message: '로그아웃 실패')));
+        when(() => mockSignOut()).thenAnswer(
+            (_) async => const Left(AuthFailure(message: '로그아웃 실패')));
         return bloc;
       },
       seed: () => AuthAuthenticated(_tUser),

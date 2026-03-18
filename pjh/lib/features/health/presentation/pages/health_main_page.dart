@@ -42,8 +42,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
     final petState = context.read<PetBloc>().state;
     if (petState is PetLoaded && petState.selectedPet != null) {
       final authState = context.read<AuthBloc>().state;
-      final userId =
-          authState is AuthAuthenticated ? authState.user.uid : null;
+      final userId = authState is AuthAuthenticated ? authState.user.uid : null;
       context.read<HealthBloc>().add(LoadHealthRecords(
             petId: petState.selectedPet!.id,
             userId: userId,
@@ -318,8 +317,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('기록 삭제', style: TextStyle(fontSize: 18.sp)),
-        content:
-            Text('이 건강 기록을 삭제하시겠습니까?', style: TextStyle(fontSize: 14.sp)),
+        content: Text('이 건강 기록을 삭제하시겠습니까?', style: TextStyle(fontSize: 14.sp)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

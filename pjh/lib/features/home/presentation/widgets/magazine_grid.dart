@@ -87,7 +87,8 @@ class MagazineGrid extends StatelessWidget {
   }) {
     return GestureDetector(
       onTap: () {
-        context.push('/explore?query=${Uri.encodeComponent(title.replaceAll('\n', ' '))}');
+        context.push(
+            '/explore?query=${Uri.encodeComponent(title.replaceAll('\n', ' '))}');
       },
       child: Container(
         decoration: BoxDecoration(
@@ -112,7 +113,8 @@ class MagazineGrid extends StatelessWidget {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(14.r)),
               ),
               child: Center(
-                child: Icon(Icons.article_outlined, size: 32.w, color: tagColor.withValues(alpha: 0.4)),
+                child: Icon(Icons.article_outlined,
+                    size: 32.w, color: tagColor.withValues(alpha: 0.4)),
               ),
             ),
 
@@ -123,7 +125,8 @@ class MagazineGrid extends StatelessWidget {
                 children: [
                   // 태그 뱃지
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                     decoration: BoxDecoration(
                       color: tagColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4.r),

@@ -216,7 +216,8 @@ class ConfirmationDialog extends StatelessWidget {
       title: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, color: confirmColor ?? AppTheme.primaryColor, size: 24.w),
+            Icon(icon,
+                color: confirmColor ?? AppTheme.primaryColor, size: 24.w),
             SizedBox(width: 12.w),
           ],
           Expanded(
@@ -499,7 +500,9 @@ class ProgressSteps extends StatelessWidget {
                         : Text(
                             '${i + 1}',
                             style: TextStyle(
-                              color: i == currentStep ? Colors.white : Colors.grey[600],
+                              color: i == currentStep
+                                  ? Colors.white
+                                  : Colors.grey[600],
                               fontWeight: FontWeight.w600,
                               fontSize: 14.sp,
                             ),

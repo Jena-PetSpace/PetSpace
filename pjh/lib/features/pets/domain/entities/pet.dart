@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 enum PetType { dog, cat }
+
 enum PetGender { male, female }
 
 class Pet extends Equatable {

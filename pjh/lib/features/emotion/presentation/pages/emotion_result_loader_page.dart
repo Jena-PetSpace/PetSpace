@@ -14,7 +14,8 @@ class EmotionResultLoaderPage extends StatefulWidget {
   const EmotionResultLoaderPage({super.key, required this.analysisId});
 
   @override
-  State<EmotionResultLoaderPage> createState() => _EmotionResultLoaderPageState();
+  State<EmotionResultLoaderPage> createState() =>
+      _EmotionResultLoaderPageState();
 }
 
 class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
@@ -86,12 +87,16 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
               SizedBox(height: 12.h),
               Text(
                 _error ?? '분석 결과를 불러올 수 없습니다',
-                style: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor),
+                style: TextStyle(
+                    fontSize: 14.sp, color: AppTheme.secondaryTextColor),
               ),
               SizedBox(height: 16.h),
               ElevatedButton(
                 onPressed: () {
-                  setState(() { _loading = true; _error = null; });
+                  setState(() {
+                    _loading = true;
+                    _error = null;
+                  });
                   _loadAnalysis();
                 },
                 child: const Text('다시 시도'),

@@ -51,8 +51,7 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
             child: PageView.builder(
               controller: _pageController,
               itemCount: widget.imageUrls.length,
-              onPageChanged: (index) =>
-                  setState(() => _currentIndex = index),
+              onPageChanged: (index) => setState(() => _currentIndex = index),
               itemBuilder: (context, index) {
                 return InteractiveViewer(
                   minScale: 0.8,
@@ -106,8 +105,8 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
                         ),
                         child: Text(
                           '${_currentIndex + 1} / ${widget.imageUrls.length}',
-                          style: TextStyle(
-                              color: Colors.white, fontSize: 14.sp),
+                          style:
+                              TextStyle(color: Colors.white, fontSize: 14.sp),
                         ),
                       ),
                     SizedBox(width: 8.w),

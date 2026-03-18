@@ -252,7 +252,8 @@ class _AnimatedLikeState extends State<AnimatedLike>
                 scale: _scaleAnimation.value,
                 child: Icon(
                   widget.isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: widget.isLiked ? widget.likedColor : widget.unlikedColor,
+                  color:
+                      widget.isLiked ? widget.likedColor : widget.unlikedColor,
                   size: widget.size,
                 ),
               );
@@ -415,7 +416,8 @@ class _AnimatedListItemState extends State<AnimatedListItem>
     ));
 
     // Staggered animation delay based on index
-    Future.delayed(Duration(milliseconds: widget.index * widget.delay.inMilliseconds), () {
+    Future.delayed(
+        Duration(milliseconds: widget.index * widget.delay.inMilliseconds), () {
       if (mounted) {
         _controller.forward();
       }

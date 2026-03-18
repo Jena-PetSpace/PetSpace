@@ -15,7 +15,8 @@ class SettingsPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('계정 삭제', style: TextStyle(fontSize: 18.sp, color: Colors.red[700])),
+        title: Text('계정 삭제',
+            style: TextStyle(fontSize: 18.sp, color: Colors.red[700])),
         content: Text(
           '정말로 계정을 삭제하시겠습니까?\n\n'
           '모든 게시물, 댓글, 반려동물 정보 등이 영구적으로 삭제되며 복구할 수 없습니다.',
@@ -32,7 +33,8 @@ class SettingsPage extends StatelessWidget {
               context.read<AuthBloc>().add(AuthDeleteAccountRequested());
               context.go('/onboarding/login');
             },
-            child: Text('삭제', style: TextStyle(color: Colors.red, fontSize: 14.sp)),
+            child: Text('삭제',
+                style: TextStyle(color: Colors.red, fontSize: 14.sp)),
           ),
         ],
       ),
@@ -163,8 +165,7 @@ class SettingsPage extends StatelessWidget {
             trailing: Icon(Icons.chevron_right, size: 20.w),
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (_) => const PrivacySettingsPage()),
+              MaterialPageRoute(builder: (_) => const PrivacySettingsPage()),
             ),
           ),
           ListTile(
@@ -192,7 +193,9 @@ class SettingsPage extends StatelessWidget {
           BlocBuilder<ThemeCubit, ThemeMode>(
             builder: (context, themeMode) => SwitchListTile(
               secondary: Icon(
-                themeMode == ThemeMode.dark ? Icons.dark_mode : Icons.light_mode,
+                themeMode == ThemeMode.dark
+                    ? Icons.dark_mode
+                    : Icons.light_mode,
                 size: 24.w,
               ),
               title: Text('다크 모드', style: TextStyle(fontSize: 14.sp)),
@@ -203,13 +206,15 @@ class SettingsPage extends StatelessWidget {
           const Divider(),
           ListTile(
             leading: Icon(Icons.logout, color: Colors.red, size: 24.w),
-            title: Text('로그아웃', style: TextStyle(color: Colors.red, fontSize: 14.sp)),
+            title: Text('로그아웃',
+                style: TextStyle(color: Colors.red, fontSize: 14.sp)),
             onTap: () async {
               final shouldLogout = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
                   title: Text('로그아웃', style: TextStyle(fontSize: 18.sp)),
-                  content: Text('정말 로그아웃 하시겠습니까?', style: TextStyle(fontSize: 14.sp)),
+                  content: Text('정말 로그아웃 하시겠습니까?',
+                      style: TextStyle(fontSize: 14.sp)),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
@@ -217,7 +222,8 @@ class SettingsPage extends StatelessWidget {
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(true),
-                      child: Text('로그아웃', style: TextStyle(color: Colors.red, fontSize: 14.sp)),
+                      child: Text('로그아웃',
+                          style: TextStyle(color: Colors.red, fontSize: 14.sp)),
                     ),
                   ],
                 ),
@@ -231,7 +237,8 @@ class SettingsPage extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: Icon(Icons.delete_forever, color: Colors.red[700], size: 24.w),
+            leading:
+                Icon(Icons.delete_forever, color: Colors.red[700], size: 24.w),
             title: Text('계정 삭제',
                 style: TextStyle(color: Colors.red[700], fontSize: 14.sp)),
             subtitle: Text('모든 데이터가 영구적으로 삭제됩니다',

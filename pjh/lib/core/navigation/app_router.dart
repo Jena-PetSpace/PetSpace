@@ -21,7 +21,8 @@ import '../../features/social/presentation/pages/explore_page.dart';
 import '../../features/social/presentation/pages/notifications_page.dart';
 import '../../features/social/presentation/pages/post_detail_page.dart';
 import '../../features/social/presentation/pages/create_post_page.dart';
-import '../../features/social/presentation/pages/profile_page.dart' as social_profile;
+import '../../features/social/presentation/pages/profile_page.dart'
+    as social_profile;
 import '../../features/social/presentation/bloc/profile_bloc.dart';
 import '../../features/social/presentation/pages/search_page.dart';
 import '../../features/social/presentation/bloc/search_bloc.dart';
@@ -60,316 +61,318 @@ class AppRouter {
       // 초기 위치는 홈으로 설정하고, redirect 로직에서 인증 상태에 따라 적절히 리다이렉트
       initialLocation: '/home',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
-    routes: [
-      GoRoute(
-        path: '/onboarding',
-        name: 'onboarding',
-        builder: (context, state) => const OnboardingPage(),
-      ),
-      GoRoute(
-        path: '/onboarding/slides',
-        name: 'onboarding-slides',
-        builder: (context, state) => const OnboardingSlidesPage(),
-      ),
-      GoRoute(
-        path: '/onboarding/login',
-        name: 'onboarding-login',
-        builder: (context, state) => const OnboardingLoginPage(),
-      ),
-      GoRoute(
-        path: '/onboarding/email-verification',
-        name: 'onboarding-email-verification',
-        builder: (context, state) {
-          final email = state.uri.queryParameters['email'] ?? '';
-          return OnboardingEmailVerificationPage(email: email);
-        },
-      ),
-      GoRoute(
-        path: '/onboarding/kakao-consent',
-        name: 'kakao-consent',
-        builder: (context, state) => const KakaoConsentPage(),
-      ),
-      GoRoute(
-        path: '/onboarding/terms',
-        name: 'onboarding-terms',
-        builder: (context, state) => const TermsAgreementPage(),
-      ),
-      GoRoute(
-        path: '/onboarding/profile',
-        name: 'onboarding-profile',
-        builder: (context, state) => const OnboardingProfileSetupPage(),
-      ),
-      GoRoute(
-        path: '/onboarding/pet-registration',
-        name: 'onboarding-pet-registration',
-        builder: (context, state) => const OnboardingPetRegistrationPage(),
-      ),
-      GoRoute(
-        path: '/onboarding/tutorial',
-        name: 'onboarding-tutorial',
-        builder: (context, state) => const OnboardingTutorialPage(),
-      ),
-      GoRoute(
-        path: '/onboarding/complete',
-        name: 'onboarding-complete',
-        builder: (context, state) => const OnboardingCompletePage(),
-      ),
-      // 카카오 OAuth 콜백 처리 (GoRouter 오류 방지용)
-      // 실제 처리는 Kakao SDK가 자동으로 수행하므로 단순히 로그인 페이지로 리다이렉트
-      GoRoute(
-        path: '/oauth',
-        name: 'oauth-callback',
-        redirect: (context, state) {
-          // Kakao SDK가 이미 OAuth를 처리했으므로 로그인 페이지로 이동
-          // AuthBloc의 상태 변경에 따라 자동으로 적절한 페이지로 리다이렉트됨
-          return '/onboarding/login';
-        },
-      ),
-      // 비밀번호 재설정 플로우
-      GoRoute(
-        path: '/auth/password-reset/request',
-        name: 'password-reset-request',
-        builder: (context, state) => const PasswordResetRequestPage(),
-      ),
-      GoRoute(
-        path: '/auth/password-reset/verify',
-        name: 'password-reset-verify',
-        builder: (context, state) {
-          final email = state.uri.queryParameters['email'] ?? '';
-          return PasswordResetVerificationPage(email: email);
-        },
-      ),
-      GoRoute(
-        path: '/auth/password-reset/new-password',
-        name: 'password-reset-new-password',
-        builder: (context, state) {
-          final email = state.uri.queryParameters['email'] ?? '';
-          return PasswordResetNewPasswordPage(email: email);
-        },
-      ),
-      GoRoute(
-        path: '/post/:postId',
-        name: 'post-detail',
-        builder: (context, state) => PostDetailPage(
-          postId: state.pathParameters['postId']!,
+      routes: [
+        GoRoute(
+          path: '/onboarding',
+          name: 'onboarding',
+          builder: (context, state) => const OnboardingPage(),
         ),
-      ),
-      ShellRoute(
-        builder: (context, state, child) => AuthGuard(
-          child: MainNavigation(child: child),
+        GoRoute(
+          path: '/onboarding/slides',
+          name: 'onboarding-slides',
+          builder: (context, state) => const OnboardingSlidesPage(),
         ),
-        routes: [
-          GoRoute(
-            path: '/home',
-            name: 'home',
-            builder: (context, state) => const HomePage(),
+        GoRoute(
+          path: '/onboarding/login',
+          name: 'onboarding-login',
+          builder: (context, state) => const OnboardingLoginPage(),
+        ),
+        GoRoute(
+          path: '/onboarding/email-verification',
+          name: 'onboarding-email-verification',
+          builder: (context, state) {
+            final email = state.uri.queryParameters['email'] ?? '';
+            return OnboardingEmailVerificationPage(email: email);
+          },
+        ),
+        GoRoute(
+          path: '/onboarding/kakao-consent',
+          name: 'kakao-consent',
+          builder: (context, state) => const KakaoConsentPage(),
+        ),
+        GoRoute(
+          path: '/onboarding/terms',
+          name: 'onboarding-terms',
+          builder: (context, state) => const TermsAgreementPage(),
+        ),
+        GoRoute(
+          path: '/onboarding/profile',
+          name: 'onboarding-profile',
+          builder: (context, state) => const OnboardingProfileSetupPage(),
+        ),
+        GoRoute(
+          path: '/onboarding/pet-registration',
+          name: 'onboarding-pet-registration',
+          builder: (context, state) => const OnboardingPetRegistrationPage(),
+        ),
+        GoRoute(
+          path: '/onboarding/tutorial',
+          name: 'onboarding-tutorial',
+          builder: (context, state) => const OnboardingTutorialPage(),
+        ),
+        GoRoute(
+          path: '/onboarding/complete',
+          name: 'onboarding-complete',
+          builder: (context, state) => const OnboardingCompletePage(),
+        ),
+        // 카카오 OAuth 콜백 처리 (GoRouter 오류 방지용)
+        // 실제 처리는 Kakao SDK가 자동으로 수행하므로 단순히 로그인 페이지로 리다이렉트
+        GoRoute(
+          path: '/oauth',
+          name: 'oauth-callback',
+          redirect: (context, state) {
+            // Kakao SDK가 이미 OAuth를 처리했으므로 로그인 페이지로 이동
+            // AuthBloc의 상태 변경에 따라 자동으로 적절한 페이지로 리다이렉트됨
+            return '/onboarding/login';
+          },
+        ),
+        // 비밀번호 재설정 플로우
+        GoRoute(
+          path: '/auth/password-reset/request',
+          name: 'password-reset-request',
+          builder: (context, state) => const PasswordResetRequestPage(),
+        ),
+        GoRoute(
+          path: '/auth/password-reset/verify',
+          name: 'password-reset-verify',
+          builder: (context, state) {
+            final email = state.uri.queryParameters['email'] ?? '';
+            return PasswordResetVerificationPage(email: email);
+          },
+        ),
+        GoRoute(
+          path: '/auth/password-reset/new-password',
+          name: 'password-reset-new-password',
+          builder: (context, state) {
+            final email = state.uri.queryParameters['email'] ?? '';
+            return PasswordResetNewPasswordPage(email: email);
+          },
+        ),
+        GoRoute(
+          path: '/post/:postId',
+          name: 'post-detail',
+          builder: (context, state) => PostDetailPage(
+            postId: state.pathParameters['postId']!,
           ),
-          GoRoute(
-            path: '/health',
-            name: 'health',
-            builder: (context, state) => const HealthMainPage(),
+        ),
+        ShellRoute(
+          builder: (context, state, child) => AuthGuard(
+            child: MainNavigation(child: child),
           ),
-          GoRoute(
-            path: '/feed',
-            name: 'feed-hub',
-            builder: (context, state) {
-              final tab = state.uri.queryParameters['tab'];
-              int initialTab = 0;
-              if (tab == 'following') initialTab = 1;
-              if (tab == 'community') initialTab = 2;
-              return FeedHubPage(initialTab: initialTab);
-            },
-          ),
-          GoRoute(
-            path: '/my',
-            name: 'my',
-            builder: (context, state) => const MyPage(),
-            routes: [
-              GoRoute(
-                path: 'posts',
-                name: 'my-posts',
-                builder: (context, state) => const MyPostsPage(),
-              ),
-              GoRoute(
-                path: 'saved',
-                name: 'my-saved',
-                builder: (context, state) => const MySavedPostsPage(),
-              ),
-            ],
-          ),
-          GoRoute(
-            path: '/explore',
-            name: 'explore',
-            builder: (context, state) {
-              final hashtag = state.uri.queryParameters['hashtag'];
-              final query = state.uri.queryParameters['query'];
+          routes: [
+            GoRoute(
+              path: '/home',
+              name: 'home',
+              builder: (context, state) => const HomePage(),
+            ),
+            GoRoute(
+              path: '/health',
+              name: 'health',
+              builder: (context, state) => const HealthMainPage(),
+            ),
+            GoRoute(
+              path: '/feed',
+              name: 'feed-hub',
+              builder: (context, state) {
+                final tab = state.uri.queryParameters['tab'];
+                int initialTab = 0;
+                if (tab == 'following') initialTab = 1;
+                if (tab == 'community') initialTab = 2;
+                return FeedHubPage(initialTab: initialTab);
+              },
+            ),
+            GoRoute(
+              path: '/my',
+              name: 'my',
+              builder: (context, state) => const MyPage(),
+              routes: [
+                GoRoute(
+                  path: 'posts',
+                  name: 'my-posts',
+                  builder: (context, state) => const MyPostsPage(),
+                ),
+                GoRoute(
+                  path: 'saved',
+                  name: 'my-saved',
+                  builder: (context, state) => const MySavedPostsPage(),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/explore',
+              name: 'explore',
+              builder: (context, state) {
+                final hashtag = state.uri.queryParameters['hashtag'];
+                final query = state.uri.queryParameters['query'];
 
-              return ExplorePage(
-                initialHashtag: hashtag,
-                initialQuery: query,
-              );
-            },
-          ),
-          GoRoute(
-            path: '/search',
-            name: 'search',
-            builder: (context, state) {
-              final hashtag = state.uri.queryParameters['hashtag'];
-              final query = state.uri.queryParameters['query'];
-
-              return BlocProvider(
-                create: (context) => sl<SearchBloc>(),
-                child: SearchPage(
+                return ExplorePage(
                   initialHashtag: hashtag,
                   initialQuery: query,
-                ),
-              );
-            },
-          ),
-          GoRoute(
-            path: '/create-post',
-            name: 'create-post',
-            builder: (context, state) {
-              final petId = state.uri.queryParameters['petId'];
-              final petName = state.uri.queryParameters['petName'];
-              final imageUrl = state.uri.queryParameters['imageUrl'];
-              return CreatePostPage(
-                petId: petId,
-                petName: petName,
-                imageUrl: imageUrl,
-              );
-            },
-          ),
-          GoRoute(
-            path: '/notifications',
-            name: 'notifications',
-            builder: (context, state) {
-              final queryUserId = state.uri.queryParameters['userId'];
-              final authState = authBloc.state;
-              final userId = queryUserId ??
-                  (authState is AuthAuthenticated ? authState.user.uid : '');
-              return BlocProvider(
-                create: (context) => sl<NotificationsBloc>()
-                  ..add(LoadNotificationsRequested(userId: userId)),
-                child: NotificationsPage(userId: userId),
-              );
-            },
-          ),
-          GoRoute(
-            path: '/profile',
-            name: 'profile',
-            builder: (context, state) => const ProfilePage(),
-            routes: [
-              GoRoute(
-                path: '/edit',
-                name: 'profile-edit',
-                builder: (context, state) => const ProfileEditPage(),
-              ),
-              GoRoute(
-                path: '/settings',
-                name: 'settings',
-                builder: (context, state) => const SettingsPage(),
-              ),
-            ],
-          ),
-          GoRoute(
-            path: '/pets',
-            name: 'pets',
-            builder: (context, state) => const PetManagementPage(),
-          ),
-          GoRoute(
-            path: '/settings',
-            name: 'settings-direct',
-            builder: (context, state) => const SettingsPage(),
-          ),
-          GoRoute(
-            path: '/user-profile/:userId',
-            name: 'user-profile',
-            builder: (context, state) {
-              final userId = state.pathParameters['userId']!;
-              final currentUserId = state.uri.queryParameters['currentUserId'];
+                );
+              },
+            ),
+            GoRoute(
+              path: '/search',
+              name: 'search',
+              builder: (context, state) {
+                final hashtag = state.uri.queryParameters['hashtag'];
+                final query = state.uri.queryParameters['query'];
 
-              return BlocProvider(
-                create: (context) => sl<ProfileBloc>(),
-                child: social_profile.ProfilePage(
-                  userId: userId,
-                  currentUserId: currentUserId,
-                ),
-              );
-            },
-          ),
-          GoRoute(
-            path: '/chat',
-            name: 'chat',
-            builder: (context, state) => BlocProvider(
-              create: (context) => sl<ChatRoomsBloc>(),
-              child: const ChatRoomsPage(),
+                return BlocProvider(
+                  create: (context) => sl<SearchBloc>(),
+                  child: SearchPage(
+                    initialHashtag: hashtag,
+                    initialQuery: query,
+                  ),
+                );
+              },
             ),
-          ),
-          GoRoute(
-            path: '/chat/new',
-            name: 'chat-new',
-            builder: (context, state) => BlocProvider(
-              create: (context) => sl<ChatRoomsBloc>(),
-              child: const CreateChatPage(),
+            GoRoute(
+              path: '/create-post',
+              name: 'create-post',
+              builder: (context, state) {
+                final petId = state.uri.queryParameters['petId'];
+                final petName = state.uri.queryParameters['petName'];
+                final imageUrl = state.uri.queryParameters['imageUrl'];
+                return CreatePostPage(
+                  petId: petId,
+                  petName: petName,
+                  imageUrl: imageUrl,
+                );
+              },
             ),
-          ),
-          GoRoute(
-            path: '/chat/:roomId',
-            name: 'chat-detail',
-            builder: (context, state) {
-              final roomId = state.pathParameters['roomId']!;
-              final roomName = state.uri.queryParameters['name'];
-              return BlocProvider(
-                create: (context) => sl<ChatDetailBloc>(),
-                child: ChatDetailPage(
-                  roomId: roomId,
-                  roomName: roomName,
+            GoRoute(
+              path: '/notifications',
+              name: 'notifications',
+              builder: (context, state) {
+                final queryUserId = state.uri.queryParameters['userId'];
+                final authState = authBloc.state;
+                final userId = queryUserId ??
+                    (authState is AuthAuthenticated ? authState.user.uid : '');
+                return BlocProvider(
+                  create: (context) => sl<NotificationsBloc>()
+                    ..add(LoadNotificationsRequested(userId: userId)),
+                  child: NotificationsPage(userId: userId),
+                );
+              },
+            ),
+            GoRoute(
+              path: '/profile',
+              name: 'profile',
+              builder: (context, state) => const ProfilePage(),
+              routes: [
+                GoRoute(
+                  path: '/edit',
+                  name: 'profile-edit',
+                  builder: (context, state) => const ProfileEditPage(),
                 ),
-              );
-            },
-          ),
-          GoRoute(
-            path: '/emotion',
-            name: 'emotion',
-            builder: (context, state) {
-              final petId = state.uri.queryParameters['petId'];
-              final petName = state.uri.queryParameters['petName'];
-              return BlocProvider(
-                create: (context) => sl<PetBloc>()..add(LoadUserPets()),
-                child: EmotionAnalysisPage(
-                  initialPetId: petId,
-                  initialPetName: petName,
+                GoRoute(
+                  path: '/settings',
+                  name: 'settings',
+                  builder: (context, state) => const SettingsPage(),
                 ),
-              );
-            },
-            routes: [
-              GoRoute(
-                path: '/result/:analysisId',
-                name: 'emotion-result',
-                builder: (context, state) => EmotionResultLoaderPage(
-                  analysisId: state.pathParameters['analysisId']!,
-                ),
+              ],
+            ),
+            GoRoute(
+              path: '/pets',
+              name: 'pets',
+              builder: (context, state) => const PetManagementPage(),
+            ),
+            GoRoute(
+              path: '/settings',
+              name: 'settings-direct',
+              builder: (context, state) => const SettingsPage(),
+            ),
+            GoRoute(
+              path: '/user-profile/:userId',
+              name: 'user-profile',
+              builder: (context, state) {
+                final userId = state.pathParameters['userId']!;
+                final currentUserId =
+                    state.uri.queryParameters['currentUserId'];
+
+                return BlocProvider(
+                  create: (context) => sl<ProfileBloc>(),
+                  child: social_profile.ProfilePage(
+                    userId: userId,
+                    currentUserId: currentUserId,
+                  ),
+                );
+              },
+            ),
+            GoRoute(
+              path: '/chat',
+              name: 'chat',
+              builder: (context, state) => BlocProvider(
+                create: (context) => sl<ChatRoomsBloc>(),
+                child: const ChatRoomsPage(),
               ),
-              GoRoute(
-                path: '/history',
-                name: 'emotion-history',
-                builder: (context, state) {
-                  final authState = authBloc.state;
-                  final userId = authState is AuthAuthenticated
-                      ? authState.user.uid
-                      : '';
-                  return EmotionHistoryPage(userId: userId);
-                },
+            ),
+            GoRoute(
+              path: '/chat/new',
+              name: 'chat-new',
+              builder: (context, state) => BlocProvider(
+                create: (context) => sl<ChatRoomsBloc>(),
+                child: const CreateChatPage(),
               ),
-            ],
-          ),
-        ],
-      ),
-    ],
+            ),
+            GoRoute(
+              path: '/chat/:roomId',
+              name: 'chat-detail',
+              builder: (context, state) {
+                final roomId = state.pathParameters['roomId']!;
+                final roomName = state.uri.queryParameters['name'];
+                return BlocProvider(
+                  create: (context) => sl<ChatDetailBloc>(),
+                  child: ChatDetailPage(
+                    roomId: roomId,
+                    roomName: roomName,
+                  ),
+                );
+              },
+            ),
+            GoRoute(
+              path: '/emotion',
+              name: 'emotion',
+              builder: (context, state) {
+                final petId = state.uri.queryParameters['petId'];
+                final petName = state.uri.queryParameters['petName'];
+                return BlocProvider(
+                  create: (context) => sl<PetBloc>()..add(LoadUserPets()),
+                  child: EmotionAnalysisPage(
+                    initialPetId: petId,
+                    initialPetName: petName,
+                  ),
+                );
+              },
+              routes: [
+                GoRoute(
+                  path: '/result/:analysisId',
+                  name: 'emotion-result',
+                  builder: (context, state) => EmotionResultLoaderPage(
+                    analysisId: state.pathParameters['analysisId']!,
+                  ),
+                ),
+                GoRoute(
+                  path: '/history',
+                  name: 'emotion-history',
+                  builder: (context, state) {
+                    final authState = authBloc.state;
+                    final userId = authState is AuthAuthenticated
+                        ? authState.user.uid
+                        : '';
+                    return EmotionHistoryPage(userId: userId);
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
       redirect: (context, state) {
         final authState = authBloc.state;
-        final isOnboardingRoute = state.matchedLocation.startsWith('/onboarding');
+        final isOnboardingRoute =
+            state.matchedLocation.startsWith('/onboarding');
         final currentPath = state.matchedLocation;
 
         log('=== ROUTER REDIRECT DEBUG ===', name: 'GoRouter');
@@ -380,7 +383,8 @@ class AppRouter {
         // Kakao SDK가 자동으로 처리하므로 로그인 페이지로 리다이렉트
         final uri = state.uri;
         if (uri.scheme.startsWith('kakao') && uri.host == 'oauth') {
-          log('Kakao OAuth callback in GoRouter - redirecting to login', name: 'GoRouter');
+          log('Kakao OAuth callback in GoRouter - redirecting to login',
+              name: 'GoRouter');
           return '/onboarding/login';
         }
 
@@ -388,13 +392,15 @@ class AppRouter {
         // authStateChanges 스트림이 첫 이벤트를 발생시킬 때까지 대기
         if (authState is AuthInitial || authState is AuthLoading) {
           // 인증 확인이 완료될 때까지 현재 위치 유지 (온보딩 깜빡임 방지)
-          log('Auth state is initial/loading - staying at $currentPath', name: 'GoRouter');
+          log('Auth state is initial/loading - staying at $currentPath',
+              name: 'GoRouter');
           return null;
         }
 
         // 이메일 인증 필요 상태 (회원가입 직후)
         if (authState is AuthEmailVerificationRequired) {
-          log('Email verification required - allowing email verification route', name: 'GoRouter');
+          log('Email verification required - allowing email verification route',
+              name: 'GoRouter');
           // 이메일 인증 페이지는 허용
           if (currentPath.startsWith('/onboarding/email-verification')) {
             return null;
@@ -404,7 +410,8 @@ class AppRouter {
             return null;
           }
           // 그 외에는 로그인 페이지로 리다이렉트
-          log('Redirecting to /onboarding/login (email verification required)', name: 'GoRouter');
+          log('Redirecting to /onboarding/login (email verification required)',
+              name: 'GoRouter');
           return '/onboarding/login';
         }
 
@@ -412,7 +419,8 @@ class AppRouter {
         if (authState is AuthAuthenticated) {
           final user = authState.user;
 
-          log('User authenticated - isOnboardingCompleted: ${user.isOnboardingCompleted}', name: 'GoRouter');
+          log('User authenticated - isOnboardingCompleted: ${user.isOnboardingCompleted}',
+              name: 'GoRouter');
           log('User ID: ${user.uid}', name: 'GoRouter');
 
           // 온보딩이 완료되지 않은 경우 (신규 사용자)
@@ -420,12 +428,14 @@ class AppRouter {
             log('User onboarding NOT completed', name: 'GoRouter');
             // 로그인 페이지에서는 약관 페이지로 리다이렉트
             if (currentPath == '/onboarding/login') {
-              log('On login page - redirecting to /onboarding/terms', name: 'GoRouter');
+              log('On login page - redirecting to /onboarding/terms',
+                  name: 'GoRouter');
               return '/onboarding/terms';
             }
             // 이미 온보딩 관련 페이지에 있으면 그대로 유지 (login 제외)
             if (isOnboardingRoute) {
-              log('Already on onboarding route: $currentPath', name: 'GoRouter');
+              log('Already on onboarding route: $currentPath',
+                  name: 'GoRouter');
               return null;
             }
             // 온보딩 약관 동의 페이지로 리다이렉트
@@ -437,7 +447,8 @@ class AppRouter {
           log('User onboarding completed - existing user', name: 'GoRouter');
           // 온보딩 페이지에 있으면 홈으로 리다이렉트
           if (isOnboardingRoute) {
-            log('Redirecting to /home (onboarding completed)', name: 'GoRouter');
+            log('Redirecting to /home (onboarding completed)',
+                name: 'GoRouter');
             return '/home';
           }
           // 그 외에는 현재 위치 유지
@@ -447,7 +458,8 @@ class AppRouter {
         // 인증되지 않은 상태 (AuthUnauthenticated)
         log('User not authenticated', name: 'GoRouter');
         // 온보딩 페이지는 허용
-        if (currentPath == '/onboarding' || currentPath == '/onboarding/slides') {
+        if (currentPath == '/onboarding' ||
+            currentPath == '/onboarding/slides') {
           return null;
         }
 
@@ -467,7 +479,8 @@ class AppRouter {
         }
 
         // 그 외에는 로그인 페이지로 리다이렉트 (로그아웃 시 등)
-        log('Redirecting to /onboarding/login (unauthenticated)', name: 'GoRouter');
+        log('Redirecting to /onboarding/login (unauthenticated)',
+            name: 'GoRouter');
         return '/onboarding/login';
       },
       errorBuilder: (context, state) => Scaffold(

@@ -68,7 +68,8 @@ class _CategoryFilterChipsState extends State<CategoryFilterChips> {
                   style: TextStyle(
                     fontSize: 12.sp,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                    color:
+                        isSelected ? Colors.white : AppTheme.secondaryTextColor,
                   ),
                 ),
               ),

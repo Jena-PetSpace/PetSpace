@@ -33,10 +33,9 @@ class EmptyStateWidget extends StatelessWidget {
               width: 96.w,
               height: 96.w,
               decoration: BoxDecoration(
-                color: (isDark
-                        ? AppTheme.primaryColor
-                        : AppTheme.subtleBackground)
-                    .withValues(alpha: isDark ? 0.2 : 1.0),
+                color:
+                    (isDark ? AppTheme.primaryColor : AppTheme.subtleBackground)
+                        .withValues(alpha: isDark ? 0.2 : 1.0),
                 shape: BoxShape.circle,
               ),
               child: Icon(

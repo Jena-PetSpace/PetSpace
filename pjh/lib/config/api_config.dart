@@ -29,8 +29,7 @@ class ApiConfig {
       emotionApiKey != 'YOUR_AI_EMOTION_API_KEY';
 
   static bool get isGeminiConfigured =>
-      geminiApiKey != 'YOUR_GEMINI_API_KEY_HERE' &&
-      geminiApiKey.isNotEmpty;
+      geminiApiKey != 'YOUR_GEMINI_API_KEY_HERE' && geminiApiKey.isNotEmpty;
 
   static bool get isGoogleVisionConfigured =>
       googleVisionApiKey != 'YOUR_GOOGLE_VISION_API_KEY';

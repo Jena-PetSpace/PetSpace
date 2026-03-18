@@ -24,7 +24,9 @@ class NotificationCard extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: notification.isRead ? Colors.transparent : Colors.blue.withValues(alpha: 0.05),
+          color: notification.isRead
+              ? Colors.transparent
+              : Colors.blue.withValues(alpha: 0.05),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,7 +76,9 @@ class NotificationCard extends StatelessWidget {
               : null,
           child: notification.senderProfileImage == null
               ? Text(
-                  notification.senderName.isNotEmpty ? notification.senderName[0] : '?',
+                  notification.senderName.isNotEmpty
+                      ? notification.senderName[0]
+                      : '?',
                   style: TextStyle(fontSize: 14.sp),
                 )
               : null,

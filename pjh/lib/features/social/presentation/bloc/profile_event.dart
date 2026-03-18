@@ -23,7 +23,7 @@ class LoadUserProfileRequested extends ProfileEvent {
 class FollowUserRequested extends ProfileEvent {
   final String followerId;
   final String followingId;
-  final String followerName;  // 알림 발송용
+  final String followerName; // 알림 발송용
 
   const FollowUserRequested({
     required this.followerId,

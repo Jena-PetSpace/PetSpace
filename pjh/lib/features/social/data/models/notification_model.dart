@@ -47,7 +47,9 @@ class NotificationModel {
       title: json['title'] ?? '',
       body: json['body'] ?? '',
       isRead: json['isRead'] ?? false,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
       postId: json['postId'],
       commentId: json['commentId'],
       data: Map<String, dynamic>.from(json['data'] ?? {}),

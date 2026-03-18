@@ -14,8 +14,10 @@ class StatisticsSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // statistics에서 데이터 추출
     final totalAnalyses = statistics['totalAnalyses'] ?? 0;
-    final averageEmotions = statistics['averageEmotions'] as Map<String, dynamic>? ?? {};
-    final dominantEmotion = statistics['dominantEmotion'] as String? ?? 'happiness';
+    final averageEmotions =
+        statistics['averageEmotions'] as Map<String, dynamic>? ?? {};
+    final dominantEmotion =
+        statistics['dominantEmotion'] as String? ?? 'happiness';
 
     return Card(
       child: Padding(
@@ -88,11 +90,23 @@ class StatisticsSummaryCard extends StatelessWidget {
 
   Widget _buildEmotionBars(Map<String, dynamic> emotions) {
     final emotionList = [
-      {'name': 'happiness', 'label': '기쁨', 'value': emotions['happiness'] ?? 0.0},
+      {
+        'name': 'happiness',
+        'label': '기쁨',
+        'value': emotions['happiness'] ?? 0.0
+      },
       {'name': 'sadness', 'label': '슬픔', 'value': emotions['sadness'] ?? 0.0},
       {'name': 'anxiety', 'label': '불안', 'value': emotions['anxiety'] ?? 0.0},
-      {'name': 'sleepiness', 'label': '졸림', 'value': emotions['sleepiness'] ?? 0.0},
-      {'name': 'curiosity', 'label': '호기심', 'value': emotions['curiosity'] ?? 0.0},
+      {
+        'name': 'sleepiness',
+        'label': '졸림',
+        'value': emotions['sleepiness'] ?? 0.0
+      },
+      {
+        'name': 'curiosity',
+        'label': '호기심',
+        'value': emotions['curiosity'] ?? 0.0
+      },
     ];
 
     return Column(

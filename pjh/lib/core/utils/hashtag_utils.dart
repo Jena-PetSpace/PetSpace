@@ -133,10 +133,7 @@ class HashtagUtils {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     // 상위 N개 반환
-    return sortedEntries
-        .take(limit)
-        .map((entry) => entry.key)
-        .toList();
+    return sortedEntries.take(limit).map((entry) => entry.key).toList();
   }
 
   /// 해시태그 추천

@@ -19,7 +19,8 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     on<RefreshNotificationsRequested>(_onRefreshNotificationsRequested);
     on<LoadMoreNotificationsRequested>(_onLoadMoreNotificationsRequested);
     on<MarkNotificationAsReadRequested>(_onMarkNotificationAsReadRequested);
-    on<MarkAllNotificationsAsReadRequested>(_onMarkAllNotificationsAsReadRequested);
+    on<MarkAllNotificationsAsReadRequested>(
+        _onMarkAllNotificationsAsReadRequested);
   }
 
   Future<void> _onLoadNotificationsRequested(
@@ -102,7 +103,8 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     // Optimistically update the notification in current state
     if (state is NotificationsLoaded) {
       final currentState = state as NotificationsLoaded;
-      final updatedNotifications = currentState.notifications.map((notification) {
+      final updatedNotifications =
+          currentState.notifications.map((notification) {
         if (notification.id == event.notificationId) {
           return notification.copyWith(isRead: true);
         }
@@ -121,14 +123,16 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
       final currentState = state as NotificationsLoaded;
 
       // Mark all notifications as read optimistically
-      final updatedNotifications = currentState.notifications.map((notification) {
+      final updatedNotifications =
+          currentState.notifications.map((notification) {
         return notification.copyWith(isRead: true);
       }).toList();
 
       emit(currentState.copyWith(notifications: updatedNotifications));
 
       // Call repository to mark all notifications as read
-      final result = await socialRepository.markAllNotificationsAsRead(event.userId);
+      final result =
+          await socialRepository.markAllNotificationsAsRead(event.userId);
 
       result.fold(
         (failure) {

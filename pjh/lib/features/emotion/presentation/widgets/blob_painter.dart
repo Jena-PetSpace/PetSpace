@@ -27,8 +27,7 @@ class BlobPainter extends CustomPainter {
 
     for (int i = 0; i < pointCount; i++) {
       final angle = (i / pointCount) * 2 * pi;
-      final wobble =
-          sin(time + i * 1.5) * 12 + cos(time * 0.7 + i * 0.8) * 8;
+      final wobble = sin(time + i * 1.5) * 12 + cos(time * 0.7 + i * 0.8) * 8;
       final r = baseRadius + wobble;
       final x = center.dx + cos(angle) * r;
       final y = center.dy + sin(angle) * r;

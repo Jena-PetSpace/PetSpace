@@ -32,8 +32,9 @@ class _PetProfileCardState extends State<PetProfileCard> {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       context.read<EmotionAnalysisBloc>().add(
-        LoadAnalysisHistory(userId: authState.user.uid, petId: petId, limit: 50),
-      );
+            LoadAnalysisHistory(
+                userId: authState.user.uid, petId: petId, limit: 50),
+          );
       _lastLoadedPetId = petId;
     }
   }
@@ -53,7 +54,8 @@ class _PetProfileCardState extends State<PetProfileCard> {
           return _buildCard(context, pet, petState.pets.length > 1);
         }
         if (petState is PetOperationSuccess && petState.pets.isNotEmpty) {
-          return _buildCard(context, petState.pets.first, petState.pets.length > 1);
+          return _buildCard(
+              context, petState.pets.first, petState.pets.length > 1);
         }
         return _buildEmptyCard(context);
       },
@@ -132,7 +134,8 @@ class _PetProfileCardState extends State<PetProfileCard> {
 
                 // 전환 버튼 (항상 표시)
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20.r),
@@ -148,7 +151,9 @@ class _PetProfileCardState extends State<PetProfileCard> {
                         ),
                       ),
                       SizedBox(width: 3.w),
-                      Icon(Icons.keyboard_arrow_down, color: Colors.white.withValues(alpha: 0.9), size: 16.w),
+                      Icon(Icons.keyboard_arrow_down,
+                          color: Colors.white.withValues(alpha: 0.9),
+                          size: 16.w),
                     ],
                   ),
                 ),
@@ -165,10 +170,13 @@ class _PetProfileCardState extends State<PetProfileCard> {
                 String countText = '0회';
                 EmotionAnalysis? latestAnalysis;
 
-                if (emotionState is EmotionAnalysisHistoryLoaded && emotionState.history.isNotEmpty) {
+                if (emotionState is EmotionAnalysisHistoryLoaded &&
+                    emotionState.history.isNotEmpty) {
                   latestAnalysis = emotionState.history.first;
-                  emotionText = _getEmotionKorean(latestAnalysis.emotions.dominantEmotion);
-                  emotionIcon = _getEmotionEmoji(latestAnalysis.emotions.dominantEmotion);
+                  emotionText = _getEmotionKorean(
+                      latestAnalysis.emotions.dominantEmotion);
+                  emotionIcon =
+                      _getEmotionEmoji(latestAnalysis.emotions.dominantEmotion);
                   stressText = '${latestAnalysis.emotions.stressLevel}점';
                   countText = '${emotionState.history.length}회';
                 }
@@ -209,27 +217,40 @@ class _PetProfileCardState extends State<PetProfileCard> {
 
   String _getEmotionKorean(String emotion) {
     switch (emotion) {
-      case 'happiness': return '기쁨';
-      case 'sadness': return '슬픔';
-      case 'anxiety': return '불안';
-      case 'sleepiness': return '졸림';
-      case 'curiosity': return '호기심';
-      default: return emotion;
+      case 'happiness':
+        return '기쁨';
+      case 'sadness':
+        return '슬픔';
+      case 'anxiety':
+        return '불안';
+      case 'sleepiness':
+        return '졸림';
+      case 'curiosity':
+        return '호기심';
+      default:
+        return emotion;
     }
   }
 
   String _getEmotionEmoji(String emotion) {
     switch (emotion) {
-      case 'happiness': return '😊';
-      case 'sadness': return '😢';
-      case 'anxiety': return '😰';
-      case 'sleepiness': return '😴';
-      case 'curiosity': return '🧐';
-      default: return '🐾';
+      case 'happiness':
+        return '😊';
+      case 'sadness':
+        return '😢';
+      case 'anxiety':
+        return '😰';
+      case 'sleepiness':
+        return '😴';
+      case 'curiosity':
+        return '🧐';
+      default:
+        return '🐾';
     }
   }
 
-  Widget _buildInfoBox(String label, String value, {String? icon, VoidCallback? onTap}) {
+  Widget _buildInfoBox(String label, String value,
+      {String? icon, VoidCallback? onTap}) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -302,7 +323,8 @@ class _PetProfileCardState extends State<PetProfileCard> {
                 ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios, color: Colors.white.withValues(alpha: 0.7), size: 16.w),
+            Icon(Icons.arrow_forward_ios,
+                color: Colors.white.withValues(alpha: 0.7), size: 16.w),
           ],
         ),
       ),

@@ -36,10 +36,12 @@ class RealtimeService {
       StreamController<Map<String, dynamic>>.broadcast();
 
   // Public streams
-  Stream<Map<String, dynamic>> get notificationStream => _notificationController.stream;
+  Stream<Map<String, dynamic>> get notificationStream =>
+      _notificationController.stream;
   Stream<Map<String, dynamic>> get commentStream => _commentController.stream;
   Stream<Map<String, dynamic>> get likeStream => _likeController.stream;
-  Stream<Map<String, dynamic>> get chatMessageStream => _chatMessageController.stream;
+  Stream<Map<String, dynamic>> get chatMessageStream =>
+      _chatMessageController.stream;
 
   /// 서비스 초기화
   Future<void> initialize() async {
@@ -67,12 +69,14 @@ class RealtimeService {
     final channelName = 'notifications:$userId';
 
     if (_channels.containsKey(channelName)) {
-      log('Already subscribed to notifications channel', name: 'RealtimeService');
+      log('Already subscribed to notifications channel',
+          name: 'RealtimeService');
       return;
     }
 
     try {
-      log('Subscribing to notifications for user: $userId', name: 'RealtimeService');
+      log('Subscribing to notifications for user: $userId',
+          name: 'RealtimeService');
 
       final channel = _supabase.channel(channelName);
 
@@ -88,7 +92,8 @@ class RealtimeService {
               value: userId,
             ),
             callback: (payload) {
-              log('New notification received: ${payload.newRecord}', name: 'RealtimeService');
+              log('New notification received: ${payload.newRecord}',
+                  name: 'RealtimeService');
               _notificationController.add({
                 'type': 'notification',
                 'event': 'insert',
@@ -99,7 +104,8 @@ class RealtimeService {
           .subscribe();
 
       _channels[channelName] = channel;
-      log('Successfully subscribed to notifications channel', name: 'RealtimeService');
+      log('Successfully subscribed to notifications channel',
+          name: 'RealtimeService');
     } catch (e, stackTrace) {
       log('Failed to subscribe to notifications',
           name: 'RealtimeService', error: e, stackTrace: stackTrace);
@@ -134,7 +140,8 @@ class RealtimeService {
           value: postId,
         ),
         callback: (payload) {
-          log('New comment received: ${payload.newRecord}', name: 'RealtimeService');
+          log('New comment received: ${payload.newRecord}',
+              name: 'RealtimeService');
           _commentController.add({
             'type': 'comment',
             'event': 'insert',
@@ -167,7 +174,8 @@ class RealtimeService {
 
       channel.subscribe();
       _channels[channelName] = channel;
-      log('Successfully subscribed to comments channel', name: 'RealtimeService');
+      log('Successfully subscribed to comments channel',
+          name: 'RealtimeService');
     } catch (e, stackTrace) {
       log('Failed to subscribe to comments',
           name: 'RealtimeService', error: e, stackTrace: stackTrace);
@@ -202,7 +210,8 @@ class RealtimeService {
           value: postId,
         ),
         callback: (payload) {
-          log('New like received: ${payload.newRecord}', name: 'RealtimeService');
+          log('New like received: ${payload.newRecord}',
+              name: 'RealtimeService');
           _likeController.add({
             'type': 'like',
             'event': 'insert',
@@ -250,31 +259,37 @@ class RealtimeService {
     final channelName = 'chat_messages:$userId';
 
     if (_channels.containsKey(channelName)) {
-      log('Already subscribed to chat messages channel', name: 'RealtimeService');
+      log('Already subscribed to chat messages channel',
+          name: 'RealtimeService');
       return;
     }
 
     try {
-      log('Subscribing to chat messages for user: $userId', name: 'RealtimeService');
+      log('Subscribing to chat messages for user: $userId',
+          name: 'RealtimeService');
 
       final channel = _supabase.channel(channelName);
 
-      channel.onPostgresChanges(
-        event: PostgresChangeEvent.insert,
-        schema: 'public',
-        table: 'chat_messages',
-        callback: (payload) {
-          log('New chat message received: ${payload.newRecord}', name: 'RealtimeService');
-          _chatMessageController.add({
-            'type': 'chat_message',
-            'event': 'insert',
-            'data': payload.newRecord,
-          });
-        },
-      ).subscribe();
+      channel
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'chat_messages',
+            callback: (payload) {
+              log('New chat message received: ${payload.newRecord}',
+                  name: 'RealtimeService');
+              _chatMessageController.add({
+                'type': 'chat_message',
+                'event': 'insert',
+                'data': payload.newRecord,
+              });
+            },
+          )
+          .subscribe();
 
       _channels[channelName] = channel;
-      log('Successfully subscribed to chat messages channel', name: 'RealtimeService');
+      log('Successfully subscribed to chat messages channel',
+          name: 'RealtimeService');
     } catch (e, stackTrace) {
       log('Failed to subscribe to chat messages',
           name: 'RealtimeService', error: e, stackTrace: stackTrace);
@@ -298,7 +313,8 @@ class RealtimeService {
       await _supabase.removeChannel(channel!);
       _channels.remove(channelName);
 
-      log('Successfully unsubscribed from channel: $channelName', name: 'RealtimeService');
+      log('Successfully unsubscribed from channel: $channelName',
+          name: 'RealtimeService');
     } catch (e, stackTrace) {
       log('Failed to unsubscribe from channel: $channelName',
           name: 'RealtimeService', error: e, stackTrace: stackTrace);
@@ -316,7 +332,8 @@ class RealtimeService {
       }
 
       _channels.clear();
-      log('Successfully unsubscribed from all channels', name: 'RealtimeService');
+      log('Successfully unsubscribed from all channels',
+          name: 'RealtimeService');
     } catch (e, stackTrace) {
       log('Failed to unsubscribe from all channels',
           name: 'RealtimeService', error: e, stackTrace: stackTrace);

@@ -137,7 +137,8 @@ class ImagePickerWidget extends StatelessWidget {
       }
     } catch (e) {
       // Handle error
-      developer.log('Error picking image: $e', name: 'ImagePickerWidget', error: e);
+      developer.log('Error picking image: $e',
+          name: 'ImagePickerWidget', error: e);
     }
   }
 

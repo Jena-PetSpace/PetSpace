@@ -232,7 +232,8 @@ class _OnboardingPetRegistrationPageState
             ),
           ),
           IconButton(
-            icon: Icon(Icons.delete, color: AppTheme.highlightColor, size: 24.w),
+            icon:
+                Icon(Icons.delete, color: AppTheme.highlightColor, size: 24.w),
             onPressed: () => _removePet(pet),
           ),
         ],

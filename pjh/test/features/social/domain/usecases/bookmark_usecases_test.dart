@@ -41,8 +41,8 @@ void main() {
     });
 
     test('네트워크 실패 → Left(NetworkFailure)', () async {
-      when(() => repo.savePost(any(), any()))
-          .thenAnswer((_) async => const Left(NetworkFailure(message: '연결 오류')));
+      when(() => repo.savePost(any(), any())).thenAnswer(
+          (_) async => const Left(NetworkFailure(message: '연결 오류')));
 
       final uc = SavePost(repo);
       final result = await uc(SavePostParams(postId: 'p', userId: 'u'));
@@ -86,9 +86,9 @@ void main() {
   group('GetSavedPosts', () {
     test('성공 → Right(List<Post>)', () async {
       when(() => repo.getSavedPosts(
-        userId: any(named: 'userId'),
-        limit: any(named: 'limit'),
-      )).thenAnswer((_) async => Right([_tPost]));
+            userId: any(named: 'userId'),
+            limit: any(named: 'limit'),
+          )).thenAnswer((_) async => Right([_tPost]));
 
       final uc = GetSavedPosts(repo);
       final result = await uc(GetSavedPostsParams(userId: 'user-001'));
@@ -104,9 +104,9 @@ void main() {
 
     test('빈 결과 → Right([])', () async {
       when(() => repo.getSavedPosts(
-        userId: any(named: 'userId'),
-        limit: any(named: 'limit'),
-      )).thenAnswer((_) async => const Right([]));
+            userId: any(named: 'userId'),
+            limit: any(named: 'limit'),
+          )).thenAnswer((_) async => const Right([]));
 
       final uc = GetSavedPosts(repo);
       final result = await uc(GetSavedPostsParams(userId: 'user-001'));
@@ -116,9 +116,9 @@ void main() {
 
     test('limit 파라미터 전달 확인', () async {
       when(() => repo.getSavedPosts(
-        userId: any(named: 'userId'),
-        limit: any(named: 'limit'),
-      )).thenAnswer((_) async => const Right([]));
+            userId: any(named: 'userId'),
+            limit: any(named: 'limit'),
+          )).thenAnswer((_) async => const Right([]));
 
       final uc = GetSavedPosts(repo);
       await uc(GetSavedPostsParams(userId: 'user-001', limit: 10));
@@ -128,9 +128,10 @@ void main() {
 
     test('실패 → Left', () async {
       when(() => repo.getSavedPosts(
-        userId: any(named: 'userId'),
-        limit: any(named: 'limit'),
-      )).thenAnswer((_) async => const Left(ServerFailure(message: '서버 오류')));
+                userId: any(named: 'userId'),
+                limit: any(named: 'limit'),
+              ))
+          .thenAnswer((_) async => const Left(ServerFailure(message: '서버 오류')));
 
       final uc = GetSavedPosts(repo);
       final result = await uc(GetSavedPostsParams(userId: 'user-001'));

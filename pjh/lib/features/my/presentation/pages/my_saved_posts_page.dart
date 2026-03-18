@@ -6,7 +6,6 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/presentation/bloc/feed_bloc.dart';
 
-
 class MySavedPostsPage extends StatefulWidget {
   const MySavedPostsPage({super.key});
 
@@ -154,27 +153,30 @@ class _SavedPostCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 18.r,
-                  backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.15),
+                  backgroundColor:
+                      AppTheme.primaryColor.withValues(alpha: 0.15),
                   backgroundImage: post.authorProfileImage != null &&
                           (post.authorProfileImage as String).isNotEmpty
                       ? NetworkImage(post.authorProfileImage as String)
                       : null,
                   child: post.authorProfileImage == null ||
                           (post.authorProfileImage as String).isEmpty
-                      ? Icon(Icons.person, size: 18.w, color: AppTheme.primaryColor)
+                      ? Icon(Icons.person,
+                          size: 18.w, color: AppTheme.primaryColor)
                       : null,
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
                   child: Text(
                     post.authorName as String? ?? '사용자',
-                    style: TextStyle(
-                        fontSize: 14.sp, fontWeight: FontWeight.w600),
+                    style:
+                        TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
                   ),
                 ),
                 // 북마크 해제 버튼
                 IconButton(
-                  icon: Icon(Icons.bookmark, color: AppTheme.primaryColor, size: 22.w),
+                  icon: Icon(Icons.bookmark,
+                      color: AppTheme.primaryColor, size: 22.w),
                   onPressed: () => _confirmUnsave(context),
                   tooltip: '저장 취소',
                 ),
@@ -193,7 +195,8 @@ class _SavedPostCard extends StatelessWidget {
                 errorBuilder: (_, __, ___) => Container(
                   height: 200.h,
                   color: Colors.grey[100],
-                  child: Icon(Icons.broken_image, size: 48.w, color: Colors.grey[300]),
+                  child: Icon(Icons.broken_image,
+                      size: 48.w, color: Colors.grey[300]),
                 ),
               ),
             ),
@@ -239,7 +242,9 @@ class _SavedPostCard extends StatelessWidget {
         title: const Text('저장 취소'),
         content: const Text('이 게시글을 저장 목록에서 제거할까요?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('취소')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),

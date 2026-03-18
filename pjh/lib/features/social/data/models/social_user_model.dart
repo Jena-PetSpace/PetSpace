@@ -42,8 +42,12 @@ class SocialUserModel {
       followersCount: json['followersCount'] ?? 0,
       followingCount: json['followingCount'] ?? 0,
       postsCount: json['postsCount'] ?? 0,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
-      updatedAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
       isPrivate: json['isPrivate'] ?? false,
     );
   }

@@ -71,13 +71,16 @@ class ChatRoomTile extends StatelessWidget {
                       if (room.unreadCount > 0)
                         Container(
                           margin: EdgeInsets.only(left: 8.w),
-                          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 6.w, vertical: 2.h),
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.primary,
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Text(
-                            room.unreadCount > 99 ? '99+' : '${room.unreadCount}',
+                            room.unreadCount > 99
+                                ? '99+'
+                                : '${room.unreadCount}',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 11.sp,

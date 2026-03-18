@@ -59,7 +59,8 @@ class FCMService {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         dev.log('푸시 알림 권한 승인됨', name: 'FCMService');
-      } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+      } else if (settings.authorizationStatus ==
+          AuthorizationStatus.provisional) {
         dev.log('푸시 알림 임시 권한 승인됨', name: 'FCMService');
       } else {
         dev.log('푸시 알림 권한 거부됨', name: 'FCMService');
@@ -89,7 +90,8 @@ class FCMService {
 
       dev.log('FCM 초기화 완료', name: 'FCMService');
     } catch (e, stackTrace) {
-      dev.log('FCM 초기화 실패', error: e, stackTrace: stackTrace, name: 'FCMService');
+      dev.log('FCM 초기화 실패',
+          error: e, stackTrace: stackTrace, name: 'FCMService');
     }
   }
 
@@ -111,7 +113,8 @@ class FCMService {
 
       dev.log('FCM 토큰 저장 완료: user_id=$userId', name: 'FCMService');
     } catch (e, stackTrace) {
-      dev.log('FCM 토큰 저장 실패', error: e, stackTrace: stackTrace, name: 'FCMService');
+      dev.log('FCM 토큰 저장 실패',
+          error: e, stackTrace: stackTrace, name: 'FCMService');
     }
   }
 
@@ -153,7 +156,8 @@ class FCMService {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
       dev.log('토픽 구독 해제 완료: $topic', name: 'FCMService');
     } catch (e, stackTrace) {
-      dev.log('토픽 구독 해제 실패', error: e, stackTrace: stackTrace, name: 'FCMService');
+      dev.log('토픽 구독 해제 실패',
+          error: e, stackTrace: stackTrace, name: 'FCMService');
     }
   }
 
@@ -162,7 +166,8 @@ class FCMService {
     try {
       return await _firebaseMessaging.getToken();
     } catch (e, stackTrace) {
-      dev.log('FCM 토큰 가져오기 실패', error: e, stackTrace: stackTrace, name: 'FCMService');
+      dev.log('FCM 토큰 가져오기 실패',
+          error: e, stackTrace: stackTrace, name: 'FCMService');
       return null;
     }
   }
@@ -175,15 +180,13 @@ class FCMService {
         await _firebaseMessaging.deleteToken();
 
         // 데이터베이스에서도 삭제
-        await _supabase
-            .from('user_devices')
-            .delete()
-            .eq('fcm_token', token);
+        await _supabase.from('user_devices').delete().eq('fcm_token', token);
 
         dev.log('FCM 토큰 삭제 완료', name: 'FCMService');
       }
     } catch (e, stackTrace) {
-      dev.log('FCM 토큰 삭제 실패', error: e, stackTrace: stackTrace, name: 'FCMService');
+      dev.log('FCM 토큰 삭제 실패',
+          error: e, stackTrace: stackTrace, name: 'FCMService');
     }
   }
 }

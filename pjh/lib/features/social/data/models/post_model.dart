@@ -8,10 +8,11 @@ class PostModel {
   final String id;
   final String authorId;
   final String? petId;
-  final String? imageUrl;  // Supabase: image_url (단일 URL)
-  final Map<String, dynamic>? emotionAnalysis;  // Supabase: emotion_analysis (JSONB)
+  final String? imageUrl; // Supabase: image_url (단일 URL)
+  final Map<String, dynamic>?
+      emotionAnalysis; // Supabase: emotion_analysis (JSONB)
   final String? caption;
-  final List<String> hashtags;  // Supabase: hashtags (TEXT[])
+  final List<String> hashtags; // Supabase: hashtags (TEXT[])
   final int likesCount;
   final int commentsCount;
   final DateTime createdAt;

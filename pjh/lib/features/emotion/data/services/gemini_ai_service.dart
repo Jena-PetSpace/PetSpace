@@ -9,7 +9,8 @@ import '../models/emotion_analysis_model.dart';
 
 class GeminiAIService {
   final Dio _dio;
-  static const String _baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  static const String _baseUrl =
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
   static String _buildPrompt({String? petType, String? breed}) {
     final breedContext = (breed != null && breed.isNotEmpty)
@@ -102,12 +103,13 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
 
       final requestData = _buildRequest([
         {"text": prompt},
-        {"inline_data": {"mime_type": mimeType, "data": base64Image}},
+        {
+          "inline_data": {"mime_type": mimeType, "data": base64Image}
+        },
       ]);
 
       final response = await _callApi(requestData);
       return _parseResponse(response);
-
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
@@ -128,7 +130,8 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
       throw const AnalysisException('분석할 이미지가 없습니다.');
     }
     if (imageFiles.length == 1) {
-      return analyzeEmotionFromImage(imageFiles.first, petType: petType, breed: breed);
+      return analyzeEmotionFromImage(imageFiles.first,
+          petType: petType, breed: breed);
     }
 
     try {
@@ -138,7 +141,8 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
       final prompt = _buildPrompt(petType: petType, breed: breed);
 
       parts.add({
-        "text": "아래 ${imageFiles.length}장의 사진은 모두 같은 반려동물입니다. 모든 사진을 종합적으로 분석해주세요.\n\n$prompt",
+        "text":
+            "아래 ${imageFiles.length}장의 사진은 모두 같은 반려동물입니다. 모든 사진을 종합적으로 분석해주세요.\n\n$prompt",
       });
 
       for (final imageFile in imageFiles) {
@@ -153,7 +157,8 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
         parts.add({
           "inline_data": {"mime_type": mimeType, "data": base64Image}
         });
-        log('이미지 추가: ${(fileSize / 1024).toStringAsFixed(1)} KB', name: 'GeminiAI');
+        log('이미지 추가: ${(fileSize / 1024).toStringAsFixed(1)} KB',
+            name: 'GeminiAI');
       }
 
       if (parts.length < 2) {
@@ -163,7 +168,6 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
       final requestData = _buildRequest(parts);
       final response = await _callApi(requestData);
       return _parseResponse(response);
-
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
@@ -181,7 +185,8 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
         {"text": prompt},
       ]);
       final response = await _callApi(requestData);
-      final textContent = response['candidates'][0]['content']['parts'][0]['text'] as String;
+      final textContent =
+          response['candidates'][0]['content']['parts'][0]['text'] as String;
       return textContent.trim();
     } catch (e) {
       log('generateText 오류: $e', name: 'GeminiAI');
@@ -195,17 +200,24 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
     final ext = path.toLowerCase().split('.').last;
     switch (ext) {
       case 'jpg':
-      case 'jpeg': return 'image/jpeg';
-      case 'png':  return 'image/png';
-      case 'gif':  return 'image/gif';
-      case 'webp': return 'image/webp';
-      default:     return 'image/jpeg';
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'image/jpeg';
     }
   }
 
   Map<String, dynamic> _buildRequest(List<Map<String, dynamic>> parts) {
     return {
-      "contents": [{"parts": parts}],
+      "contents": [
+        {"parts": parts}
+      ],
       "generationConfig": {
         "temperature": 0.4,
         "topK": 32,
@@ -214,10 +226,22 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
         "responseMimeType": "application/json",
       },
       "safetySettings": [
-        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+        {
+          "category": "HARM_CATEGORY_HARASSMENT",
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          "category": "HARM_CATEGORY_HATE_SPEECH",
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+        },
       ],
     };
   }
@@ -225,7 +249,9 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
   // 텍스트 전용 (JSON 강제 없음)
   Map<String, dynamic> _buildTextRequest(List<Map<String, dynamic>> parts) {
     return {
-      "contents": [{"parts": parts}],
+      "contents": [
+        {"parts": parts}
+      ],
       "generationConfig": {
         "temperature": 0.7,
         "topK": 40,
@@ -233,15 +259,28 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
         "maxOutputTokens": 2048,
       },
       "safetySettings": [
-        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+        {
+          "category": "HARM_CATEGORY_HARASSMENT",
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          "category": "HARM_CATEGORY_HATE_SPEECH",
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+        },
       ],
     };
   }
 
-  Future<Map<String, dynamic>> _callApi(Map<String, dynamic> requestData) async {
+  Future<Map<String, dynamic>> _callApi(
+      Map<String, dynamic> requestData) async {
     final response = await _dio.post(
       '$_baseUrl?key=${ApiConfig.geminiApiKey}',
       data: requestData,
@@ -300,7 +339,8 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
   }
 
   EmotionScoresModel _parseResponse(Map<String, dynamic> responseData) {
-    final textContent = responseData['candidates'][0]['content']['parts'][0]['text'] as String;
+    final textContent =
+        responseData['candidates'][0]['content']['parts'][0]['text'] as String;
     log('응답 텍스트: $textContent', name: 'GeminiAI');
 
     final jsonStr = _extractJson(textContent);
@@ -311,26 +351,26 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
     final emotionData = jsonDecode(jsonStr) as Map<String, dynamic>;
 
     // 감정 점수 (합계 1.0 정규화)
-    double happiness  = _parseDouble(emotionData['happiness'],  0.2);
-    double sadness    = _parseDouble(emotionData['sadness'],    0.2);
-    double anxiety    = _parseDouble(emotionData['anxiety'],    0.2);
+    double happiness = _parseDouble(emotionData['happiness'], 0.2);
+    double sadness = _parseDouble(emotionData['sadness'], 0.2);
+    double anxiety = _parseDouble(emotionData['anxiety'], 0.2);
     double sleepiness = _parseDouble(emotionData['sleepiness'], 0.2);
-    double curiosity  = _parseDouble(emotionData['curiosity'],  0.2);
+    double curiosity = _parseDouble(emotionData['curiosity'], 0.2);
 
     final total = happiness + sadness + anxiety + sleepiness + curiosity;
     if (total > 0) {
-      happiness  /= total;
-      sadness    /= total;
-      anxiety    /= total;
+      happiness /= total;
+      sadness /= total;
+      anxiety /= total;
       sleepiness /= total;
-      curiosity  /= total;
+      curiosity /= total;
     }
 
     // 추가 지표
-    final stressLevel  = _parseInt(emotionData['stress_level'],  50);
+    final stressLevel = _parseInt(emotionData['stress_level'], 50);
     final activityLevel = _parseInt(emotionData['activity_level'], 50);
-    final comfortLevel  = _parseInt(emotionData['comfort_level'],  50);
-    final healthSignal  = emotionData['health_signal'] as String? ?? 'normal';
+    final comfortLevel = _parseInt(emotionData['comfort_level'], 50);
+    final healthSignal = emotionData['health_signal'] as String? ?? 'normal';
 
     // A-1: 부위별 분석
     Map<String, FacialFeature>? facialFeatures;
@@ -347,14 +387,14 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
 
     // A-3: 건강 팁
     final rawTips = emotionData['health_tips'];
-    final healthTips = rawTips is List
-        ? List<String>.from(rawTips)
-        : <String>[];
+    final healthTips =
+        rawTips is List ? List<String>.from(rawTips) : <String>[];
 
     // A-6: 품종 해석
     final breedInsight = emotionData['breed_insight'] as String?;
 
-    log('분석 완료 - happiness: ${happiness.toStringAsFixed(2)}, stress: $stressLevel', name: 'GeminiAI');
+    log('분석 완료 - happiness: ${happiness.toStringAsFixed(2)}, stress: $stressLevel',
+        name: 'GeminiAI');
 
     return EmotionScoresModel(
       happiness: happiness,
@@ -392,7 +432,9 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
   double _parseDouble(dynamic value, double defaultValue) {
     if (value is num) return value.toDouble().clamp(0.0, 1.0);
     if (value is String) {
-      try { return double.parse(value).clamp(0.0, 1.0); } catch (_) {}
+      try {
+        return double.parse(value).clamp(0.0, 1.0);
+      } catch (_) {}
     }
     return defaultValue;
   }
@@ -400,7 +442,9 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
   int _parseInt(dynamic value, int defaultValue) {
     if (value is num) return value.toInt().clamp(0, 100);
     if (value is String) {
-      try { return int.parse(value).clamp(0, 100); } catch (_) {}
+      try {
+        return int.parse(value).clamp(0, 100);
+      } catch (_) {}
     }
     return defaultValue;
   }

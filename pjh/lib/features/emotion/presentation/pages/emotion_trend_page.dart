@@ -118,7 +118,8 @@ class _EmotionTrendPageState extends State<EmotionTrendPage>
                     children: [
                       Text(
                         '감정 트렌드',
-                        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                            fontSize: 16.sp, fontWeight: FontWeight.w500),
                       ),
                       Text(
                         trendText,
@@ -388,12 +389,13 @@ class _EmotionTrendPageState extends State<EmotionTrendPage>
                     Expanded(
                       child: Text(
                         _getPatternTitle(pattern.type),
-                        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                            fontSize: 16.sp, fontWeight: FontWeight.w500),
                       ),
                     ),
                     Container(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 8.w, vertical: 4.h),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12.r),

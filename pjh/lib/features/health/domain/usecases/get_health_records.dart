@@ -6,13 +6,15 @@ import '../../../../core/usecases/usecase.dart';
 import '../entities/health_record.dart';
 import '../repositories/health_repository.dart';
 
-class GetHealthRecords implements UseCase<List<HealthRecord>, GetHealthRecordsParams> {
+class GetHealthRecords
+    implements UseCase<List<HealthRecord>, GetHealthRecordsParams> {
   final HealthRepository repository;
 
   GetHealthRecords(this.repository);
 
   @override
-  Future<Either<Failure, List<HealthRecord>>> call(GetHealthRecordsParams params) {
+  Future<Either<Failure, List<HealthRecord>>> call(
+      GetHealthRecordsParams params) {
     return repository.getHealthRecords(
       petId: params.petId,
       type: params.type,

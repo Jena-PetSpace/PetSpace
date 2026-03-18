@@ -27,15 +27,18 @@ class SocialFeedPage extends StatelessWidget {
                 return Card(
                   margin: EdgeInsets.all(8.w),
                   child: ListTile(
-                    title: Text(post.content ?? '내용 없음', style: TextStyle(fontSize: 14.sp)),
-                    subtitle: Text('작성자: ${post.authorId}', style: TextStyle(fontSize: 12.sp)),
+                    title: Text(post.content ?? '내용 없음',
+                        style: TextStyle(fontSize: 14.sp)),
+                    subtitle: Text('작성자: ${post.authorId}',
+                        style: TextStyle(fontSize: 12.sp)),
                   ),
                 );
               },
             );
           } else if (state is SocialError) {
             return Center(
-              child: Text('오류: ${state.message}', style: TextStyle(fontSize: 14.sp)),
+              child: Text('오류: ${state.message}',
+                  style: TextStyle(fontSize: 14.sp)),
             );
           }
           return Center(

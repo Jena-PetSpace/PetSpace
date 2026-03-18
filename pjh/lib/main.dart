@@ -41,7 +41,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Flutter 이미지 캐시 크기 제한 (기본값: 100MB 무제한 → 명시적 설정)
-  PaintingBinding.instance.imageCache.maximumSize = 200;        // 최대 200개 이미지
+  PaintingBinding.instance.imageCache.maximumSize = 200; // 최대 200개 이미지
   PaintingBinding.instance.imageCache.maximumSizeBytes = 50 << 20; // 50MB
 
   // 전역 Flutter 에러 핸들러
@@ -84,12 +84,14 @@ void main() async {
     );
     log('✅ Supabase 초기화 완료', name: 'main.supabase');
   } else {
-    log('⚠️ Supabase 설정이 필요합니다. supabase_options.dart 파일을 확인해주세요.', name: 'main.supabase');
+    log('⚠️ Supabase 설정이 필요합니다. supabase_options.dart 파일을 확인해주세요.',
+        name: 'main.supabase');
   }
 
   // API 설정 확인 및 안내
   log('\n📱 펫페이스 설정 현황:', name: 'main.config');
-  log('✅ Supabase: ${SupabaseOptions.isConfigured ? "설정됨" : "미설정 (데모용)"}', name: 'main.config');
+  log('✅ Supabase: ${SupabaseOptions.isConfigured ? "설정됨" : "미설정 (데모용)"}',
+      name: 'main.config');
   final features = ApiConfig.availableFeatures;
   log('🔧 사용 가능한 기능들:', name: 'main.config');
   for (final feature in features) {
@@ -166,7 +168,8 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
 
       // Kakao OAuth 콜백은 app_links로 처리하지 않음 - Kakao SDK가 직접 처리해야 함
       if (uri.scheme.startsWith('kakao') && uri.host == 'oauth') {
-        log('✅ Kakao OAuth callback - skipping app_links processing', name: 'DeepLink.Kakao');
+        log('✅ Kakao OAuth callback - skipping app_links processing',
+            name: 'DeepLink.Kakao');
         // 중요: 여기서 아무것도 하지 않고 그냥 return하면 Kakao SDK가 받을 수 없음
         // 해결: app_links 사용 안 함 - AndroidManifest.xml의 intent-filter가 직접 처리
         return;
@@ -185,7 +188,8 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
 
         // Kakao OAuth 콜백은 app_links로 처리하지 않음
         if (uri.scheme.startsWith('kakao') && uri.host == 'oauth') {
-          log('✅ Initial Kakao OAuth callback - skipping app_links processing', name: 'DeepLink.Kakao');
+          log('✅ Initial Kakao OAuth callback - skipping app_links processing',
+              name: 'DeepLink.Kakao');
           return;
         }
 
@@ -207,7 +211,8 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
     // Kakao OAuth 콜백 처리
     // kakaoc9e18a9067b1d5b615849d787d7ef05b://oauth 형태의 링크
     if (uri.scheme.startsWith('kakao') && uri.host == 'oauth') {
-      log('✅ Kakao OAuth callback detected - Kakao SDK will handle it automatically', name: 'DeepLink.Kakao');
+      log('✅ Kakao OAuth callback detected - Kakao SDK will handle it automatically',
+          name: 'DeepLink.Kakao');
       // Kakao SDK가 자동으로 OAuth 콜백을 처리하므로 GoRouter로 라우팅하지 않음
       // AuthBloc의 signInWithKakao가 완료되면 AuthAuthenticated 상태로 변경되어 자동으로 프로필 페이지로 이동
       return;
@@ -260,7 +265,8 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
             listener: (context, state) {
               if (state is AuthAuthenticated) {
                 final userId = state.user.id;
-                log('Auth: subscribing realtime for $userId', name: 'main.realtime');
+                log('Auth: subscribing realtime for $userId',
+                    name: 'main.realtime');
                 RealtimeService().subscribeToNotifications(userId);
                 RealtimeService().subscribeToChatMessages(userId);
                 // FeedBloc Realtime 구독 (좋아요·댓글 실시간 반영)

@@ -6,7 +6,8 @@ import '../../../../core/usecases/usecase.dart';
 import '../entities/emotion_analysis.dart';
 import '../repositories/emotion_repository.dart';
 
-class GetAnalysisHistory implements UseCase<List<EmotionAnalysis>, GetAnalysisHistoryParams> {
+class GetAnalysisHistory
+    implements UseCase<List<EmotionAnalysis>, GetAnalysisHistoryParams> {
   final EmotionRepository repository;
 
   GetAnalysisHistory(this.repository);

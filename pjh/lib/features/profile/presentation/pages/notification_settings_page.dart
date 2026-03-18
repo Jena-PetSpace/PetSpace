@@ -26,8 +26,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         children: [
           SwitchListTile(
             title: Text('푸시 알림', style: TextStyle(fontSize: 14.sp)),
-            subtitle: Text('전체 푸시 알림을 켜거나 끕니다',
-                style: TextStyle(fontSize: 12.sp)),
+            subtitle:
+                Text('전체 푸시 알림을 켜거나 끕니다', style: TextStyle(fontSize: 12.sp)),
             value: _pushEnabled,
             onChanged: (value) {
               setState(() => _pushEnabled = value);
@@ -47,8 +47,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           ),
           SwitchListTile(
             title: Text('좋아요', style: TextStyle(fontSize: 14.sp)),
-            subtitle: Text('내 게시물에 좋아요가 달리면 알림',
-                style: TextStyle(fontSize: 12.sp)),
+            subtitle:
+                Text('내 게시물에 좋아요가 달리면 알림', style: TextStyle(fontSize: 12.sp)),
             value: _likeNotification && _pushEnabled,
             onChanged: _pushEnabled
                 ? (value) => setState(() => _likeNotification = value)
@@ -56,8 +56,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           ),
           SwitchListTile(
             title: Text('댓글', style: TextStyle(fontSize: 14.sp)),
-            subtitle: Text('내 게시물에 댓글이 달리면 알림',
-                style: TextStyle(fontSize: 12.sp)),
+            subtitle:
+                Text('내 게시물에 댓글이 달리면 알림', style: TextStyle(fontSize: 12.sp)),
             value: _commentNotification && _pushEnabled,
             onChanged: _pushEnabled
                 ? (value) => setState(() => _commentNotification = value)

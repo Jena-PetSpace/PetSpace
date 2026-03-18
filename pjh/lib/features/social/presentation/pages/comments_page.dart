@@ -85,8 +85,8 @@ class _CommentsPageState extends State<CommentsPage> {
                   return RefreshIndicator(
                     onRefresh: () async {
                       context.read<CommentBloc>().add(
-                        LoadComments(postId: widget.postId),
-                      );
+                            LoadComments(postId: widget.postId),
+                          );
                     },
                     child: _buildCommentsList(state),
                   );
@@ -200,8 +200,8 @@ class _CommentsPageState extends State<CommentsPage> {
           ElevatedButton(
             onPressed: () {
               context.read<CommentBloc>().add(
-                LoadComments(postId: widget.postId),
-              );
+                    LoadComments(postId: widget.postId),
+                  );
             },
             child: Text('다시 시도', style: TextStyle(fontSize: 14.sp)),
           ),
@@ -226,7 +226,9 @@ class _CommentsPageState extends State<CommentsPage> {
               radius: 16.r,
               backgroundColor: AppTheme.primaryColor,
               child: Text(
-                widget.currentUserId.isNotEmpty ? widget.currentUserId[0].toUpperCase() : '?',
+                widget.currentUserId.isNotEmpty
+                    ? widget.currentUserId[0].toUpperCase()
+                    : '?',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 12.sp,
@@ -284,9 +286,9 @@ class _CommentsPageState extends State<CommentsPage> {
     });
 
     context.read<CommentBloc>().add(CreateCommentRequested(
-      postId: widget.postId,
-      content: content,
-    ));
+          postId: widget.postId,
+          content: content,
+        ));
     _commentController.clear();
     _focusNode.unfocus();
   }
@@ -317,8 +319,8 @@ class _CommentsPageState extends State<CommentsPage> {
             onPressed: () {
               Navigator.pop(context);
               context.read<CommentBloc>().add(
-                DeleteCommentRequested(commentId: comment.id),
-              );
+                    DeleteCommentRequested(commentId: comment.id),
+                  );
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('삭제'),
@@ -354,11 +356,11 @@ class _CommentsPageState extends State<CommentsPage> {
               if (newContent.isNotEmpty && newContent != comment.content) {
                 Navigator.pop(context);
                 context.read<CommentBloc>().add(
-                  UpdateCommentRequested(
-                    commentId: comment.id,
-                    content: newContent,
-                  ),
-                );
+                      UpdateCommentRequested(
+                        commentId: comment.id,
+                        content: newContent,
+                      ),
+                    );
               }
             },
             child: const Text('저장'),

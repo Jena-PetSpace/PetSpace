@@ -24,7 +24,8 @@ class ChatBubble extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
       child: Row(
-        mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMine) ...[
@@ -45,7 +46,8 @@ class ChatBubble extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 if (showSenderInfo && !isMine)
                   Padding(
@@ -136,9 +138,8 @@ class ChatBubble extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: isMine
-            ? Theme.of(context).colorScheme.primary
-            : Colors.grey[200],
+        color:
+            isMine ? Theme.of(context).colorScheme.primary : Colors.grey[200],
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(16.r),
           topRight: Radius.circular(16.r),

@@ -14,8 +14,7 @@ class SaveEmotionAnalysisParams {
   });
 }
 
-class SaveEmotionAnalysis
-    extends UseCase<void, SaveEmotionAnalysisParams> {
+class SaveEmotionAnalysis extends UseCase<void, SaveEmotionAnalysisParams> {
   final EmotionRepository repository;
 
   SaveEmotionAnalysis(this.repository);

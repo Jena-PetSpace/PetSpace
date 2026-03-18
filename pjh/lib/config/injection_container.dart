@@ -434,10 +434,11 @@ Future<void> _initExternal() async {
 
   // Google Sign In
   sl.registerLazySingleton(() => GoogleSignIn(
-    serverClientId: ApiConfig.isGoogleLoginConfigured ? Secrets.googleClientId : null,
-    scopes: [
-      'email',
-      'profile',
-    ],
-  ));
+        serverClientId:
+            ApiConfig.isGoogleLoginConfigured ? Secrets.googleClientId : null,
+        scopes: [
+          'email',
+          'profile',
+        ],
+      ));
 }

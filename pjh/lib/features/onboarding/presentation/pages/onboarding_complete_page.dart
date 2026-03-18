@@ -378,7 +378,8 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
 
       // AuthBloc의 상태 변경을 기다림 (isOnboardingCompleted가 true로 업데이트될 때까지)
       await authBloc.stream.firstWhere(
-        (state) => state is AuthAuthenticated && state.user.isOnboardingCompleted,
+        (state) =>
+            state is AuthAuthenticated && state.user.isOnboardingCompleted,
         orElse: () => authState,
       );
 
@@ -410,7 +411,8 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
 
       // AuthBloc의 상태 변경을 기다린 후 감정 분석 페이지로 이동
       await authBloc.stream.firstWhere(
-        (state) => state is AuthAuthenticated && state.user.isOnboardingCompleted,
+        (state) =>
+            state is AuthAuthenticated && state.user.isOnboardingCompleted,
         orElse: () => authState,
       );
 

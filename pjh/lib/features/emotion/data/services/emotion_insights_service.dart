@@ -2,8 +2,8 @@ import 'dart:math' as math;
 import '../../domain/entities/emotion_analysis.dart';
 
 class EmotionInsights {
-  final double wellbeingScore;     // 0~100
-  final double stabilityIndex;     // 0~1.0
+  final double wellbeingScore; // 0~100
+  final double stabilityIndex; // 0~1.0
   final Map<String, double> emotionStability; // 각 감정별 안정성 (0~1)
   final bool hasEnoughData;
   final String emptyStateMessage;
@@ -39,7 +39,8 @@ class EmotionInsightsService {
     // B-3: 감정별 안정성 (표준편차 기반)
     final emotionStability = _calculateEmotionStability(history);
     final avgStability = emotionStability.values.isNotEmpty
-        ? emotionStability.values.reduce((a, b) => a + b) / emotionStability.length
+        ? emotionStability.values.reduce((a, b) => a + b) /
+            emotionStability.length
         : 0.0;
 
     return EmotionInsights(
@@ -82,31 +83,45 @@ class EmotionInsightsService {
     final emotionStability = 1.0 - avgVariation.clamp(0.0, 1.0);
 
     // 웰빙 = 긍정(40%) + 스트레스안정(40%) + 감정안정(20%)
-    final score = (positiveRatio * 40) +
-        (stressStability * 40) +
-        (emotionStability * 20);
+    final score =
+        (positiveRatio * 40) + (stressStability * 40) + (emotionStability * 20);
 
     return score.clamp(0.0, 100.0);
   }
 
-  Map<String, double> _calculateEmotionStability(List<EmotionAnalysis> history) {
-    final emotions = ['happiness', 'sadness', 'anxiety', 'sleepiness', 'curiosity'];
+  Map<String, double> _calculateEmotionStability(
+      List<EmotionAnalysis> history) {
+    final emotions = [
+      'happiness',
+      'sadness',
+      'anxiety',
+      'sleepiness',
+      'curiosity'
+    ];
     final result = <String, double>{};
 
     for (final emotion in emotions) {
       final values = history.map((a) {
         switch (emotion) {
-          case 'happiness': return a.emotions.happiness;
-          case 'sadness': return a.emotions.sadness;
-          case 'anxiety': return a.emotions.anxiety;
-          case 'sleepiness': return a.emotions.sleepiness;
-          case 'curiosity': return a.emotions.curiosity;
-          default: return 0.0;
+          case 'happiness':
+            return a.emotions.happiness;
+          case 'sadness':
+            return a.emotions.sadness;
+          case 'anxiety':
+            return a.emotions.anxiety;
+          case 'sleepiness':
+            return a.emotions.sleepiness;
+          case 'curiosity':
+            return a.emotions.curiosity;
+          default:
+            return 0.0;
         }
       }).toList();
 
       final mean = values.reduce((a, b) => a + b) / values.length;
-      final variance = values.map((v) => (v - mean) * (v - mean)).reduce((a, b) => a + b) / values.length;
+      final variance =
+          values.map((v) => (v - mean) * (v - mean)).reduce((a, b) => a + b) /
+              values.length;
       final stddev = math.sqrt(variance);
 
       // stddev 0~0.5 범위를 0~1 안정성으로 변환 (stddev 낮을수록 안정적)

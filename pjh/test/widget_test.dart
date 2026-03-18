@@ -7,7 +7,8 @@ class MockNavigatorObserver extends Mock implements NavigatorObserver {}
 
 void main() {
   group('Widget Tests', () {
-    testWidgets('App should start with correct initial screen', (WidgetTester tester) async {
+    testWidgets('App should start with correct initial screen',
+        (WidgetTester tester) async {
       // Test that app starts with correct initial screen
 
       // Build the app
@@ -25,7 +26,8 @@ void main() {
       expect(find.text('펫페이스'), findsOneWidget);
     });
 
-    testWidgets('Login page should have required fields', (WidgetTester tester) async {
+    testWidgets('Login page should have required fields',
+        (WidgetTester tester) async {
       // Test login form validation
 
       await tester.pumpWidget(
@@ -53,7 +55,8 @@ void main() {
       expect(find.byKey(const Key('password_field')), findsOneWidget);
     });
 
-    testWidgets('Post card should display content correctly', (WidgetTester tester) async {
+    testWidgets('Post card should display content correctly',
+        (WidgetTester tester) async {
       // Test post display components
 
       await tester.pumpWidget(
@@ -85,7 +88,8 @@ void main() {
       expect(find.text('This is a test post content'), findsOneWidget);
     });
 
-    testWidgets('Navigation bar should have all tabs', (WidgetTester tester) async {
+    testWidgets('Navigation bar should have all tabs',
+        (WidgetTester tester) async {
       // Test bottom navigation
 
       await tester.pumpWidget(
@@ -129,7 +133,8 @@ void main() {
       expect(find.text('프로필'), findsOneWidget);
     });
 
-    testWidgets('Emotion analysis should show progress', (WidgetTester tester) async {
+    testWidgets('Emotion analysis should show progress',
+        (WidgetTester tester) async {
       // Test emotion analysis loading state
 
       await tester.pumpWidget(
@@ -196,7 +201,8 @@ void main() {
   });
 
   group('Performance Tests', () {
-    testWidgets('List should handle large datasets', (WidgetTester tester) async {
+    testWidgets('List should handle large datasets',
+        (WidgetTester tester) async {
       // Test list performance with many items
 
       final items = List.generate(1000, (index) => 'Item $index');
@@ -230,7 +236,8 @@ void main() {
   });
 
   group('Accessibility Tests', () {
-    testWidgets('All interactive elements should have semantic labels', (WidgetTester tester) async {
+    testWidgets('All interactive elements should have semantic labels',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
