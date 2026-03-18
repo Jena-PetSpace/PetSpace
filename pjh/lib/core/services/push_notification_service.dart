@@ -1,8 +1,9 @@
 import 'dart:developer' as dev;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Supabase Edge Function `send-notification`을 호출해
-/// FCM 푸시 알림을 발송하고 notifications 테이블에 저장합니다.
+/// notifications 테이블에 직접 INSERT하여 인앱 알림을 생성합니다.
+/// Supabase Realtime 구독을 통해 실시간으로 수신됩니다.
+/// (FCM 서버 푸시는 서비스 계정 키 확보 후 Edge Function 연결 예정)
 class PushNotificationService {
   static final PushNotificationService _instance =
       PushNotificationService._internal();
@@ -95,23 +96,27 @@ class PushNotificationService {
     Map<String, String>? data,
   }) async {
     try {
-      await _supabase.functions.invoke(
-        'send-notification',
-        body: {
-          'userId': userId,
-          if (senderId != null) 'senderId': senderId,
-          if (senderName != null) 'senderName': senderName,
-          'type': type,
-          'title': title,
-          'body': body,
-          if (postId != null) 'postId': postId,
-          if (data != null) 'data': data,
-        },
-      );
-      dev.log('알림 발송 완료: $type → $userId', name: 'PushNotificationService');
+      // 자기 자신에게 알림 보내지 않기
+      if (senderId != null && senderId == userId) return;
+
+      // notifications 테이블에 직접 INSERT
+      await _supabase.from('notifications').insert({
+        'user_id': userId,
+        if (senderId != null) 'sender_id': senderId,
+        if (senderName != null) 'sender_name': senderName,
+        'type': type,
+        'title': title,
+        'body': body,
+        'is_read': false,
+        if (postId != null) 'post_id': postId,
+        'data': data ?? {},
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      dev.log('알림 저장 완료: $type → $userId', name: 'PushNotificationService');
     } catch (e) {
       // 알림 실패가 메인 기능을 막지 않도록 에러 무시
-      dev.log('알림 발송 실패: $e', name: 'PushNotificationService', error: e);
+      dev.log('알림 저장 실패: $e', name: 'PushNotificationService', error: e);
     }
   }
 }
