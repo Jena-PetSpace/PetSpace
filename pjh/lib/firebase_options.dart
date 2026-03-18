@@ -27,7 +27,7 @@ class DefaultFirebaseOptions {
 
   /// Android — android/app/google-services.json 기반
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDeyHBQvXr7zvta56GpcxM7TgT01k0srwA',
+    apiKey: 'AIzaSyBc6Q5SJV4FgER-6RWzRNyh70qvGuX3rVE',
     appId: '1:295912994007:android:petspace',
     messagingSenderId: '295912994007',
     projectId: 'project-5e5638c5-de70-498d-8f2',
