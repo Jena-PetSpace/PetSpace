@@ -123,37 +123,38 @@ class _MainNavigationState extends State<MainNavigation> {
                 button: true,
                 selected: isSelected,
                 child: GestureDetector(
-                onTap: () => _onTabTapped(index),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 8.h,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isSelected ? item.selectedIcon : item.icon,
-                        color: isSelected
-                            ? AppTheme.primaryColor
-                            : AppTheme.secondaryTextColor,
-                        size: 24.w,
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        item.label,
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+                  onTap: () => _onTabTapped(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 8.h,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSelected ? item.selectedIcon : item.icon,
                           color: isSelected
                               ? AppTheme.primaryColor
                               : AppTheme.secondaryTextColor,
+                          size: 24.w,
                         ),
-                      ),
-                    ],
+                        SizedBox(height: 4.h),
+                        Text(
+                          item.label,
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: isSelected
+                                ? AppTheme.primaryColor
+                                : AppTheme.secondaryTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

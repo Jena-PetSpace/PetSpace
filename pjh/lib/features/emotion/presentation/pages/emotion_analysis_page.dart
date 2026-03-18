@@ -221,36 +221,38 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
 
                     // 분석 시작 버튼
                     Semantics(
-                      label: _imagePaths.isEmpty ? '사진을 선택해주세요' : '${_imagePaths.length}장 종합 분석 시작',
+                      label: _imagePaths.isEmpty
+                          ? '사진을 선택해주세요'
+                          : '${_imagePaths.length}장 종합 분석 시작',
                       button: true,
                       enabled: _canAnalyze,
                       child: SizedBox(
-                      width: double.infinity,
-                      height: 52.h,
-                      child: ElevatedButton.icon(
-                        onPressed: _canAnalyze ? _startAnalysis : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: Colors.grey.shade300,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14.r),
+                        width: double.infinity,
+                        height: 52.h,
+                        child: ElevatedButton.icon(
+                          onPressed: _canAnalyze ? _startAnalysis : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryColor,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.grey.shade300,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                            elevation: 0,
                           ),
-                          elevation: 0,
-                        ),
-                        icon: Icon(Icons.search_rounded, size: 20.w),
-                        label: Text(
-                          _imagePaths.isEmpty
-                              ? '사진을 선택해주세요'
-                              : '${_imagePaths.length}장 종합 분석 시작',
-                          style: TextStyle(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.bold,
+                          icon: Icon(Icons.search_rounded, size: 20.w),
+                          label: Text(
+                            _imagePaths.isEmpty
+                                ? '사진을 선택해주세요'
+                                : '${_imagePaths.length}장 종합 분석 시작',
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                    )),
                     SizedBox(height: 16.h),
                   ],
                 ),
