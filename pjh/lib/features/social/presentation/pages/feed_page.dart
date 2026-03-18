@@ -6,6 +6,7 @@ import '../bloc/feed_bloc.dart';
 import '../widgets/post_card.dart';
 import '../widgets/create_post_bottom_sheet.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
+import '../../../../shared/widgets/shimmer_loading.dart';
 
 class FeedPage extends StatefulWidget {
   final String? userId;
@@ -55,6 +56,20 @@ class _FeedPageState extends State<FeedPage> {
               backgroundColor: Colors.red,
             ),
           );
+        } else if (state is FeedLoaded && state.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.error!),
+              backgroundColor: Colors.orange,
+              action: SnackBarAction(
+                label: '재시도',
+                textColor: Colors.white,
+                onPressed: () {
+                  context.read<FeedBloc>().add(LoadMorePostsRequested(userId: widget.userId));
+                },
+              ),
+            ),
+          );
         } else if (state is FeedPostCreated) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -66,7 +81,7 @@ class _FeedPageState extends State<FeedPage> {
       },
       builder: (context, state) {
         if (state is FeedLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const FeedShimmerLoading();
         } else if (state is FeedLoaded) {
           return RefreshIndicator(
             onRefresh: () async {

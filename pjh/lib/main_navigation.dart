@@ -1,7 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/services/realtime_service.dart';
+import 'features/social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
 import 'shared/models/navigation_item.dart';
 import 'shared/themes/app_theme.dart';
 
@@ -19,6 +25,30 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeToRealtimeNotifications();
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _subscribeToRealtimeNotifications() {
+    _notificationSubscription =
+        RealtimeService().notificationStream.listen((_) {
+      if (mounted) {
+        context
+            .read<NotificationBadgeBloc>()
+            .add(const NotificationBadgeIncrementRequested());
+      }
+    });
+  }
 
   final List<NavigationItem> _navigationItems = [
     const NavigationItem(
@@ -133,13 +163,16 @@ class _MainNavigationState extends State<MainNavigation> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          isSelected ? item.selectedIcon : item.icon,
-                          color: isSelected
-                              ? AppTheme.primaryColor
-                              : AppTheme.secondaryTextColor,
-                          size: 24.w,
-                        ),
+                        if (index == 0)
+                          _buildHomeBadgeIcon(isSelected, item)
+                        else
+                          Icon(
+                            isSelected ? item.selectedIcon : item.icon,
+                            color: isSelected
+                                ? AppTheme.primaryColor
+                                : AppTheme.secondaryTextColor,
+                            size: 24.w,
+                          ),
                         SizedBox(height: 4.h),
                         Text(
                           item.label,
@@ -162,6 +195,54 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildHomeBadgeIcon(bool isSelected, NavigationItem item) {
+    return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
+      builder: (context, badgeState) {
+        final icon = Icon(
+          isSelected ? item.selectedIcon : item.icon,
+          color: isSelected
+              ? AppTheme.primaryColor
+              : AppTheme.secondaryTextColor,
+          size: 24.w,
+        );
+
+        if (badgeState.count <= 0) return icon;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            icon,
+            Positioned(
+              right: -6.w,
+              top: -4.w,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                constraints: BoxConstraints(
+                  minWidth: 16.w,
+                  minHeight: 16.w,
+                ),
+                child: Center(
+                  child: Text(
+                    badgeState.count > 9 ? '9+' : '${badgeState.count}',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -202,6 +283,21 @@ class _MainNavigationState extends State<MainNavigation> {
       _currentIndex = index;
     });
 
+    // 홈 탭 이동 시 알림 뱃지 새로고침
+    if (index == 0) {
+      _refreshNotificationBadge();
+    }
+
     context.go(route);
+  }
+
+  void _refreshNotificationBadge() {
+    final userId =
+        Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      context.read<NotificationBadgeBloc>().add(
+            NotificationBadgeRefreshRequested(userId: userId),
+          );
+    }
   }
 }

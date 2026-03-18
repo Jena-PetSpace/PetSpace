@@ -16,25 +16,29 @@ class CommentLoaded extends CommentState {
   final List<Comment> comments;
   final bool hasMore;
   final bool isLoadingMore;
+  final String? error;
 
   const CommentLoaded({
     required this.comments,
     this.hasMore = true,
     this.isLoadingMore = false,
+    this.error,
   });
 
   @override
-  List<Object?> get props => [comments, hasMore, isLoadingMore];
+  List<Object?> get props => [comments, hasMore, isLoadingMore, error];
 
   CommentLoaded copyWith({
     List<Comment>? comments,
     bool? hasMore,
     bool? isLoadingMore,
+    String? error,
   }) {
     return CommentLoaded(
       comments: comments ?? this.comments,
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      error: error,
     );
   }
 }

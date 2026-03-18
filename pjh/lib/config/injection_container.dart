@@ -53,6 +53,7 @@ import '../features/social/presentation/bloc/notifications_bloc.dart';
 import '../features/social/presentation/bloc/profile_bloc.dart';
 import '../features/social/presentation/bloc/feed_bloc.dart';
 import '../features/social/presentation/bloc/search_bloc.dart';
+import '../features/social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
 
 // Features - Pets
 import '../features/pets/data/repositories/pet_repository_impl.dart';
@@ -259,6 +260,12 @@ Future<void> _initSocial() async {
   sl.registerFactory(
     () => SearchBloc(
       repository: sl<SocialRepository>(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => NotificationBadgeBloc(
+      socialRepository: sl<SocialRepository>(),
     ),
   );
 

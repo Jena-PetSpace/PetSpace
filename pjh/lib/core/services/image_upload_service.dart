@@ -323,8 +323,15 @@ class ImageUploadService {
       {int maxWidth = 1920, int quality = 85}) async {
     try {
       final imageBytes = await imageFile.readAsBytes();
+      final fileSizeBytes = imageBytes.length;
 
-      log('Original image size: ${imageBytes.length} bytes', name: 'ImageUploadService');
+      log('Original image size: $fileSizeBytes bytes', name: 'ImageUploadService');
+
+      // If file exceeds 5MB, force resize to maxWidth and compress
+      const maxFileSizeBytes = 5 * 1024 * 1024; // 5MB
+      if (fileSizeBytes > maxFileSizeBytes) {
+        log('File exceeds 5MB limit ($fileSizeBytes bytes), will resize and compress', name: 'ImageUploadService');
+      }
 
       final image = img.decodeImage(imageBytes);
 
@@ -334,20 +341,23 @@ class ImageUploadService {
 
       log('Original dimensions: ${image.width}x${image.height}', name: 'ImageUploadService');
 
-      // Resize if image is too large
+      // Resize if dimensions exceed maxWidth or file exceeds 5MB
       img.Image resizedImage = image;
-      if (image.width > maxWidth || image.height > maxWidth) {
-        // 가로/세로 중 긴 쪽을 maxWidth로 맞춤
+      final longestSide = image.width > image.height ? image.width : image.height;
+      final targetSize = longestSide > maxWidth ? maxWidth : longestSide;
+
+      if (image.width > maxWidth || image.height > maxWidth || fileSizeBytes > maxFileSizeBytes) {
+        // 가로/세로 중 긴 쪽을 targetSize로 맞춤 (절대 확대하지 않음)
         if (image.width > image.height) {
           final aspectRatio = image.height / image.width;
-          final newHeight = (maxWidth * aspectRatio).round();
+          final newHeight = (targetSize * aspectRatio).round();
           resizedImage =
-              img.copyResize(image, width: maxWidth, height: newHeight, interpolation: img.Interpolation.linear);
+              img.copyResize(image, width: targetSize, height: newHeight, interpolation: img.Interpolation.linear);
         } else {
           final aspectRatio = image.width / image.height;
-          final newWidth = (maxWidth * aspectRatio).round();
+          final newWidth = (targetSize * aspectRatio).round();
           resizedImage =
-              img.copyResize(image, width: newWidth, height: maxWidth, interpolation: img.Interpolation.linear);
+              img.copyResize(image, width: newWidth, height: targetSize, interpolation: img.Interpolation.linear);
         }
         log('Resized dimensions: ${resizedImage.width}x${resizedImage.height}', name: 'ImageUploadService');
       }

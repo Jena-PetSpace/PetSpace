@@ -34,6 +34,7 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import 'features/social/presentation/bloc/feed_bloc.dart';
 import 'features/chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
+import 'features/social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
 import 'shared/themes/theme_cubit.dart';
 
 void main() async {
@@ -245,6 +246,9 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
             BlocProvider<ChatBadgeBloc>(
               create: (_) => di.sl<ChatBadgeBloc>(),
             ),
+            BlocProvider<NotificationBadgeBloc>(
+              create: (_) => di.sl<NotificationBadgeBloc>(),
+            ),
             BlocProvider<PetBloc>(
               create: (_) => di.sl<PetBloc>()..add(LoadUserPets()),
             ),
@@ -261,6 +265,10 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
                 RealtimeService().subscribeToChatMessages(userId);
                 // FeedBloc Realtime 구독 (좋아요·댓글 실시간 반영)
                 context.read<FeedBloc>().subscribeRealtime(userId);
+                // 알림 뱃지 초기 로드
+                context.read<NotificationBadgeBloc>().add(
+                      NotificationBadgeLoadRequested(userId: userId),
+                    );
               } else if (state is AuthUnauthenticated) {
                 log('Auth: unsubscribing realtime', name: 'main.realtime');
                 RealtimeService().unsubscribeAll();

@@ -96,7 +96,10 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     );
 
     result.fold(
-      (failure) => emit(CommentError(failure.message)),
+      (failure) => emit(currentState.copyWith(
+        isLoadingMore: false,
+        error: failure.message,
+      )),
       (comments) {
         if (comments.isNotEmpty) {
           _lastCommentId = comments.last.id;
@@ -130,10 +133,10 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
 
     result.fold(
       (failure) {
-        emit(CommentError(failure.message));
-        // Restore previous state after showing error
-        if (_currentPostId != null) {
-          add(LoadComments(postId: _currentPostId!));
+        if (state is CommentLoaded) {
+          emit((state as CommentLoaded).copyWith(error: failure.message));
+        } else {
+          emit(CommentError(failure.message));
         }
       },
       (newComment) {

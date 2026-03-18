@@ -38,6 +38,7 @@ class PostCard extends StatefulWidget {
 
 class _PostCardState extends State<PostCard> {
   int _currentImageIndex = 0;
+  bool _isLikeProcessing = false;
 
   Post get post => widget.post;
   String get currentUserId => widget.currentUserId;
@@ -384,7 +385,14 @@ class _PostCardState extends State<PostCard> {
                 label: post.isLikedByCurrentUser ? '좋아요 취소' : '좋아요',
                 button: true,
                 child: InkWell(
-                  onTap: widget.onLike,
+                  onTap: () {
+                    if (_isLikeProcessing) return;
+                    _isLikeProcessing = true;
+                    widget.onLike();
+                    Future.delayed(const Duration(milliseconds: 300), () {
+                      if (mounted) _isLikeProcessing = false;
+                    });
+                  },
                   borderRadius: BorderRadius.circular(20.r),
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),

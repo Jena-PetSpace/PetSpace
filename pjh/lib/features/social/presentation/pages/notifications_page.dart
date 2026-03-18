@@ -6,6 +6,7 @@ import "package:go_router/go_router.dart";
 import "../../../../config/injection_container.dart" as di;
 import "../../domain/entities/notification.dart" as app;
 import "../bloc/notifications_bloc.dart";
+import "../../../../shared/widgets/shimmer_loading.dart";
 
 class NotificationsPage extends StatelessWidget {
   final String userId;
@@ -50,9 +51,7 @@ class NotificationsPage extends StatelessWidget {
       body: BlocBuilder<NotificationsBloc, NotificationsState>(
         builder: (context, state) {
           if (state is NotificationsLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const NotificationShimmerLoading();
           } else if (state is NotificationsLoaded) {
             if (state.notifications.isEmpty) {
               return Center(
