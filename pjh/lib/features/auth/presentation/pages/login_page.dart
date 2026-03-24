@@ -302,14 +302,14 @@ class _LoginPageState extends State<LoginPage> {
       final password = _passwordController.text;
       if (_isLogin) {
         context.read<AuthBloc>().add(AuthSignInWithEmailRequested(
-          email: email,
-          password: password,
-        ));
+              email: email,
+              password: password,
+            ));
       } else {
         context.read<AuthBloc>().add(AuthSignUpWithEmailRequested(
-          email: email,
-          password: password,
-        ));
+              email: email,
+              password: password,
+            ));
       }
     }
   }
