@@ -148,7 +148,9 @@ class _EmotionResultPageState extends State<EmotionResultPage>
           setState(() => _otherPetAnalyses = others);
         }
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[EmotionResult] 다른 펫 분석 로딩 실패: $e');
+    }
   }
 
   Future<void> _loadBreedAverage() async {
@@ -167,7 +169,9 @@ class _EmotionResultPageState extends State<EmotionResultPage>
           }
         });
       });
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[EmotionResult] 품종 평균 로딩 실패: $e');
+    }
   }
 
   Future<void> _generateDiary() async {

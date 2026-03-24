@@ -261,11 +261,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _kakaoLogin() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('카카오 로그인 기능 구현 예정')),
-    );
-    // 임시로 프로필 설정으로 이동 (실제로는 AuthBloc을 통해 처리)
-    context.go('/onboarding/profile');
+    context.read<AuthBloc>().add(AuthSignInWithKakaoRequested());
   }
 
   void _googleLogin() {
@@ -285,26 +281,15 @@ class _LoginPageState extends State<LoginPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('데스크톱 개발 모드'),
+        title: const Text('데스크톱 안내'),
         content: const Text(
-          'Google Sign In은 데스크톱 플랫폼을 지원하지 않습니다.\n\n'
-          '개발 및 테스트를 위해:\n'
-          '• 이메일/비밀번호 로그인을 사용하세요\n'
-          '• 또는 Android 에뮬레이터에서 테스트하세요\n\n'
-          '임시로 프로필 설정 페이지로 이동하시겠습니까?',
+          'Google Sign In은 데스크톱에서 지원되지 않습니다.\n\n'
+          '이메일/비밀번호 또는 카카오 로그인을 이용해주세요.',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
-          ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Development bypass - go to profile setup
-              context.go('/onboarding/profile');
-            },
-            child: const Text('계속하기'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('확인'),
           ),
         ],
       ),
@@ -313,19 +298,23 @@ class _LoginPageState extends State<LoginPage> {
 
   void _emailLogin() {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isLogin ? '이메일 로그인 기능 구현 예정' : '이메일 회원가입 기능 구현 예정'),
-        ),
-      );
-      // 임시로 프로필 설정으로 이동 (실제로는 AuthBloc을 통해 처리)
-      context.go('/onboarding/profile');
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+      if (_isLogin) {
+        context.read<AuthBloc>().add(AuthSignInWithEmailRequested(
+          email: email,
+          password: password,
+        ));
+      } else {
+        context.read<AuthBloc>().add(AuthSignUpWithEmailRequested(
+          email: email,
+          password: password,
+        ));
+      }
     }
   }
 
   void _forgotPassword() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('비밀번호 찾기 기능 구현 예정')),
-    );
+    context.push('/password-reset-request');
   }
 }

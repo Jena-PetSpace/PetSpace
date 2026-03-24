@@ -490,7 +490,7 @@ class AppRouter {
             children: [
               const Icon(Icons.error, size: 64, color: Colors.red),
               const SizedBox(height: 16),
-              Text('라우팅 오류: ${state.error}'),
+              const Text('페이지를 찾을 수 없습니다.'),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => context.go('/onboarding/login'),
@@ -508,7 +508,9 @@ class AppRouter {
         ..currentState;
       // GoRouter 자체 navigatorKey 활용
       di.sl<FCMService>().navigatorKey = router.routerDelegate.navigatorKey;
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[AppRouter] FCMService navigatorKey 설정 실패: $e');
+    }
 
     return router;
   }

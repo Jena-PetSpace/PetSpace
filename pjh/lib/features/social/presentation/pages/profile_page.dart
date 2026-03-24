@@ -355,7 +355,7 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   void _showSettings() {
-    Navigator.pushNamed(context, '/settings');
+    context.push('/settings');
   }
 
   void _sendMessage(SocialUser user) {

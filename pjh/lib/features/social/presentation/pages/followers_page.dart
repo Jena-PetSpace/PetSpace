@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../domain/entities/follow.dart';
 import '../../domain/repositories/social_repository.dart';
@@ -176,11 +177,7 @@ class _FollowersPageState extends State<FollowersPage>
           userName: follow.followerName,
           onTap: () {
             // 사용자 프로필로 이동
-            Navigator.pushNamed(
-              context,
-              '/user-profile',
-              arguments: follow.followerId,
-            );
+            context.push('/user-profile/${follow.followerId}');
           },
         );
       },
@@ -236,11 +233,7 @@ class _FollowersPageState extends State<FollowersPage>
           userName: follow.followingName,
           onTap: () {
             // 사용자 프로필로 이동
-            Navigator.pushNamed(
-              context,
-              '/user-profile',
-              arguments: follow.followingId,
-            );
+            context.push('/user-profile/${follow.followingId}');
           },
         );
       },

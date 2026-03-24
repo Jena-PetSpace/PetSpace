@@ -41,8 +41,8 @@ class ErrorHandler {
 
     // HTTP 에러
     if (error is HttpException) {
-      return ServerFailure(
-        message: '서버 연결에 실패했습니다.\n(${error.message})',
+      return const ServerFailure(
+        message: '서버 연결에 실패했습니다.\n잠시 후 다시 시도해주세요.',
       );
     }
 
@@ -85,8 +85,8 @@ class ErrorHandler {
     // 기본 에러
     return GeneralFailure(
       message: context != null
-          ? '$context 중 오류가 발생했습니다.\n${_getSafeErrorMessage(error)}'
-          : '오류가 발생했습니다.\n${_getSafeErrorMessage(error)}',
+          ? '$context 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.'
+          : '오류가 발생했습니다.\n잠시 후 다시 시도해주세요.',
     );
   }
 
@@ -160,7 +160,6 @@ class ErrorHandler {
     String? context,
   ) {
     final code = error.code;
-    final message = error.message;
 
     // 고유 제약 조건 위반
     if (code == '23505') {
@@ -194,8 +193,8 @@ class ErrorHandler {
     // 기본 데이터베이스 에러
     return DatabaseFailure(
       message: context != null
-          ? '$context 중 데이터베이스 오류가 발생했습니다.\n$message'
-          : '데이터베이스 오류가 발생했습니다.\n$message',
+          ? '$context 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.'
+          : '데이터 처리 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.',
     );
   }
 
@@ -232,7 +231,7 @@ class ErrorHandler {
       return '너무 많은 요청을 시도했습니다.\n잠시 후 다시 시도해주세요.';
     }
 
-    return '인증 중 오류가 발생했습니다.\n${error.message}';
+    return '인증 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
   }
 
   static String _getStorageErrorMessage(StorageException error) {
@@ -254,20 +253,7 @@ class ErrorHandler {
       return '지원하지 않는 파일 형식입니다.';
     }
 
-    return '파일 업로드 중 오류가 발생했습니다.\n${error.message}';
-  }
-
-  static String _getSafeErrorMessage(dynamic error) {
-    try {
-      final errorStr = error.toString();
-      // 민감한 정보나 너무 긴 에러 메시지 필터링
-      if (errorStr.length > 200) {
-        return '${errorStr.substring(0, 200)}...';
-      }
-      return errorStr;
-    } catch (e) {
-      return '알 수 없는 오류가 발생했습니다.';
-    }
+    return '파일 업로드 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
   }
 
   static bool _shouldNotRetry(dynamic error) {

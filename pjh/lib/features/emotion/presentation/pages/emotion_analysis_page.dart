@@ -103,7 +103,9 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       try {
         final pet = pets.firstWhere((p) => p.id == widget.initialPetId);
         setState(() => _selectedPet = pet);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[EmotionAnalysis] 초기 펫 선택 실패: $e');
+      }
     }
   }
 

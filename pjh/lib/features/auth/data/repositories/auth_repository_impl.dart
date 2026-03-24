@@ -289,7 +289,9 @@ class AuthRepositoryImpl implements AuthRepository {
           await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
             'user_email': kakaoEmail,
           });
-        } catch (_) {}
+        } catch (e) {
+          log('⚠️ [Kakao Login] confirm RPC 실패: $e', name: 'AuthRepository');
+        }
       }
 
       // 최종 실패 시 디버그 로그와 함께 반환
@@ -519,7 +521,9 @@ class AuthRepositoryImpl implements AuthRepository {
             );
             return Right(user);
           }
-        } catch (_) {}
+        } catch (retryError) {
+          log('⚠️ [SignUp] 재시도 로그인 실패: $retryError', name: 'AuthRepository');
+        }
       }
 
       // Rate limit 에러 체크

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/feed_bloc.dart';
@@ -149,11 +150,7 @@ class _FeedPageState extends State<FeedPage> {
           },
           onComment: () {
             // Navigate to comments page
-            Navigator.pushNamed(
-              context,
-              '/comments',
-              arguments: {'postId': post.id},
-            );
+            context.push('/post/${post.id}');
           },
           onShare: () {
             // Handle share
@@ -181,11 +178,7 @@ class _FeedPageState extends State<FeedPage> {
           },
           onHashtagTap: (hashtag) {
             // Navigate to search page with hashtag
-            Navigator.pushNamed(
-              context,
-              '/search',
-              arguments: {'hashtag': hashtag},
-            );
+            context.push('/search?q=%23$hashtag');
           },
         );
       },

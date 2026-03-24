@@ -1043,6 +1043,11 @@ CREATE POLICY "Users can send messages to rooms they belong to" ON chat_messages
         AND is_room_member(room_id, auth.uid())
     );
 
+DROP POLICY IF EXISTS "Users can delete their own messages" ON chat_messages;
+CREATE POLICY "Users can delete their own messages" ON chat_messages
+    FOR DELETE TO authenticated
+    USING (auth.uid() = sender_id);
+
 
 -- ================================================================
 -- PART 7: Storage Bucket
