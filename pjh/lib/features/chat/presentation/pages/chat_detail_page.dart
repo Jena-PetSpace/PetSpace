@@ -106,6 +106,16 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       userId: _currentUserId,
                     ),
                   );
+              // 새 메시지 수신 시 맨 아래로 스크롤
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_scrollController.hasClients) {
+                  _scrollController.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                  );
+                }
+              });
             } catch (e) {
               log('Failed to parse realtime message: $e', name: 'ChatDetail');
             }

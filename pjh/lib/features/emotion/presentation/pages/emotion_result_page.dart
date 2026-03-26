@@ -118,7 +118,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
           }
         },
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[EmotionResult] 이전 분석 로딩 실패: $e');
       _fullHistory = [widget.analysis];
     }
     if (mounted) setState(() => _historyLoaded = true);

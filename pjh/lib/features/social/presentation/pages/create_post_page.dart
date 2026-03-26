@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../emotion/presentation/widgets/emotion_chart_widget.dart';
@@ -542,7 +543,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
     // Post 엔티티 생성
     final post = Post(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: const Uuid().v4(),
       authorId: userId,
       authorName: userName,
       type: widget.emotionAnalysis != null

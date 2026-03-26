@@ -187,14 +187,17 @@ class _HealthMainViewState extends State<_HealthMainView> {
                             .read<HealthBloc>()
                             .add(DeleteHealthRecordEvent(recordId: record.id));
                       },
-                      child: HealthRecordCard(
-                        icon: _getRecordIcon(record.recordType),
-                        iconColor: _getRecordColor(record.recordType),
-                        title: _getRecordTypeName(record.recordType),
-                        subtitle: record.title,
-                        date: _formatDate(record.recordDate),
-                        status: _getStatusName(record.status),
-                        statusColor: _getStatusColor(record.status),
+                      child: GestureDetector(
+                        onTap: () => _showEditRecordSheet(context, record),
+                        child: HealthRecordCard(
+                          icon: _getRecordIcon(record.recordType),
+                          iconColor: _getRecordColor(record.recordType),
+                          title: _getRecordTypeName(record.recordType),
+                          subtitle: record.title,
+                          date: _formatDate(record.recordDate),
+                          status: _getStatusName(record.status),
+                          statusColor: _getStatusColor(record.status),
+                        ),
                       ),
                     ),
                   )),
@@ -510,6 +513,164 @@ class _HealthMainViewState extends State<_HealthMainView> {
                     child: Text('저장',
                         style: TextStyle(
                             fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditRecordSheet(BuildContext context, HealthRecord record) {
+    final titleController = TextEditingController(text: record.title);
+    final descController = TextEditingController(text: record.description ?? '');
+    HealthRecordType selectedType = record.recordType;
+    DateTime selectedDate = record.recordDate;
+    DateTime? nextDate = record.nextDate;
+    HealthRecordStatus selectedStatus = record.status;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20.w, right: 20.w, top: 20.h,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20.h,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('건강 기록 수정',
+                    style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+                SizedBox(height: 20.h),
+
+                Text('기록 유형', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                SizedBox(height: 8.h),
+                Wrap(
+                  spacing: 8.w,
+                  children: HealthRecordType.values.map((type) {
+                    return ChoiceChip(
+                      label: Text(_getRecordTypeName(type), style: TextStyle(fontSize: 12.sp)),
+                      selected: type == selectedType,
+                      selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
+                      onSelected: (_) => setSheetState(() => selectedType = type),
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 16.h),
+
+                TextField(
+                  controller: titleController,
+                  style: TextStyle(fontSize: 14.sp),
+                  decoration: InputDecoration(
+                    labelText: '제목',
+                    labelStyle: TextStyle(fontSize: 14.sp),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+
+                TextField(
+                  controller: descController,
+                  style: TextStyle(fontSize: 14.sp),
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: '메모 (선택)',
+                    labelStyle: TextStyle(fontSize: 14.sp),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+
+                // 상태
+                Text('상태', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                SizedBox(height: 8.h),
+                Wrap(
+                  spacing: 8.w,
+                  children: HealthRecordStatus.values.map((status) {
+                    return ChoiceChip(
+                      label: Text(_getStatusName(status), style: TextStyle(fontSize: 12.sp)),
+                      selected: status == selectedStatus,
+                      selectedColor: _getStatusColor(status).withValues(alpha: 0.2),
+                      onSelected: (_) => setSheetState(() => selectedStatus = status),
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 12.h),
+
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text('기록 날짜: ${_formatDate(selectedDate)}', style: TextStyle(fontSize: 14.sp)),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx, initialDate: selectedDate,
+                      firstDate: DateTime(2020), lastDate: DateTime(2030),
+                    );
+                    if (picked != null) setSheetState(() => selectedDate = picked);
+                  },
+                ),
+
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event),
+                  title: Text(
+                    nextDate != null ? '다음 예정일: ${_formatDate(nextDate!)}' : '다음 예정일 (선택)',
+                    style: TextStyle(fontSize: 14.sp),
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx, initialDate: nextDate ?? DateTime.now().add(const Duration(days: 30)),
+                      firstDate: DateTime.now(), lastDate: DateTime(2030),
+                    );
+                    if (picked != null) setSheetState(() => nextDate = picked);
+                  },
+                ),
+                SizedBox(height: 20.h),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (titleController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(content: Text('제목을 입력해주세요')),
+                        );
+                        return;
+                      }
+
+                      final updated = HealthRecord(
+                        id: record.id,
+                        petId: record.petId,
+                        userId: record.userId,
+                        recordType: selectedType,
+                        title: titleController.text.trim(),
+                        description: descController.text.trim().isEmpty ? null : descController.text.trim(),
+                        recordDate: selectedDate,
+                        nextDate: nextDate,
+                        status: selectedStatus,
+                        createdAt: record.createdAt,
+                        updatedAt: DateTime.now(),
+                      );
+
+                      context.read<HealthBloc>().add(UpdateHealthRecordEvent(record: updated));
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                    ),
+                    child: Text('수정 완료', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
