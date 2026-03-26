@@ -1,11 +1,50 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 
-class MagazineGrid extends StatelessWidget {
+class MagazineGrid extends StatefulWidget {
   const MagazineGrid({super.key});
+
+  @override
+  State<MagazineGrid> createState() => _MagazineGridState();
+}
+
+class _MagazineGridState extends State<MagazineGrid> {
+  List<Map<String, dynamic>> _posts = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPosts();
+  }
+
+  Future<void> _loadPosts() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('posts')
+          .select('id, caption, hashtags, likes_count, comments_count, created_at')
+          .isFilter('deleted_at', null)
+          .contains('hashtags', ['magazine'])
+          .order('created_at', ascending: false)
+          .limit(4);
+
+      if (mounted) {
+        setState(() {
+          _posts = List<Map<String, dynamic>>.from(response);
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      dev.log('매거진 로드 실패: $e', name: 'MagazineGrid');
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +52,6 @@ class MagazineGrid extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
-          // 헤더
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -26,7 +64,7 @@ class MagazineGrid extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => context.push('/explore?query=매거진'),
+                onTap: () => context.go('/feed?tab=community&category=magazine'),
                 child: Text(
                   '더보기',
                   style: TextStyle(
@@ -39,57 +77,80 @@ class MagazineGrid extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
 
-          // 2열 그리드
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12.w,
-            mainAxisSpacing: 12.h,
-            childAspectRatio: 0.85,
-            children: [
-              _buildMagazineItem(
-                context: context,
-                tag: '건강',
-                tagColor: AppTheme.successColor,
-                title: '반려동물 치아 관리\n필수 가이드',
+          if (_loading)
+            SizedBox(
+              height: 120.h,
+              child: const Center(child: CircularProgressIndicator()),
+            )
+          else if (_posts.isEmpty)
+            SizedBox(
+              height: 120.h,
+              child: Center(
+                child: Text(
+                  '매거진 게시글이 없습니다',
+                  style: TextStyle(fontSize: 13.sp, color: AppTheme.secondaryTextColor),
+                ),
               ),
-              _buildMagazineItem(
-                context: context,
-                tag: '훈련',
-                tagColor: AppTheme.accentColor,
-                title: '기본 복종 훈련\n시작하기',
-              ),
-              _buildMagazineItem(
-                context: context,
-                tag: '먹거리',
-                tagColor: AppTheme.highlightColor,
-                title: '수제 간식 레시피\nTOP 5',
-              ),
-              _buildMagazineItem(
-                context: context,
-                tag: '생활',
-                tagColor: AppTheme.subColor,
-                title: '여름철 산책 시\n주의사항',
-              ),
-            ],
-          ),
+            )
+          else
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 12.w,
+              mainAxisSpacing: 12.h,
+              childAspectRatio: 0.85,
+              children: _posts.map((post) {
+                final hashtags = List<String>.from(post['hashtags'] ?? []);
+                final tag = _getTag(hashtags);
+                return _buildMagazineItem(
+                  context: context,
+                  postId: post['id'] as String,
+                  tag: tag['label']!,
+                  tagColor: _getTagColor(tag['label']!),
+                  title: post['caption'] as String? ?? '',
+                );
+              }).toList(),
+            ),
         ],
       ),
     );
   }
 
+  Map<String, String> _getTag(List<String> hashtags) {
+    for (final tag in hashtags) {
+      if (tag == 'health') return {'label': '건강'};
+      if (tag == 'training') return {'label': '훈련'};
+      if (tag == 'food') return {'label': '먹거리'};
+      if (tag == 'life') return {'label': '생활'};
+    }
+    return {'label': '매거진'};
+  }
+
+  Color _getTagColor(String label) {
+    switch (label) {
+      case '건강':
+        return AppTheme.successColor;
+      case '훈련':
+        return AppTheme.accentColor;
+      case '먹거리':
+        return AppTheme.highlightColor;
+      case '생활':
+        return AppTheme.subColor;
+      default:
+        return AppTheme.primaryColor;
+    }
+  }
+
   Widget _buildMagazineItem({
     required BuildContext context,
+    required String postId,
     required String tag,
     required Color tagColor,
     required String title,
   }) {
     return GestureDetector(
-      onTap: () {
-        context.push(
-            '/explore?query=${Uri.encodeComponent(title.replaceAll('\n', ' '))}');
-      },
+      onTap: () => context.push('/post/$postId'),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -105,7 +166,6 @@ class MagazineGrid extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 이미지 영역
             Container(
               height: 72.h,
               decoration: BoxDecoration(
@@ -117,13 +177,11 @@ class MagazineGrid extends StatelessWidget {
                     size: 32.w, color: tagColor.withValues(alpha: 0.4)),
               ),
             ),
-
             Padding(
               padding: EdgeInsets.all(10.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 태그 뱃지
                   Container(
                     padding:
                         EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
@@ -141,7 +199,6 @@ class MagazineGrid extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 6.h),
-                  // 제목
                   Text(
                     title,
                     style: TextStyle(

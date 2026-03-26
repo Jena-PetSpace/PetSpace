@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/social_user.dart';
@@ -267,15 +268,90 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _buildFollowersList() {
-    return Center(
-      child: Text('팔로워 목록이 곧 추가됩니다!', style: TextStyle(fontSize: 14.sp)),
-    );
+    return _buildFollowList(isFollowers: true);
   }
 
   Widget _buildFollowingList() {
-    return Center(
-      child: Text('팔로잉 목록이 곧 추가됩니다!', style: TextStyle(fontSize: 14.sp)),
+    return _buildFollowList(isFollowers: false);
+  }
+
+  Widget _buildFollowList({required bool isFollowers}) {
+    return FutureBuilder<List<dynamic>>(
+      future: _loadFollowData(isFollowers),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_outline, size: 48.w, color: Colors.grey[300]),
+                SizedBox(height: 12.h),
+                Text(
+                  isFollowers ? '아직 팔로워가 없습니다' : '아직 팔로잉이 없습니다',
+                  style: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor),
+                ),
+              ],
+            ),
+          );
+        }
+        final list = snapshot.data!;
+        return ListView.builder(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          itemCount: list.length,
+          itemBuilder: (context, index) {
+            final item = list[index] as Map<String, dynamic>;
+            final user = isFollowers
+                ? item['follower'] as Map<String, dynamic>?
+                : item['following'] as Map<String, dynamic>?;
+            if (user == null) return const SizedBox.shrink();
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                backgroundImage: user['photo_url'] != null && (user['photo_url'] as String).isNotEmpty
+                    ? CachedNetworkImageProvider(user['photo_url'] as String)
+                    : null,
+                child: user['photo_url'] == null || (user['photo_url'] as String).isEmpty
+                    ? Icon(Icons.person, color: AppTheme.primaryColor, size: 20.w)
+                    : null,
+              ),
+              title: Text(
+                user['display_name'] as String? ?? '사용자',
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+              ),
+              onTap: () {
+                final uid = isFollowers
+                    ? item['follower_id'] as String
+                    : item['following_id'] as String;
+                context.push('/user-profile/$uid');
+              },
+            );
+          },
+        );
+      },
     );
+  }
+
+  Future<List<dynamic>> _loadFollowData(bool isFollowers) async {
+    try {
+      final supabase = Supabase.instance.client;
+      if (isFollowers) {
+        return await supabase
+            .from('follows')
+            .select('follower_id, follower:users!follows_follower_id_fkey(display_name, photo_url)')
+            .eq('following_id', widget.userId);
+      } else {
+        return await supabase
+            .from('follows')
+            .select('following_id, following:users!follows_following_id_fkey(display_name, photo_url)')
+            .eq('follower_id', widget.userId);
+      }
+    } catch (e) {
+      debugPrint('팔로우 데이터 로드 실패: $e');
+      return [];
+    }
   }
 
   Widget _buildErrorState(String message) {
@@ -359,8 +435,6 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   void _sendMessage(SocialUser user) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('메시지 기능이 곧 추가됩니다!')),
-    );
+    context.push('/chat?userId=${user.id}');
   }
 }

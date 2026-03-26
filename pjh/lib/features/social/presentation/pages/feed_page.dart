@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/feed_bloc.dart';
@@ -250,9 +251,8 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   void _sharePost(post) {
-    // Implement share functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('공유 기능이 곧 추가됩니다!')),
-    );
+    final caption = post.caption ?? '';
+    final preview = caption.length > 100 ? '${caption.substring(0, 100)}...' : caption;
+    Share.share('$preview\n\nPetSpace에서 확인하세요!');
   }
 }

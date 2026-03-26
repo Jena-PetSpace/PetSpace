@@ -175,10 +175,11 @@ class AppRouter {
               name: 'feed-hub',
               builder: (context, state) {
                 final tab = state.uri.queryParameters['tab'];
+                final category = state.uri.queryParameters['category'];
                 int initialTab = 0;
                 if (tab == 'following') initialTab = 1;
                 if (tab == 'community') initialTab = 2;
-                return FeedHubPage(initialTab: initialTab);
+                return FeedHubPage(initialTab: initialTab, initialCategory: category);
               },
             ),
             GoRoute(

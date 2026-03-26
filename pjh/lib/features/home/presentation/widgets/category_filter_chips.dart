@@ -18,10 +18,10 @@ class _CategoryFilterChipsState extends State<CategoryFilterChips> {
 
   final List<Map<String, String>> _categories = [
     {'emoji': '\uD83D\uDD25', 'label': '인기'},
-    {'emoji': '\uD83D\uDCF0', 'label': '매거진'},
     {'emoji': '\uD83D\uDCAC', 'label': '커뮤니티'},
     {'emoji': '\uD83C\uDFE5', 'label': '건강'},
     {'emoji': '\uD83C\uDFAF', 'label': '훈련'},
+    {'emoji': '\uD83D\uDCF0', 'label': '매거진'},
   ];
 
   @override

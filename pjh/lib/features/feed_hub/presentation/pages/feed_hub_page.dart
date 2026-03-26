@@ -11,7 +11,8 @@ import 'create_community_post_page.dart';
 
 class FeedHubPage extends StatefulWidget {
   final int initialTab;
-  const FeedHubPage({super.key, this.initialTab = 0});
+  final String? initialCategory;
+  const FeedHubPage({super.key, this.initialTab = 0, this.initialCategory});
 
   @override
   State<FeedHubPage> createState() => _FeedHubPageState();
@@ -29,11 +30,10 @@ class _FeedHubPageState extends State<FeedHubPage>
 
   static const _categories = [
     {'label': '전체', 'value': null},
-    {'label': '건강Q&A', 'value': 'health_qa'},
-    {'label': '사료추천', 'value': 'food_recommend'},
-    {'label': '자유Q&A', 'value': 'parenting_qa'},
-    {'label': '정보공유', 'value': 'info_share'},
-    {'label': '자유', 'value': 'free'},
+    {'label': 'Q&A', 'value': 'qa'},
+    {'label': '건강', 'value': 'health'},
+    {'label': '훈련', 'value': 'training'},
+    {'label': '매거진', 'value': 'magazine'},
   ];
 
   @override
@@ -49,7 +49,21 @@ class _FeedHubPageState extends State<FeedHubPage>
         _loadCommunityPosts();
       }
     });
-    if (widget.initialTab == 2) _loadCommunityPosts();
+
+    // initialCategory가 있으면 해당 카테고리를 선택
+    if (widget.initialCategory != null) {
+      for (int i = 0; i < _categories.length; i++) {
+        if (_categories[i]['value'] == widget.initialCategory) {
+          _selectedCategory = i;
+          break;
+        }
+      }
+    }
+
+    if (widget.initialTab == 2) {
+      final cat = _categories[_selectedCategory]['value'];
+      _loadCommunityPosts(category: cat);
+    }
   }
 
   @override
@@ -61,15 +75,17 @@ class _FeedHubPageState extends State<FeedHubPage>
   Future<void> _loadCommunityPosts({String? category}) async {
     setState(() => _communityLoading = true);
     try {
-      var baseQuery = _supabase.from('community_posts').select(
-          'id, author_id, category, title, content, likes_count, comments_count, created_at, users(display_name, photo_url)');
+      var query = _supabase
+          .from('posts')
+          .select('id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
+          .isFilter('deleted_at', null);
 
       if (category != null) {
-        baseQuery = baseQuery.eq('category', category);
+        query = query.contains('hashtags', [category]);
       }
 
       final response =
-          await baseQuery.order('created_at', ascending: false).limit(30);
+          await query.order('created_at', ascending: false).limit(30);
       setState(() {
         _communityPosts = List<Map<String, dynamic>>.from(response);
         _communityLoading = false;
@@ -154,7 +170,7 @@ class _FeedHubPageState extends State<FeedHubPage>
   Widget _buildCommunityTab() {
     return Column(
       children: [
-        // 카테고리 칩
+        // 카테고리 버튼
         Container(
           height: 48.h,
           padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -165,27 +181,30 @@ class _FeedHubPageState extends State<FeedHubPage>
             separatorBuilder: (_, __) => SizedBox(width: 8.w),
             itemBuilder: (context, index) {
               final isSelected = _selectedCategory == index;
-              return FilterChip(
-                label: Text(
-                  _categories[index]['label'] as String,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color:
-                        isSelected ? Colors.white : AppTheme.secondaryTextColor,
-                  ),
-                ),
-                selected: isSelected,
-                selectedColor: AppTheme.primaryColor,
-                backgroundColor: Colors.white,
-                side: BorderSide(
-                    color: isSelected
-                        ? AppTheme.primaryColor
-                        : AppTheme.dividerColor),
-                onSelected: (_) {
+              return GestureDetector(
+                onTap: () {
                   setState(() => _selectedCategory = index);
                   final cat = _categories[index]['value'];
                   _loadCommunityPosts(category: cat);
                 },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppTheme.primaryColor : Colors.white,
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: isSelected
+                        ? null
+                        : Border.all(color: AppTheme.dividerColor),
+                  ),
+                  child: Text(
+                    _categories[index]['label'] as String,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                    ),
+                  ),
+                ),
               );
             },
           ),
@@ -208,17 +227,20 @@ class _FeedHubPageState extends State<FeedHubPage>
                         itemBuilder: (context, index) {
                           final post = _communityPosts[index];
                           final user = post['users'] as Map<String, dynamic>?;
-                          return CommunityPostCard(
-                            authorName:
-                                user?['display_name'] as String? ?? '익명',
-                            category: _categoryLabel(
-                                post['category'] as String? ?? ''),
-                            title: post['title'] as String? ?? '',
-                            content: post['content'] as String? ?? '',
-                            likes: post['likes_count'] as int? ?? 0,
-                            comments: post['comments_count'] as int? ?? 0,
-                            timeAgo:
-                                _timeAgo(post['created_at'] as String? ?? ''),
+                          final hashtags = List<String>.from(post['hashtags'] ?? []);
+                          return GestureDetector(
+                            onTap: () => context.push('/post/${post['id']}'),
+                            child: CommunityPostCard(
+                              authorName:
+                                  user?['display_name'] as String? ?? '익명',
+                              category: _categoryFromHashtags(hashtags),
+                              title: '',
+                              content: post['caption'] as String? ?? '',
+                              likes: post['likes_count'] as int? ?? 0,
+                              comments: post['comments_count'] as int? ?? 0,
+                              timeAgo:
+                                  _timeAgo(post['created_at'] as String? ?? ''),
+                            ),
                           );
                         },
                       ),
@@ -245,15 +267,14 @@ class _FeedHubPageState extends State<FeedHubPage>
     );
   }
 
-  String _categoryLabel(String value) {
-    const map = {
-      'health_qa': '건강Q&A',
-      'food_recommend': '사료추천',
-      'parenting_qa': '자유Q&A',
-      'info_share': '정보공유',
-      'free': '자유',
-    };
-    return map[value] ?? value;
+  String _categoryFromHashtags(List<String> hashtags) {
+    for (final tag in hashtags) {
+      if (tag == 'qa') return 'Q&A';
+      if (tag == 'health') return '건강';
+      if (tag == 'training') return '훈련';
+      if (tag == 'magazine') return '매거진';
+    }
+    return '';
   }
 
   String _timeAgo(String isoString) {

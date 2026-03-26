@@ -148,16 +148,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCategoryContent() {
-    // 0: 인기(전체), 1: 매거진, 2: 커뮤니티, 3: 건강, 4: 훈련
+    // 0: 인기(전체), 1: 커뮤니티, 2: 건강, 3: 훈련, 4: 매거진
     switch (_selectedCategory) {
-      case 1: // 매거진
-        return const MagazineGrid();
-      case 2: // 커뮤니티
+      case 1: // 커뮤니티
         return const CommunityPreview();
-      case 3: // 건강
-        return _buildHealthContent();
-      case 4: // 훈련
-        return _buildTrainingContent();
+      case 2: // 건강
+        return const CommunityPreview(category: 'health');
+      case 3: // 훈련
+        return const CommunityPreview(category: 'training');
+      case 4: // 매거진
+        return const MagazineGrid();
       default: // 인기 (전체 보기)
         return Column(
           children: [
@@ -171,136 +171,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Widget _buildHealthContent() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '건강 관련 콘텐츠',
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primaryTextColor,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          _buildContentItem(
-            icon: Icons.medical_services_outlined,
-            iconColor: AppTheme.successColor,
-            title: '반려동물 치아 관리 필수 가이드',
-            subtitle: '건강 · 2시간 전',
-          ),
-          SizedBox(height: 10.h),
-          _buildContentItem(
-            icon: Icons.medical_services_outlined,
-            iconColor: AppTheme.successColor,
-            title: '겨울철 반려동물 건강 체크리스트',
-            subtitle: '건강 · 5시간 전',
-          ),
-          SizedBox(height: 10.h),
-          _buildContentItem(
-            icon: Icons.medical_services_outlined,
-            iconColor: AppTheme.successColor,
-            title: '예방접종 가이드: 시기와 종류',
-            subtitle: '건강 · 어제',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTrainingContent() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '훈련 관련 콘텐츠',
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primaryTextColor,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          _buildContentItem(
-            icon: Icons.school_outlined,
-            iconColor: AppTheme.accentColor,
-            title: '기본 복종 훈련 시작하기',
-            subtitle: '훈련 · 3시간 전',
-          ),
-          SizedBox(height: 10.h),
-          _buildContentItem(
-            icon: Icons.school_outlined,
-            iconColor: AppTheme.accentColor,
-            title: '산책 매너 교육 방법',
-            subtitle: '훈련 · 어제',
-          ),
-          SizedBox(height: 10.h),
-          _buildContentItem(
-            icon: Icons.school_outlined,
-            iconColor: AppTheme.accentColor,
-            title: '분리불안 극복 훈련 팁',
-            subtitle: '훈련 · 2일 전',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContentItem({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-  }) {
-    return Container(
-      decoration: AppTheme.cardDecoration,
-      padding: EdgeInsets.all(14.w),
-      child: Row(
-        children: [
-          Container(
-            width: 40.w,
-            height: 40.w,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10.r),
-            ),
-            child: Icon(icon, size: 20.w, color: iconColor),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primaryTextColor,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    color: AppTheme.secondaryTextColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(Icons.arrow_forward_ios,
-              size: 14.w, color: AppTheme.secondaryTextColor),
-        ],
-      ),
-    );
-  }
 }
 
 class _ChatBubblePainter extends CustomPainter {

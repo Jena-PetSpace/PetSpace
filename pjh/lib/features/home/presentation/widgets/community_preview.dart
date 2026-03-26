@@ -1,11 +1,88 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 
-class CommunityPreview extends StatelessWidget {
-  const CommunityPreview({super.key});
+class CommunityPreview extends StatefulWidget {
+  final String? category;
+
+  const CommunityPreview({super.key, this.category});
+
+  @override
+  State<CommunityPreview> createState() => _CommunityPreviewState();
+}
+
+class _CommunityPreviewState extends State<CommunityPreview> {
+  List<Map<String, dynamic>> _posts = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPosts();
+  }
+
+  @override
+  void didUpdateWidget(CommunityPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.category != widget.category) {
+      _loadPosts();
+    }
+  }
+
+  Future<void> _loadPosts() async {
+    setState(() => _loading = true);
+    try {
+      final supabase = Supabase.instance.client;
+      var query = supabase
+          .from('posts')
+          .select('id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
+          .isFilter('deleted_at', null);
+
+      if (widget.category != null) {
+        query = query.contains('hashtags', [widget.category!]);
+      }
+
+      final response = await query
+          .order('created_at', ascending: false)
+          .limit(3);
+
+      if (mounted) {
+        setState(() {
+          _posts = List<Map<String, dynamic>>.from(response);
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      dev.log('커뮤니티 프리뷰 로드 실패: $e', name: 'CommunityPreview');
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _getCategoryTitle() {
+    switch (widget.category) {
+      case 'health':
+        return '🏥 건강 게시글';
+      case 'training':
+        return '🎯 훈련 게시글';
+      default:
+        return '💬 커뮤니티';
+    }
+  }
+
+  String _getFeedTab() {
+    switch (widget.category) {
+      case 'health':
+        return '/feed?tab=community&category=health';
+      case 'training':
+        return '/feed?tab=community&category=training';
+      default:
+        return '/feed?tab=community';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,12 +90,11 @@ class CommunityPreview extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
-          // 헤더
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '\uD83D\uDCAC 커뮤니티',
+                _getCategoryTitle(),
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.bold,
@@ -26,7 +102,7 @@ class CommunityPreview extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => context.go('/feed?tab=community'),
+                onTap: () => context.go(_getFeedTab()),
                 child: Text(
                   '더보기',
                   style: TextStyle(
@@ -39,33 +115,39 @@ class CommunityPreview extends StatelessWidget {
           ),
           SizedBox(height: 12.h),
 
-          // 카드 리스트
-          _buildPreviewItem(
-            context: context,
-            author: '멍멍이집사',
-            content: '강아지 눈물자국 관리 이렇게 했더니 효과 봤어요! 일주일만에 확 줄었습니다.',
-            likes: 24,
-            comments: 8,
-            timeAgo: '30분 전',
-          ),
-          SizedBox(height: 10.h),
-          _buildPreviewItem(
-            context: context,
-            author: '냥이사랑',
-            content: '고양이 캣타워 추천 부탁드려요. 대형묘인데 튼튼한 거 찾고 있습니다.',
-            likes: 15,
-            comments: 12,
-            timeAgo: '1시간 전',
-          ),
-          SizedBox(height: 10.h),
-          _buildPreviewItem(
-            context: context,
-            author: '초보집사',
-            content: '생후 3개월 강아지 예방접종 스케줄 어떻게 잡아야 하나요?',
-            likes: 31,
-            comments: 6,
-            timeAgo: '2시간 전',
-          ),
+          if (_loading)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 32.h),
+              child: const CircularProgressIndicator(),
+            )
+          else if (_posts.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 32.h),
+              child: Text(
+                '아직 게시글이 없습니다',
+                style: TextStyle(fontSize: 13.sp, color: AppTheme.secondaryTextColor),
+              ),
+            )
+          else
+            ..._posts.asMap().entries.map((entry) {
+              final index = entry.key;
+              final post = entry.value;
+              final user = post['users'] as Map<String, dynamic>?;
+              return Column(
+                children: [
+                  if (index > 0) SizedBox(height: 10.h),
+                  _buildPreviewItem(
+                    context: context,
+                    postId: post['id'] as String,
+                    author: user?['display_name'] as String? ?? '관리자',
+                    content: post['caption'] as String? ?? '',
+                    likes: post['likes_count'] as int? ?? 0,
+                    comments: post['comments_count'] as int? ?? 0,
+                    timeAgo: _timeAgo(post['created_at'] as String? ?? ''),
+                  ),
+                ],
+              );
+            }),
         ],
       ),
     );
@@ -73,6 +155,7 @@ class CommunityPreview extends StatelessWidget {
 
   Widget _buildPreviewItem({
     required BuildContext context,
+    required String postId,
     required String author,
     required String content,
     required int likes,
@@ -80,7 +163,7 @@ class CommunityPreview extends StatelessWidget {
     required String timeAgo,
   }) {
     return GestureDetector(
-      onTap: () => context.go('/feed?tab=community'),
+      onTap: () => context.push('/post/$postId'),
       child: Container(
         decoration: AppTheme.cardDecoration,
         padding: EdgeInsets.all(14.w),
@@ -147,5 +230,20 @@ class CommunityPreview extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _timeAgo(String isoString) {
+    if (isoString.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return '방금 전';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+      if (diff.inHours < 24) return '${diff.inHours}시간 전';
+      if (diff.inDays < 7) return '${diff.inDays}일 전';
+      return '${dt.month}/${dt.day}';
+    } catch (_) {
+      return '';
+    }
   }
 }
