@@ -503,7 +503,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.r),
                 ),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
                 isDense: true,
               ),
               onChanged: (value) {
