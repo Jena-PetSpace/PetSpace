@@ -10,7 +10,7 @@
 | 기술 스택 | Flutter 3.x / Dart 3.x + Supabase + Firebase FCM |
 | 아키텍처 | Clean Architecture + BLoC + GetIt DI |
 | 레포지토리 | github.com/Jena-PetSpace/PetSpace |
-| 문서 최종 수정 | 2026-03-18 |
+| 문서 최종 수정 | 2026-03-26 |
 
 ---
 
@@ -596,8 +596,9 @@ Tab 3 (피드 탭) → FeedHubPage (3개 탭)
   │              ├→ 북마크 → FeedBloc.SavePostRequested
   │              └→ 더보기 → 신고/차단 (user_blocks 테이블)
   ├→ 팔로잉 탭: FeedPage(followingOnly: true)
-  └→ 커뮤니티 탭: community_posts 테이블 직접 쿼리
-       └→ FAB → CreateCommunityPostPage (제목/내용/카테고리)
+  └→ 커뮤니티 탭: posts 테이블 hashtags 기반 필터링
+       ├→ 카테고리: 전체 / Q&A / 건강 / 훈련 / 매거진
+       └→ FAB → CreateCommunityPostPage (내용/해시태그)
 ```
 
 ### 10.4 건강 관리 플로우
