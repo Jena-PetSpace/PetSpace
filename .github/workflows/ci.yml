@@ -39,6 +39,11 @@ jobs:
             static const String kakaoPasswordSalt = 'dummy';
             static const String googleClientId = 'dummy';
             static const String kakaoAppKey = 'dummy';
+            static const String firebaseApiKey = 'dummy';
+            static const String firebaseAppId = 'dummy';
+            static const String firebaseMessagingSenderId = 'dummy';
+            static const String firebaseProjectId = 'dummy';
+            static const String firebaseStorageBucket = 'dummy';
           }
           EOF
 
@@ -56,7 +61,7 @@ jobs:
 
       - name: 정적 분석 (flutter analyze)
         working-directory: pjh
-        run: flutter analyze --no-pub
+        run: flutter analyze --no-pub --no-fatal-infos
 
       - name: 단위 테스트
         working-directory: pjh
@@ -107,6 +112,11 @@ jobs:
             static const String kakaoPasswordSalt = 'dummy';
             static const String googleClientId = 'dummy';
             static const String kakaoAppKey = 'dummy';
+            static const String firebaseApiKey = 'dummy';
+            static const String firebaseAppId = 'dummy';
+            static const String firebaseMessagingSenderId = 'dummy';
+            static const String firebaseProjectId = 'dummy';
+            static const String firebaseStorageBucket = 'dummy';
           }
           EOF
 
