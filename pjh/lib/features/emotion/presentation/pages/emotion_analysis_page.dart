@@ -492,6 +492,27 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 .toList(),
             onChanged: (value) => setState(() => _manualBreed = value),
           ),
+          if (_manualBreed == '기타') ...[
+            SizedBox(height: 8.h),
+            TextField(
+              style: TextStyle(fontSize: 13.sp),
+              decoration: InputDecoration(
+                labelText: '품종 직접 입력',
+                labelStyle: TextStyle(fontSize: 13.sp),
+                hintText: '예: 비숑프리제',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                isDense: true,
+              ),
+              onChanged: (value) {
+                if (value.trim().isNotEmpty) {
+                  _manualBreed = value.trim();
+                }
+              },
+            ),
+          ],
         ],
         SizedBox(height: 4.h),
         Text(

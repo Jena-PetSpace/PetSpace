@@ -27,10 +27,9 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
+    return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
-          // 온보딩 완료 여부에 따라 다르게 라우팅
           final user = state.user;
           if (user.isOnboardingCompleted) {
             context.go('/home');
@@ -46,29 +45,43 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       },
-      child: Scaffold(
-        backgroundColor: AppTheme.backgroundColor,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 40),
-                _buildHeader(),
-                const SizedBox(height: 40),
-                _buildSocialLoginButtons(),
-                const SizedBox(height: 24),
-                _buildDivider(),
-                const SizedBox(height: 24),
-                _buildEmailForm(),
-                const Spacer(),
-                _buildBottomButtons(),
-              ],
+      builder: (context, state) {
+        final isLoading = state is AuthLoading;
+        return Stack(
+          children: [
+            Scaffold(
+              backgroundColor: AppTheme.backgroundColor,
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 40),
+                      _buildHeader(),
+                      const SizedBox(height: 40),
+                      _buildSocialLoginButtons(),
+                      const SizedBox(height: 24),
+                      _buildDivider(),
+                      const SizedBox(height: 24),
+                      _buildEmailForm(),
+                      const Spacer(),
+                      _buildBottomButtons(),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
+            if (isLoading)
+              Container(
+                color: Colors.black.withValues(alpha: 0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppTheme.primaryColor),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 

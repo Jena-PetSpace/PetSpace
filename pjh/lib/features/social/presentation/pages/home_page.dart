@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadChatBadge();
-        _badgeTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        _badgeTimer = Timer.periodic(const Duration(seconds: 60), (_) {
           if (mounted) _loadChatBadge();
         });
       }

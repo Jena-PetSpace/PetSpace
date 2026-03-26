@@ -27,10 +27,12 @@ class SettingsPage extends StatelessWidget {
             child: Text('취소', style: TextStyle(fontSize: 14.sp)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(dialogContext).pop();
               context.read<AuthBloc>().add(AuthDeleteAccountRequested());
-              context.go('/onboarding/login');
+              // BLoC 상태 변경 대기 후 이동
+              await Future.delayed(const Duration(milliseconds: 500));
+              if (context.mounted) context.go('/onboarding/login');
             },
             child: Text('삭제',
                 style: TextStyle(color: Colors.red, fontSize: 14.sp)),
