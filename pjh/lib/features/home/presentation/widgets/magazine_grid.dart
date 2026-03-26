@@ -28,7 +28,8 @@ class _MagazineGridState extends State<MagazineGrid> {
       final supabase = Supabase.instance.client;
       final response = await supabase
           .from('posts')
-          .select('id, caption, hashtags, likes_count, comments_count, created_at')
+          .select(
+              'id, caption, hashtags, likes_count, comments_count, created_at')
           .isFilter('deleted_at', null)
           .contains('hashtags', ['magazine'])
           .order('created_at', ascending: false)
@@ -64,7 +65,8 @@ class _MagazineGridState extends State<MagazineGrid> {
                 ),
               ),
               GestureDetector(
-                onTap: () => context.go('/feed?tab=community&category=magazine'),
+                onTap: () =>
+                    context.go('/feed?tab=community&category=magazine'),
                 child: Text(
                   '더보기',
                   style: TextStyle(
@@ -76,7 +78,6 @@ class _MagazineGridState extends State<MagazineGrid> {
             ],
           ),
           SizedBox(height: 12.h),
-
           if (_loading)
             SizedBox(
               height: 120.h,
@@ -88,7 +89,8 @@ class _MagazineGridState extends State<MagazineGrid> {
               child: Center(
                 child: Text(
                   '매거진 게시글이 없습니다',
-                  style: TextStyle(fontSize: 13.sp, color: AppTheme.secondaryTextColor),
+                  style: TextStyle(
+                      fontSize: 13.sp, color: AppTheme.secondaryTextColor),
                 ),
               ),
             )

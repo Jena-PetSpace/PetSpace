@@ -252,7 +252,8 @@ class _FeedPageState extends State<FeedPage> {
 
   void _sharePost(post) {
     final caption = post.caption ?? '';
-    final preview = caption.length > 100 ? '${caption.substring(0, 100)}...' : caption;
+    final preview =
+        caption.length > 100 ? '${caption.substring(0, 100)}...' : caption;
     Share.share('$preview\n\nPetSpace에서 확인하세요!');
   }
 }

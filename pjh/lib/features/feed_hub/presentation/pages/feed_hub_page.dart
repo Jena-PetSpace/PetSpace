@@ -77,7 +77,8 @@ class _FeedHubPageState extends State<FeedHubPage>
     try {
       var query = _supabase
           .from('posts')
-          .select('id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
+          .select(
+              'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
           .isFilter('deleted_at', null);
 
       if (category != null) {
@@ -188,7 +189,8 @@ class _FeedHubPageState extends State<FeedHubPage>
                   _loadCommunityPosts(category: cat);
                 },
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
                   decoration: BoxDecoration(
                     color: isSelected ? AppTheme.primaryColor : Colors.white,
                     borderRadius: BorderRadius.circular(20.r),
@@ -200,8 +202,11 @@ class _FeedHubPageState extends State<FeedHubPage>
                     _categories[index]['label'] as String,
                     style: TextStyle(
                       fontSize: 12.sp,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.secondaryTextColor,
                     ),
                   ),
                 ),
@@ -227,7 +232,8 @@ class _FeedHubPageState extends State<FeedHubPage>
                         itemBuilder: (context, index) {
                           final post = _communityPosts[index];
                           final user = post['users'] as Map<String, dynamic>?;
-                          final hashtags = List<String>.from(post['hashtags'] ?? []);
+                          final hashtags =
+                              List<String>.from(post['hashtags'] ?? []);
                           return GestureDetector(
                             onTap: () => context.push('/post/${post['id']}'),
                             child: CommunityPostCard(

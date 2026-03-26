@@ -179,7 +179,8 @@ class AppRouter {
                 int initialTab = 0;
                 if (tab == 'following') initialTab = 1;
                 if (tab == 'community') initialTab = 2;
-                return FeedHubPage(initialTab: initialTab, initialCategory: category);
+                return FeedHubPage(
+                    initialTab: initialTab, initialCategory: category);
               },
             ),
             GoRoute(

@@ -39,16 +39,16 @@ class _CommunityPreviewState extends State<CommunityPreview> {
       final supabase = Supabase.instance.client;
       var query = supabase
           .from('posts')
-          .select('id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
+          .select(
+              'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
           .isFilter('deleted_at', null);
 
       if (widget.category != null) {
         query = query.contains('hashtags', [widget.category!]);
       }
 
-      final response = await query
-          .order('created_at', ascending: false)
-          .limit(3);
+      final response =
+          await query.order('created_at', ascending: false).limit(3);
 
       if (mounted) {
         setState(() {
@@ -114,7 +114,6 @@ class _CommunityPreviewState extends State<CommunityPreview> {
             ],
           ),
           SizedBox(height: 12.h),
-
           if (_loading)
             Padding(
               padding: EdgeInsets.symmetric(vertical: 32.h),
@@ -125,7 +124,8 @@ class _CommunityPreviewState extends State<CommunityPreview> {
               padding: EdgeInsets.symmetric(vertical: 32.h),
               child: Text(
                 '아직 게시글이 없습니다',
-                style: TextStyle(fontSize: 13.sp, color: AppTheme.secondaryTextColor),
+                style: TextStyle(
+                    fontSize: 13.sp, color: AppTheme.secondaryTextColor),
               ),
             )
           else

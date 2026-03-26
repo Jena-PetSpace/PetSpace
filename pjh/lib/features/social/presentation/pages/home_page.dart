@@ -170,7 +170,6 @@ class _HomePageState extends State<HomePage> {
         );
     }
   }
-
 }
 
 class _ChatBubblePainter extends CustomPainter {

@@ -291,7 +291,8 @@ class _ProfilePageState extends State<ProfilePage>
                 SizedBox(height: 12.h),
                 Text(
                   isFollowers ? '아직 팔로워가 없습니다' : '아직 팔로잉이 없습니다',
-                  style: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor),
+                  style: TextStyle(
+                      fontSize: 14.sp, color: AppTheme.secondaryTextColor),
                 ),
               ],
             ),
@@ -310,11 +311,14 @@ class _ProfilePageState extends State<ProfilePage>
             return ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                backgroundImage: user['photo_url'] != null && (user['photo_url'] as String).isNotEmpty
+                backgroundImage: user['photo_url'] != null &&
+                        (user['photo_url'] as String).isNotEmpty
                     ? CachedNetworkImageProvider(user['photo_url'] as String)
                     : null,
-                child: user['photo_url'] == null || (user['photo_url'] as String).isEmpty
-                    ? Icon(Icons.person, color: AppTheme.primaryColor, size: 20.w)
+                child: user['photo_url'] == null ||
+                        (user['photo_url'] as String).isEmpty
+                    ? Icon(Icons.person,
+                        color: AppTheme.primaryColor, size: 20.w)
                     : null,
               ),
               title: Text(
@@ -340,12 +344,14 @@ class _ProfilePageState extends State<ProfilePage>
       if (isFollowers) {
         return await supabase
             .from('follows')
-            .select('follower_id, follower:users!follows_follower_id_fkey(display_name, photo_url)')
+            .select(
+                'follower_id, follower:users!follows_follower_id_fkey(display_name, photo_url)')
             .eq('following_id', widget.userId);
       } else {
         return await supabase
             .from('follows')
-            .select('following_id, following:users!follows_following_id_fkey(display_name, photo_url)')
+            .select(
+                'following_id, following:users!follows_following_id_fkey(display_name, photo_url)')
             .eq('follower_id', widget.userId);
       }
     } catch (e) {
