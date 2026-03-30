@@ -3,7 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../domain/entities/chat_room.dart';
 import '../bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../widgets/chat_room_tile.dart';
 
@@ -92,6 +96,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                     room: room,
                     currentUserId: _currentUserId,
                     onTap: () => context.push('/chat/${room.id}'),
+                    onLongPress: () => _showRoomOptions(context, room),
                   );
                 },
               ),
@@ -129,6 +134,126 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
             onPressed: () => context.push('/chat/new'),
             icon: const Icon(Icons.add),
             label: Text('새 채팅', style: TextStyle(fontSize: 14.sp)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRoomOptions(BuildContext context, ChatRoom room) {
+    final roomName = room.displayName(_currentUserId);
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: EdgeInsets.only(top: 8.h),
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Text(
+                roomName,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: Text('채팅방 설정', style: TextStyle(fontSize: 14.sp)),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push(
+                  '/chat/${room.id}/settings?name=${Uri.encodeComponent(roomName)}',
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: Text('알림 설정', style: TextStyle(fontSize: 14.sp)),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push(
+                  '/chat/${room.id}/settings?name=${Uri.encodeComponent(roomName)}',
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.exit_to_app, color: Colors.red[400]),
+              title: Text(
+                '채팅방 나가기',
+                style: TextStyle(fontSize: 14.sp, color: Colors.red[400]),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmLeaveRoom(context, room);
+              },
+            ),
+            SizedBox(height: 8.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmLeaveRoom(BuildContext context, ChatRoom room) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('채팅방 나가기'),
+        content: const Text('정말 이 채팅방을 나가시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await Supabase.instance.client
+                    .from('chat_participants')
+                    .update({'is_active': false})
+                    .eq('room_id', room.id)
+                    .eq('user_id', _currentUserId);
+                if (mounted) {
+                  context.read<ChatRoomsBloc>().add(
+                        ChatRoomsLoadRequested(userId: _currentUserId),
+                      );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('채팅방을 나갔습니다'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('오류: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text(
+              '나가기',
+              style: TextStyle(color: Colors.red[400]),
+            ),
           ),
         ],
       ),

@@ -6,12 +6,14 @@ class ChatRoomTile extends StatelessWidget {
   final ChatRoom room;
   final String currentUserId;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const ChatRoomTile({
     super.key,
     required this.room,
     required this.currentUserId,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -21,6 +23,7 @@ class ChatRoomTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         child: Row(
