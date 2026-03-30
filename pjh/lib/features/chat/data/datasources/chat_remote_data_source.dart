@@ -293,8 +293,8 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
 
     final response = await supabaseClient
         .from('users')
-        .select('id, display_name, photo_url')
-        .or('display_name.ilike.%$query%,email.ilike.%$query%')
+        .select('id, display_name, photo_url, username')
+        .or('display_name.ilike.%$query%,email.ilike.%$query%,username.ilike.%$query%')
         .neq('id', currentUserId ?? '')
         .limit(20);
 
