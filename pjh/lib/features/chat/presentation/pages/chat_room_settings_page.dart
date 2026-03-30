@@ -57,7 +57,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   void _onNameChanged() {
-    final changed = _nameController.text.trim() != (widget.roomName ?? '').trim();
+    final changed =
+        _nameController.text.trim() != (widget.roomName ?? '').trim();
     if (changed != _hasNameChanged) {
       setState(() => _hasNameChanged = changed);
     }
@@ -92,14 +93,10 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
 
   Future<void> _loadParticipants() async {
     try {
-      final response = await _supabase
-          .from('chat_participants')
-          .select('''
+      final response = await _supabase.from('chat_participants').select('''
             *,
             users(id, display_name, photo_url)
-          ''')
-          .eq('room_id', widget.roomId)
-          .eq('is_active', true);
+          ''').eq('room_id', widget.roomId).eq('is_active', true);
 
       if (mounted) {
         setState(() {
@@ -158,8 +155,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
       final filePath = 'chat_rooms/${widget.roomId}/$timestamp.jpg';
 
       await _supabase.storage.from('images').upload(filePath, file);
-      final publicUrl =
-          _supabase.storage.from('images').getPublicUrl(filePath);
+      final publicUrl = _supabase.storage.from('images').getPublicUrl(filePath);
 
       await _supabase
           .from('chat_rooms')
@@ -385,7 +381,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.r),
-            borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+            borderSide:
+                const BorderSide(color: AppTheme.primaryColor, width: 1.5),
           ),
           contentPadding:
               EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -445,7 +442,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           leading: CircleAvatar(
             radius: 20.r,
             backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-            child: Icon(Icons.person_add, size: 20.w, color: AppTheme.primaryColor),
+            child: Icon(Icons.person_add,
+                size: 20.w, color: AppTheme.primaryColor),
           ),
           title: Text(
             '멤버 초대',
@@ -533,7 +531,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           title: Text('알림', style: TextStyle(fontSize: 15.sp)),
           subtitle: Text(
             _notificationsEnabled ? '알림을 받고 있습니다' : '알림이 꺼져 있습니다',
-            style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor),
+            style:
+                TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor),
           ),
           secondary: Icon(
             _notificationsEnabled
@@ -557,7 +556,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
       children: [
         const Divider(height: 1, color: AppTheme.dividerColor),
         ListTile(
-          leading: Icon(Icons.exit_to_app, color: AppTheme.errorColor, size: 24.w),
+          leading:
+              Icon(Icons.exit_to_app, color: AppTheme.errorColor, size: 24.w),
           title: Text(
             '채팅방 나가기',
             style: TextStyle(
@@ -723,7 +723,8 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                         ? SizedBox(
                             width: 16.w,
                             height: 16.w,
-                            child: const CircularProgressIndicator(strokeWidth: 2),
+                            child:
+                                const CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
                             '추가 (${_selectedUsers.length})',
@@ -805,8 +806,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                           _searchController.text.isEmpty
                               ? '사용자를 검색하세요'
                               : '검색 결과가 없습니다',
-                          style: TextStyle(
-                              fontSize: 14.sp, color: Colors.grey),
+                          style: TextStyle(fontSize: 14.sp, color: Colors.grey),
                         ),
                       )
                     : ListView.builder(

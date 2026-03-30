@@ -234,7 +234,8 @@ class ChatRepositoryImpl implements ChatRepository {
       return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
     }
     try {
-      await remoteDataSource.updateChatRoomPhoto(roomId: roomId, photoUrl: photoUrl);
+      await remoteDataSource.updateChatRoomPhoto(
+          roomId: roomId, photoUrl: photoUrl);
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure(message: '채팅방 사진 변경에 실패했습니다: $e'));
@@ -242,7 +243,8 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<Either<Failure, List<ChatParticipant>>> getRoomParticipants(String roomId) async {
+  Future<Either<Failure, List<ChatParticipant>>> getRoomParticipants(
+      String roomId) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
     }

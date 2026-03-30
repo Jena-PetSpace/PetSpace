@@ -80,5 +80,6 @@ abstract class ChatRepository {
   });
 
   /// 채팅방 참여자 목록 조회
-  Future<Either<Failure, List<ChatParticipant>>> getRoomParticipants(String roomId);
+  Future<Either<Failure, List<ChatParticipant>>> getRoomParticipants(
+      String roomId);
 }
