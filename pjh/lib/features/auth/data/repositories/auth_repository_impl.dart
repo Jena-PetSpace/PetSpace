@@ -566,8 +566,7 @@ class AuthRepositoryImpl implements AuthRepository {
     for (final folder in folders) {
       try {
         await _deleteStorageFolder(storage, folder);
-        log('✅ [DeleteAccount] Storage 정리 완료: $folder',
-            name: 'AuthRepository');
+        log('✅ [DeleteAccount] Storage 정리 완료: $folder', name: 'AuthRepository');
       } catch (e) {
         log('⚠️ [DeleteAccount] Storage 정리 실패 ($folder): $e',
             name: 'AuthRepository');
