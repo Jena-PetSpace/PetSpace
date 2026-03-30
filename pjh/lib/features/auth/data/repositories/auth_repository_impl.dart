@@ -376,9 +376,15 @@ class AuthRepositoryImpl implements AuthRepository {
           name: 'AuthRepository');
       return Left(AuthFailure(message: '[Supabase] ${e.message}'));
     } catch (e, stackTrace) {
+      // 사용자가 취소한 경우 조용히 처리
+      final errorMsg = e.toString().toLowerCase();
+      if (errorMsg.contains('cancel') || errorMsg.contains('user_canceled')) {
+        log('ℹ️ [Kakao Login] 사용자 취소', name: 'AuthRepository');
+        return const Left(AuthFailure(message: ''));
+      }
       log('❌ [Kakao Login] Unknown Exception: ${e.toString()}',
           name: 'AuthRepository', stackTrace: stackTrace);
-      return Left(AuthFailure(message: '[오류] ${e.toString()}'));
+      return Left(AuthFailure(message: '카카오 로그인 중 오류가 발생했습니다.'));
     }
   }
 

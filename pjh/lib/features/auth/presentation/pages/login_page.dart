@@ -37,12 +37,14 @@ class _LoginPageState extends State<LoginPage> {
             context.go('/onboarding/profile');
           }
         } else if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
-          );
+          if (state.message.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       },
       builder: (context, state) {

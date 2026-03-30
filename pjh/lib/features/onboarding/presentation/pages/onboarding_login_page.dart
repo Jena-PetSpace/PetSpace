@@ -84,13 +84,15 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
               _rateLimitDuration = state.retryAfter;
             } else {
               _rateLimitDuration = null;
-              // Rate limit이 아닌 일반 에러는 SnackBar로 표시
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              // Rate limit이 아닌 일반 에러는 SnackBar로 표시 (빈 메시지 = 사용자 취소)
+              if (state.message.isNotEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             }
           });
         }
