@@ -289,19 +289,59 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
 
   @override
   Future<List<ChatParticipantModel>> searchUsers(String query) async {
-    final currentUserId = supabaseClient.auth.currentUser?.id;
+    try {
+      final currentUserId = supabaseClient.auth.currentUser?.id;
 
-    final response = await supabaseClient
-        .from('users')
-        .select('id, display_name, photo_url, username')
-        .or('display_name.ilike.%$query%,email.ilike.%$query%,username.ilike.%$query%')
-        .neq('id', currentUserId ?? '')
-        .limit(20);
+      // 1. 닉네임으로 사용자 검색
+      final userResults = await supabaseClient
+          .from('users')
+          .select('id, display_name, photo_url')
+          .ilike('display_name', '%$query%')
+          .neq('id', currentUserId ?? '')
+          .limit(20);
 
-    return (response as List)
-        .map((json) =>
-            ChatParticipantModel.fromUserJson(json as Map<String, dynamic>))
-        .toList();
+      // 2. 반려동물 이름으로 검색 → 주인의 user_id 목록
+      final petResults = await supabaseClient
+          .from('pets')
+          .select('user_id')
+          .ilike('name', '%$query%')
+          .limit(20);
+
+      // 3. 결과 합치기 (중복 제거)
+      final Map<String, Map<String, dynamic>> combined = {};
+
+      for (final json in userResults as List) {
+        final map = json as Map<String, dynamic>;
+        combined[map['id'] as String] = map;
+      }
+
+      // 반려동물 주인 user_id 중 아직 없는 것만 추가 조회
+      final petOwnerIds = (petResults as List)
+          .map((json) => (json as Map<String, dynamic>)['user_id'] as String)
+          .where((id) => id != currentUserId && !combined.containsKey(id))
+          .toSet()
+          .toList();
+
+      if (petOwnerIds.isNotEmpty) {
+        final ownerResults = await supabaseClient
+            .from('users')
+            .select('id, display_name, photo_url')
+            .inFilter('id', petOwnerIds)
+            .limit(20);
+
+        for (final json in ownerResults as List) {
+          final map = json as Map<String, dynamic>;
+          combined[map['id'] as String] = map;
+        }
+      }
+
+      return combined.values
+          .map((json) => ChatParticipantModel.fromUserJson(json))
+          .toList();
+    } catch (e) {
+      // 검색 실패 시 빈 목록 반환
+      return [];
+    }
   }
 
   @override

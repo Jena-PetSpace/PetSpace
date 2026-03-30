@@ -53,6 +53,7 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             Scaffold(
               backgroundColor: AppTheme.backgroundColor,
+              resizeToAvoidBottomInset: true,
               body: SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
@@ -66,8 +67,11 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 24),
                       _buildDivider(),
                       const SizedBox(height: 24),
-                      _buildEmailForm(),
-                      const Spacer(),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: _buildEmailForm(),
+                        ),
+                      ),
                       _buildBottomButtons(),
                     ],
                   ),

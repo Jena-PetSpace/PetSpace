@@ -272,7 +272,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
         controller: _searchController,
         onChanged: (value) => _searchUsers(value),
         decoration: InputDecoration(
-          hintText: '이름 또는 이메일로 검색',
+          hintText: '닉네임 또는 반려동물 이름으로 검색',
           hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
           prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchController.text.isNotEmpty
@@ -315,7 +315,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
             ),
             SizedBox(height: 4.h),
             Text(
-              '이름 또는 이메일로 검색하세요',
+              '닉네임 또는 반려동물 이름으로 검색하세요',
               style: TextStyle(fontSize: 12.sp, color: Colors.grey[400]),
             ),
           ],
