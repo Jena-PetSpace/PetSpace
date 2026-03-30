@@ -456,10 +456,12 @@ class _OnboardingProfileSetupPageState
       final displayName = _displayNameController.text.trim();
       final bio = _bioController.text.trim();
 
+      // 사진이 없으면 빈 문자열로 기존 카카오/구글 사진 제거
+      final finalPhotoUrl = uploadedImageUrl ?? _avatarUrl ?? '';
       await _profileService.updateProfile(
         displayName: displayName,
         bio: bio,
-        photoUrl: uploadedImageUrl ?? _avatarUrl,
+        photoUrl: finalPhotoUrl,
       );
 
       if (mounted) {

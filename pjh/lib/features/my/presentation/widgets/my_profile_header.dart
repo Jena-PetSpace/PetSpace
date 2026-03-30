@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../core/services/profile_service.dart';
@@ -64,6 +65,28 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
               color: AppTheme.primaryTextColor,
+            ),
+          ),
+          SizedBox(height: 8.h),
+
+          // 프로필 편집 버튼
+          OutlinedButton(
+            onPressed: () => context.push('/profile/edit'),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppTheme.primaryColor, width: 1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 6.h),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              '프로필 편집',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: AppTheme.primaryColor,
+              ),
             ),
           ),
           SizedBox(height: 16.h),
