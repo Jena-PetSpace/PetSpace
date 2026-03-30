@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/chat_participant.dart';
 import '../../domain/usecases/search_users_for_chat.dart';
@@ -23,9 +25,11 @@ class _CreateChatPageState extends State<CreateChatPage> {
   final SearchUsersForChat _searchUsersForChat = sl<SearchUsersForChat>();
 
   List<ChatParticipant> _searchResults = [];
+  List<ChatParticipant> _followingList = [];
   final List<ChatParticipant> _selectedUsers = [];
   bool _isSearching = false;
   bool _isGroupMode = false;
+  bool _isLoadingFollowing = true;
 
   String get _currentUserId {
     final authState = context.read<AuthBloc>().state;
@@ -34,10 +38,64 @@ class _CreateChatPageState extends State<CreateChatPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadFollowingList();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     _groupNameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadFollowingList() async {
+    try {
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUserId == null) return;
+
+      // 내가 팔로우하는 사람들의 ID 가져오기
+      final followsResponse = await Supabase.instance.client
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', currentUserId);
+
+      final followingIds = (followsResponse as List)
+          .map((f) => f['following_id'] as String)
+          .toList();
+
+      if (followingIds.isEmpty) {
+        if (mounted) setState(() => _isLoadingFollowing = false);
+        return;
+      }
+
+      // 팔로잉 유저 정보 가져오기
+      final usersResponse = await Supabase.instance.client
+          .from('users')
+          .select('id, display_name, photo_url')
+          .inFilter('id', followingIds);
+
+      if (mounted) {
+        setState(() {
+          _followingList = (usersResponse as List).map((json) {
+            final map = json as Map<String, dynamic>;
+            return ChatParticipant(
+              id: '',
+              roomId: '',
+              userId: map['id'] as String,
+              displayName: map['display_name'] as String?,
+              photoUrl: map['photo_url'] as String?,
+              joinedAt: DateTime.now(),
+              lastReadAt: DateTime.now(),
+            );
+          }).toList();
+          _isLoadingFollowing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingFollowing = false);
+    }
   }
 
   Future<void> _searchUsers(String query) async {
@@ -82,7 +140,6 @@ class _CreateChatPageState extends State<CreateChatPage> {
       } else {
         _selectedUsers.add(user);
       }
-      // 2명 이상 선택하면 그룹 모드
       _isGroupMode = _selectedUsers.length >= 2;
     });
   }
@@ -93,13 +150,11 @@ class _CreateChatPageState extends State<CreateChatPage> {
     final chatRoomsBloc = context.read<ChatRoomsBloc>();
 
     if (_selectedUsers.length == 1 && !_isGroupMode) {
-      // 1:1 채팅
       chatRoomsBloc.add(ChatRoomsCreateDirectRequested(
         currentUserId: _currentUserId,
         otherUserId: _selectedUsers.first.userId,
       ));
     } else {
-      // 그룹 채팅
       final groupName = _groupNameController.text.trim().isEmpty
           ? _selectedUsers.map((u) => u.displayName ?? '').join(', ')
           : _groupNameController.text.trim();
@@ -111,6 +166,9 @@ class _CreateChatPageState extends State<CreateChatPage> {
       ));
     }
   }
+
+  bool get _isShowingSearchResults =>
+      _searchController.text.isNotEmpty || _isSearching;
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +190,6 @@ class _CreateChatPageState extends State<CreateChatPage> {
       body: BlocListener<ChatRoomsBloc, ChatRoomsState>(
         listener: (context, state) {
           if (state is ChatRoomCreated) {
-            // 생성된 채팅방으로 이동 (이전 페이지 제거)
             context.go('/chat/${state.room.id}');
           }
           if (state is ChatRoomsError) {
@@ -144,14 +201,14 @@ class _CreateChatPageState extends State<CreateChatPage> {
         },
         child: Column(
           children: [
-            // 선택된 사용자 칩
             if (_selectedUsers.isNotEmpty) _buildSelectedChips(),
-            // 그룹 이름 입력 (그룹 모드일 때)
             if (_isGroupMode) _buildGroupNameInput(),
-            // 검색 입력
             _buildSearchInput(),
-            // 검색 결과
-            Expanded(child: _buildSearchResults()),
+            Expanded(
+              child: _isShowingSearchResults
+                  ? _buildSearchResults()
+                  : _buildFollowingList(),
+            ),
           ],
         ),
       ),
@@ -215,7 +272,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
         controller: _searchController,
         onChanged: (value) => _searchUsers(value),
         decoration: InputDecoration(
-          hintText: '사용자 검색 (이름 또는 이메일)',
+          hintText: '이름 또는 이메일로 검색',
           hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
           prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchController.text.isNotEmpty
@@ -240,6 +297,60 @@ class _CreateChatPageState extends State<CreateChatPage> {
     );
   }
 
+  Widget _buildFollowingList() {
+    if (_isLoadingFollowing) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_followingList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 48.w, color: Colors.grey[300]),
+            SizedBox(height: 12.h),
+            Text(
+              '팔로잉한 사용자가 없습니다',
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              '이름 또는 이메일로 검색하세요',
+              style: TextStyle(fontSize: 12.sp, color: Colors.grey[400]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Text(
+            '팔로잉',
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Expanded(
+          child: ListView.builder(
+            itemCount: _followingList.length,
+            itemBuilder: (context, index) {
+              final user = _followingList[index];
+              return _buildUserTile(user);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSearchResults() {
     if (_isSearching) {
       return const Center(child: CircularProgressIndicator());
@@ -261,42 +372,37 @@ class _CreateChatPageState extends State<CreateChatPage> {
       );
     }
 
-    if (_searchResults.isEmpty) {
-      return Center(
-        child: Text(
-          '사용자를 검색하세요',
-          style: TextStyle(fontSize: 14.sp, color: Colors.grey),
-        ),
-      );
-    }
-
     return ListView.builder(
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
         final user = _searchResults[index];
-        final isSelected = _selectedUsers.any((u) => u.userId == user.userId);
-
-        return ListTile(
-          leading: CircleAvatar(
-            radius: 20.r,
-            backgroundColor: Colors.grey[200],
-            backgroundImage:
-                user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
-            child: user.photoUrl == null
-                ? Icon(Icons.person, size: 20.w, color: Colors.grey[500])
-                : null,
-          ),
-          title: Text(
-            user.displayName ?? '알 수 없는 사용자',
-            style: TextStyle(fontSize: 15.sp),
-          ),
-          trailing: isSelected
-              ? Icon(Icons.check_circle,
-                  color: Theme.of(context).colorScheme.primary)
-              : Icon(Icons.circle_outlined, color: Colors.grey[400]),
-          onTap: () => _toggleUserSelection(user),
-        );
+        return _buildUserTile(user);
       },
+    );
+  }
+
+  Widget _buildUserTile(ChatParticipant user) {
+    final isSelected = _selectedUsers.any((u) => u.userId == user.userId);
+
+    return ListTile(
+      leading: CircleAvatar(
+        radius: 20.r,
+        backgroundColor: Colors.grey[200],
+        backgroundImage:
+            user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
+        child: user.photoUrl == null
+            ? Icon(Icons.person, size: 20.w, color: Colors.grey[500])
+            : null,
+      ),
+      title: Text(
+        user.displayName ?? '알 수 없는 사용자',
+        style: TextStyle(fontSize: 15.sp),
+      ),
+      trailing: isSelected
+          ? Icon(Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary)
+          : Icon(Icons.circle_outlined, color: Colors.grey[400]),
+      onTap: () => _toggleUserSelection(user),
     );
   }
 }
