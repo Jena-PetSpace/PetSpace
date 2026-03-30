@@ -187,11 +187,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final currentState = state;
     if (currentState is! AuthAuthenticated) return;
 
-    // 온보딩 완료 상태로 사용자 프로필 업데이트
-    final updatedUser = currentState.user.copyWith(
+    // DB에서 최신 프로필 가져오기 (온보딩 중 ProfileService로 저장된 값 반영)
+    var baseUser = currentState.user;
+    final freshProfile = await _authRepository.getCurrentUser();
+    freshProfile.fold(
+      (_) {},
+      (user) {
+        if (user != null) baseUser = user;
+      },
+    );
+
+    // 온보딩 완료 상태만 업데이트 (프로필은 이미 ProfileService에서 저장됨)
+    final updatedUser = baseUser.copyWith(
       isOnboardingCompleted: true,
-      displayName: event.displayName,
-      photoURL: event.avatarUrl,
     );
 
     final result = await _authRepository.updateUserProfile(updatedUser);
