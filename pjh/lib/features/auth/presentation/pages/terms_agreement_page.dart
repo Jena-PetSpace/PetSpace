@@ -137,9 +137,9 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                     MaterialPageRoute(
                       builder: (context) => TermsDetailPage(
                         title: '서비스 이용약관',
-                        content: '멍냥다이어리(PetSpace) 서비스 이용약관\n\n'
+                        content: '펫페이스(PetSpace) 서비스 이용약관\n\n'
                             '제1조 (목적)\n'
-                            '본 약관은 멍냥다이어리(이하 "서비스")가 제공하는 반려동물 다이어리, 소셜 커뮤니티, AI 감정 분석 등 모든 서비스의 이용 조건 및 절차, 회사와 회원 간의 권리·의무를 규정함을 목적으로 합니다.\n\n'
+                            '본 약관은 펫페이스(이하 "서비스")가 제공하는 반려동물 다이어리, 소셜 커뮤니티, AI 감정 분석 등 모든 서비스의 이용 조건 및 절차, 회사와 회원 간의 권리·의무를 규정함을 목적으로 합니다.\n\n'
                             '제2조 (서비스 개요)\n'
                             '서비스는 다음 기능을 제공합니다.\n'
                             '① 반려동물 다이어리 작성 및 관리\n'
@@ -197,7 +197,7 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                     MaterialPageRoute(
                       builder: (context) => TermsDetailPage(
                         title: '개인정보 처리방침',
-                        content: '멍냥다이어리(PetSpace) 개인정보 처리방침\n\n'
+                        content: '펫페이스(PetSpace) 개인정보 처리방침\n\n'
                             '1. 수집하는 개인정보 항목\n'
                             '필수: 이메일 주소, 비밀번호, 닉네임\n'
                             '선택: 프로필 사진, 반려동물 정보(이름, 품종, 생년월일, 성별, 사진), 게시물 사진 및 내용\n\n'
@@ -256,7 +256,7 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                       builder: (context) => TermsDetailPage(
                         title: '마케팅 정보 수신 동의',
                         content: '마케팅 정보 수신 동의\n\n'
-                            '멍냥다이어리(PetSpace)에서 제공하는 다양한 혜택과 정보를 받아보실 수 있습니다.\n\n'
+                            '펫페이스(PetSpace)에서 제공하는 다양한 혜택과 정보를 받아보실 수 있습니다.\n\n'
                             '1. 수신 내용\n'
                             '① 이벤트 및 프로모션 안내\n'
                             '② 신규 기능 업데이트 소식\n'

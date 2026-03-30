@@ -185,7 +185,7 @@ class SettingsPage extends StatelessWidget {
             onTap: () {
               showAboutDialog(
                 context: context,
-                applicationName: '멍냥다이어리',
+                applicationName: '펫페이스',
                 applicationVersion: '1.0.0',
                 applicationLegalese: '© 2026 PetSpace',
               );
