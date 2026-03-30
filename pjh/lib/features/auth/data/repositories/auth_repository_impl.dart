@@ -131,7 +131,9 @@ class AuthRepositoryImpl implements AuthRepository {
           ),
         );
 
-        await supabaseClient.from('users').upsert(user.toMap(), onConflict: 'id');
+        await supabaseClient
+            .from('users')
+            .upsert(user.toMap(), onConflict: 'id');
       }
 
       return Right(user);
