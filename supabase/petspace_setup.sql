@@ -699,6 +699,7 @@ $$;
 
 -- 카카오 로그인 사용자 이메일 인증 처리
 -- 카카오 OAuth로 가입한 사용자의 이메일을 자동 인증 처리
+DROP FUNCTION IF EXISTS confirm_kakao_user_by_email(text);
 CREATE OR REPLACE FUNCTION confirm_kakao_user_by_email(p_email TEXT)
 RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
@@ -739,6 +740,7 @@ END;
 $$;
 
 -- 인기 해시태그 조회 (게시물 수 기준)
+DROP FUNCTION IF EXISTS get_popular_hashtags(integer);
 CREATE OR REPLACE FUNCTION get_popular_hashtags(limit_count INTEGER DEFAULT 10)
 RETURNS TABLE (
     hashtag TEXT,
@@ -761,6 +763,7 @@ END;
 $$;
 
 -- 트렌딩 해시태그 조회 (최근 N일 기준)
+DROP FUNCTION IF EXISTS get_trending_hashtags(integer, integer);
 CREATE OR REPLACE FUNCTION get_trending_hashtags(
     limit_count INTEGER DEFAULT 10,
     days_ago INTEGER DEFAULT 7
