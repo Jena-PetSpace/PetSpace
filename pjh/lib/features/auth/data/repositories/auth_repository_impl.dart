@@ -83,33 +83,18 @@ class AuthRepositoryImpl implements AuthRepository {
         return const Left(AuthFailure(message: '구글 로그인에 실패했습니다.'));
       }
 
-      // id 또는 email로 기존 사용자 조회 (이메일 가입 후 구글 로그인 시 email 충돌 방지)
+      // handle_new_user 트리거가 프로필을 생성할 시간 대기
+      await Future.delayed(const Duration(milliseconds: 500));
+
       var userResponse = await supabaseClient
           .from('users')
           .select()
           .eq('id', supabaseUser.id)
           .maybeSingle();
 
-      userResponse ??= await supabaseClient
-          .from('users')
-          .select()
-          .eq('email', supabaseUser.email!)
-          .maybeSingle();
-
       UserModel user;
       if (userResponse != null) {
         user = UserModel.fromJson(userResponse);
-        // id가 다르면 기존 프로필을 새 auth id로 업데이트
-        if (user.uid != supabaseUser.id) {
-          await supabaseClient.from('users').update({
-            'id': supabaseUser.id,
-            'provider': 'google',
-            'photo_url': supabaseUser.userMetadata?['photo_url'] ??
-                supabaseUser.userMetadata?['avatar_url'] ??
-                user.photoURL,
-          }).eq('email', supabaseUser.email!);
-          user = user.copyWith(uid: supabaseUser.id);
-        }
       } else {
         user = UserModel(
           uid: supabaseUser.id,
@@ -279,7 +264,7 @@ class AuthRepositoryImpl implements AuthRepository {
         debugLog += '3.RPC-confirm→';
         try {
           await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
-            'user_email': kakaoEmail,
+            'p_email': kakaoEmail,
           });
           debugLog += 'RPC성공→';
         } catch (e) {
@@ -289,7 +274,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
         // Step 4: RPC 후 로그인 재시도
         debugLog += '재로그인→';
-        await Future.delayed(const Duration(milliseconds: 800));
+        await Future.delayed(const Duration(milliseconds: 1000));
         try {
           final retryResult = await supabaseClient.auth.signInWithPassword(
             email: kakaoEmail,
@@ -307,7 +292,7 @@ class AuthRepositoryImpl implements AuthRepository {
         // 이미 로그인 성공한 경우에도 RPC 실행 (email_confirmed_at 보장)
         try {
           await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
-            'user_email': kakaoEmail,
+            'p_email': kakaoEmail,
           });
         } catch (e) {
           log('⚠️ [Kakao Login] confirm RPC 실패: $e', name: 'AuthRepository');
