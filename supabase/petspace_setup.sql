@@ -1,6 +1,6 @@
 -- ================================================================
--- PetSpace 전체 데이터베이스 설정 (통합 SQL)
--- 최종 수정: 2026-03-18
+-- PetSpace 전체 데이터베이스 설정 (통�� SQL)
+-- 최종 수정: 2026-03-30
 -- 포함: 테이블 17개, 인덱스, RLS, 트리거, 함수, 스토리지,
 --       Realtime, 채팅, Soft Delete, search_path 보안 수정
 -- ================================================================
@@ -697,6 +697,95 @@ BEGIN
 END;
 $$;
 
+-- 카카오 로그인 사용자 이메일 인증 처리
+-- 카카오 OAuth로 가입한 사용자의 이메일을 자동 인증 처리
+CREATE OR REPLACE FUNCTION confirm_kakao_user_by_email(p_email TEXT)
+RETURNS JSON LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_user_id UUID;
+    v_result JSON;
+BEGIN
+    -- auth.users에서 해당 이메일의 사용자 찾기
+    SELECT id INTO v_user_id
+    FROM auth.users
+    WHERE email = p_email
+    LIMIT 1;
+
+    IF v_user_id IS NULL THEN
+        RETURN json_build_object('success', false, 'message', 'User not found');
+    END IF;
+
+    -- 이메일 인증 처리 (email_confirmed_at 설정)
+    UPDATE auth.users
+    SET email_confirmed_at = NOW(),
+        updated_at = NOW()
+    WHERE id = v_user_id
+    AND email_confirmed_at IS NULL;
+
+    -- public.users에서도 provider 업데이트
+    UPDATE public.users
+    SET provider = 'kakao',
+        updated_at = NOW()
+    WHERE id = v_user_id;
+
+    RETURN json_build_object(
+        'success', true,
+        'user_id', v_user_id,
+        'message', 'Kakao user confirmed'
+    );
+END;
+$$;
+
+-- 인기 해시태그 조회 (게시물 수 기준)
+CREATE OR REPLACE FUNCTION get_popular_hashtags(limit_count INTEGER DEFAULT 10)
+RETURNS TABLE (
+    hashtag TEXT,
+    post_count BIGINT
+) LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        unnest(p.hashtags) AS hashtag,
+        COUNT(*) AS post_count
+    FROM posts p
+    WHERE p.deleted_at IS NULL
+    AND p.hashtags IS NOT NULL
+    GROUP BY unnest(p.hashtags)
+    ORDER BY post_count DESC
+    LIMIT limit_count;
+END;
+$$;
+
+-- 트렌딩 해시태그 조회 (최근 N일 기준)
+CREATE OR REPLACE FUNCTION get_trending_hashtags(
+    limit_count INTEGER DEFAULT 10,
+    days_ago INTEGER DEFAULT 7
+)
+RETURNS TABLE (
+    hashtag TEXT,
+    post_count BIGINT
+) LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        unnest(p.hashtags) AS hashtag,
+        COUNT(*) AS post_count
+    FROM posts p
+    WHERE p.deleted_at IS NULL
+    AND p.hashtags IS NOT NULL
+    AND p.created_at >= NOW() - (days_ago || ' days')::INTERVAL
+    GROUP BY unnest(p.hashtags)
+    ORDER BY post_count DESC
+    LIMIT limit_count;
+END;
+$$;
+
 -- 게시물 soft delete 헬퍼
 CREATE OR REPLACE FUNCTION soft_delete_post(post_uuid UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER
@@ -828,6 +917,11 @@ DROP POLICY IF EXISTS "Users can insert own profile" ON users;
 CREATE POLICY "Users can insert own profile" ON users
     FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
 
+-- [RLS 보강] Users DELETE: 본인 계정만 삭제 가능
+DROP POLICY IF EXISTS "Users can delete own profile" ON users;
+CREATE POLICY "Users can delete own profile" ON users
+    FOR DELETE USING (auth.uid() = id);
+
 -- Pets
 DROP POLICY IF EXISTS "Users can view own pets" ON pets;
 CREATE POLICY "Users can view own pets" ON pets
@@ -918,6 +1012,11 @@ CREATE POLICY "Users can view own notifications" ON notifications
 DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
 CREATE POLICY "Users can update own notifications" ON notifications
     FOR UPDATE USING (auth.uid() = user_id);
+
+-- [RLS 보강] Notifications DELETE: 본인 알림만 삭제 ��능
+DROP POLICY IF EXISTS "Users can delete own notifications" ON notifications;
+CREATE POLICY "Users can delete own notifications" ON notifications
+    FOR DELETE USING (auth.uid() = user_id);
 
 -- User Devices
 DROP POLICY IF EXISTS "Users can manage own devices" ON user_devices;
@@ -1265,15 +1364,18 @@ DO $$
 BEGIN
     RAISE NOTICE '';
     RAISE NOTICE '================================================';
-    RAISE NOTICE '  PetSpace 데이터베이스 설정 완료!';
+    RAISE NOTICE '  PetSpace 데이터베이스 ��정 완료!';
     RAISE NOTICE '================================================';
     RAISE NOTICE '';
-    RAISE NOTICE '테이블 17개, 인덱스, RLS, 트리거, 함수, 스토리지, Realtime 설정 완료';
+    RAISE NOTICE '테이블 17개, 인덱스, RLS, 트리거, 함수, 스토리지, Realtime ���정 완료';
     RAISE NOTICE '  1-14: users, pets, posts, emotion_history, comments, follows,';
     RAISE NOTICE '        likes, notifications, user_devices, comment_likes,';
     RAISE NOTICE '        reports, user_blocks, health_records, saved_posts';
     RAISE NOTICE '  15-17: chat_rooms, chat_participants, chat_messages';
     RAISE NOTICE '  + soft delete (posts, comments)';
-    RAISE NOTICE '  + search_path 보안 수정 (모든 함수)';
+    RAISE NOTICE '  + search_path 보안 수�� (모든 함수)';
+    RAISE NOTICE '  + confirm_kakao_user_by_email RPC (카카오 로그인)';
+    RAISE NOTICE '  + get_popular_hashtags / get_trending_hashtags RPC';
+    RAISE NOTICE '  + RLS 보강: users DELETE, notifications DELETE';
     RAISE NOTICE '================================================';
 END $$;
