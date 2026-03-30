@@ -478,7 +478,10 @@ BEGIN
             COALESCE(NEW.raw_user_meta_data->>'provider', 'email'),
             FALSE
         )
-        ON CONFLICT (id) DO NOTHING;
+        ON CONFLICT (id) DO UPDATE SET
+            provider = COALESCE(NEW.raw_user_meta_data->>'provider', users.provider),
+            photo_url = COALESCE(NEW.raw_user_meta_data->>'photo_url', users.photo_url),
+            updated_at = NOW();
     EXCEPTION WHEN OTHERS THEN
         RAISE LOG 'handle_new_user error for %: %', NEW.email, SQLERRM;
     END;

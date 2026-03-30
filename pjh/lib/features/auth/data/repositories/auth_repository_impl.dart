@@ -83,15 +83,33 @@ class AuthRepositoryImpl implements AuthRepository {
         return const Left(AuthFailure(message: '구글 로그인에 실패했습니다.'));
       }
 
-      final userResponse = await supabaseClient
+      // id 또는 email로 기존 사용자 조회 (이메일 가입 후 구글 로그인 시 email 충돌 방지)
+      var userResponse = await supabaseClient
           .from('users')
           .select()
           .eq('id', supabaseUser.id)
           .maybeSingle();
 
+      userResponse ??= await supabaseClient
+          .from('users')
+          .select()
+          .eq('email', supabaseUser.email!)
+          .maybeSingle();
+
       UserModel user;
       if (userResponse != null) {
         user = UserModel.fromJson(userResponse);
+        // id가 다르면 기존 프로필을 새 auth id로 업데이트
+        if (user.uid != supabaseUser.id) {
+          await supabaseClient.from('users').update({
+            'id': supabaseUser.id,
+            'provider': 'google',
+            'photo_url': supabaseUser.userMetadata?['photo_url'] ??
+                supabaseUser.userMetadata?['avatar_url'] ??
+                user.photoURL,
+          }).eq('email', supabaseUser.email!);
+          user = user.copyWith(uid: supabaseUser.id);
+        }
       } else {
         user = UserModel(
           uid: supabaseUser.id,
@@ -113,7 +131,7 @@ class AuthRepositoryImpl implements AuthRepository {
           ),
         );
 
-        await supabaseClient.from('users').insert(user.toMap());
+        await supabaseClient.from('users').upsert(user.toMap(), onConflict: 'id');
       }
 
       return Right(user);
@@ -316,7 +334,7 @@ class AuthRepositoryImpl implements AuthRepository {
         // 트리거가 프로필을 생성하지 않은 경우 직접 생성
         log('🔵 [Kakao Login] 프로필 직접 생성 시도', name: 'AuthRepository');
         try {
-          await supabaseClient.from('users').insert({
+          await supabaseClient.from('users').upsert({
             'id': supabaseUser.id,
             'email': kakaoEmail,
             'display_name':
@@ -324,7 +342,7 @@ class AuthRepositoryImpl implements AuthRepository {
             'photo_url': kakaoUser.kakaoAccount?.profile?.profileImageUrl,
             'provider': 'kakao',
             'is_onboarding_completed': false,
-          });
+          }, onConflict: 'id');
 
           final newUserResponse = await supabaseClient
               .from('users')
