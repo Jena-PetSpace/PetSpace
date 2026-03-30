@@ -6,6 +6,8 @@ import '../../domain/usecases/create_comment.dart';
 import '../../domain/usecases/delete_comment.dart';
 import '../../domain/usecases/update_comment.dart';
 import '../../domain/entities/comment.dart';
+import '../../domain/repositories/social_repository.dart';
+import '../../../../config/injection_container.dart';
 import 'comment_event.dart';
 import 'comment_state.dart';
 import '../../../../core/services/push_notification_service.dart';
@@ -42,6 +44,7 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     on<CreateCommentRequested>(_onCreateCommentRequested);
     on<DeleteCommentRequested>(_onDeleteCommentRequested);
     on<UpdateCommentRequested>(_onUpdateCommentRequested);
+    on<LikeCommentRequested>(_onLikeCommentRequested);
   }
 
   Future<void> _onLoadComments(
@@ -229,6 +232,45 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
           return comment.id == event.commentId ? newComment : comment;
         }).toList();
         emit(currentState.copyWith(comments: updatedComments));
+      },
+    );
+  }
+
+  Future<void> _onLikeCommentRequested(
+    LikeCommentRequested event,
+    Emitter<CommentState> emit,
+  ) async {
+    if (state is! CommentLoaded) return;
+
+    final currentState = state as CommentLoaded;
+    final repo = sl<SocialRepository>();
+
+    // Optimistic UI update
+    final updatedComments = currentState.comments.map((comment) {
+      if (comment.id == event.commentId) {
+        return comment.copyWith(
+          isLikedByCurrentUser: !event.isCurrentlyLiked,
+          likesCount: event.isCurrentlyLiked
+              ? (comment.likesCount - 1).clamp(0, 999999)
+              : comment.likesCount + 1,
+        );
+      }
+      return comment;
+    }).toList();
+    emit(currentState.copyWith(comments: updatedComments));
+
+    // Call API
+    final result = event.isCurrentlyLiked
+        ? await repo.unlikeComment(event.commentId, _currentUserId)
+        : await repo.likeComment(event.commentId, _currentUserId);
+
+    result.fold(
+      (failure) {
+        // Revert on failure
+        emit(currentState);
+      },
+      (_) {
+        // Success - optimistic update already applied
       },
     );
   }

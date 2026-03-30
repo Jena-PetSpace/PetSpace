@@ -39,6 +39,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthSignInWithEmailRequested>(_onSignInWithEmailRequested);
     on<AuthSignUpWithEmailRequested>(_onSignUpWithEmailRequested);
     on<AuthSignOutRequested>(_onSignOutRequested);
+    on<AuthDeleteAccountRequested>(_onDeleteAccountRequested);
     on<AuthOnboardingCompleted>(_onOnboardingCompleted);
   }
 
@@ -146,6 +147,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await _signOut();
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (_) => emit(AuthUnauthenticated()),
+    );
+  }
+
+  Future<void> _onDeleteAccountRequested(
+    AuthDeleteAccountRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await _authRepository.deleteAccount();
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (_) => emit(AuthUnauthenticated()),

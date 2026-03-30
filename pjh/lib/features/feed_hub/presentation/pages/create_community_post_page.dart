@@ -55,15 +55,12 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      await Supabase.instance.client.from('community_posts').insert({
+      await Supabase.instance.client.from('posts').insert({
         'author_id': authState.user.uid,
-        'category': _selectedCategory,
-        'title': title,
-        'content': content,
+        'caption': '$title\n\n$content',
+        'hashtags': ['community', _selectedCategory],
         'likes_count': 0,
         'comments_count': 0,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
       });
 
       if (!mounted) return;

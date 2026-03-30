@@ -245,6 +245,9 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                   child: Column(
                     children: [
+                      // 0. 감정 요약 메시지
+                      _buildEmotionSummaryCard(dominant, emotionColor),
+                      SizedBox(height: 14.h),
                       // 1. HeroCard
                       _buildHeroCard(dominant, dominantName, dominantIcon,
                           dominantValue, emotionColor),
@@ -311,6 +314,51 @@ class _EmotionResultPageState extends State<EmotionResultPage>
           onPressed: _shareResult,
         ),
       ],
+    );
+  }
+
+  // ── 0. 감정 요약 메시지 카드 ──
+  Widget _buildEmotionSummaryCard(String dominant, Color emotionColor) {
+    final summaryMap = {
+      'happiness': '오늘 반려동물이 매우 행복해 보여요! \u{1F60A}',
+      'sadness': '조금 우울해 보이네요. 많이 안아주세요 \u{1F499}',
+      'anxiety': '불안한 모습이 보여요. 편안한 환경을 만들어주세요 \u{1F917}',
+      'sleepiness': '졸린 모습이네요. 편히 쉴 수 있게 해주세요 \u{1F634}',
+      'curiosity': '호기심이 가득해 보여요! 새로운 놀이를 해보세요 \u{2728}',
+    };
+
+    final summary = summaryMap[dominant] ?? '감정 분석이 완료되었습니다.';
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16.r),
+          gradient: LinearGradient(
+            colors: [
+              emotionColor.withOpacity(0.15),
+              emotionColor.withOpacity(0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Text(
+          summary,
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.primaryTextColor,
+            height: 1.4,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 

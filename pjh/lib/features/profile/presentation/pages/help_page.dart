@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HelpPage extends StatelessWidget {
   const HelpPage({super.key});
@@ -39,10 +40,17 @@ class HelpPage extends StatelessWidget {
             subtitle:
                 Text('support@petspace.app', style: TextStyle(fontSize: 12.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('이메일 앱을 열 수 없습니다')),
-              );
+            onTap: () async {
+              final uri = Uri.parse('mailto:support@petspace.app');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('이메일 앱을 열 수 없습니다')),
+                  );
+                }
+              }
             },
           ),
           const Divider(),

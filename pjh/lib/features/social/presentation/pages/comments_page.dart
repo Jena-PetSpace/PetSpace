@@ -299,9 +299,12 @@ class _CommentsPageState extends State<CommentsPage> {
   }
 
   void _likeComment(Comment comment) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('댓글 좋아요 기능이 곧 추가됩니다!')),
-    );
+    context.read<CommentBloc>().add(
+          LikeCommentRequested(
+            commentId: comment.id,
+            isCurrentlyLiked: comment.isLikedByCurrentUser,
+          ),
+        );
   }
 
   void _deleteComment(Comment comment) {

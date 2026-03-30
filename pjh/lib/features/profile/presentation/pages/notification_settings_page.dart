@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
@@ -17,6 +18,28 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   bool _chatNotification = true;
 
   @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _pushEnabled = prefs.getBool('notification_push_enabled') ?? true;
+      _likeNotification = prefs.getBool('notification_like') ?? true;
+      _commentNotification = prefs.getBool('notification_comment') ?? true;
+      _followNotification = prefs.getBool('notification_follow') ?? true;
+      _chatNotification = prefs.getBool('notification_chat') ?? true;
+    });
+  }
+
+  Future<void> _saveSetting(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -31,6 +54,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
             value: _pushEnabled,
             onChanged: (value) {
               setState(() => _pushEnabled = value);
+              _saveSetting('notification_push_enabled', value);
             },
           ),
           const Divider(),
@@ -51,7 +75,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 Text('내 게시물에 좋아요가 달리면 알림', style: TextStyle(fontSize: 12.sp)),
             value: _likeNotification && _pushEnabled,
             onChanged: _pushEnabled
-                ? (value) => setState(() => _likeNotification = value)
+                ? (value) {
+                    setState(() => _likeNotification = value);
+                    _saveSetting('notification_like', value);
+                  }
                 : null,
           ),
           SwitchListTile(
@@ -60,7 +87,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 Text('내 게시물에 댓글이 달리면 알림', style: TextStyle(fontSize: 12.sp)),
             value: _commentNotification && _pushEnabled,
             onChanged: _pushEnabled
-                ? (value) => setState(() => _commentNotification = value)
+                ? (value) {
+                    setState(() => _commentNotification = value);
+                    _saveSetting('notification_comment', value);
+                  }
                 : null,
           ),
           SwitchListTile(
@@ -69,7 +99,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 Text('누군가 나를 팔로우하면 알림', style: TextStyle(fontSize: 12.sp)),
             value: _followNotification && _pushEnabled,
             onChanged: _pushEnabled
-                ? (value) => setState(() => _followNotification = value)
+                ? (value) {
+                    setState(() => _followNotification = value);
+                    _saveSetting('notification_follow', value);
+                  }
                 : null,
           ),
           SwitchListTile(
@@ -78,7 +111,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                 Text('새 채팅 메시지가 오면 알림', style: TextStyle(fontSize: 12.sp)),
             value: _chatNotification && _pushEnabled,
             onChanged: _pushEnabled
-                ? (value) => setState(() => _chatNotification = value)
+                ? (value) {
+                    setState(() => _chatNotification = value);
+                    _saveSetting('notification_chat', value);
+                  }
                 : null,
           ),
         ],

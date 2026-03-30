@@ -63,3 +63,16 @@ class UpdateCommentRequested extends CommentEvent {
   @override
   List<Object?> get props => [commentId, content];
 }
+
+class LikeCommentRequested extends CommentEvent {
+  final String commentId;
+  final bool isCurrentlyLiked;
+
+  const LikeCommentRequested({
+    required this.commentId,
+    required this.isCurrentlyLiked,
+  });
+
+  @override
+  List<Object?> get props => [commentId, isCurrentlyLiked];
+}
