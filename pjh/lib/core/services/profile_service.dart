@@ -50,7 +50,8 @@ class ProfileService {
 
       if (displayName != null) updateData['display_name'] = displayName;
       if (bio != null) updateData['bio'] = bio;
-      if (photoUrl != null) updateData['photo_url'] = photoUrl.isEmpty ? null : photoUrl;
+      if (photoUrl != null)
+        updateData['photo_url'] = photoUrl.isEmpty ? null : photoUrl;
 
       await _supabase.from('users').update(updateData).eq('id', userId);
 
