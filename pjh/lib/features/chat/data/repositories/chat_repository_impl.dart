@@ -208,4 +208,49 @@ class ChatRepositoryImpl implements ChatRepository {
       return Left(ServerFailure(message: '멤버 추가에 실패했습니다: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> updateChatRoomName({
+    required String roomId,
+    required String name,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
+    }
+    try {
+      await remoteDataSource.updateChatRoomName(roomId: roomId, name: name);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '채팅방 이름 변경에 실패했습니다: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateChatRoomPhoto({
+    required String roomId,
+    required String photoUrl,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
+    }
+    try {
+      await remoteDataSource.updateChatRoomPhoto(roomId: roomId, photoUrl: photoUrl);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '채팅방 사진 변경에 실패했습니다: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ChatParticipant>>> getRoomParticipants(String roomId) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
+    }
+    try {
+      final result = await remoteDataSource.getRoomParticipants(roomId);
+      return Right(result.map((m) => m.toEntity()).toList());
+    } catch (e) {
+      return Left(ServerFailure(message: '참여자 목록을 불러오지 못했습니다: $e'));
+    }
+  }
 }

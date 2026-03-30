@@ -152,6 +152,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           style: TextStyle(fontSize: 16.sp),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push(
+              '/chat/${widget.roomId}/settings?name=${Uri.encodeComponent(widget.roomName ?? '')}',
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [

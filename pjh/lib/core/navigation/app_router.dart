@@ -50,6 +50,7 @@ import '../../features/pets/presentation/bloc/pet_event.dart';
 import '../../features/chat/presentation/pages/chat_rooms_page.dart';
 import '../../features/chat/presentation/pages/chat_detail_page.dart';
 import '../../features/chat/presentation/pages/create_chat_page.dart';
+import '../../features/chat/presentation/pages/chat_room_settings_page.dart';
 import '../../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
 import '../../main_navigation.dart';
@@ -332,6 +333,14 @@ class AppRouter {
                   ),
                 );
               },
+            ),
+            GoRoute(
+              path: '/chat/:roomId/settings',
+              name: 'chat-settings',
+              builder: (context, state) => ChatRoomSettingsPage(
+                roomId: state.pathParameters['roomId']!,
+                roomName: state.uri.queryParameters['name'],
+              ),
             ),
             GoRoute(
               path: '/emotion',

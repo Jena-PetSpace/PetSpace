@@ -66,4 +66,19 @@ abstract class ChatRepository {
     required String roomId,
     required List<String> memberIds,
   });
+
+  /// 채팅방 이름 변경
+  Future<Either<Failure, void>> updateChatRoomName({
+    required String roomId,
+    required String name,
+  });
+
+  /// 채팅방 사진 변경
+  Future<Either<Failure, void>> updateChatRoomPhoto({
+    required String roomId,
+    required String photoUrl,
+  });
+
+  /// 채팅방 참여자 목록 조회
+  Future<Either<Failure, List<ChatParticipant>>> getRoomParticipants(String roomId);
 }

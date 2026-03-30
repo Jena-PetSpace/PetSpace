@@ -38,6 +38,9 @@ abstract class ChatRemoteDataSource {
     required String roomId,
     required List<String> memberIds,
   });
+  Future<void> updateChatRoomName({required String roomId, required String name});
+  Future<void> updateChatRoomPhoto({required String roomId, required String photoUrl});
+  Future<List<ChatParticipantModel>> getRoomParticipants(String roomId);
 }
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
@@ -363,5 +366,31 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         .map((id) => {'room_id': roomId, 'user_id': id, 'role': 'member'})
         .toList();
     await supabaseClient.from('chat_participants').upsert(participants);
+  }
+
+  @override
+  Future<void> updateChatRoomName({required String roomId, required String name}) async {
+    await supabaseClient.from('chat_rooms').update({'name': name}).eq('id', roomId);
+  }
+
+  @override
+  Future<void> updateChatRoomPhoto({required String roomId, required String photoUrl}) async {
+    await supabaseClient.from('chat_rooms').update({'avatar_url': photoUrl}).eq('id', roomId);
+  }
+
+  @override
+  Future<List<ChatParticipantModel>> getRoomParticipants(String roomId) async {
+    final response = await supabaseClient
+        .from('chat_participants')
+        .select('''
+          *,
+          users(id, display_name, photo_url)
+        ''')
+        .eq('room_id', roomId)
+        .eq('is_active', true);
+
+    return (response as List)
+        .map((json) => ChatParticipantModel.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 }
