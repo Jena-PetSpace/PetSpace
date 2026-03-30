@@ -61,8 +61,12 @@ void main() async {
 
   // Kakao SDK 초기화
   if (ApiConfig.isKakaoLoginConfigured) {
-    kakao.KakaoSdk.init(nativeAppKey: ApiConfig.kakaoAppKey);
-    log('✅ Kakao SDK 초기화 완료', name: 'main.kakao');
+    try {
+      kakao.KakaoSdk.init(nativeAppKey: ApiConfig.kakaoAppKey);
+      log('✅ Kakao SDK 초기화 완료', name: 'main.kakao');
+    } catch (e) {
+      log('⚠️ Kakao SDK init failed: $e', name: 'main.kakao');
+    }
   } else {
     log('⚠️ Kakao 로그인을 사용하려면 API 키를 설정해주세요.', name: 'main.kakao');
   }

@@ -395,14 +395,13 @@ class AuthRepositoryImpl implements AuthRepository {
         return const Left(AuthFailure(message: '로그인에 실패했습니다.'));
       }
 
-      // TODO: SMTP 설정 후 이메일 인증 체크 다시 활성화
-      // 이메일 인증 여부 확인 (임시 비활성화 - SendGrid 만료)
-      // if (supabaseUser.emailConfirmedAt == null) {
-      //   await supabaseClient.auth.signOut();
-      //   return const Left(AuthFailure(
-      //     message: '이메일 인증이 필요합니다.\n가입 시 받은 인증 코드를 입력해주세요.',
-      //   ));
-      // }
+      // 이메일 인증 여부 확인
+      if (supabaseUser.emailConfirmedAt == null) {
+        await supabaseClient.auth.signOut();
+        return const Left(AuthFailure(
+          message: '이메일 인증이 필요합니다.\n가입 시 받은 인증 코드를 입력해주세요.',
+        ));
+      }
 
       final userResponse = await supabaseClient
           .from('users')
@@ -412,8 +411,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
       if (userResponse != null) {
         final user = UserModel.fromJson(userResponse);
-        // 임시: 이메일 인증 완료로 처리
-        return Right(user.copyWith(emailConfirmedAt: DateTime.now()));
+        return Right(user.copyWith(
+          emailConfirmedAt: supabaseUser.emailConfirmedAt != null
+              ? DateTime.parse(supabaseUser.emailConfirmedAt!)
+              : null,
+        ));
       } else {
         return const Left(AuthFailure(message: '사용자 정보를 찾을 수 없습니다.'));
       }
@@ -478,53 +480,13 @@ class AuthRepositoryImpl implements AuthRepository {
           privacyLevel: user_entity.PrivacyLevel.public,
           showEmotionAnalysisToPublic: true,
         ),
-        // TODO: SMTP 설정 후 이메일 인증 다시 활성화
-        // 임시: 이메일 인증 완료로 처리 (SendGrid 만료)
-        emailConfirmedAt: DateTime.now(),
+        emailConfirmedAt: null,
       );
 
       log('✅ [SignUp] 완료: 사용자 모델 반환 (Email: $email)', name: 'AuthRepository');
       return Right(user);
     } on AuthException catch (e) {
       log('❌ [SignUp] 실패: ${e.message}', name: 'AuthRepository');
-
-      // TODO: SMTP 설정 후 다시 활성화
-      // 이메일 전송 실패는 무시하고 진행 (SendGrid 만료)
-      if (e.message
-              .toLowerCase()
-              .contains('error sending confirmation email') ||
-          e.message.toLowerCase().contains('unexpected_failure')) {
-        log('⚠️ [SignUp] 이메일 전송 실패 무시 (SMTP 미설정)', name: 'AuthRepository');
-        // 사용자 생성은 완료되었을 수 있으므로 로그인 시도
-        try {
-          final loginResult = await supabaseClient.auth.signInWithPassword(
-            email: email,
-            password: password,
-          );
-          if (loginResult.user != null) {
-            final user = UserModel(
-              uid: loginResult.user!.id,
-              email: email,
-              displayName: displayName ?? '사용자',
-              photoURL: null,
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-              pets: const [],
-              following: const [],
-              followers: const [],
-              settings: const UserSettingsModel(
-                notificationsEnabled: true,
-                privacyLevel: user_entity.PrivacyLevel.public,
-                showEmotionAnalysisToPublic: true,
-              ),
-              emailConfirmedAt: DateTime.now(),
-            );
-            return Right(user);
-          }
-        } catch (retryError) {
-          log('⚠️ [SignUp] 재시도 로그인 실패: $retryError', name: 'AuthRepository');
-        }
-      }
 
       // Rate limit 에러 체크
       if (e.message.toLowerCase().contains('rate limit') ||
@@ -574,6 +536,9 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final user = supabaseClient.auth.currentUser;
       if (user != null) {
+        // Storage 파일 정리 (각 폴더별 try-catch로 하나가 실패해도 나머지 진행)
+        await _cleanupUserStorageFiles(user.id);
+
         await supabaseClient.from('users').delete().eq('id', user.id);
         await supabaseClient.auth.admin.deleteUser(user.id);
       }
@@ -583,6 +548,53 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       return Left(
           GeneralFailure(message: '계정 삭제 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  /// 사용자의 모든 Storage 파일을 정리합니다.
+  /// 각 폴더를 개별 try-catch로 감싸서 하나의 실패가 나머지를 차단하지 않도록 합니다.
+  Future<void> _cleanupUserStorageFiles(String userId) async {
+    final storage = supabaseClient.storage.from('images');
+    final folders = [
+      'profiles/$userId',
+      'pets/$userId',
+      'posts/$userId',
+      'emotion_analysis/$userId',
+      'chat/$userId',
+    ];
+
+    for (final folder in folders) {
+      try {
+        await _deleteStorageFolder(storage, folder);
+        log('✅ [DeleteAccount] Storage 정리 완료: $folder',
+            name: 'AuthRepository');
+      } catch (e) {
+        log('⚠️ [DeleteAccount] Storage 정리 실패 ($folder): $e',
+            name: 'AuthRepository');
+      }
+    }
+  }
+
+  /// 주어진 폴더 내의 모든 파일을 재귀적으로 삭제합니다.
+  /// 하위 폴더가 있는 경우 (pets/{userId}/{petId}/ 등) 재귀 탐색합니다.
+  Future<void> _deleteStorageFolder(
+      StorageFileApi storage, String folderPath) async {
+    final items = await storage.list(path: folderPath);
+
+    // 파일 삭제 (id가 null이 아닌 항목이 파일)
+    final filePaths = items
+        .where((item) => item.id != null)
+        .map((item) => '$folderPath/${item.name}')
+        .toList();
+
+    if (filePaths.isNotEmpty) {
+      await storage.remove(filePaths);
+    }
+
+    // 하위 폴더 재귀 탐색 (id가 null인 항목이 폴더)
+    final subFolders = items.where((item) => item.id == null).toList();
+    for (final subFolder in subFolders) {
+      await _deleteStorageFolder(storage, '$folderPath/${subFolder.name}');
     }
   }
 
