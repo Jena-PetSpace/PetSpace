@@ -9,6 +9,7 @@ import 'package:dartz/dartz.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart' as kakao;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../config/secrets.dart';
 import '../../../../core/error/failures.dart';
@@ -553,6 +554,10 @@ class AuthRepositoryImpl implements AuthRepository {
         // RPC로 auth.users + public.users 모두 삭제
         await supabaseClient.rpc('delete_user_account');
         await supabaseClient.auth.signOut();
+
+        // 로컬 저장소 초기화 (가이드 표시 기록 등)
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear();
       }
       return const Right(null);
     } on AuthException catch (e) {
