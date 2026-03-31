@@ -268,10 +268,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           .maybeSingle();
       final currentName = roomResponse?['name'] as String?;
       if (currentName != null && currentName.contains(myName)) {
-        final updatedName = currentName
-            .split(', ')
-            .where((n) => n.trim() != myName)
-            .join(', ');
+        final updatedName =
+            currentName.split(', ').where((n) => n.trim() != myName).join(', ');
         if (updatedName.isNotEmpty) {
           await _supabase
               .from('chat_rooms')
