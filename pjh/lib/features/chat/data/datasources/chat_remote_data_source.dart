@@ -58,13 +58,17 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   @override
   Future<List<ChatRoomModel>> getChatRooms(String userId) async {
     // 사용자가 참여 중인 채팅방 조회 (참여자 + 유저 정보 JOIN)
-    final response = await supabaseClient.from('chat_rooms').select('''
+    final response = await supabaseClient
+        .from('chat_rooms')
+        .select('''
           *,
           chat_participants!inner(
             *,
             users(id, display_name, photo_url)
           )
-        ''').eq('chat_participants.is_active', true).order('last_message_at', ascending: false, nullsFirst: false);
+        ''')
+        .eq('chat_participants.is_active', true)
+        .order('last_message_at', ascending: false, nullsFirst: false);
 
     final roomDataList = (response as List).cast<Map<String, dynamic>>();
 
