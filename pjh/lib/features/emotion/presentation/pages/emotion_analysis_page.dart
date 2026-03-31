@@ -80,6 +80,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
 
   // 인라인 팁 카드 표시 여부 (방안 B)
   bool _showInlineTip = false;
+  // 전체 화면 가이드 표시 여부 (방안 A)
+  bool _showFullGuide = false;
 
   @override
   void initState() {
@@ -100,152 +102,234 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       setState(() => _showInlineTip = true);
     }
 
-    // 방안 A: 최초 방문 시 BottomSheet
+    // 방안 A: 최초 방문 시 전체 화면 가이드
     final hasSeenTip = prefs.getBool('has_seen_emotion_tip') ?? false;
     if (!hasSeenTip && mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showTipBottomSheet();
-      });
+      setState(() => _showFullGuide = true);
     }
   }
 
-  void _showTipBottomSheet() {
-    bool dontShowAgain = false;
+  Future<void> _dismissFullGuide() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_seen_emotion_tip', true);
+    if (mounted) setState(() => _showFullGuide = false);
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (bottomSheetContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              margin: EdgeInsets.symmetric(horizontal: 16.w),
-              padding: EdgeInsets.fromLTRB(24.w, 28.h, 24.w, 24.h),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(24.r),
+  Widget _buildFullGuide() {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFF0F4FF), Color(0xFFFEFAF6)],
+        ),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 32.w),
+          child: Column(
+            children: [
+              SizedBox(height: 60.h),
+
+              // 아이콘
+              Container(
+                width: 120.w,
+                height: 120.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.primaryColor.withValues(alpha: 0.1),
+                      AppTheme.primaryColor.withValues(alpha: 0.05),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                    width: 2,
+                  ),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.pets,
+                      size: 40.w,
+                      color: AppTheme.primaryColor,
+                    ),
+                    Positioned(
+                      right: 20.w,
+                      top: 20.h,
+                      child: Container(
+                        padding: EdgeInsets.all(4.w),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Icon(
+                          Icons.psychology,
+                          size: 14.w,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // 핸들 바
-                  Container(
-                    width: 40.w,
-                    height: 4.h,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2.r),
-                    ),
-                  ),
-                  SizedBox(height: 20.h),
-                  Text(
-                    '\u{1F4F8} 좋은 분석을 위한 팁',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryTextColor,
-                    ),
-                  ),
-                  SizedBox(height: 20.h),
-                  _buildTipRow('\u2705', '얼굴이 선명하게 보이도록'),
-                  SizedBox(height: 12.h),
-                  _buildTipRow('\u2705', '밝은 곳에서 촬영'),
-                  SizedBox(height: 12.h),
-                  _buildTipRow('\u2705', '가까운 거리에서'),
-                  SizedBox(height: 12.h),
-                  _buildTipRow('\u2705', '깔끔한 배경'),
-                  SizedBox(height: 24.h),
-                  // 분석 시작하기 버튼
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48.h,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (dontShowAgain) {
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setBool('has_seen_emotion_tip', true);
-                        }
-                        if (bottomSheetContext.mounted) {
-                          Navigator.of(bottomSheetContext).pop();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        '분석 시작하기',
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  // 다시 보지 않기 체크박스
-                  GestureDetector(
-                    onTap: () {
-                      setModalState(() => dontShowAgain = !dontShowAgain);
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 20.w,
-                          height: 20.w,
-                          child: Checkbox(
-                            value: dontShowAgain,
-                            onChanged: (value) {
-                              setModalState(
-                                  () => dontShowAgain = value ?? false);
-                            },
-                            activeColor: AppTheme.primaryColor,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          '다시 보지 않기',
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color: AppTheme.secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                ],
+
+              SizedBox(height: 32.h),
+
+              // 제목
+              Text(
+                'AI 감정 분석',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTextColor,
+                ),
               ),
-            );
-          },
-        );
-      },
+              SizedBox(height: 8.h),
+              Text(
+                'AI가 반려동물의 표정과 행동을 분석하여\n감정 상태를 알려드립니다',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: AppTheme.secondaryTextColor,
+                  height: 1.5,
+                ),
+              ),
+
+              SizedBox(height: 40.h),
+
+              // 팁 카드
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(24.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '좋은 분석을 위한 팁',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                    SizedBox(height: 20.h),
+                    _buildGuideTipRow(
+                      Icons.face,
+                      Colors.blue,
+                      '얼굴이 선명하게',
+                      '반려동물의 얼굴이 잘 보이도록 촬영해주세요',
+                    ),
+                    SizedBox(height: 16.h),
+                    _buildGuideTipRow(
+                      Icons.wb_sunny,
+                      Colors.orange,
+                      '충분한 조명',
+                      '밝은 곳에서 촬영하면 더 정확해요',
+                    ),
+                    SizedBox(height: 16.h),
+                    _buildGuideTipRow(
+                      Icons.zoom_in,
+                      Colors.green,
+                      '가까운 거리에서',
+                      '너무 멀리서 찍지 마시고 가까이서 촬영해주세요',
+                    ),
+                    SizedBox(height: 16.h),
+                    _buildGuideTipRow(
+                      Icons.crop_free,
+                      Colors.red,
+                      '깔끔한 배경',
+                      '배경이 복잡하지 않은 곳에서 촬영해주세요',
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 40.h),
+
+              // 분석 시작하기 버튼
+              SizedBox(
+                width: double.infinity,
+                height: 52.h,
+                child: ElevatedButton(
+                  onPressed: _dismissFullGuide,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    '분석 시작하기',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 40.h),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildTipRow(String emoji, String text) {
+  Widget _buildGuideTipRow(
+      IconData icon, Color color, String title, String subtitle) {
     return Row(
       children: [
-        Text(emoji, style: TextStyle(fontSize: 16.sp)),
+        Container(
+          width: 40.w,
+          height: 40.w,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Icon(icon, color: color, size: 20.w),
+        ),
         SizedBox(width: 12.w),
         Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: AppTheme.primaryTextColor,
-              height: 1.4,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: AppTheme.secondaryTextColor,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -285,6 +369,13 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 첫 방문 시 전체 화면 가이드 표시
+    if (_showFullGuide) {
+      return Scaffold(
+        body: _buildFullGuide(),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
