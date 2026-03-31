@@ -818,7 +818,7 @@ class _OnboardingPetRegistrationPageState
           // 다음 페이지로 이동
           await Future.delayed(const Duration(milliseconds: 500));
           if (mounted) {
-            context.go('/onboarding/tutorial');
+            context.go('/onboarding/complete');
           }
         } else {
           // 일부 실패
@@ -850,6 +850,6 @@ class _OnboardingPetRegistrationPageState
   }
 
   void _skip() {
-    context.go('/onboarding/tutorial');
+    context.go('/onboarding/complete');
   }
 }

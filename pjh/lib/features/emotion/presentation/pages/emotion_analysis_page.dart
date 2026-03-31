@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/pet_selection_dropdown.dart';
@@ -77,6 +78,9 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   final List<String> _imagePaths = [];
   static const int _maxImages = 5;
 
+  // 인라인 팁 카드 표시 여부 (방안 B)
+  bool _showInlineTip = false;
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +88,174 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     if (authState is AuthAuthenticated) {
       context.read<PetBloc>().add(LoadUserPets());
     }
+    _checkAndShowTips();
+  }
+
+  Future<void> _checkAndShowTips() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // 방안 B: 인라인 팁 카드
+    final tipDismissed = prefs.getBool('emotion_tip_dismissed') ?? false;
+    if (!tipDismissed && mounted) {
+      setState(() => _showInlineTip = true);
+    }
+
+    // 방안 A: 최초 방문 시 BottomSheet
+    final hasSeenTip = prefs.getBool('has_seen_emotion_tip') ?? false;
+    if (!hasSeenTip && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showTipBottomSheet();
+      });
+    }
+  }
+
+  void _showTipBottomSheet() {
+    bool dontShowAgain = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              margin: EdgeInsets.symmetric(horizontal: 16.w),
+              padding: EdgeInsets.fromLTRB(24.w, 28.h, 24.w, 24.h),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(24.r),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 핸들 바
+                  Container(
+                    width: 40.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  Text(
+                    '\u{1F4F8} 좋은 분석을 위한 팁',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryTextColor,
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+                  _buildTipRow('\u2705', '얼굴이 선명하게 보이도록'),
+                  SizedBox(height: 12.h),
+                  _buildTipRow('\u2705', '밝은 곳에서 촬영'),
+                  SizedBox(height: 12.h),
+                  _buildTipRow('\u2705', '가까운 거리에서'),
+                  SizedBox(height: 12.h),
+                  _buildTipRow('\u2705', '깔끔한 배경'),
+                  SizedBox(height: 24.h),
+                  // 분석 시작하기 버튼
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48.h,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (dontShowAgain) {
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('has_seen_emotion_tip', true);
+                        }
+                        if (bottomSheetContext.mounted) {
+                          Navigator.of(bottomSheetContext).pop();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        '분석 시작하기',
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  // 다시 보지 않기 체크박스
+                  GestureDetector(
+                    onTap: () {
+                      setModalState(() => dontShowAgain = !dontShowAgain);
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20.w,
+                          height: 20.w,
+                          child: Checkbox(
+                            value: dontShowAgain,
+                            onChanged: (value) {
+                              setModalState(
+                                  () => dontShowAgain = value ?? false);
+                            },
+                            activeColor: AppTheme.primaryColor,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          '다시 보지 않기',
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTipRow(String emoji, String text) {
+    return Row(
+      children: [
+        Text(emoji, style: TextStyle(fontSize: 16.sp)),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: AppTheme.primaryTextColor,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _dismissInlineTip() async {
+    setState(() => _showInlineTip = false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('emotion_tip_dismissed', true);
   }
 
   @override
@@ -163,6 +335,59 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 방안 B: 인라인 팁 카드
+                    if (_showInlineTip)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 12.h),
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 14.w,
+                            vertical: 12.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(
+                              color:
+                                  AppTheme.primaryColor.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '\u{1F4A1}',
+                                style: TextStyle(fontSize: 14.sp),
+                              ),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: Text(
+                                  '얼굴이 선명하고 밝은 사진이\n더 정확한 분석 결과를 보여줘요',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: AppTheme.primaryColor,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: _dismissInlineTip,
+                                child: Padding(
+                                  padding: EdgeInsets.only(left: 4.w),
+                                  child: Icon(
+                                    Icons.close,
+                                    size: 16.w,
+                                    color: AppTheme.primaryColor
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
                     SizedBox(height: 8.h),
 
                     // 반려동물 선택
