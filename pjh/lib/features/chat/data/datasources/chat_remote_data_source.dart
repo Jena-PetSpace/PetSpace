@@ -43,6 +43,11 @@ abstract class ChatRemoteDataSource {
   Future<void> updateChatRoomPhoto(
       {required String roomId, required String photoUrl});
   Future<List<ChatParticipantModel>> getRoomParticipants(String roomId);
+  Future<ChatMessageModel> sendMultiImageMessage({
+    required String roomId,
+    required String senderId,
+    required List<File> imageFiles,
+  });
 }
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
@@ -384,6 +389,39 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     await supabaseClient
         .from('chat_rooms')
         .update({'avatar_url': photoUrl}).eq('id', roomId);
+  }
+
+  @override
+  Future<ChatMessageModel> sendMultiImageMessage({
+    required String roomId,
+    required String senderId,
+    required List<File> imageFiles,
+  }) async {
+    final List<String> uploadedUrls = [];
+
+    for (int i = 0; i < imageFiles.length; i++) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileExt = imageFiles[i].path.split('.').last;
+      final filePath = 'chat/$senderId/${timestamp}_$i.$fileExt';
+
+      await supabaseClient.storage.from('images').upload(filePath, imageFiles[i]);
+      final url = supabaseClient.storage.from('images').getPublicUrl(filePath);
+      uploadedUrls.add(url);
+    }
+
+    final response = await supabaseClient.from('chat_messages').insert({
+      'room_id': roomId,
+      'sender_id': senderId,
+      'content': '사진 ${uploadedUrls.length}장',
+      'type': 'image',
+      'image_url': uploadedUrls.first,
+      'image_urls': uploadedUrls,
+    }).select('''
+          *,
+          users:sender_id(id, display_name, photo_url)
+        ''').single();
+
+    return ChatMessageModel.fromJson(response);
   }
 
   @override

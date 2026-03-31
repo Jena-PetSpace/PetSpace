@@ -11,6 +11,7 @@ class ChatMessage extends Equatable {
   final String? content;
   final ChatMessageType type;
   final String? imageUrl;
+  final List<String>? imageUrls; // 여러 장 이미지 URL 배열
   final DateTime createdAt;
   final bool isDeleted;
 
@@ -23,6 +24,7 @@ class ChatMessage extends Equatable {
     this.content,
     this.type = ChatMessageType.text,
     this.imageUrl,
+    this.imageUrls,
     required this.createdAt,
     this.isDeleted = false,
   });
@@ -38,6 +40,7 @@ class ChatMessage extends Equatable {
     String? content,
     ChatMessageType? type,
     String? imageUrl,
+    List<String>? imageUrls,
     DateTime? createdAt,
     bool? isDeleted,
   }) {
@@ -50,6 +53,7 @@ class ChatMessage extends Equatable {
       content: content ?? this.content,
       type: type ?? this.type,
       imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
       createdAt: createdAt ?? this.createdAt,
       isDeleted: isDeleted ?? this.isDeleted,
     );
@@ -65,6 +69,7 @@ class ChatMessage extends Equatable {
         content,
         type,
         imageUrl,
+        imageUrls,
         createdAt,
         isDeleted,
       ];

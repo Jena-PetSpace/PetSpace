@@ -9,6 +9,7 @@ class ChatMessageModel {
   final String? content;
   final String type;
   final String? imageUrl;
+  final List<String>? imageUrls;
   final DateTime createdAt;
   final bool isDeleted;
 
@@ -21,6 +22,7 @@ class ChatMessageModel {
     this.content,
     this.type = 'text',
     this.imageUrl,
+    this.imageUrls,
     required this.createdAt,
     this.isDeleted = false,
   });
@@ -38,6 +40,9 @@ class ChatMessageModel {
       content: json['content'] as String?,
       type: json['type'] as String? ?? 'text',
       imageUrl: json['image_url'] as String?,
+      imageUrls: json['image_urls'] != null
+          ? (json['image_urls'] as List).map((e) => e as String).toList()
+          : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       isDeleted: json['is_deleted'] as bool? ?? false,
     );
@@ -50,6 +55,7 @@ class ChatMessageModel {
       'content': content,
       'type': type,
       'image_url': imageUrl,
+      if (imageUrls != null) 'image_urls': imageUrls,
     };
   }
 
@@ -75,6 +81,7 @@ class ChatMessageModel {
       content: content,
       type: msgType,
       imageUrl: imageUrl,
+      imageUrls: imageUrls,
       createdAt: createdAt,
       isDeleted: isDeleted,
     );

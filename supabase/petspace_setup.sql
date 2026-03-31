@@ -239,9 +239,13 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     content TEXT,
     type VARCHAR(10) NOT NULL DEFAULT 'text' CHECK (type IN ('text', 'image', 'system')),
     image_url TEXT,
+    image_urls TEXT[],
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     is_deleted BOOLEAN DEFAULT FALSE
 );
+
+-- chat_messages에 image_urls 컬럼 추가 (기존 테이블 대비)
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS image_urls TEXT[];
 
 -- Users 테이블 컬럼 보강 (기존 테이블 대비)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_onboarding_completed BOOLEAN DEFAULT FALSE;

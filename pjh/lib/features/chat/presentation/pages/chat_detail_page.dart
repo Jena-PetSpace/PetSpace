@@ -214,15 +214,44 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Future<void> _sendMultipleImages(List<File> images) async {
-    for (final image in images) {
-      if (!mounted) return;
-      context.read<ChatDetailBloc>().add(ChatDetailSendImageRequested(
-            roomId: widget.roomId,
-            senderId: _currentUserId,
-            imageFile: image,
-          ));
-      // 순서 유지를 위해 약간의 딜레이
-      await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      final supabase = Supabase.instance.client;
+      final userId = _currentUserId;
+      final List<String> uploadedUrls = [];
+
+      for (int i = 0; i < images.length; i++) {
+        final fileExt = images[i].path.split('.').last;
+        final fileName =
+            'chat/$userId/${DateTime.now().millisecondsSinceEpoch}_$i.$fileExt';
+        await supabase.storage.from('images').upload(fileName, images[i]);
+        final url = supabase.storage.from('images').getPublicUrl(fileName);
+        uploadedUrls.add(url);
+      }
+
+      final response = await supabase.from('chat_messages').insert({
+        'room_id': widget.roomId,
+        'sender_id': userId,
+        'type': 'image',
+        'image_url': uploadedUrls.first,
+        'image_urls': uploadedUrls,
+        'content': '사진 ${uploadedUrls.length}장',
+      }).select('''
+            *,
+            users:sender_id(id, display_name, photo_url)
+          ''').single();
+
+      if (mounted) {
+        final messageModel = ChatMessageModel.fromJson(response);
+        context.read<ChatDetailBloc>().add(
+              ChatDetailNewMessageReceived(message: messageModel.toEntity()),
+            );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('이미지 전송 실패: $e')),
+        );
+      }
     }
   }
 
