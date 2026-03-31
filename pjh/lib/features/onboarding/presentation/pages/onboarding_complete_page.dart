@@ -199,8 +199,8 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
             SizedBox(height: 16.h),
             _buildFeatureItem(
               Icons.timeline,
-              '일상 기록',
-              '매일의 소중한 순간들을 기록하세요',
+              '건강 및 일상 기록',
+              '건강관리와 소중한 순간들을 기록하세요',
               Colors.green,
             ),
             SizedBox(height: 16.h),
