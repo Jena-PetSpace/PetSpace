@@ -64,7 +64,7 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
             *,
             users(id, display_name, photo_url)
           )
-        ''').order('last_message_at', ascending: false, nullsFirst: false);
+        ''').eq('chat_participants.is_active', true).order('last_message_at', ascending: false, nullsFirst: false);
 
     final roomDataList = (response as List).cast<Map<String, dynamic>>();
 

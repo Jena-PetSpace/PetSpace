@@ -98,11 +98,12 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         }
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: AppTheme.backgroundColor,
         body: Stack(
           children: [
             SafeArea(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: EdgeInsets.all(24.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,27 +115,18 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                     SizedBox(height: 24.h),
                     _buildDivider(),
                     SizedBox(height: 24.h),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            _buildEmailForm(),
-                            // Rate limit 카운트다운 표시를 회원가입 버튼 밑으로 이동
-                            if (_rateLimitDuration != null) ...[
-                              SizedBox(height: 16.h),
-                              RateLimitCountdown(
-                                duration: _rateLimitDuration!,
-                                onComplete: () {
-                                  setState(() {
-                                    _rateLimitDuration = null;
-                                  });
-                                },
-                              ),
-                            ],
-                          ],
-                        ),
+                    _buildEmailForm(),
+                    if (_rateLimitDuration != null) ...[
+                      SizedBox(height: 16.h),
+                      RateLimitCountdown(
+                        duration: _rateLimitDuration!,
+                        onComplete: () {
+                          setState(() {
+                            _rateLimitDuration = null;
+                          });
+                        },
                       ),
-                    ),
+                    ],
                     SizedBox(height: 16.h),
                     _buildBottomButtons(),
                   ],
