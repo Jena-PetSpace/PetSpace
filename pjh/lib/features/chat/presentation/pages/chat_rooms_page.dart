@@ -94,7 +94,15 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                   return ChatRoomTile(
                     room: room,
                     currentUserId: _currentUserId,
-                    onTap: () => context.push('/chat/${room.id}'),
+                    onTap: () async {
+                      await context.push('/chat/${room.id}');
+                      // 채팅방에서 돌아오면 목록 새로고침
+                      if (mounted) {
+                        context.read<ChatRoomsBloc>().add(
+                              ChatRoomsLoadRequested(userId: _currentUserId),
+                            );
+                      }
+                    },
                     onLongPress: () => _showRoomOptions(context, room),
                   );
                 },
