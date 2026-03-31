@@ -184,16 +184,11 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   void _goBack({bool saved = false}) {
-    if (saved) {
-      // 저장 후에는 항상 새로고침을 위해 go 사용
-      context.go('/chat/${widget.roomId}');
+    if (Navigator.of(context).canPop()) {
+      // pop하면서 저장 여부를 결과로 전달
+      Navigator.of(context).pop(saved);
     } else {
-      // 취소 시에는 이전 화면으로
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      } else {
-        context.go('/chat');
-      }
+      context.go('/chat');
     }
   }
 

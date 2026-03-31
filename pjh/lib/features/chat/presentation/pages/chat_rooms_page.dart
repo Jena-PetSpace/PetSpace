@@ -172,11 +172,17 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
             ListTile(
               leading: const Icon(Icons.settings_outlined),
               title: Text('채팅방 설정', style: TextStyle(fontSize: 14.sp)),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(ctx);
-                context.push(
+                await context.push(
                   '/chat/${room.id}/settings?name=${Uri.encodeComponent(roomName)}',
                 );
+                // 설정에서 돌아오면 채팅 목록 새로고침
+                if (mounted) {
+                  context.read<ChatRoomsBloc>().add(
+                        ChatRoomsLoadRequested(userId: _currentUserId),
+                      );
+                }
               },
             ),
             ListTile(
