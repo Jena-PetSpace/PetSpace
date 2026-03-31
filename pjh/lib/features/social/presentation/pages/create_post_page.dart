@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../shared/widgets/image_source_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../emotion/domain/entities/emotion_analysis.dart';
@@ -36,7 +36,6 @@ class CreatePostPage extends StatefulWidget {
 class _CreatePostPageState extends State<CreatePostPage> {
   final _contentController = TextEditingController();
   final _hashtagController = TextEditingController();
-  final ImagePicker _imagePicker = ImagePicker();
 
   File? _selectedImage;
   String? _imageUrl;
@@ -419,8 +418,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
+    final image = await ImageSourcePicker.pickSingle(
+      context,
       maxWidth: 1920,
       maxHeight: 1920,
       imageQuality: 85,

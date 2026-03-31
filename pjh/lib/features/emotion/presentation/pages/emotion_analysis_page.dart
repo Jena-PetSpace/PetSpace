@@ -66,7 +66,6 @@ const Map<String, List<String>> _breedsByType = {
 };
 
 class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
-  final ImagePicker _picker = ImagePicker();
   Pet? _selectedPet;
   bool _analyzeWithoutPet = false;
 
@@ -581,7 +580,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       if (source == ImageSource.gallery) {
         // 갤러리: 여러 장 한번에 선택
         final remaining = _maxImages - _imagePaths.length;
-        final List<XFile> images = await _picker.pickMultiImage(
+        final picker = ImagePicker();
+        final List<XFile> images = await picker.pickMultiImage(
           maxWidth: 1920,
           maxHeight: 1920,
           imageQuality: 85,
@@ -599,7 +599,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         }
       } else {
         // 카메라: 한 장씩
-        final XFile? image = await _picker.pickImage(
+        final picker = ImagePicker();
+        final XFile? image = await picker.pickImage(
           source: source,
           maxWidth: 1920,
           maxHeight: 1920,

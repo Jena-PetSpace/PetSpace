@@ -2,12 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/image_source_picker.dart';
 import '../../domain/entities/chat_participant.dart';
 import '../../../../config/injection_container.dart';
 import '../../domain/usecases/search_users_for_chat.dart';
@@ -30,8 +30,6 @@ class ChatRoomSettingsPage extends StatefulWidget {
 class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   final _supabase = Supabase.instance.client;
   final _nameController = TextEditingController();
-  final _imagePicker = ImagePicker();
-
   List<ChatParticipant> _participants = [];
   bool _isLoading = true;
   bool _notificationsEnabled = true;
@@ -140,40 +138,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Future<void> _pickPhoto() async {
-    // 카메라/갤러리 선택 BottomSheet
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('카메라'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('갤러리'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.close),
-              title: const Text('취소'),
-              onTap: () => Navigator.pop(ctx),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
-    final pickedFile = await _imagePicker.pickImage(
-      source: source,
+    final pickedFile = await ImageSourcePicker.pickSingle(
+      context,
       maxWidth: 512,
       maxHeight: 512,
       imageQuality: 80,

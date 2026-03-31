@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../../../../shared/widgets/image_source_picker.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/post.dart';
@@ -284,10 +284,9 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
   }
 
   void _pickImages() async {
-    final ImagePicker picker = ImagePicker();
-    final List<XFile> images = await picker.pickMultiImage();
+    final images = await ImageSourcePicker.pickMultiple(context);
 
-    if (images.isNotEmpty) {
+    if (images != null && images.isNotEmpty) {
       setState(() {
         _selectedImages.addAll(images.map((image) => File(image.path)));
         _postType = PostType.image;

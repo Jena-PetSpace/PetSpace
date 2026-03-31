@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/image_source_picker.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../config/injection_container.dart' as di;
 
@@ -286,106 +286,9 @@ class _OnboardingProfileSetupPageState
     );
   }
 
-  void _pickProfileImage() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              '프로필 사진 선택',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildImagePickerOption(
-                  icon: Icons.camera_alt,
-                  label: '카메라',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _takePhoto();
-                  },
-                ),
-                _buildImagePickerOption(
-                  icon: Icons.photo_library,
-                  label: '갤러리',
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickFromGallery();
-                  },
-                ),
-                if (_avatarUrl != null)
-                  _buildImagePickerOption(
-                    icon: Icons.delete,
-                    label: '삭제',
-                    onTap: () {
-                      Navigator.pop(context);
-                      _removePhoto();
-                    },
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImagePickerOption({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Icon(
-              icon,
-              color: AppTheme.primaryColor,
-              size: 30,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _takePhoto() async {
+  Future<void> _pickProfileImage() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
+      final image = await ImageSourcePicker.pickSingle(context);
 
       if (image != null) {
         setState(() {
@@ -396,42 +299,10 @@ class _OnboardingProfileSetupPageState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('카메라 오류: $e')),
+          SnackBar(content: Text('이미지 선택 오류: $e')),
         );
       }
     }
-  }
-
-  Future<void> _pickFromGallery() async {
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        setState(() {
-          _selectedImageFile = File(image.path);
-          _avatarUrl = null; // 기존 URL 제거
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('갤러리 오류: $e')),
-        );
-      }
-    }
-  }
-
-  void _removePhoto() {
-    setState(() {
-      _avatarUrl = null;
-      _selectedImageFile = null;
-    });
   }
 
   Future<void> _continue() async {

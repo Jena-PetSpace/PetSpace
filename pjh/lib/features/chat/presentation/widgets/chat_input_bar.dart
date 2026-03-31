@@ -1,9 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:image_picker/image_picker.dart';
-
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/image_source_picker.dart';
 
 class ChatInputBar extends StatefulWidget {
   final bool isSending;
@@ -25,7 +24,6 @@ class ChatInputBar extends StatefulWidget {
 
 class _ChatInputBarState extends State<ChatInputBar> {
   final TextEditingController _controller = TextEditingController();
-  final ImagePicker _imagePicker = ImagePicker();
   bool _hasText = false;
 
   @override
@@ -55,78 +53,14 @@ class _ChatInputBarState extends State<ChatInputBar> {
   Future<void> _showImageSourceSheet() async {
     if (widget.isSending) return;
 
-    await showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(height: 8.h),
-            Container(
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2.r),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            ListTile(
-              leading: Icon(Icons.camera_alt,
-                  size: 24.w, color: AppTheme.primaryColor),
-              title: Text('카메라', style: TextStyle(fontSize: 15.sp)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickFromCamera();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.photo_library,
-                  size: 24.w, color: AppTheme.primaryColor),
-              title: Text('갤러리', style: TextStyle(fontSize: 15.sp)),
-              onTap: () {
-                Navigator.pop(context);
-                _pickFromGallery();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.close, size: 24.w, color: Colors.grey),
-              title: Text('취소',
-                  style: TextStyle(fontSize: 15.sp, color: Colors.grey)),
-              onTap: () => Navigator.pop(context),
-            ),
-            SizedBox(height: 8.h),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pickFromCamera() async {
-    final XFile? image = await _imagePicker.pickImage(
-      source: ImageSource.camera,
+    final images = await ImageSourcePicker.pickMultiple(
+      context,
       maxWidth: 1920,
       maxHeight: 1920,
       imageQuality: 85,
     );
 
-    if (image != null && mounted) {
-      final file = File(image.path);
-      _showImagePreview([file]);
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    final List<XFile> images = await _imagePicker.pickMultiImage(
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-
-    if (images.isNotEmpty && mounted) {
+    if (images != null && images.isNotEmpty && mounted) {
       final files = images.map((xf) => File(xf.path)).toList();
       _showImagePreview(files);
     }

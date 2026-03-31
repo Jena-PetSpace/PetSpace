@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
+import '../../../../shared/widgets/image_source_picker.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../pets/domain/entities/pet.dart' as pets;
@@ -631,9 +631,8 @@ class _OnboardingPetRegistrationPageState
 
   Future<void> _pickPetPhoto() async {
     try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.gallery,
+      final image = await ImageSourcePicker.pickSingle(
+        context,
         maxWidth: 512,
         maxHeight: 512,
         imageQuality: 70,
