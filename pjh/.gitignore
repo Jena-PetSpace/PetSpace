@@ -50,3 +50,6 @@ lib/config/secrets.dart
 android/app/google-services.json
 android/key.properties
 android/petspace-release.jks
+
+# Flutter debug logs
+flutter_*.log
