@@ -187,7 +187,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
         title: const Text('채팅방 사진 변경'),
         content: ClipRRect(
           borderRadius: BorderRadius.circular(12.r),
-          child: Image.file(file, width: 200.w, height: 200.w, fit: BoxFit.cover),
+          child:
+              Image.file(file, width: 200.w, height: 200.w, fit: BoxFit.cover),
         ),
         actions: [
           TextButton(
