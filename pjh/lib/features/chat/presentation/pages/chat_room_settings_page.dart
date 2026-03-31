@@ -184,30 +184,34 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Future<void> _saveChanges() async {
-    if (!_hasNameChanged) return;
-
     setState(() => _isSaving = true);
     try {
       final newName = _nameController.text.trim();
-      await _supabase
-          .from('chat_rooms')
-          .update({'name': newName}).eq('id', widget.roomId);
+      if (newName.isNotEmpty) {
+        await _supabase
+            .from('chat_rooms')
+            .update({'name': newName}).eq('id', widget.roomId);
+      }
 
       if (mounted) {
-        setState(() {
-          _hasNameChanged = false;
-          _isSaving = false;
-        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('채팅방 이름이 변경되었습니다.')),
+          const SnackBar(
+            content: Text('설정이 저장되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
         );
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          context.go('/chat');
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('이름 변경에 실패했습니다: $e'),
+            content: Text('저장에 실패했습니다: $e'),
             backgroundColor: Colors.red,
           ),
         );
