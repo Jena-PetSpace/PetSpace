@@ -200,11 +200,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
             backgroundColor: Colors.green,
           ),
         );
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        } else {
-          context.go('/chat');
-        }
+        // 채팅 목록으로 돌아가면서 새로고침
+        context.go('/chat');
       }
     } catch (e) {
       if (mounted) {
