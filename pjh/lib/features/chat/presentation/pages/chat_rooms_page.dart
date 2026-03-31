@@ -236,20 +236,20 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                     .maybeSingle();
                 final myName = myProfile?['display_name'] ?? '사용자';
 
-                // 참여자 비활성화
-                await supabase
-                    .from('chat_participants')
-                    .update({'is_active': false})
-                    .eq('room_id', room.id)
-                    .eq('user_id', _currentUserId);
-
-                // 시스템 메시지
+                // 시스템 메시지 먼저 (나가기 전에 보내야 RLS 통과)
                 await supabase.from('chat_messages').insert({
                   'room_id': room.id,
                   'sender_id': _currentUserId,
                   'content': '$myName님이 채팅방을 나갔습니다.',
                   'type': 'system',
                 });
+
+                // 참여자 비활성화
+                await supabase
+                    .from('chat_participants')
+                    .update({'is_active': false})
+                    .eq('room_id', room.id)
+                    .eq('user_id', _currentUserId);
 
                 if (mounted) {
                   context.read<ChatRoomsBloc>().add(
