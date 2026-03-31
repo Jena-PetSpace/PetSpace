@@ -579,7 +579,9 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           ),
           subtitle: Text(
             '채팅방에서 나갑니다',
-            style: TextStyle(fontSize: 12.sp, color: AppTheme.errorColor.withValues(alpha: 0.7)),
+            style: TextStyle(
+                fontSize: 12.sp,
+                color: AppTheme.errorColor.withValues(alpha: 0.7)),
           ),
           onTap: _leaveRoom,
         ),
