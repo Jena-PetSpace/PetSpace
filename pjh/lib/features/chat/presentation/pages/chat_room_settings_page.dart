@@ -183,6 +183,14 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     }
   }
 
+  void _goBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      context.go('/chat');
+    }
+  }
+
   Future<void> _saveChanges() async {
     setState(() => _isSaving = true);
     try {
@@ -200,8 +208,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
             backgroundColor: Colors.green,
           ),
         );
-        // 채팅 목록으로 돌아가면서 새로고침
-        context.go('/chat');
+        _goBack();
       }
     } catch (e) {
       if (mounted) {
@@ -424,13 +431,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           SizedBox(width: 12.w),
           Expanded(
             child: OutlinedButton(
-              onPressed: () {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).pop();
-                } else {
-                  context.go('/chat');
-                }
-              },
+              onPressed: _goBack,
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.grey),
                 padding: EdgeInsets.symmetric(vertical: 12.h),
