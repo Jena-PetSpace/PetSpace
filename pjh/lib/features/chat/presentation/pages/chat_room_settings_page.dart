@@ -183,11 +183,17 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     }
   }
 
-  void _goBack() {
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
+  void _goBack({bool saved = false}) {
+    if (saved) {
+      // 저장 후에는 항상 새로고침을 위해 go 사용
+      context.go('/chat/${widget.roomId}');
     } else {
-      context.go('/chat');
+      // 취소 시에는 이전 화면으로
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        context.go('/chat');
+      }
     }
   }
 
@@ -208,7 +214,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
             backgroundColor: Colors.green,
           ),
         );
-        _goBack();
+        _goBack(saved: true);
       }
     } catch (e) {
       if (mounted) {
