@@ -75,19 +75,14 @@ class ImageSourcePicker {
             ),
             SizedBox(height: 8.h),
             ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: Text('카메라', style: TextStyle(fontSize: 15.sp)),
+              leading: const Icon(Icons.camera_alt),
+              title: Text('카메라로 촬영하기', style: TextStyle(fontSize: 15.sp)),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: Text('갤러리', style: TextStyle(fontSize: 15.sp)),
+              leading: const Icon(Icons.photo),
+              title: Text('갤러리에서 선택하기', style: TextStyle(fontSize: 15.sp)),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.close),
-              title: Text('취소', style: TextStyle(fontSize: 15.sp)),
-              onTap: () => Navigator.pop(ctx),
             ),
             SizedBox(height: 8.h),
           ],
