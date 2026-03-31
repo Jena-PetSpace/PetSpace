@@ -33,7 +33,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   RealtimeChannel? _messageChannel;
 
   List<ChatParticipant> _participants = [];
-  bool _isGroupChat = false;
 
   String get _currentUserId {
     final authState = context.read<AuthBloc>().state;
@@ -101,7 +100,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               isActive: map['is_active'] as bool? ?? true,
             );
           }).toList();
-          _isGroupChat = _participants.length > 2;
         });
       }
     } catch (e) {
@@ -175,33 +173,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     }
   }
 
-  /// 1:1 채팅: 상대방이 읽은 마지막 메시지 인덱스 계산
-  /// 반환값은 messages 리스트에서의 인덱스 (reverse ListView이므로 index 0 = 최신)
-  int? _getLastReadMessageIndex(List<ChatMessage> messages) {
-    if (_isGroupChat || _participants.length < 2) return null;
-
-    final otherParticipant =
-        _participants.where((p) => p.userId != _currentUserId).toList();
-    if (otherParticipant.isEmpty) return null;
-
-    final otherLastReadAt = otherParticipant.first.lastReadAt;
-
-    // 내가 보낸 메시지 중 상대방이 읽은 가장 최근 메시지를 찾음
-    // messages[0] = 최신, reverse ListView
-    for (int i = 0; i < messages.length; i++) {
-      final msg = messages[i];
-      if (msg.senderId == _currentUserId &&
-          (msg.createdAt.isBefore(otherLastReadAt) ||
-              msg.createdAt.isAtSameMomentAs(otherLastReadAt))) {
-        return i;
-      }
-    }
-    return null;
-  }
-
-  /// 그룹 채팅: 메시지별 안 읽은 참여자 수 계산
+  /// 메시지별 안 읽은 참여자 수 계산 (1:1, 그룹 모두 동일)
   int _getUnreadCount(ChatMessage message) {
-    if (!_isGroupChat || _participants.isEmpty) return 0;
+    if (_participants.isEmpty) return 0;
 
     int unreadCount = 0;
     for (final participant in _participants) {
@@ -368,10 +342,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       );
     }
 
-    // 1:1 채팅 읽음 표시 인덱스 계산
-    final lastReadIndex =
-        !_isGroupChat ? _getLastReadMessageIndex(state.messages) : null;
-
     return ListView.builder(
       controller: _scrollController,
       reverse: true,
@@ -410,16 +380,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           }
         }
 
-        // 읽음 표시 계산
-        int unreadCount = 0;
-        bool showReadLabel = false;
-
-        if (_isGroupChat) {
-          unreadCount = _getUnreadCount(message);
-        } else {
-          // 1:1: 상대방이 읽은 내 마지막 메시지에만 "읽음" 표시
-          showReadLabel = (lastReadIndex == index && isMine);
-        }
+        // 읽음 표시 계산 (1:1, 그룹 모두 안 읽은 수로 통일)
+        final unreadCount = _getUnreadCount(message);
 
         return Column(
           children: [
@@ -429,7 +391,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               isMine: isMine,
               showSenderInfo: showSenderInfo,
               unreadCount: unreadCount,
-              showReadLabel: showReadLabel,
+              showReadLabel: false,
             ),
           ],
         );
