@@ -213,8 +213,11 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final filePath = 'chat/$userId/room_${widget.roomId}_$timestamp.jpg';
 
-        await _supabase.storage.from('images').upload(filePath, _pendingPhotoFile!);
-        final publicUrl = _supabase.storage.from('images').getPublicUrl(filePath);
+        await _supabase.storage
+            .from('images')
+            .upload(filePath, _pendingPhotoFile!);
+        final publicUrl =
+            _supabase.storage.from('images').getPublicUrl(filePath);
 
         await _supabase
             .from('chat_rooms')
