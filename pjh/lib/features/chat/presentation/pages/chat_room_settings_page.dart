@@ -491,23 +491,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           ],
         ],
       ),
-      trailing: participant.role == ChatRole.admin
-          ? Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Text(
-                '방장',
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: AppTheme.primaryColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            )
-          : null,
+      trailing: null,
     );
   }
 

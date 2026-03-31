@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/chat_room.dart';
 import '../bloc/chat_rooms/chat_rooms_bloc.dart';

@@ -7,12 +7,16 @@ class ChatBubble extends StatelessWidget {
   final ChatMessage message;
   final bool isMine;
   final bool showSenderInfo;
+  final int unreadCount;
+  final bool showReadLabel;
 
   const ChatBubble({
     super.key,
     required this.message,
     required this.isMine,
     this.showSenderInfo = false,
+    this.unreadCount = 0,
+    this.showReadLabel = false,
   });
 
   @override
@@ -68,22 +72,71 @@ class ChatBubble extends StatelessWidget {
                     if (isMine)
                       Padding(
                         padding: EdgeInsets.only(right: 4.w, bottom: 2.h),
-                        child: Text(
-                          _formatTime(message.createdAt),
-                          style: TextStyle(fontSize: 10.sp, color: Colors.grey),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (unreadCount > 0)
+                              Padding(
+                                padding: EdgeInsets.only(bottom: 2.h),
+                                child: Text(
+                                  '$unreadCount',
+                                  style: TextStyle(
+                                    fontSize: 10.sp,
+                                    color: const Color(0xFFFF6B00),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            Text(
+                              _formatTime(message.createdAt),
+                              style: TextStyle(
+                                  fontSize: 10.sp, color: Colors.grey),
+                            ),
+                          ],
                         ),
                       ),
                     Flexible(child: _buildMessageContent(context)),
                     if (!isMine)
                       Padding(
                         padding: EdgeInsets.only(left: 4.w, bottom: 2.h),
-                        child: Text(
-                          _formatTime(message.createdAt),
-                          style: TextStyle(fontSize: 10.sp, color: Colors.grey),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (unreadCount > 0)
+                              Padding(
+                                padding: EdgeInsets.only(bottom: 2.h),
+                                child: Text(
+                                  '$unreadCount',
+                                  style: TextStyle(
+                                    fontSize: 10.sp,
+                                    color: const Color(0xFFFF6B00),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            Text(
+                              _formatTime(message.createdAt),
+                              style: TextStyle(
+                                  fontSize: 10.sp, color: Colors.grey),
+                            ),
+                          ],
                         ),
                       ),
                   ],
                 ),
+                if (showReadLabel && isMine)
+                  Padding(
+                    padding: EdgeInsets.only(top: 2.h, right: 4.w),
+                    child: Text(
+                      '읽음',
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

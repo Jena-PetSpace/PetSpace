@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../data/models/chat_message_model.dart';
 import '../../domain/entities/chat_message.dart';
+import '../../domain/entities/chat_participant.dart';
 import '../bloc/chat_detail/chat_detail_bloc.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
@@ -30,6 +31,9 @@ class ChatDetailPage extends StatefulWidget {
 class _ChatDetailPageState extends State<ChatDetailPage> {
   final ScrollController _scrollController = ScrollController();
   RealtimeChannel? _messageChannel;
+
+  List<ChatParticipant> _participants = [];
+  bool _isGroupChat = false;
 
   String get _currentUserId {
     final authState = context.read<AuthBloc>().state;
@@ -55,6 +59,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 userId: _currentUserId,
               ),
             );
+        // 참여자 로드
+        _loadParticipants();
         // 실시간 구독
         _subscribeToMessages();
       }
@@ -66,6 +72,41 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _scrollController.dispose();
     _unsubscribeFromMessages();
     super.dispose();
+  }
+
+  Future<void> _loadParticipants() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase.from('chat_participants').select('''
+            *,
+            users(id, display_name, photo_url)
+          ''').eq('room_id', widget.roomId).eq('is_active', true);
+
+      if (mounted) {
+        setState(() {
+          _participants = (response as List).map((json) {
+            final map = json as Map<String, dynamic>;
+            final userData = map['users'] as Map<String, dynamic>?;
+            return ChatParticipant(
+              id: map['id'] as String,
+              roomId: map['room_id'] as String,
+              userId: map['user_id'] as String,
+              displayName: userData?['display_name'] as String?,
+              photoUrl: userData?['photo_url'] as String?,
+              role: (map['role'] as String?) == 'admin'
+                  ? ChatRole.admin
+                  : ChatRole.member,
+              joinedAt: DateTime.parse(map['joined_at'] as String),
+              lastReadAt: DateTime.parse(map['last_read_at'] as String),
+              isActive: map['is_active'] as bool? ?? true,
+            );
+          }).toList();
+          _isGroupChat = _participants.length > 2;
+        });
+      }
+    } catch (e) {
+      log('Failed to load participants: $e', name: 'ChatDetail');
+    }
   }
 
   void _onScroll() {
@@ -107,6 +148,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       userId: _currentUserId,
                     ),
                   );
+              // 참여자 다시 로드 (상대방 읽음 상태 갱신)
+              _loadParticipants();
               // 새 메시지 수신 시 맨 아래로 스크롤
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (_scrollController.hasClients) {
@@ -129,6 +172,58 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (_messageChannel != null) {
       Supabase.instance.client.removeChannel(_messageChannel!);
       _messageChannel = null;
+    }
+  }
+
+  /// 1:1 채팅: 상대방이 읽은 마지막 메시지 인덱스 계산
+  /// 반환값은 messages 리스트에서의 인덱스 (reverse ListView이므로 index 0 = 최신)
+  int? _getLastReadMessageIndex(List<ChatMessage> messages) {
+    if (_isGroupChat || _participants.length < 2) return null;
+
+    final otherParticipant = _participants
+        .where((p) => p.userId != _currentUserId)
+        .toList();
+    if (otherParticipant.isEmpty) return null;
+
+    final otherLastReadAt = otherParticipant.first.lastReadAt;
+
+    // 내가 보낸 메시지 중 상대방이 읽은 가장 최근 메시지를 찾음
+    // messages[0] = 최신, reverse ListView
+    for (int i = 0; i < messages.length; i++) {
+      final msg = messages[i];
+      if (msg.senderId == _currentUserId &&
+          (msg.createdAt.isBefore(otherLastReadAt) ||
+              msg.createdAt.isAtSameMomentAs(otherLastReadAt))) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  /// 그룹 채팅: 메시지별 안 읽은 참여자 수 계산
+  int _getUnreadCount(ChatMessage message) {
+    if (!_isGroupChat || _participants.isEmpty) return 0;
+
+    int unreadCount = 0;
+    for (final participant in _participants) {
+      if (participant.userId == _currentUserId) continue;
+      if (participant.lastReadAt.isBefore(message.createdAt)) {
+        unreadCount++;
+      }
+    }
+    return unreadCount;
+  }
+
+  Future<void> _sendMultipleImages(List<File> images) async {
+    for (final image in images) {
+      if (!mounted) return;
+      context.read<ChatDetailBloc>().add(ChatDetailSendImageRequested(
+            roomId: widget.roomId,
+            senderId: _currentUserId,
+            imageFile: image,
+          ));
+      // 순서 유지를 위해 약간의 딜레이
+      await Future.delayed(const Duration(milliseconds: 300));
     }
   }
 
@@ -224,6 +319,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                         ),
                       );
                 },
+                onSendMultipleImages: (List<File> images) {
+                  _sendMultipleImages(images);
+                },
               );
             },
           ),
@@ -241,6 +339,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         ),
       );
     }
+
+    // 1:1 채팅 읽음 표시 인덱스 계산
+    final lastReadIndex =
+        !_isGroupChat ? _getLastReadMessageIndex(state.messages) : null;
 
     return ListView.builder(
       controller: _scrollController,
@@ -280,6 +382,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           }
         }
 
+        // 읽음 표시 계산
+        int unreadCount = 0;
+        bool showReadLabel = false;
+
+        if (_isGroupChat) {
+          unreadCount = _getUnreadCount(message);
+        } else {
+          // 1:1: 상대방이 읽은 내 마지막 메시지에만 "읽음" 표시
+          showReadLabel = (lastReadIndex == index && isMine);
+        }
+
         return Column(
           children: [
             if (dateSeparator != null) dateSeparator,
@@ -287,6 +400,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               message: message,
               isMine: isMine,
               showSenderInfo: showSenderInfo,
+              unreadCount: unreadCount,
+              showReadLabel: showReadLabel,
             ),
           ],
         );
