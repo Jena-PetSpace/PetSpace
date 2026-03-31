@@ -237,11 +237,47 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     if (confirmed != true) return;
 
     try {
+      // 내 이름 가져오기
+      final myProfile = await _supabase
+          .from('users')
+          .select('display_name')
+          .eq('id', _currentUserId)
+          .maybeSingle();
+      final myName = myProfile?['display_name'] ?? '사용자';
+
+      // 참여자 비활성화
       await _supabase
           .from('chat_participants')
           .update({'is_active': false})
           .eq('room_id', widget.roomId)
           .eq('user_id', _currentUserId);
+
+      // 시스템 메시지: "OOO님이 나갔습니다"
+      await _supabase.from('chat_messages').insert({
+        'room_id': widget.roomId,
+        'sender_id': _currentUserId,
+        'content': '$myName님이 채팅방을 나갔습니다.',
+        'type': 'system',
+      });
+
+      // 채팅방 이름에서 나간 사람 이름 제거 (자동 생성된 이름인 경우)
+      final roomResponse = await _supabase
+          .from('chat_rooms')
+          .select('name')
+          .eq('id', widget.roomId)
+          .maybeSingle();
+      final currentName = roomResponse?['name'] as String?;
+      if (currentName != null && currentName.contains(myName)) {
+        final updatedName = currentName
+            .split(', ')
+            .where((n) => n.trim() != myName)
+            .join(', ');
+        if (updatedName.isNotEmpty) {
+          await _supabase
+              .from('chat_rooms')
+              .update({'name': updatedName}).eq('id', widget.roomId);
+        }
+      }
 
       if (mounted) {
         context.go('/chat');

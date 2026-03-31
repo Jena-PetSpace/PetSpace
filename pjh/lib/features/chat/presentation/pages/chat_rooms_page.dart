@@ -226,11 +226,50 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await Supabase.instance.client
+                final supabase = Supabase.instance.client;
+
+                // 내 이름 가져오기
+                final myProfile = await supabase
+                    .from('users')
+                    .select('display_name')
+                    .eq('id', _currentUserId)
+                    .maybeSingle();
+                final myName = myProfile?['display_name'] ?? '사용자';
+
+                // 참여자 비활성화
+                await supabase
                     .from('chat_participants')
                     .update({'is_active': false})
                     .eq('room_id', room.id)
                     .eq('user_id', _currentUserId);
+
+                // 시스템 메시지
+                await supabase.from('chat_messages').insert({
+                  'room_id': room.id,
+                  'sender_id': _currentUserId,
+                  'content': '$myName님이 채팅방을 나갔습니다.',
+                  'type': 'system',
+                });
+
+                // 채팅방 이름에서 나간 사람 제거
+                final roomResponse = await supabase
+                    .from('chat_rooms')
+                    .select('name')
+                    .eq('id', room.id)
+                    .maybeSingle();
+                final currentName = roomResponse?['name'] as String?;
+                if (currentName != null && currentName.contains(myName)) {
+                  final updatedName = currentName
+                      .split(', ')
+                      .where((n) => n.trim() != myName)
+                      .join(', ');
+                  if (updatedName.isNotEmpty) {
+                    await supabase
+                        .from('chat_rooms')
+                        .update({'name': updatedName}).eq('id', room.id);
+                  }
+                }
+
                 if (mounted) {
                   context.read<ChatRoomsBloc>().add(
                         ChatRoomsLoadRequested(userId: _currentUserId),
