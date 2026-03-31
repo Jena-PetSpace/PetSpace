@@ -398,8 +398,8 @@ class ChatBubble extends StatelessWidget {
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
             color: Colors.grey[200],
-            child: const Center(
-                child: CircularProgressIndicator(strokeWidth: 2)),
+            child:
+                const Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
           errorWidget: (context, url, error) => Container(
             color: Colors.grey[200],

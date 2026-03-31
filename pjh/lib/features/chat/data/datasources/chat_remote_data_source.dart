@@ -404,7 +404,9 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
       final fileExt = imageFiles[i].path.split('.').last;
       final filePath = 'chat/$senderId/${timestamp}_$i.$fileExt';
 
-      await supabaseClient.storage.from('images').upload(filePath, imageFiles[i]);
+      await supabaseClient.storage
+          .from('images')
+          .upload(filePath, imageFiles[i]);
       final url = supabaseClient.storage.from('images').getPublicUrl(filePath);
       uploadedUrls.add(url);
     }
