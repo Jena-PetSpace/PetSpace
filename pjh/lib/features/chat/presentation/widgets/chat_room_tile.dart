@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/chat_room.dart';
 
-class ChatRoomTile extends StatelessWidget {
+class ChatRoomTile extends StatefulWidget {
   final ChatRoom room;
   final String currentUserId;
   final VoidCallback onTap;
@@ -17,13 +18,37 @@ class ChatRoomTile extends StatelessWidget {
   });
 
   @override
+  State<ChatRoomTile> createState() => _ChatRoomTileState();
+}
+
+class _ChatRoomTileState extends State<ChatRoomTile> {
+  bool _isNotificationOff = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSetting();
+  }
+
+  Future<void> _loadNotificationSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _isNotificationOff =
+            !(prefs.getBool('chat_notification_${widget.room.id}') ?? true);
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final displayName = room.displayName(currentUserId);
-    final avatarUrl = room.displayAvatarUrl(currentUserId);
+    final displayName = widget.room.displayName(widget.currentUserId);
+    final avatarUrl = widget.room.displayAvatarUrl(widget.currentUserId);
+    final memberCount = widget.room.participants.length;
 
     return InkWell(
-      onTap: onTap,
-      onLongPress: onLongPress,
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         child: Row(
@@ -37,19 +62,45 @@ class ChatRoomTile extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          displayName,
-                          style: TextStyle(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                displayName,
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (memberCount > 0)
+                              Padding(
+                                padding: EdgeInsets.only(left: 4.w),
+                                child: Text(
+                                  '$memberCount',
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            if (_isNotificationOff)
+                              Padding(
+                                padding: EdgeInsets.only(left: 4.w),
+                                child: Icon(
+                                  Icons.notifications_off_outlined,
+                                  size: 14.w,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      if (room.lastMessageAt != null)
+                      if (widget.room.lastMessageAt != null)
                         Text(
-                          _formatTime(room.lastMessageAt!),
+                          _formatTime(widget.room.lastMessageAt!),
                           style: TextStyle(
                             fontSize: 12.sp,
                             color: Colors.grey,
@@ -62,7 +113,7 @@ class ChatRoomTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          room.lastMessage ?? '',
+                          widget.room.lastMessage ?? '',
                           style: TextStyle(
                             fontSize: 13.sp,
                             color: Colors.grey[600],
@@ -71,7 +122,7 @@ class ChatRoomTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (room.unreadCount > 0)
+                      if (widget.room.unreadCount > 0)
                         Container(
                           margin: EdgeInsets.only(left: 8.w),
                           padding: EdgeInsets.symmetric(
@@ -81,9 +132,9 @@ class ChatRoomTile extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           child: Text(
-                            room.unreadCount > 99
+                            widget.room.unreadCount > 99
                                 ? '99+'
-                                : '${room.unreadCount}',
+                                : '${widget.room.unreadCount}',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 11.sp,
@@ -103,7 +154,7 @@ class ChatRoomTile extends StatelessWidget {
   }
 
   Widget _buildAvatar(String? avatarUrl) {
-    if (room.type == ChatRoomType.group) {
+    if (widget.room.type == ChatRoomType.group) {
       return CircleAvatar(
         radius: 24.r,
         backgroundColor: Colors.blue[100],
