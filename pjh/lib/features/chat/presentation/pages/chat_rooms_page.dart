@@ -180,16 +180,6 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.notifications_outlined),
-              title: Text('알림 설정', style: TextStyle(fontSize: 14.sp)),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.push(
-                  '/chat/${room.id}/settings?name=${Uri.encodeComponent(roomName)}',
-                );
-              },
-            ),
-            ListTile(
               leading: Icon(Icons.exit_to_app, color: Colors.red[400]),
               title: Text(
                 '채팅방 나가기',

@@ -75,7 +75,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            if (memberCount > 0)
+                            if (memberCount > 2)
                               Padding(
                                 padding: EdgeInsets.only(left: 4.w),
                                 child: Text(

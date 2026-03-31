@@ -292,7 +292,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
                   _buildPhotoSection(),
                   SizedBox(height: 16.h),
                   _buildNameSection(),
-                  if (_hasNameChanged) _buildSaveButton(),
+                  _buildSaveButton(),
                   SizedBox(height: 24.h),
                   _buildParticipantsSection(),
                   SizedBox(height: 8.h),
