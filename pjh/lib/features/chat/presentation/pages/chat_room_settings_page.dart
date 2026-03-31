@@ -139,20 +139,77 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Future<void> _pickPhoto() async {
+    // 카메라/갤러리 선택 BottomSheet
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('카메라'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('갤러리'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('취소'),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final pickedFile = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       maxWidth: 512,
       maxHeight: 512,
       imageQuality: 80,
     );
     if (pickedFile == null) return;
 
+    // 미리보기 확인 다이얼로그
+    final file = File(pickedFile.path);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('채팅방 사진 변경'),
+        content: ClipRRect(
+          borderRadius: BorderRadius.circular(12.r),
+          child: Image.file(file, width: 200.w, height: 200.w, fit: BoxFit.cover),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     setState(() => _isSaving = true);
 
     try {
-      final file = File(pickedFile.path);
+      final userId = _supabase.auth.currentUser?.id ?? '';
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = 'chat_rooms/${widget.roomId}/$timestamp.jpg';
+      final filePath = 'chat/$userId/room_${widget.roomId}_$timestamp.jpg';
 
       await _supabase.storage.from('images').upload(filePath, file);
       final publicUrl = _supabase.storage.from('images').getPublicUrl(filePath);
