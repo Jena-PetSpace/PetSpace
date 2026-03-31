@@ -57,24 +57,21 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: EdgeInsets.all(24.w),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(height: 40.h),
-                _buildSuccessAnimation(),
-                SizedBox(height: 40.h),
-                _buildWelcomeMessage(),
-                SizedBox(height: 32.h),
-                _buildFeatureHighlights(),
-                SizedBox(height: 32.h),
-                _buildActionButtons(),
-                SizedBox(height: 40.h),
-              ],
-            ),
+        child: Padding(
+          padding: EdgeInsets.all(24.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(flex: 2),
+              _buildSuccessAnimation(),
+              SizedBox(height: 24.h),
+              _buildWelcomeMessage(),
+              SizedBox(height: 24.h),
+              _buildFeatureHighlights(),
+              const Spacer(flex: 3),
+              _buildActionButtons(),
+              SizedBox(height: 16.h),
+            ],
           ),
         ),
       ),
@@ -88,8 +85,8 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
         return Transform.scale(
           scale: _scaleAnimation.value,
           child: Container(
-            width: 200.w,
-            height: 200.w,
+            width: 140.w,
+            height: 140.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppTheme.primaryColor.withValues(alpha: 0.1),
@@ -103,7 +100,7 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
               children: [
                 Icon(
                   Icons.pets,
-                  size: 80.w,
+                  size: 56.w,
                   color: AppTheme.primaryColor,
                 ),
                 Positioned(
@@ -265,89 +262,52 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
   Widget _buildActionButtons() {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: Column(
+      child: Row(
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: 56.h,
-            child: ElevatedButton(
-              onPressed: _startUsingApp,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-                elevation: 2,
-                shadowColor: AppTheme.primaryColor.withValues(alpha: 0.3),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.home, size: 24.w),
-                  SizedBox(width: 12.w),
-                  Text(
-                    '홈으로 이동하기',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
+          Expanded(
+            child: SizedBox(
+              height: 48.h,
+              child: ElevatedButton(
+                onPressed: _startUsingApp,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
-                ],
+                ),
+                child: Text(
+                  '홈으로 이동',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ),
-          SizedBox(height: 16.h),
-          SizedBox(
-            width: double.infinity,
-            height: 48.h,
-            child: OutlinedButton(
-              onPressed: _tryFirstAnalysis,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryColor,
-                side: const BorderSide(color: AppTheme.primaryColor),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.r),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.psychology, size: 20.w),
-                  SizedBox(width: 8.w),
-                  Text(
-                    '첫 감정 분석 해보기',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 20.h),
-          Container(
-            padding: EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: Colors.amber[50],
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Colors.amber[200]!),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.star, color: Colors.amber[700], size: 24.w),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Text(
-                    '언제든지 설정에서 프로필과 반려동물 정보를 수정할 수 있어요',
-                    style: TextStyle(
-                      color: Colors.amber[800],
-                      fontSize: 12.sp,
-                    ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: SizedBox(
+              height: 48.h,
+              child: OutlinedButton(
+                onPressed: _tryFirstAnalysis,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primaryColor,
+                  side: const BorderSide(color: AppTheme.primaryColor),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
                 ),
-              ],
+                child: Text(
+                  '감정 분석',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
           ),
         ],
