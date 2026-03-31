@@ -346,7 +346,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                             vertical: 12.h,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                            color:
+                                AppTheme.primaryColor.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(12.r),
                             border: Border.all(
                               color:
