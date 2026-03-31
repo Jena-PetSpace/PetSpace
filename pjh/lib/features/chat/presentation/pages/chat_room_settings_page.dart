@@ -292,13 +292,14 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
                   _buildPhotoSection(),
                   SizedBox(height: 16.h),
                   _buildNameSection(),
-                  _buildSaveButton(),
                   SizedBox(height: 24.h),
                   _buildParticipantsSection(),
                   SizedBox(height: 8.h),
                   _buildSettingsSection(),
                   SizedBox(height: 8.h),
                   _buildLeaveSection(),
+                  SizedBox(height: 16.h),
+                  _buildBottomButtons(),
                   SizedBox(height: 32.h),
                 ],
               ),
@@ -391,32 +392,58 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     );
   }
 
-  Widget _buildSaveButton() {
+  Widget _buildBottomButtons() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _isSaving ? null : _saveChanges,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
-            foregroundColor: Colors.white,
-            padding: EdgeInsets.symmetric(vertical: 12.h),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
+      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  context.go('/chat');
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.grey),
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              child: Text(
+                '취소',
+                style: TextStyle(fontSize: 15.sp, color: Colors.grey[700]),
+              ),
             ),
           ),
-          child: _isSaving
-              ? SizedBox(
-                  width: 20.w,
-                  height: 20.w,
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text('저장', style: TextStyle(fontSize: 15.sp)),
-        ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: _isSaving ? null : _saveChanges,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              child: _isSaving
+                  ? SizedBox(
+                      width: 20.w,
+                      height: 20.w,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text('저장', style: TextStyle(fontSize: 15.sp)),
+            ),
+          ),
+        ],
       ),
     );
   }
