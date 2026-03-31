@@ -78,9 +78,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   final List<String> _imagePaths = [];
   static const int _maxImages = 5;
 
-  // 인라인 팁 카드 표시 여부 (방안 B)
-  bool _showInlineTip = false;
-  // 전체 화면 가이드 표시 여부 (방안 A)
+  // 전체 화면 가이드 표시 여부
   bool _showFullGuide = false;
 
   @override
@@ -90,19 +88,11 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     if (authState is AuthAuthenticated) {
       context.read<PetBloc>().add(LoadUserPets());
     }
-    _checkAndShowTips();
+    _checkFirstVisit();
   }
 
-  Future<void> _checkAndShowTips() async {
+  Future<void> _checkFirstVisit() async {
     final prefs = await SharedPreferences.getInstance();
-
-    // 방안 B: 인라인 팁 카드
-    final tipDismissed = prefs.getBool('emotion_tip_dismissed') ?? false;
-    if (!tipDismissed && mounted) {
-      setState(() => _showInlineTip = true);
-    }
-
-    // 방안 A: 최초 방문 시 전체 화면 가이드
     final hasSeenTip = prefs.getBool('has_seen_emotion_tip') ?? false;
     if (!hasSeenTip && mounted) {
       setState(() => _showFullGuide = true);
@@ -336,12 +326,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     );
   }
 
-  Future<void> _dismissInlineTip() async {
-    setState(() => _showInlineTip = false);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('emotion_tip_dismissed', true);
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -426,60 +410,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 방안 B: 인라인 팁 카드
-                    if (_showInlineTip)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 14.w,
-                            vertical: 12.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                AppTheme.primaryColor.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(
-                              color:
-                                  AppTheme.primaryColor.withValues(alpha: 0.2),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '\u{1F4A1}',
-                                style: TextStyle(fontSize: 14.sp),
-                              ),
-                              SizedBox(width: 8.w),
-                              Expanded(
-                                child: Text(
-                                  '얼굴이 선명하고 밝은 사진이\n더 정확한 분석 결과를 보여줘요',
-                                  style: TextStyle(
-                                    fontSize: 12.sp,
-                                    color: AppTheme.primaryColor,
-                                    height: 1.5,
-                                  ),
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: _dismissInlineTip,
-                                child: Padding(
-                                  padding: EdgeInsets.only(left: 4.w),
-                                  child: Icon(
-                                    Icons.close,
-                                    size: 16.w,
-                                    color: AppTheme.primaryColor
-                                        .withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
                     SizedBox(height: 8.h),
 
                     // 반려동물 선택
