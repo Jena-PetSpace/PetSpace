@@ -75,7 +75,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
             ),
             SizedBox(height: 16.h),
             ListTile(
-              leading: Icon(Icons.camera_alt, size: 24.w, color: AppTheme.primaryColor),
+              leading: Icon(Icons.camera_alt,
+                  size: 24.w, color: AppTheme.primaryColor),
               title: Text('카메라', style: TextStyle(fontSize: 15.sp)),
               onTap: () {
                 Navigator.pop(context);
@@ -83,7 +84,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.photo_library, size: 24.w, color: AppTheme.primaryColor),
+              leading: Icon(Icons.photo_library,
+                  size: 24.w, color: AppTheme.primaryColor),
               title: Text('갤러리', style: TextStyle(fontSize: 15.sp)),
               onTap: () {
                 Navigator.pop(context);
@@ -92,7 +94,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
             ),
             ListTile(
               leading: Icon(Icons.close, size: 24.w, color: Colors.grey),
-              title: Text('취소', style: TextStyle(fontSize: 15.sp, color: Colors.grey)),
+              title: Text('취소',
+                  style: TextStyle(fontSize: 15.sp, color: Colors.grey)),
               onTap: () => Navigator.pop(context),
             ),
             SizedBox(height: 8.h),

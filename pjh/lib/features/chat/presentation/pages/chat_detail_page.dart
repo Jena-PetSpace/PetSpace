@@ -180,9 +180,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   int? _getLastReadMessageIndex(List<ChatMessage> messages) {
     if (_isGroupChat || _participants.length < 2) return null;
 
-    final otherParticipant = _participants
-        .where((p) => p.userId != _currentUserId)
-        .toList();
+    final otherParticipant =
+        _participants.where((p) => p.userId != _currentUserId).toList();
     if (otherParticipant.isEmpty) return null;
 
     final otherLastReadAt = otherParticipant.first.lastReadAt;
