@@ -36,6 +36,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   bool _isLoading = true;
   bool _notificationsEnabled = true;
   String? _currentPhotoUrl;
+  File? _pendingPhotoFile; // 저장 전 대기 중인 사진
   bool _hasNameChanged = false;
   bool _isSaving = false;
 
@@ -180,40 +181,10 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     if (pickedFile == null) return;
 
     final file = File(pickedFile.path);
-    setState(() => _isSaving = true);
-
-    try {
-      final userId = _supabase.auth.currentUser?.id ?? '';
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = 'chat/$userId/room_${widget.roomId}_$timestamp.jpg';
-
-      await _supabase.storage.from('images').upload(filePath, file);
-      final publicUrl = _supabase.storage.from('images').getPublicUrl(filePath);
-
-      await _supabase
-          .from('chat_rooms')
-          .update({'avatar_url': publicUrl}).eq('id', widget.roomId);
-
-      if (mounted) {
-        setState(() {
-          _currentPhotoUrl = publicUrl;
-          _isSaving = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('채팅방 사진이 변경되었습니다.')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('사진 업로드에 실패했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    // 저장 버튼 누를 때까지 대기 — 미리보기만 표시
+    setState(() {
+      _pendingPhotoFile = file;
+    });
   }
 
   void _goBack({bool saved = false}) {
@@ -228,11 +199,28 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   Future<void> _saveChanges() async {
     setState(() => _isSaving = true);
     try {
+      // 이름 저장
       final newName = _nameController.text.trim();
       if (newName.isNotEmpty) {
         await _supabase
             .from('chat_rooms')
             .update({'name': newName}).eq('id', widget.roomId);
+      }
+
+      // 사진 업로드 (대기 중인 파일이 있으면)
+      if (_pendingPhotoFile != null) {
+        final userId = _currentUserId;
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final filePath = 'chat/$userId/room_${widget.roomId}_$timestamp.jpg';
+
+        await _supabase.storage.from('images').upload(filePath, _pendingPhotoFile!);
+        final publicUrl = _supabase.storage.from('images').getPublicUrl(filePath);
+
+        await _supabase
+            .from('chat_rooms')
+            .update({'avatar_url': publicUrl}).eq('id', widget.roomId);
+
+        _pendingPhotoFile = null;
       }
 
       if (mounted) {
@@ -357,10 +345,12 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           CircleAvatar(
             radius: 48.r,
             backgroundColor: Colors.grey[200],
-            backgroundImage: _currentPhotoUrl != null
-                ? CachedNetworkImageProvider(_currentPhotoUrl!)
-                : null,
-            child: _currentPhotoUrl == null
+            backgroundImage: _pendingPhotoFile != null
+                ? FileImage(_pendingPhotoFile!)
+                : (_currentPhotoUrl != null
+                    ? CachedNetworkImageProvider(_currentPhotoUrl!)
+                    : null) as ImageProvider?,
+            child: _pendingPhotoFile == null && _currentPhotoUrl == null
                 ? Icon(Icons.group, size: 40.w, color: Colors.grey[500])
                 : null,
           ),
