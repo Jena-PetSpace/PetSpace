@@ -44,9 +44,11 @@ class ChatRoom extends Equatable {
     }
   }
 
-  /// 표시용 이름 (1:1이면 상대방 이름, 그룹이면 그룹명)
+  /// 표시용 이름 (커스텀 이름 > 1:1 상대방 이름 > 그룹명)
   String displayName(String currentUserId) {
-    if (type == ChatRoomType.group) return name ?? '그룹 채팅';
+    // 사용자가 설정한 이름이 있으면 우선 사용
+    if (name != null && name!.isNotEmpty) return name!;
+    if (type == ChatRoomType.group) return '그룹 채팅';
     final other = getOtherParticipant(currentUserId);
     return other?.displayName ?? '알 수 없는 사용자';
   }

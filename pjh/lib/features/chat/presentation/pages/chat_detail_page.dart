@@ -33,6 +33,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   RealtimeChannel? _messageChannel;
 
   List<ChatParticipant> _participants = [];
+  String? _roomName;
 
   String get _currentUserId {
     final authState = context.read<AuthBloc>().state;
@@ -44,6 +45,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _roomName = widget.roomName;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -104,6 +106,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       }
     } catch (e) {
       log('Failed to load participants: $e', name: 'ChatDetail');
+    }
+  }
+
+  Future<void> _refreshRoomName() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('chat_rooms')
+          .select('name')
+          .eq('id', widget.roomId)
+          .maybeSingle();
+      if (mounted && response != null) {
+        setState(() {
+          _roomName = response['name'] as String? ?? _roomName;
+        });
+      }
+    } catch (e) {
+      log('Failed to refresh room name: $e', name: 'ChatDetail');
     }
   }
 
@@ -245,16 +264,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           },
         ),
         title: Text(
-          widget.roomName ?? '채팅',
+          _roomName ?? '채팅',
           style: TextStyle(fontSize: 16.sp),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push(
-              '/chat/${widget.roomId}/settings?name=${Uri.encodeComponent(widget.roomName ?? '')}',
-            ),
+            onPressed: () async {
+              await context.push<bool>(
+                '/chat/${widget.roomId}/settings?name=${Uri.encodeComponent(widget.roomName ?? '')}',
+              );
+              // 설정에서 돌아오면 채팅방 데이터 새로고침
+              if (mounted) {
+                _loadParticipants();
+                _refreshRoomName();
+              }
+            },
           ),
         ],
       ),
