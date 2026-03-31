@@ -398,29 +398,6 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
       child: Row(
         children: [
           Expanded(
-            child: OutlinedButton(
-              onPressed: () {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).pop();
-                } else {
-                  context.go('/chat');
-                }
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.grey),
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-              child: Text(
-                '취소',
-                style: TextStyle(fontSize: 15.sp, color: Colors.grey[700]),
-              ),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveChanges,
               style: ElevatedButton.styleFrom(
@@ -441,6 +418,29 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
                       ),
                     )
                   : Text('저장', style: TextStyle(fontSize: 15.sp)),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  context.go('/chat');
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.grey),
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              child: Text(
+                '취소',
+                style: TextStyle(fontSize: 15.sp, color: Colors.grey[700]),
+              ),
             ),
           ),
         ],
