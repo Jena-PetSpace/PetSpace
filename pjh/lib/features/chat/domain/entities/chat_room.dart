@@ -53,9 +53,10 @@ class ChatRoom extends Equatable {
     return other?.displayName ?? '알 수 없는 사용자';
   }
 
-  /// 표시용 아바타 URL
+  /// 표시용 아바타 URL (커스텀 사진 > 상대방 사진)
   String? displayAvatarUrl(String currentUserId) {
-    if (type == ChatRoomType.group) return avatarUrl;
+    if (avatarUrl != null && avatarUrl!.isNotEmpty) return avatarUrl;
+    if (type == ChatRoomType.group) return null;
     final other = getOtherParticipant(currentUserId);
     return other?.photoUrl;
   }
