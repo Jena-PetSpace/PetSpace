@@ -179,32 +179,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     );
     if (pickedFile == null) return;
 
-    // 미리보기 확인 다이얼로그
     final file = File(pickedFile.path);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('채팅방 사진 변경'),
-        content: ClipRRect(
-          borderRadius: BorderRadius.circular(12.r),
-          child:
-              Image.file(file, width: 200.w, height: 200.w, fit: BoxFit.cover),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('확인'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
     setState(() => _isSaving = true);
 
     try {
