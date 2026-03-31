@@ -251,25 +251,6 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                   'type': 'system',
                 });
 
-                // 채팅방 이름에서 나간 사람 제거
-                final roomResponse = await supabase
-                    .from('chat_rooms')
-                    .select('name')
-                    .eq('id', room.id)
-                    .maybeSingle();
-                final currentName = roomResponse?['name'] as String?;
-                if (currentName != null && currentName.contains(myName)) {
-                  final updatedName = currentName
-                      .split(', ')
-                      .where((n) => n.trim() != myName)
-                      .join(', ');
-                  if (updatedName.isNotEmpty) {
-                    await supabase
-                        .from('chat_rooms')
-                        .update({'name': updatedName}).eq('id', room.id);
-                  }
-                }
-
                 if (mounted) {
                   context.read<ChatRoomsBloc>().add(
                         ChatRoomsLoadRequested(userId: _currentUserId),
