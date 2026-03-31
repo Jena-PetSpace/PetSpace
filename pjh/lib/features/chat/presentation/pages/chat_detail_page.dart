@@ -62,6 +62,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             );
         // 참여자 로드
         _loadParticipants();
+        // DB에서 최신 방 이름 로드
+        _refreshRoomName();
         // 실시간 구독
         _subscribeToMessages();
       }
