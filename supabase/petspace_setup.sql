@@ -796,6 +796,20 @@ BEGIN
 END;
 $$;
 
+-- 계정 삭제 (auth.users + public.users 모두 삭제)
+-- SECURITY DEFINER로 실행되어 auth.users 삭제 가능
+CREATE OR REPLACE FUNCTION delete_user_account()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    -- public.users 삭제 (CASCADE로 연관 데이터 자동 삭제)
+    DELETE FROM public.users WHERE id = auth.uid();
+    -- auth.users 삭제
+    DELETE FROM auth.users WHERE id = auth.uid();
+END;
+$$;
+
 -- 게시물 soft delete 헬퍼
 CREATE OR REPLACE FUNCTION soft_delete_post(post_uuid UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER

@@ -550,8 +550,9 @@ class AuthRepositoryImpl implements AuthRepository {
         // Storage 파일 정리 (각 폴더별 try-catch로 하나가 실패해도 나머지 진행)
         await _cleanupUserStorageFiles(user.id);
 
-        await supabaseClient.from('users').delete().eq('id', user.id);
-        await supabaseClient.auth.admin.deleteUser(user.id);
+        // RPC로 auth.users + public.users 모두 삭제
+        await supabaseClient.rpc('delete_user_account');
+        await supabaseClient.auth.signOut();
       }
       return const Right(null);
     } on AuthException catch (e) {
