@@ -2,9 +2,11 @@ import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/domain/entities/post.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 import '../../../../shared/widgets/section_header.dart';
 
 class MagazineGrid extends StatefulWidget {
@@ -15,7 +17,7 @@ class MagazineGrid extends StatefulWidget {
 }
 
 class _MagazineGridState extends State<MagazineGrid> {
-  List<Map<String, dynamic>> _posts = [];
+  List<Post> _posts = [];
   bool _loading = true;
 
   @override
@@ -26,24 +28,22 @@ class _MagazineGridState extends State<MagazineGrid> {
 
   Future<void> _loadPosts() async {
     try {
-      final supabase = Supabase.instance.client;
-      final response = await supabase
-          .from('posts')
-          .select(
-              'id, caption, hashtags, likes_count, comments_count, created_at')
-          .isFilter('deleted_at', null)
-          .contains('hashtags', ['magazine'])
-          .order('created_at', ascending: false)
-          .limit(4);
-
-      if (mounted) {
-        setState(() {
-          _posts = List<Map<String, dynamic>>.from(response);
-          _loading = false;
-        });
-      }
+      final repo = di.sl<SocialRepository>();
+      final result = await repo.searchPostsByHashtag(hashtag: 'magazine', limit: 4);
+      result.fold(
+        (failure) {
+          dev.log('매거진 로드 실패: \${failure.message}', name: 'MagazineGrid');
+          if (mounted) setState(() => _loading = false);
+        },
+        (posts) {
+          if (mounted) setState(() {
+            _posts = posts;
+            _loading = false;
+          });
+        },
+      );
     } catch (e) {
-      dev.log('매거진 로드 실패: $e', name: 'MagazineGrid');
+      dev.log('매거진 오류: \$e', name: 'MagazineGrid');
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -84,14 +84,14 @@ class _MagazineGridState extends State<MagazineGrid> {
               mainAxisSpacing: 12.h,
               childAspectRatio: 0.85,
               children: _posts.map((post) {
-                final hashtags = List<String>.from(post['hashtags'] ?? []);
+                final hashtags = post.hashtags;
                 final tag = _getTag(hashtags);
                 return _buildMagazineItem(
                   context: context,
-                  postId: post['id'] as String,
+                  postId: post.id,
                   tag: tag['label']!,
                   tagColor: _getTagColor(tag['label']!),
-                  title: post['caption'] as String? ?? '',
+                  title: post.content ?? '',
                 );
               }).toList(),
             ),

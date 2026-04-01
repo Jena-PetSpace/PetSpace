@@ -2,9 +2,11 @@ import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/domain/entities/post.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 import '../../../../shared/widgets/section_header.dart';
 
 class CommunityPreview extends StatefulWidget {
@@ -17,7 +19,7 @@ class CommunityPreview extends StatefulWidget {
 }
 
 class _CommunityPreviewState extends State<CommunityPreview> {
-  List<Map<String, dynamic>> _posts = [];
+  List<Post> _posts = [];
   bool _loading = true;
 
   @override
@@ -37,28 +39,25 @@ class _CommunityPreviewState extends State<CommunityPreview> {
   Future<void> _loadPosts() async {
     setState(() => _loading = true);
     try {
-      final supabase = Supabase.instance.client;
-      var query = supabase
-          .from('posts')
-          .select(
-              'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
-          .isFilter('deleted_at', null);
+      final repo = di.sl<SocialRepository>();
+      final result = widget.category != null
+          ? await repo.searchPostsByHashtag(hashtag: widget.category!, limit: 3)
+          : await repo.getFeed(limit: 3);
 
-      if (widget.category != null) {
-        query = query.contains('hashtags', [widget.category!]);
-      }
-
-      final response =
-          await query.order('created_at', ascending: false).limit(3);
-
-      if (mounted) {
-        setState(() {
-          _posts = List<Map<String, dynamic>>.from(response);
-          _loading = false;
-        });
-      }
+      result.fold(
+        (failure) {
+          dev.log('커뮤니티 프리뷰 로드 실패: \${failure.message}', name: 'CommunityPreview');
+          if (mounted) setState(() => _loading = false);
+        },
+        (posts) {
+          if (mounted) setState(() {
+            _posts = posts;
+            _loading = false;
+          });
+        },
+      );
     } catch (e) {
-      dev.log('커뮤니티 프리뷰 로드 실패: $e', name: 'CommunityPreview');
+      dev.log('커뮤니티 프리뷰 오류: \$e', name: 'CommunityPreview');
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -114,18 +113,17 @@ class _CommunityPreviewState extends State<CommunityPreview> {
             ..._posts.asMap().entries.map((entry) {
               final index = entry.key;
               final post = entry.value;
-              final user = post['users'] as Map<String, dynamic>?;
               return Column(
                 children: [
                   if (index > 0) SizedBox(height: 10.h),
                   _buildPreviewItem(
                     context: context,
-                    postId: post['id'] as String,
-                    author: user?['display_name'] as String? ?? '관리자',
-                    content: post['caption'] as String? ?? '',
-                    likes: post['likes_count'] as int? ?? 0,
-                    comments: post['comments_count'] as int? ?? 0,
-                    timeAgo: _timeAgo(post['created_at'] as String? ?? ''),
+                    postId: post.id,
+                    author: post.authorName,
+                    content: post.content ?? '',
+                    likes: post.likesCount,
+                    comments: post.commentsCount,
+                    timeAgo: _timeAgo(post.createdAt.toIso8601String()),
                   ),
                 ],
               );
