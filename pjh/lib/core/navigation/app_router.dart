@@ -53,6 +53,9 @@ import '../../features/chat/presentation/pages/create_chat_page.dart';
 import '../../features/chat/presentation/pages/chat_room_settings_page.dart';
 import '../../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
+import '../../features/profile/presentation/pages/notification_settings_page.dart';
+import '../../features/profile/presentation/pages/privacy_settings_page.dart';
+import '../../features/profile/presentation/pages/help_page.dart';
 import '../../main_navigation.dart';
 import 'auth_guard.dart';
 
@@ -285,6 +288,21 @@ class AppRouter {
               path: '/settings',
               name: 'settings-direct',
               builder: (context, state) => const SettingsPage(),
+            ),
+            GoRoute(
+              path: '/settings/notification',
+              name: 'notification-settings',
+              builder: (context, state) => const NotificationSettingsPage(),
+            ),
+            GoRoute(
+              path: '/settings/privacy',
+              name: 'privacy-settings',
+              builder: (context, state) => const PrivacySettingsPage(),
+            ),
+            GoRoute(
+              path: '/settings/help',
+              name: 'help-settings',
+              builder: (context, state) => const HelpPage(),
             ),
             GoRoute(
               path: '/user-profile/:userId',
@@ -520,7 +538,7 @@ class AppRouter {
       // GoRouter 자체 navigatorKey 활용
       di.sl<FCMService>().navigatorKey = router.routerDelegate.navigatorKey;
     } catch (e) {
-      debugPrint('[AppRouter] FCMService navigatorKey 설정 실패: $e');
+      log('[AppRouter] FCMService navigatorKey 설정 실패: $e', name: 'AppRouter');
     }
 
     return router;

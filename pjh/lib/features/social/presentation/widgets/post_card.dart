@@ -2,6 +2,7 @@ import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_viewer_page.dart';
@@ -614,10 +615,32 @@ class _PostCardState extends State<PostCard> {
                   content: Text('${post.authorName}님을 차단했습니다.'),
                   backgroundColor: Colors.red,
                   action: SnackBarAction(
-                    label: '취소',
+                    label: '차단 해제',
                     textColor: Colors.white,
-                    onPressed: () {
-                      // TODO: unblock user
+                    onPressed: () async {
+                      try {
+                        await Supabase.instance.client
+                            .from('user_blocks')
+                            .delete()
+                            .eq('blocker_id', currentUserId)
+                            .eq('blocked_id', post.authorId);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${post.authorName}님의 차단이 해제되었습니다.'),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        dev.log('차단 해제 실패: $e', name: 'PostCard');
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('차단 해제에 실패했습니다.'),
+                            ),
+                          );
+                        }
+                      }
                     },
                   ),
                 ),

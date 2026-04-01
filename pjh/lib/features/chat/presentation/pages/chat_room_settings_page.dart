@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -87,7 +88,9 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           }
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      log('[ChatRoomSettings] 채팅방 정보 로드 실패: $e', name: 'ChatRoomSettings');
+    }
   }
 
   Future<void> _loadParticipants() async {
@@ -118,7 +121,9 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           }).toList();
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      log('[ChatRoomSettings] 참여자 로드 실패: $e', name: 'ChatRoomSettings');
+    }
   }
 
   Future<void> _loadNotificationSetting() async {

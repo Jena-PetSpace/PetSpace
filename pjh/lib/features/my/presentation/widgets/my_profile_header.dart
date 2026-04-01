@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/presentation/pages/followers_page.dart';
 
 class MyProfileHeader extends StatefulWidget {
   final dynamic user;
@@ -104,9 +105,15 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
                 children: [
                   _buildStat('게시글', '$posts'),
                   _buildDivider(),
-                  _buildStat('팔로워', '$followers'),
+                  GestureDetector(
+                    onTap: () => _navigateToFollowers(context, 0),
+                    child: _buildStat('팔로워', '$followers'),
+                  ),
                   _buildDivider(),
-                  _buildStat('팔로잉', '$following'),
+                  GestureDetector(
+                    onTap: () => _navigateToFollowers(context, 1),
+                    child: _buildStat('팔로잉', '$following'),
+                  ),
                 ],
               );
             },
@@ -136,6 +143,20 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
           ),
         ),
       ],
+    );
+  }
+
+  void _navigateToFollowers(BuildContext context, int initialTab) {
+    final userId = widget.user.uid as String? ?? '';
+    final userName = (widget.user.displayName as String?) ?? '사용자';
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FollowersPage(
+          userId: userId,
+          userName: userName,
+        ),
+      ),
     );
   }
 

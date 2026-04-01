@@ -46,7 +46,7 @@ class MyMenuList extends StatelessWidget {
             context,
             emoji: '\uD83D\uDD14',
             label: '알림 설정',
-            onTap: () => context.push('/notifications'),
+            onTap: () => context.push('/settings/notification'),
           ),
           _buildDivider(),
           _buildMenuItem(

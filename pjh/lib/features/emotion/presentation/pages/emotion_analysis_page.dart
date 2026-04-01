@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -343,7 +344,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         final pet = pets.firstWhere((p) => p.id == widget.initialPetId);
         setState(() => _selectedPet = pet);
       } catch (e) {
-        debugPrint('[EmotionAnalysis] 초기 펫 선택 실패: $e');
+        log('[EmotionAnalysis] 초기 펫 선택 실패: $e', name: 'EmotionAnalysis');
       }
     }
   }

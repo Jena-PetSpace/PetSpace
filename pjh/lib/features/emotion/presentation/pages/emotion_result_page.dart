@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -119,7 +120,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
         },
       );
     } catch (e) {
-      debugPrint('[EmotionResult] 이전 분석 로딩 실패: $e');
+      log('[EmotionResult] 이전 분석 로딩 실패: $e', name: 'EmotionResult');
       _fullHistory = [widget.analysis];
     }
     if (mounted) setState(() => _historyLoaded = true);
@@ -150,7 +151,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
         }
       });
     } catch (e) {
-      debugPrint('[EmotionResult] 다른 펫 분석 로딩 실패: $e');
+      log('[EmotionResult] 다른 펫 분석 로딩 실패: $e', name: 'EmotionResult');
     }
   }
 
@@ -171,7 +172,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
         });
       });
     } catch (e) {
-      debugPrint('[EmotionResult] 품종 평균 로딩 실패: $e');
+      log('[EmotionResult] 품종 평균 로딩 실패: $e', name: 'EmotionResult');
     }
   }
 

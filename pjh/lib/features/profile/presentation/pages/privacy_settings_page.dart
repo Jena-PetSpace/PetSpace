@@ -72,30 +72,6 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
               _saveSetting('privacy_search_by_email', value);
             },
           ),
-          const Divider(),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            child: Text(
-              '데이터 관리',
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
-              ),
-            ),
-          ),
-          ListTile(
-            leading: Icon(Icons.download, size: 24.w),
-            title: Text('내 데이터 다운로드', style: TextStyle(fontSize: 14.sp)),
-            subtitle: Text('게시물, 댓글 등 내 데이터를 다운로드합니다',
-                style: TextStyle(fontSize: 12.sp)),
-            trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('데이터 다운로드 기능은 준비 중입니다')),
-              );
-            },
-          ),
         ],
       ),
     );

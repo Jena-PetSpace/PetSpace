@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../config/app_config.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import 'notification_settings_page.dart';
-import 'privacy_settings_page.dart';
-import 'help_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -154,29 +152,19 @@ class SettingsPage extends StatelessWidget {
             leading: Icon(Icons.notifications, size: 24.w),
             title: Text('알림 설정', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const NotificationSettingsPage()),
-            ),
+            onTap: () => context.push('/settings/notification'),
           ),
           ListTile(
             leading: Icon(Icons.privacy_tip, size: 24.w),
             title: Text('개인정보 보호', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PrivacySettingsPage()),
-            ),
+            onTap: () => context.push('/settings/privacy'),
           ),
           ListTile(
             leading: Icon(Icons.help, size: 24.w),
             title: Text('도움말', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const HelpPage()),
-            ),
+            onTap: () => context.push('/settings/help'),
           ),
           ListTile(
             leading: Icon(Icons.info_outline, size: 24.w),
@@ -186,7 +174,7 @@ class SettingsPage extends StatelessWidget {
               showAboutDialog(
                 context: context,
                 applicationName: '펫페이스',
-                applicationVersion: '1.0.0',
+                applicationVersion: AppConfig.appVersion,
                 applicationLegalese: '© 2026 PetSpace',
               );
             },

@@ -434,7 +434,9 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
     if (value is String) {
       try {
         return double.parse(value).clamp(0.0, 1.0);
-      } catch (_) {}
+      } catch (e) {
+        log('Failed to parse double from "$value": $e', name: 'GeminiAiService');
+      }
     }
     return defaultValue;
   }
@@ -444,7 +446,9 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
     if (value is String) {
       try {
         return int.parse(value).clamp(0, 100);
-      } catch (_) {}
+      } catch (e) {
+        log('Failed to parse int from "$value": $e', name: 'GeminiAiService');
+      }
     }
     return defaultValue;
   }

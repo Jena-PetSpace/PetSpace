@@ -33,6 +33,8 @@ class _FeedHubPageState extends State<FeedHubPage>
     {'label': 'Q&A', 'value': 'qa'},
     {'label': '건강', 'value': 'health'},
     {'label': '훈련', 'value': 'training'},
+    {'label': '먹거리', 'value': 'food'},
+    {'label': '생활', 'value': 'life'},
     {'label': '매거진', 'value': 'magazine'},
   ];
 
@@ -278,6 +280,8 @@ class _FeedHubPageState extends State<FeedHubPage>
       if (tag == 'qa') return 'Q&A';
       if (tag == 'health') return '건강';
       if (tag == 'training') return '훈련';
+      if (tag == 'food') return '먹거리';
+      if (tag == 'life') return '생활';
       if (tag == 'magazine') return '매거진';
     }
     return '';

@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -355,7 +356,7 @@ class _ProfilePageState extends State<ProfilePage>
             .eq('follower_id', widget.userId);
       }
     } catch (e) {
-      debugPrint('팔로우 데이터 로드 실패: $e');
+      log('팔로우 데이터 로드 실패: $e', name: 'ProfilePage');
       return [];
     }
   }

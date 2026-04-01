@@ -9,43 +9,7 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../../../core/services/image_upload_service.dart';
 import '../../../../config/injection_container.dart' as di;
 import '../../domain/entities/pet.dart';
-
-// 품종 데이터
-const Map<PetType, List<String>> petBreeds = {
-  PetType.dog: [
-    '골든 리트리버',
-    '래브라도 리트리버',
-    '비글',
-    '시바견',
-    '진돗개',
-    '포메라니안',
-    '말티즈',
-    '푸들',
-    '치와와',
-    '요크셔테리어',
-    '시츄',
-    '웰시코기',
-    '보더콜리',
-    '허스키',
-    '사모예드',
-    '기타',
-  ],
-  PetType.cat: [
-    '코리안 숏헤어',
-    '페르시안',
-    '러시안 블루',
-    '브리티시 숏헤어',
-    '스코티시 폴드',
-    '아메리칸 숏헤어',
-    '샴',
-    '뱅갈',
-    '메인쿤',
-    '노르웨이 숲',
-    '랙돌',
-    '터키시 앙고라',
-    '기타',
-  ],
-};
+import '../../../../shared/constants/pet_constants.dart';
 
 class AddPetBottomSheet extends StatefulWidget {
   final Pet? pet; // null이면 추가, 있으면 수정

@@ -1,7 +1,6 @@
 class AppConstants {
   // 앱 정보
   static const String appName = '펫페이스';
-  static const String appVersion = '1.0.0';
 
   // API & 네트워크
   static const String baseUrl = 'https://api.meong-nyang-diary.com';
