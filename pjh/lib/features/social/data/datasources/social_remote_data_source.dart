@@ -25,8 +25,8 @@ abstract class SocialRemoteDataSource {
   Future<Post> createPost(Post post, List<File> images);
   Future<Post> getPost(String postId);
   Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId);
-  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId);
-  Future<List<Post>> getExplorePosts(int limit, String? lastPostId);
+  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt});
+  Future<List<Post>> getExplorePosts(int limit, String? lastPostId, {DateTime? lastCreatedAt});
   Future<Post> updatePost(Post post);
   Future<void> deletePost(String postId);
 
@@ -333,7 +333,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
   @override
   Future<List<Post>> getUserPosts(
-      String userId, int limit, String? lastPostId) async {
+      String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt}) async {
     try {
       _logger.debug('Getting user posts: $userId', tag: 'SocialDataSource');
 
@@ -342,14 +342,15 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             users!posts_author_id_fkey(id, display_name, photo_url)
           ''').eq('author_id', userId);
 
-      if (lastPostId != null) {
+      if (lastCreatedAt != null) {
+        query = query.lt('created_at', lastCreatedAt.toIso8601String());
+      } else if (lastPostId != null) {
         final lastPost = await supabaseClient
-            .from('posts')
-            .select('created_at')
-            .eq('id', lastPostId)
-            .single();
-
-        query = query.lt('created_at', lastPost['created_at']);
+            .from('posts').select('created_at')
+            .eq('id', lastPostId).maybeSingle();
+        if (lastPost != null) {
+          query = query.lt('created_at', lastPost['created_at']);
+        }
       }
 
       final response =
@@ -396,13 +397,14 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             '(${blockedIds.map((id) => "'$id'").join(',')})');
       }
 
-      // cursor 페이지네이션
-      if (lastPostId != null) {
+      // cursor 페이지네이션 (extra 쿼리 없이 lastCreatedAt 직접 사용)
+      if (lastCreatedAt != null) {
+        query = query.lt('created_at', lastCreatedAt.toIso8601String());
+      } else if (lastPostId != null) {
+        // fallback: lastCreatedAt 없을 때만 extra 쿼리
         final lastPost = await supabaseClient
-            .from('posts')
-            .select('created_at')
-            .eq('id', lastPostId)
-            .maybeSingle();
+            .from('posts').select('created_at')
+            .eq('id', lastPostId).maybeSingle();
         if (lastPost != null) {
           query = query.lt('created_at', lastPost['created_at']);
         }
@@ -424,7 +426,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   }
 
   @override
-  Future<List<Post>> getExplorePosts(int limit, String? lastPostId) async {
+  Future<List<Post>> getExplorePosts(int limit, String? lastPostId, {DateTime? lastCreatedAt}) async {
     try {
       _logger.debug('Getting explore posts', tag: 'SocialDataSource');
 
@@ -433,14 +435,15 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             users!posts_author_id_fkey(id, display_name, photo_url)
           ''');
 
-      if (lastPostId != null) {
+      if (lastCreatedAt != null) {
+        query = query.lt('created_at', lastCreatedAt.toIso8601String());
+      } else if (lastPostId != null) {
         final lastPost = await supabaseClient
-            .from('posts')
-            .select('created_at')
-            .eq('id', lastPostId)
-            .single();
-
-        query = query.lt('created_at', lastPost['created_at']);
+            .from('posts').select('created_at')
+            .eq('id', lastPostId).maybeSingle();
+        if (lastPost != null) {
+          query = query.lt('created_at', lastPost['created_at']);
+        }
       }
 
       final response = await query

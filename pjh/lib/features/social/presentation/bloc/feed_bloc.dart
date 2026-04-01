@@ -125,8 +125,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
       final result = await _getFeed(GetFeedParams(
         userId: event.userId,
         limit: 20,
-        lastPostId:
-            currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
+        lastPostId: currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
+        lastCreatedAt: currentState.posts.isNotEmpty ? currentState.posts.last.createdAt : null,
         followingOnly: event.followingOnly,
       ));
 
