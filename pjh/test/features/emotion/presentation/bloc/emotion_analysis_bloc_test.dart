@@ -126,7 +126,8 @@ void main() {
             (_) async => const Left(ServerFailure(message: 'AI 서버 오류')));
         return bloc;
       },
-      act: (b) => b.add(const AnalyzeEmotionRequested(imagePaths: ['/tmp/img.jpg'])),
+      act: (b) =>
+          b.add(const AnalyzeEmotionRequested(imagePaths: ['/tmp/img.jpg'])),
       expect: () => [
         isA<EmotionAnalysisLoading>(),
         isA<EmotionAnalysisError>()
@@ -230,7 +231,8 @@ void main() {
             .thenAnswer((_) async => const Right(null));
         return bloc;
       },
-      act: (b) => b.add(const DeleteAnalysisRequested(analysisId: 'analysis-001')),
+      act: (b) =>
+          b.add(const DeleteAnalysisRequested(analysisId: 'analysis-001')),
       expect: () => [
         isA<EmotionAnalysisDeleted>(),
       ],
@@ -243,7 +245,8 @@ void main() {
             (_) async => const Left(DatabaseFailure(message: '삭제 실패')));
         return bloc;
       },
-      act: (b) => b.add(const DeleteAnalysisRequested(analysisId: 'analysis-001')),
+      act: (b) =>
+          b.add(const DeleteAnalysisRequested(analysisId: 'analysis-001')),
       expect: () => [isA<EmotionAnalysisError>()],
     );
   });

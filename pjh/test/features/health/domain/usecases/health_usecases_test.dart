@@ -126,7 +126,8 @@ void main() {
           .thenAnswer((_) async => const Right(null));
 
       final uc = DeleteHealthRecord(repo);
-      final result = await uc(const DeleteHealthRecordParams(recordId: 'record-001'));
+      final result =
+          await uc(const DeleteHealthRecordParams(recordId: 'record-001'));
 
       expect(result.isRight(), true);
       verify(() => repo.deleteHealthRecord('record-001')).called(1);
@@ -137,7 +138,8 @@ void main() {
           .thenAnswer((_) async => const Left(ServerFailure(message: '삭제 실패')));
 
       final uc = DeleteHealthRecord(repo);
-      final result = await uc(const DeleteHealthRecordParams(recordId: 'record-001'));
+      final result =
+          await uc(const DeleteHealthRecordParams(recordId: 'record-001'));
 
       expect(result.isLeft(), true);
     });
@@ -152,7 +154,8 @@ void main() {
           )).thenAnswer((_) async => Right([_tRecord]));
 
       final uc = GetUpcomingRecords(repo);
-      final result = await uc(const GetUpcomingRecordsParams(userId: 'user-001'));
+      final result =
+          await uc(const GetUpcomingRecordsParams(userId: 'user-001'));
 
       expect(result.isRight(), true);
       verify(() => repo.getUpcomingRecords(userId: 'user-001', daysAhead: 30))
@@ -166,7 +169,8 @@ void main() {
           )).thenAnswer((_) async => const Right([]));
 
       final uc = GetUpcomingRecords(repo);
-      final result = await uc(const GetUpcomingRecordsParams(userId: 'user-001'));
+      final result =
+          await uc(const GetUpcomingRecordsParams(userId: 'user-001'));
 
       result.fold((f) => fail('fail'), (list) => expect(list, isEmpty));
     });

@@ -289,10 +289,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       TextStyle(fontSize: 14.sp, color: AppTheme.hintColor),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24.r),
-                      borderSide: const BorderSide(color: AppTheme.dividerColor)),
+                      borderSide:
+                          const BorderSide(color: AppTheme.dividerColor)),
                   enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24.r),
-                      borderSide: const BorderSide(color: AppTheme.dividerColor)),
+                      borderSide:
+                          const BorderSide(color: AppTheme.dividerColor)),
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24.r),
                       borderSide:
