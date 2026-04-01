@@ -40,6 +40,7 @@ import '../../features/onboarding/presentation/pages/onboarding_pet_registration
 import '../../features/onboarding/presentation/pages/onboarding_tutorial_page.dart';
 import '../../features/onboarding/presentation/pages/splash_page.dart';
 import '../../features/profile/presentation/pages/privacy_policy_page.dart';
+import '../../features/emotion/presentation/pages/emotion_calendar_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
 import '../../features/auth/presentation/pages/kakao_consent_page.dart';
@@ -68,6 +69,10 @@ class AppRouter {
       initialLocation: '/splash',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       routes: [
+        GoRoute(
+          path: '/emotion/calendar',
+          builder: (context, state) => const EmotionCalendarPage(),
+        ),
         GoRoute(
           path: '/privacy',
           builder: (context, state) => const PrivacyPolicyPage(),

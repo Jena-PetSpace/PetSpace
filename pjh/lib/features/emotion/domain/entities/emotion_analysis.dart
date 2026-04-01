@@ -5,6 +5,7 @@ class EmotionAnalysis extends Equatable {
   final String id;
   final String userId;
   final String? petId;
+  final String? petName;
   final String imageUrl;
   final String localImagePath;
   final EmotionScores emotions;
@@ -17,6 +18,7 @@ class EmotionAnalysis extends Equatable {
     required this.id,
     required this.userId,
     this.petId,
+    this.petName,
     required this.imageUrl,
     required this.localImagePath,
     required this.emotions,
@@ -31,6 +33,7 @@ class EmotionAnalysis extends Equatable {
       id: '',
       userId: '',
       petId: '',
+      petName: null,
       imageUrl: '',
       localImagePath: '',
       emotions: const EmotionScores(
@@ -51,6 +54,7 @@ class EmotionAnalysis extends Equatable {
       id: json['id'] as String? ?? '',
       userId: json['user_id'] as String? ?? '',
       petId: json['pet_id'] as String? ?? '',
+      petName: json['pet_name'] as String?,
       imageUrl: json['image_url'] as String? ?? '',
       localImagePath: json['local_image_path'] as String? ?? '',
       emotions: json['emotions'] != null
@@ -76,6 +80,7 @@ class EmotionAnalysis extends Equatable {
       'id': id,
       'user_id': userId,
       'pet_id': petId,
+      'pet_name': petName,
       'image_url': imageUrl,
       'local_image_path': localImagePath,
       'emotions': emotions.toJson(),
@@ -90,6 +95,7 @@ class EmotionAnalysis extends Equatable {
     String? id,
     String? userId,
     String? petId,
+    String? petName,
     String? imageUrl,
     String? localImagePath,
     EmotionScores? emotions,
@@ -102,6 +108,7 @@ class EmotionAnalysis extends Equatable {
       id: id ?? this.id,
       userId: userId ?? this.userId,
       petId: petId ?? this.petId,
+      petName: petName ?? this.petName,
       imageUrl: imageUrl ?? this.imageUrl,
       localImagePath: localImagePath ?? this.localImagePath,
       emotions: emotions ?? this.emotions,
@@ -117,6 +124,7 @@ class EmotionAnalysis extends Equatable {
         id,
         userId,
         petId,
+        petName,
         imageUrl,
         localImagePath,
         emotions,

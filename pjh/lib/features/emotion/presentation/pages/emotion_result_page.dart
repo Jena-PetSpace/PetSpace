@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -18,6 +19,7 @@ import '../../data/services/emotion_diary_service.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/emotion_radar_chart.dart';
 import '../../../../core/services/image_upload_service.dart';
+import '../widgets/result/emotion_share_card.dart';
 
 part '../widgets/result/emotion_result_helpers.dart';
 part '../widgets/result/emotion_result_cards_a.dart';
@@ -613,36 +615,11 @@ class _EmotionResultPageState extends State<EmotionResultPage>
 
   Future<void> _shareResult() async {
     try {
-      final dominant = widget.analysis.emotions.dominantEmotion;
-      final value = _getEmotionValue(dominant);
-      final name = _getEmotionName(dominant);
-      final stress = widget.analysis.emotions.stressLevel;
-
-      final text = '''
-펫스페이스 AI 종합 분석 결과
-
-주요 감정: $name (${(value * 100).toInt()}%)
-스트레스 지수: $stress/100
-분석 시간: ${_formatDateTime(widget.analysis.analyzedAt)}
-
-기쁨: ${(widget.analysis.emotions.happiness * 100).toInt()}%
-슬픔: ${(widget.analysis.emotions.sadness * 100).toInt()}%
-불안: ${(widget.analysis.emotions.anxiety * 100).toInt()}%
-졸림: ${(widget.analysis.emotions.sleepiness * 100).toInt()}%
-호기심: ${(widget.analysis.emotions.curiosity * 100).toInt()}%
-
-#펫스페이스 #반려동물감정분석 #AI분석
-''';
-
-      if (widget.imagePaths.isNotEmpty) {
-        await Share.shareXFiles(
-          [XFile(widget.imagePaths.first)],
-          text: text,
-          subject: '반려동물 AI 종합 분석 결과',
-        );
-      } else {
-        await Share.share(text, subject: '반려동물 AI 종합 분석 결과');
-      }
+      await EmotionShareHelper.shareAsCard(
+        context,
+        analysis: widget.analysis,
+        petName: widget.analysis.petName,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
