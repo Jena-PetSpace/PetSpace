@@ -60,11 +60,7 @@ class _SplashPageState extends State<SplashPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.primaryColor,
-      body: BlocListener<AuthBloc, AuthState>(
-        listener: (context, state) {
-          // 인증 상태 변화 감지 (이미 로그인된 경우)
-        },
-        child: Center(
+      body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -79,6 +75,22 @@ class _SplashPageState extends State<SplashPage>
                     _controller
                       ..duration = composition.duration
                       ..forward();
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    // Lottie 오류 시 아이콘으로 fallback
+                    return Container(
+                      width: 120.w,
+                      height: 120.w,
+                      decoration: BoxDecoration(
+                        color: AppTheme.highlightColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.pets,
+                        size: 60.w,
+                        color: Colors.white,
+                      ),
+                    );
                   },
                   repeat: false,
                 ),
@@ -131,7 +143,6 @@ class _SplashPageState extends State<SplashPage>
               ),
             ],
           ),
-        ),
       ),
     );
   }

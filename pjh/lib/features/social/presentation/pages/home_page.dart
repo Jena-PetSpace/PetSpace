@@ -14,6 +14,7 @@ import '../../../emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../../emotion/presentation/bloc/emotion_analysis_event.dart';
 import '../../../home/presentation/widgets/home_dashboard_header.dart';
 import '../../../home/presentation/widgets/home_quick_actions.dart';
+import '../../../home/presentation/widgets/home_quest_card.dart';
 import '../../../home/presentation/widgets/category_filter_chips.dart';
 import '../../../home/presentation/widgets/hot_topic_banner.dart';
 import '../../../home/presentation/widgets/magazine_grid.dart';
@@ -99,6 +100,14 @@ class _HomePageState extends State<HomePage> {
               child: Padding(
                 padding: EdgeInsets.only(top: 16.h),
                 child: const HomeQuickActions(),
+              ),
+            ),
+
+            // ── 일일 퀘스트 카드 ─────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 16.h),
+                child: const HomeQuestCard(),
               ),
             ),
 

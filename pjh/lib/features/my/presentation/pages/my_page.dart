@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../widgets/my_profile_header.dart';
 import '../widgets/my_menu_list.dart';
+import '../widgets/user_badges_section.dart';
 
 class MyPage extends StatelessWidget {
   const MyPage({super.key});
@@ -37,6 +38,8 @@ class MyPage extends StatelessWidget {
               child: Column(
                 children: [
                   MyProfileHeader(user: state.user),
+                  SizedBox(height: 16.h),
+                  UserBadgesSection(userId: state.user.uid),
                   SizedBox(height: 16.h),
                   const MyMenuList(),
                 ],

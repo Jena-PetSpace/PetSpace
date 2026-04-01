@@ -125,9 +125,16 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
                       final dominant = events.first.emotions.dominantEmotion;
                       final emoji = _emotionEmoji[dominant] ?? '🐾';
                       return Positioned(
-                        bottom: 4,
-                        child: Text(emoji,
-                            style: TextStyle(fontSize: 11.sp)),
+                        bottom: 2,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(emoji, style: TextStyle(fontSize: 10.sp)),
+                            if (events.length > 1)
+                              Text('+${events.length - 1}',
+                                style: TextStyle(fontSize: 7.sp, color: AppTheme.highlightColor, fontWeight: FontWeight.w800)),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -144,6 +151,10 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
               ),
 
               // 선택된 날짜 분석 목록
+              // 월별 통계 요약
+              if (_selectedDay == null)
+                _buildMonthSummary(state),
+
               Expanded(
                 child: selectedAnalyses.isEmpty
                     ? _buildEmptyState()
@@ -166,6 +177,80 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
 
   DateTime _dateOnly(DateTime dt) =>
       DateTime(dt.year, dt.month, dt.day);
+
+  Widget _buildMonthSummary(EmotionAnalysisState state) {
+    if (state is! EmotionAnalysisHistoryLoaded) return const SizedBox.shrink();
+
+    final now = _focusedDay;
+    final thisMonth = state.history.where((a) =>
+        a.analyzedAt.year == now.year &&
+        a.analyzedAt.month == now.month).toList();
+
+    if (thisMonth.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        child: Container(
+          padding: EdgeInsets.all(14.w),
+          decoration: BoxDecoration(
+            color: AppTheme.subtleBackground,
+            borderRadius: BorderRadius.circular(14.r),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('📊', style: TextStyle(fontSize: 20.sp)),
+              SizedBox(width: 10.w),
+              Text('이번 달 분석 기록이 없어요',
+                style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 이번 달 주감정 집계
+    final emotionCount = <String, int>{};
+    for (final a in thisMonth) {
+      final d = a.emotions.dominantEmotion;
+      emotionCount[d] = (emotionCount[d] ?? 0) + 1;
+    }
+    final topEmotion = emotionCount.entries
+        .reduce((a, b) => a.value > b.value ? a : b).key;
+    final emoji = _emotionEmoji[topEmotion] ?? '🐾';
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
+      child: Container(
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
+        ),
+        child: Row(
+          children: [
+            Text(emoji, style: TextStyle(fontSize: 28.sp)),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${now.month}월 분석 요약',
+                    style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor),
+                  ),
+                  Text(
+                    '총 ${thisMonth.length}회 · 가장 많은 감정: ${_emotionName[topEmotion] ?? ''}',
+                    style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700, color: AppTheme.primaryTextColor),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildEmptyState() {
     if (_selectedDay == null) {
