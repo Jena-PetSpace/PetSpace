@@ -464,7 +464,7 @@ class _MyPostsPageState extends State<MyPostsPage>
                   ),
                   SizedBox(height: 3.h),
                   Text(
-                    '스트레스 ${stress}점 · $date',
+                    '스트레스 $stress점 · $date',
                     style: TextStyle(
                       fontSize: 11.sp,
                       color: AppTheme.secondaryTextColor,

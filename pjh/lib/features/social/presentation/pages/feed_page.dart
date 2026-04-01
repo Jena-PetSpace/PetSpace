@@ -30,8 +30,9 @@ class _FeedPageState extends State<FeedPage> {
   final ScrollController _scrollController = ScrollController();
 
   String? get _effectiveUserId {
-    if (widget.userId != null && widget.userId!.isNotEmpty)
+    if (widget.userId != null && widget.userId!.isNotEmpty) {
       return widget.userId;
+    }
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) return authState.user.id;
     return null;

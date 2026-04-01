@@ -163,7 +163,7 @@ void main() {
       act: (bloc) async {
         bloc.add(const LoadFeedRequested(userId: 'user-001'));
         await Future.delayed(const Duration(milliseconds: 50));
-        bloc.add(LikePostRequested(postId: 'post-001', userId: 'user-001'));
+        bloc.add(const LikePostRequested(postId: 'post-001', userId: 'user-001'));
       },
       verify: (bloc) {
         final state = bloc.state;
@@ -187,7 +187,7 @@ void main() {
       act: (bloc) async {
         bloc.add(const LoadFeedRequested(userId: 'user-001'));
         await Future.delayed(const Duration(milliseconds: 50));
-        bloc.add(LikePostRequested(postId: 'post-001', userId: 'user-001'));
+        bloc.add(const LikePostRequested(postId: 'post-001', userId: 'user-001'));
         await Future.delayed(const Duration(milliseconds: 50));
       },
       verify: (bloc) {
@@ -210,7 +210,7 @@ void main() {
         return _buildBloc(savePost: savePost);
       },
       act: (bloc) =>
-          bloc.add(SavePostRequested(postId: 'post-001', userId: 'user-001')),
+          bloc.add(const SavePostRequested(postId: 'post-001', userId: 'user-001')),
       expect: () => [isA<FeedPostSaved>()],
     );
 
@@ -223,7 +223,7 @@ void main() {
         return _buildBloc(savePost: savePost);
       },
       act: (bloc) =>
-          bloc.add(SavePostRequested(postId: 'post-001', userId: 'user-001')),
+          bloc.add(const SavePostRequested(postId: 'post-001', userId: 'user-001')),
       expect: () => [isA<FeedError>()],
     );
   });

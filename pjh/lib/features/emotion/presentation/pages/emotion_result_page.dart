@@ -342,8 +342,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
           borderRadius: BorderRadius.circular(16.r),
           gradient: LinearGradient(
             colors: [
-              emotionColor.withOpacity(0.15),
-              emotionColor.withOpacity(0.05),
+              emotionColor.withValues(alpha: 0.15),
+              emotionColor.withValues(alpha: 0.05),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -557,7 +557,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       }
     }
 
-    if (!mounted) return;
+    if (!ctx.mounted) return;
 
     final post = Post(
       id: '',
@@ -1789,8 +1789,9 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                             final otherVal =
                                 _getEmotionValueByKey(otherE, entry.key);
                             final diff = curVal - otherVal;
-                            if (diff.abs() < 0.05)
+                            if (diff.abs() < 0.05) {
                               return const SizedBox.shrink();
+                            }
                             return Padding(
                               padding: EdgeInsets.only(right: 8.w),
                               child: Text(

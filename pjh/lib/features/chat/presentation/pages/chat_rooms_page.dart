@@ -97,11 +97,10 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                     onTap: () async {
                       await context.push('/chat/${room.id}');
                       // 채팅방에서 돌아오면 목록 새로고침
-                      if (mounted) {
-                        context.read<ChatRoomsBloc>().add(
-                              ChatRoomsLoadRequested(userId: _currentUserId),
-                            );
-                      }
+                      if (!context.mounted) return;
+                      context.read<ChatRoomsBloc>().add(
+                            ChatRoomsLoadRequested(userId: _currentUserId),
+                          );
                     },
                     onLongPress: () => _showRoomOptions(context, room),
                   );
@@ -186,11 +185,10 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                   '/chat/${room.id}/settings?name=${Uri.encodeComponent(roomName)}',
                 );
                 // 설정에서 돌아오면 채팅 목록 새로고침
-                if (mounted) {
-                  context.read<ChatRoomsBloc>().add(
-                        ChatRoomsLoadRequested(userId: _currentUserId),
-                      );
-                }
+                if (!context.mounted) return;
+                context.read<ChatRoomsBloc>().add(
+                      ChatRoomsLoadRequested(userId: _currentUserId),
+                    );
               },
             ),
             ListTile(
@@ -251,26 +249,24 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                     .eq('room_id', room.id)
                     .eq('user_id', _currentUserId);
 
-                if (mounted) {
-                  context.read<ChatRoomsBloc>().add(
-                        ChatRoomsLoadRequested(userId: _currentUserId),
-                      );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('채팅방을 나갔습니다'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
+                if (!context.mounted) return;
+                context.read<ChatRoomsBloc>().add(
+                      ChatRoomsLoadRequested(userId: _currentUserId),
+                    );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('채팅방을 나갔습니다'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('오류: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('오류: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             child: Text(

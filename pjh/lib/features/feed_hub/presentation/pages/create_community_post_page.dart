@@ -94,7 +94,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
                 ? SizedBox(
                     width: 18.w,
                     height: 18.w,
-                    child: CircularProgressIndicator(
+                    child: const CircularProgressIndicator(
                         strokeWidth: 2, color: AppTheme.primaryColor))
                 : Text('등록',
                     style: TextStyle(
@@ -148,7 +148,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
               style: TextStyle(fontSize: 15.sp),
               decoration: InputDecoration(
                 hintText: '제목을 입력해주세요',
-                hintStyle: TextStyle(color: AppTheme.hintColor),
+                hintStyle: const TextStyle(color: AppTheme.hintColor),
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r)),
                 contentPadding:
@@ -168,7 +168,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
               style: TextStyle(fontSize: 14.sp),
               decoration: InputDecoration(
                 hintText: '내용을 입력해주세요',
-                hintStyle: TextStyle(color: AppTheme.hintColor),
+                hintStyle: const TextStyle(color: AppTheme.hintColor),
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r)),
                 contentPadding: EdgeInsets.all(14.w),

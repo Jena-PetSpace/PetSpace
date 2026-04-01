@@ -32,7 +32,7 @@ class EmotionTrendMiniChart extends StatelessWidget {
                         Container(
                           height: (values[index] * 80).h,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
+                            gradient: const LinearGradient(
                               begin: Alignment.bottomCenter,
                               end: Alignment.topCenter,
                               colors: [

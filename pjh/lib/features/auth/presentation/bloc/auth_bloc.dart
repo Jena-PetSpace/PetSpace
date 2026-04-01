@@ -55,7 +55,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
 
         // 그 외 실제 auth 에러 발생 시 이벤트로 처리 (emit 직접 호출 금지)
-        add(AuthUserChanged(null));
+        add(const AuthUserChanged(null));
       },
     );
   }

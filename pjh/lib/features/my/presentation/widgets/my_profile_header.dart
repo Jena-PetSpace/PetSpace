@@ -41,7 +41,7 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
           Container(
             width: 64.w,
             height: 64.w,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: AppTheme.primaryGradient,
             ),
@@ -74,7 +74,7 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
           OutlinedButton(
             onPressed: () => context.push('/profile/edit'),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AppTheme.primaryColor, width: 1),
+              side: const BorderSide(color: AppTheme.primaryColor, width: 1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20.r),
               ),

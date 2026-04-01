@@ -558,7 +558,9 @@ class _PostCardState extends State<PostCard> {
               ...reasons.map((reason) => RadioListTile<String>(
                     title: Text(reason, style: TextStyle(fontSize: 14.sp)),
                     value: reason,
+                    // ignore: deprecated_member_use
                     groupValue: selectedReason,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
                       setDialogState(() => selectedReason = value);
                     },

@@ -47,7 +47,7 @@ class HealthRepositoryImpl implements HealthRepository {
     } on PostgrestException catch (e) {
       return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
     } catch (e) {
-      return Left(
+      return const Left(
           GeneralFailure(message: ErrorMessages.healthRecordLoadFailed));
     }
   }

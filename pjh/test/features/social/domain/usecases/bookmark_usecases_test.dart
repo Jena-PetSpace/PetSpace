@@ -31,7 +31,7 @@ void main() {
           .thenAnswer((_) async => const Right(null));
 
       final uc = SavePost(repo);
-      final result = await uc(SavePostParams(
+      final result = await uc(const SavePostParams(
         postId: 'post-001',
         userId: 'user-001',
       ));
@@ -45,7 +45,7 @@ void main() {
           (_) async => const Left(NetworkFailure(message: '연결 오류')));
 
       final uc = SavePost(repo);
-      final result = await uc(SavePostParams(postId: 'p', userId: 'u'));
+      final result = await uc(const SavePostParams(postId: 'p', userId: 'u'));
 
       expect(result.isLeft(), true);
       result.fold(
@@ -62,7 +62,7 @@ void main() {
           .thenAnswer((_) async => const Right(null));
 
       final uc = UnsavePost(repo);
-      final result = await uc(UnsavePostParams(
+      final result = await uc(const UnsavePostParams(
         postId: 'post-001',
         userId: 'user-001',
       ));
@@ -76,7 +76,7 @@ void main() {
           .thenAnswer((_) async => const Left(ServerFailure(message: '서버 오류')));
 
       final uc = UnsavePost(repo);
-      final result = await uc(UnsavePostParams(postId: 'p', userId: 'u'));
+      final result = await uc(const UnsavePostParams(postId: 'p', userId: 'u'));
 
       expect(result.isLeft(), true);
     });
@@ -91,7 +91,7 @@ void main() {
           )).thenAnswer((_) async => Right([_tPost]));
 
       final uc = GetSavedPosts(repo);
-      final result = await uc(GetSavedPostsParams(userId: 'user-001'));
+      final result = await uc(const GetSavedPostsParams(userId: 'user-001'));
 
       result.fold(
         (f) => fail('Should not fail'),
@@ -109,7 +109,7 @@ void main() {
           )).thenAnswer((_) async => const Right([]));
 
       final uc = GetSavedPosts(repo);
-      final result = await uc(GetSavedPostsParams(userId: 'user-001'));
+      final result = await uc(const GetSavedPostsParams(userId: 'user-001'));
 
       result.fold((f) => fail('fail'), (list) => expect(list, isEmpty));
     });
@@ -121,7 +121,7 @@ void main() {
           )).thenAnswer((_) async => const Right([]));
 
       final uc = GetSavedPosts(repo);
-      await uc(GetSavedPostsParams(userId: 'user-001', limit: 10));
+      await uc(const GetSavedPostsParams(userId: 'user-001', limit: 10));
 
       verify(() => repo.getSavedPosts(userId: 'user-001', limit: 10)).called(1);
     });
@@ -134,7 +134,7 @@ void main() {
           .thenAnswer((_) async => const Left(ServerFailure(message: '서버 오류')));
 
       final uc = GetSavedPosts(repo);
-      final result = await uc(GetSavedPostsParams(userId: 'user-001'));
+      final result = await uc(const GetSavedPostsParams(userId: 'user-001'));
 
       expect(result.isLeft(), true);
     });

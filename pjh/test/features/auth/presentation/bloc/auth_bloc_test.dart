@@ -216,7 +216,7 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       'null → AuthUnauthenticated',
       build: () => bloc,
-      act: (b) => b.add(AuthUserChanged(null)),
+      act: (b) => b.add(const AuthUserChanged(null)),
       expect: () => [isA<AuthUnauthenticated>()],
     );
   });

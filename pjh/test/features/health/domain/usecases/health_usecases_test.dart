@@ -38,7 +38,7 @@ void main() {
           .thenAnswer((_) async => Right([_tRecord]));
 
       final uc = GetHealthRecords(repo);
-      final result = await uc(GetHealthRecordsParams(petId: 'pet-001'));
+      final result = await uc(const GetHealthRecordsParams(petId: 'pet-001'));
 
       expect(result, Right([_tRecord]));
       verify(() => repo.getHealthRecords(petId: 'pet-001', limit: 50))
@@ -53,7 +53,7 @@ void main() {
           (_) async => const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.')));
 
       final uc = GetHealthRecords(repo);
-      final result = await uc(GetHealthRecordsParams(petId: 'pet-001'));
+      final result = await uc(const GetHealthRecordsParams(petId: 'pet-001'));
 
       expect(result.isLeft(), true);
     });
@@ -66,7 +66,7 @@ void main() {
           )).thenAnswer((_) async => const Right([]));
 
       final uc = GetHealthRecords(repo);
-      await uc(GetHealthRecordsParams(
+      await uc(const GetHealthRecordsParams(
         petId: 'pet-001',
         type: HealthRecordType.vaccination,
       ));
@@ -126,7 +126,7 @@ void main() {
           .thenAnswer((_) async => const Right(null));
 
       final uc = DeleteHealthRecord(repo);
-      final result = await uc(DeleteHealthRecordParams(recordId: 'record-001'));
+      final result = await uc(const DeleteHealthRecordParams(recordId: 'record-001'));
 
       expect(result.isRight(), true);
       verify(() => repo.deleteHealthRecord('record-001')).called(1);
@@ -137,7 +137,7 @@ void main() {
           .thenAnswer((_) async => const Left(ServerFailure(message: '삭제 실패')));
 
       final uc = DeleteHealthRecord(repo);
-      final result = await uc(DeleteHealthRecordParams(recordId: 'record-001'));
+      final result = await uc(const DeleteHealthRecordParams(recordId: 'record-001'));
 
       expect(result.isLeft(), true);
     });
@@ -152,7 +152,7 @@ void main() {
           )).thenAnswer((_) async => Right([_tRecord]));
 
       final uc = GetUpcomingRecords(repo);
-      final result = await uc(GetUpcomingRecordsParams(userId: 'user-001'));
+      final result = await uc(const GetUpcomingRecordsParams(userId: 'user-001'));
 
       expect(result.isRight(), true);
       verify(() => repo.getUpcomingRecords(userId: 'user-001', daysAhead: 30))
@@ -166,7 +166,7 @@ void main() {
           )).thenAnswer((_) async => const Right([]));
 
       final uc = GetUpcomingRecords(repo);
-      final result = await uc(GetUpcomingRecordsParams(userId: 'user-001'));
+      final result = await uc(const GetUpcomingRecordsParams(userId: 'user-001'));
 
       result.fold((f) => fail('fail'), (list) => expect(list, isEmpty));
     });

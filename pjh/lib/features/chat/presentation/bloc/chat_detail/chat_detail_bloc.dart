@@ -54,7 +54,9 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     final currentState = state;
     if (currentState is! ChatDetailLoaded ||
         currentState.hasReachedMax ||
-        currentState.isLoadingMore) return;
+        currentState.isLoadingMore) {
+      return;
+    }
 
     emit(currentState.copyWith(isLoadingMore: true));
 

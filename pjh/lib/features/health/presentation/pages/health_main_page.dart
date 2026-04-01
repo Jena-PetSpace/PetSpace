@@ -634,8 +634,9 @@ class _HealthMainViewState extends State<_HealthMainView> {
                       firstDate: DateTime(2020),
                       lastDate: DateTime(2030),
                     );
-                    if (picked != null)
+                    if (picked != null) {
                       setSheetState(() => selectedDate = picked);
+                    }
                   },
                 ),
 

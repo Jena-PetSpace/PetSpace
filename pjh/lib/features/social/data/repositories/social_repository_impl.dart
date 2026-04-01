@@ -815,7 +815,7 @@ class SocialRepositoryImpl implements SocialRepository {
       });
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(
+      return const Left(ServerFailure(
           message: '${ErrorMessages.savePostFailed}: \${e.toString()}'));
     }
   }
@@ -833,7 +833,7 @@ class SocialRepositoryImpl implements SocialRepository {
           .eq('user_id', userId);
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(
+      return const Left(ServerFailure(
           message: '${ErrorMessages.unsavePostFailed}: \${e.toString()}'));
     }
   }
@@ -862,7 +862,7 @@ class SocialRepositoryImpl implements SocialRepository {
           .toList();
       return Right(posts);
     } catch (e) {
-      return Left(ServerFailure(
+      return const Left(ServerFailure(
           message: '${ErrorMessages.savedPostsLoadFailed}: \${e.toString()}'));
     }
   }

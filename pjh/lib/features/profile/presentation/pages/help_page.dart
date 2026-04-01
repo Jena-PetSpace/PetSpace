@@ -14,20 +14,20 @@ class HelpPage extends StatelessWidget {
       body: ListView(
         children: [
           _buildSection('자주 묻는 질문', [
-            _FaqItem(
+            const _FaqItem(
               question: '감정 분석은 어떻게 하나요?',
               answer: '홈 화면에서 "감정 분석" 버튼을 눌러 반려동물 사진을 촬영하거나 갤러리에서 선택하세요. '
                   'AI가 반려동물의 감정 상태를 분석해줍니다.',
             ),
-            _FaqItem(
+            const _FaqItem(
               question: '반려동물은 몇 마리까지 등록할 수 있나요?',
               answer: '현재 제한 없이 여러 마리의 반려동물을 등록할 수 있습니다.',
             ),
-            _FaqItem(
+            const _FaqItem(
               question: '게시물을 삭제하면 복구할 수 있나요?',
               answer: '삭제된 게시물은 복구할 수 없습니다. 삭제 전 확인 메시지를 꼭 확인해주세요.',
             ),
-            _FaqItem(
+            const _FaqItem(
               question: '다른 사용자를 차단하면 어떻게 되나요?',
               answer: '차단한 사용자는 내 게시물을 볼 수 없고, 메시지를 보낼 수 없습니다.',
             ),

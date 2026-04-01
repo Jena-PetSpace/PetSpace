@@ -48,11 +48,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
           .select('*, users!posts_author_id_fkey(id, display_name, photo_url)')
           .eq('id', widget.postId)
           .maybeSingle();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _post = res;
           _postLoading = false;
         });
+      }
     } catch (e) {
       dev.log('게시글 로드 실패: $e', name: 'PostDetailPage');
       if (mounted) setState(() => _postLoading = false);
@@ -159,10 +160,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 
   Widget _buildPostBody() {
-    if (_postLoading)
+    if (_postLoading) {
       return Padding(
           padding: EdgeInsets.all(24.w),
           child: const Center(child: CircularProgressIndicator()));
+    }
     if (_post == null) return const SizedBox.shrink();
 
     final user = _post!['users'] as Map<String, dynamic>?;
@@ -176,7 +178,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
     return Container(
       padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(bottom: BorderSide(color: AppTheme.dividerColor))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -287,10 +289,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       TextStyle(fontSize: 14.sp, color: AppTheme.hintColor),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24.r),
-                      borderSide: BorderSide(color: AppTheme.dividerColor)),
+                      borderSide: const BorderSide(color: AppTheme.dividerColor)),
                   enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24.r),
-                      borderSide: BorderSide(color: AppTheme.dividerColor)),
+                      borderSide: const BorderSide(color: AppTheme.dividerColor)),
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(24.r),
                       borderSide:

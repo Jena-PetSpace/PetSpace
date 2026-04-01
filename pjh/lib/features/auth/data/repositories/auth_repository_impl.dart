@@ -385,7 +385,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
       log('❌ [Kakao Login] Unknown Exception: ${e.toString()}',
           name: 'AuthRepository', stackTrace: stackTrace);
-      return Left(AuthFailure(message: '카카오 로그인 중 오류가 발생했습니다.'));
+      return const Left(AuthFailure(message: '카카오 로그인 중 오류가 발생했습니다.'));
     }
   }
 

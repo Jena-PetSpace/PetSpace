@@ -107,7 +107,7 @@ void main() {
             .thenAnswer((_) async => Right(_tAnalysis));
         return bloc;
       },
-      act: (b) => b.add(AnalyzeEmotionRequested(
+      act: (b) => b.add(const AnalyzeEmotionRequested(
         imagePaths: ['/tmp/img.jpg'],
         petId: 'pet-001',
       )),
@@ -126,7 +126,7 @@ void main() {
             (_) async => const Left(ServerFailure(message: 'AI 서버 오류')));
         return bloc;
       },
-      act: (b) => b.add(AnalyzeEmotionRequested(imagePaths: ['/tmp/img.jpg'])),
+      act: (b) => b.add(const AnalyzeEmotionRequested(imagePaths: ['/tmp/img.jpg'])),
       expect: () => [
         isA<EmotionAnalysisLoading>(),
         isA<EmotionAnalysisError>()
@@ -144,7 +144,7 @@ void main() {
         return bloc;
       },
       seed: () => EmotionAnalysisSuccess(_tAnalysis),
-      act: (b) => b.add(SaveAnalysisRequested(memo: '오늘도 행복한 몽이')),
+      act: (b) => b.add(const SaveAnalysisRequested(memo: '오늘도 행복한 몽이')),
       expect: () => [
         isA<EmotionAnalysisSaving>(),
         isA<EmotionAnalysisSaved>(),
@@ -155,7 +155,7 @@ void main() {
       '저장할 분석 없으면 Error emit',
       build: () => bloc,
       seed: () => EmotionAnalysisInitial(),
-      act: (b) => b.add(SaveAnalysisRequested()),
+      act: (b) => b.add(const SaveAnalysisRequested()),
       expect: () => [isA<EmotionAnalysisError>()],
     );
 
@@ -167,7 +167,7 @@ void main() {
         return bloc;
       },
       seed: () => EmotionAnalysisSuccess(_tAnalysis),
-      act: (b) => b.add(SaveAnalysisRequested()),
+      act: (b) => b.add(const SaveAnalysisRequested()),
       expect: () => [
         isA<EmotionAnalysisSaving>(),
         isA<EmotionAnalysisError>(),
@@ -184,7 +184,7 @@ void main() {
             .thenAnswer((_) async => Right([_tAnalysis]));
         return bloc;
       },
-      act: (b) => b.add(LoadAnalysisHistory(userId: 'user-001')),
+      act: (b) => b.add(const LoadAnalysisHistory(userId: 'user-001')),
       expect: () => [
         isA<EmotionAnalysisHistoryLoading>(),
         isA<EmotionAnalysisHistoryLoaded>()
@@ -198,7 +198,7 @@ void main() {
         when(() => mockHistory(any())).thenAnswer((_) async => const Right([]));
         return bloc;
       },
-      act: (b) => b.add(LoadAnalysisHistory(userId: 'user-001')),
+      act: (b) => b.add(const LoadAnalysisHistory(userId: 'user-001')),
       expect: () => [
         isA<EmotionAnalysisHistoryLoading>(),
         isA<EmotionAnalysisHistoryLoaded>()
@@ -213,7 +213,7 @@ void main() {
             (_) async => const Left(NetworkFailure(message: '네트워크 오류')));
         return bloc;
       },
-      act: (b) => b.add(LoadAnalysisHistory(userId: 'user-001')),
+      act: (b) => b.add(const LoadAnalysisHistory(userId: 'user-001')),
       expect: () => [
         isA<EmotionAnalysisHistoryLoading>(),
         isA<EmotionAnalysisError>(),
@@ -230,7 +230,7 @@ void main() {
             .thenAnswer((_) async => const Right(null));
         return bloc;
       },
-      act: (b) => b.add(DeleteAnalysisRequested(analysisId: 'analysis-001')),
+      act: (b) => b.add(const DeleteAnalysisRequested(analysisId: 'analysis-001')),
       expect: () => [
         isA<EmotionAnalysisDeleted>(),
       ],
@@ -243,7 +243,7 @@ void main() {
             (_) async => const Left(DatabaseFailure(message: '삭제 실패')));
         return bloc;
       },
-      act: (b) => b.add(DeleteAnalysisRequested(analysisId: 'analysis-001')),
+      act: (b) => b.add(const DeleteAnalysisRequested(analysisId: 'analysis-001')),
       expect: () => [isA<EmotionAnalysisError>()],
     );
   });
