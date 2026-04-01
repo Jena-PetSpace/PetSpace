@@ -69,15 +69,10 @@ class NotificationsPage extends StatelessWidget {
                     margin:
                         EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                     child: ListTile(
-                      leading: CircleAvatar(
-                        radius: 20.r,
-                        backgroundImage: notification.senderProfileImage != null
-                            ? NetworkImage(notification.senderProfileImage!)
-                            : null,
-                        child: notification.senderProfileImage == null
-                            ? Text(notification.senderName.substring(0, 1),
-                                style: TextStyle(fontSize: 14.sp))
-                            : null,
+                      leading: DefaultAvatar(
+                        name: notification.senderName,
+                        size: 40,
+                        imageUrl: notification.senderProfileImage,
                       ),
                       title: Text(notification.title,
                           style: TextStyle(fontSize: 14.sp)),

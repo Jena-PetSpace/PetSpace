@@ -64,11 +64,12 @@ class FeedPostUpdated extends FeedState {
 
 class FeedError extends FeedState {
   final String message;
+  final bool isNetworkError;
 
-  const FeedError(this.message);
+  const FeedError(this.message, {this.isNetworkError = false});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, isNetworkError];
 }
 
 class FeedSavedPostsLoaded extends FeedState {

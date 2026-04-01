@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
+import '../../presentation/bloc/notification_badge/notification_badge_bloc.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_event.dart';
 import '../../../home/presentation/widgets/pet_profile_card.dart';
@@ -46,6 +47,10 @@ class _HomePageState extends State<HomePage> {
       context.read<ChatBadgeBloc>().add(
             ChatBadgeLoadRequested(userId: authState.user.id),
           );
+      // 알림 배지도 함께 갱신
+      context.read<NotificationBadgeBloc>().add(
+            NotificationBadgeLoadRequested(userId: authState.user.uid),
+          );
     }
   }
 
@@ -70,9 +75,31 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.search),
             onPressed: () => context.push('/explore'),
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.push('/notifications'),
+          BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
+            builder: (context, notiState) {
+              return IconButton(
+                icon: notiState.count > 0
+                    ? Badge(
+                        label: Text(
+                          notiState.count > 99 ? '99+' : '${notiState.count}',
+                          style: TextStyle(fontSize: 10.sp),
+                        ),
+                        backgroundColor: AppTheme.highlightColor,
+                        child: const Icon(Icons.notifications_outlined),
+                      )
+                    : const Icon(Icons.notifications_outlined),
+                onPressed: () {
+                  context.push('/notifications');
+                  // 알림 읽음 처리 → 배지 초기화
+                  final authState = context.read<AuthBloc>().state;
+                  if (authState is AuthAuthenticated) {
+                    context.read<NotificationBadgeBloc>().add(
+                          NotificationBadgeLoadRequested(userId: authState.user.uid),
+                        );
+                  }
+                },
+              );
+            },
           ),
           BlocBuilder<ChatBadgeBloc, ChatBadgeState>(
             builder: (context, badgeState) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -175,7 +176,7 @@ class _SearchPageState extends State<SearchPage>
     return BlocBuilder<SearchBloc, SearchState>(
       builder: (context, state) {
         if (state is SearchLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const SearchShimmerLoading();
         }
 
         if (state is SearchError) {
@@ -252,7 +253,7 @@ class _SearchPageState extends State<SearchPage>
     return BlocBuilder<SearchBloc, SearchState>(
       builder: (context, state) {
         if (state is SearchLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const SearchShimmerLoading();
         }
 
         if (state is SearchError) {
@@ -369,7 +370,7 @@ class _SearchPageState extends State<SearchPage>
     return BlocBuilder<SearchBloc, SearchState>(
       builder: (context, state) {
         if (state is SearchLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const SearchShimmerLoading();
         }
 
         if (state is SearchError) {

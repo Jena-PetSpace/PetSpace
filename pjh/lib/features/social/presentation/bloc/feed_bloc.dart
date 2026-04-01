@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
+import '../../../../core/error/failures.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/create_post.dart';
 import '../../domain/usecases/delete_post.dart';
@@ -84,7 +85,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     ));
 
     result.fold(
-      (failure) => emit(FeedError(failure.message)),
+      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (posts) => emit(FeedLoaded(
         posts: posts,
         hasReachedMax: posts.length < event.limit,
@@ -103,7 +104,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     ));
 
     result.fold(
-      (failure) => emit(FeedError(failure.message)),
+      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (posts) => emit(FeedLoaded(
         posts: posts,
         hasReachedMax: posts.length < 20,
@@ -153,7 +154,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     final result = await _createPost(CreatePostParams(post: event.post));
 
     result.fold(
-      (failure) => emit(FeedError(failure.message)),
+      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (post) {
         // FeedPostCreated를 먼저 emit하여 네비게이션 처리
         emit(FeedPostCreated(post));
@@ -342,7 +343,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     final result = await _savePost(
         SavePostParams(postId: event.postId, userId: event.userId));
     result.fold(
-      (failure) => emit(FeedError(failure.message)),
+      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (_) => emit(FeedPostSaved(event.postId)),
     );
   }
@@ -354,7 +355,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     final result = await _unsavePost(
         UnsavePostParams(postId: event.postId, userId: event.userId));
     result.fold(
-      (failure) => emit(FeedError(failure.message)),
+      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (_) => emit(FeedPostUnsaved(event.postId)),
     );
   }
@@ -367,7 +368,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     final result =
         await _getSavedPosts(GetSavedPostsParams(userId: event.userId));
     result.fold(
-      (failure) => emit(FeedError(failure.message)),
+      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (posts) => emit(FeedSavedPostsLoaded(posts)),
     );
   }

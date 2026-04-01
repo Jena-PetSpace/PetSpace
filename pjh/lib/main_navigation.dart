@@ -171,6 +171,8 @@ class _MainNavigationState extends State<MainNavigation> {
                       children: [
                         if (index == 0)
                           _buildHomeBadgeIcon(isSelected, item)
+                        else if (index == 4)
+                          _buildMyTabIcon(isSelected, item)
                         else
                           Icon(
                             isSelected ? item.selectedIcon : item.icon,
@@ -183,7 +185,7 @@ class _MainNavigationState extends State<MainNavigation> {
                         Text(
                           item.label,
                           style: TextStyle(
-                            fontSize: 10.sp,
+                            fontSize: 11.sp,
                             fontWeight:
                                 isSelected ? FontWeight.w600 : FontWeight.w400,
                             color: isSelected
@@ -200,6 +202,40 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMyTabIcon(bool isSelected, NavigationItem item) {
+    return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
+      builder: (context, badgeState) {
+        final icon = Icon(
+          isSelected ? item.selectedIcon : item.icon,
+          color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+          size: 24.w,
+        );
+
+        if (badgeState.count <= 0) return icon;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            icon,
+            Positioned(
+              right: -3.w,
+              top: -2.w,
+              child: Container(
+                width: 8.w,
+                height: 8.w,
+                decoration: BoxDecoration(
+                  color: AppTheme.highlightColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

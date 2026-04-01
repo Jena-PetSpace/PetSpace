@@ -10,6 +10,7 @@ import '../widgets/post_card.dart';
 import '../widgets/create_post_bottom_sheet.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
+import '../../../../shared/widgets/network_error_widget.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 
 class FeedPage extends StatefulWidget {
@@ -108,6 +109,9 @@ class _FeedPageState extends State<FeedPage> {
             child: _buildFeedList(state),
           );
         } else if (state is FeedError) {
+          if (state.isNetworkError) {
+            return _buildNetworkErrorState();
+          }
           return _buildErrorState(state.message);
         }
 
@@ -194,6 +198,15 @@ class _FeedPageState extends State<FeedPage> {
       subtitle: '첫 번째 게시물을 작성해보세요!',
       actionLabel: '게시물 작성',
       onAction: _showCreatePostBottomSheet,
+    );
+  }
+
+  Widget _buildNetworkErrorState() {
+    return NetworkErrorScreen(
+      onRetry: () => context.read<FeedBloc>().add(
+            LoadFeedRequested(
+                userId: widget.userId, followingOnly: widget.followingOnly),
+          ),
     );
   }
 

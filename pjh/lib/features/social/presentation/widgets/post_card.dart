@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -40,8 +41,17 @@ class PostCard extends StatefulWidget {
 class _PostCardState extends State<PostCard> {
   int _currentImageIndex = 0;
   bool _isLikeProcessing = false;
+  Timer? _likeDebounce;
+  Timer? _commentDebounce;
 
   Post get post => widget.post;
+
+  @override
+  void dispose() {
+    _likeDebounce?.cancel();
+    _commentDebounce?.cancel();
+    super.dispose();
+  }
   String get currentUserId => widget.currentUserId;
 
   @override
@@ -389,17 +399,15 @@ class _PostCardState extends State<PostCard> {
                 button: true,
                 child: InkWell(
                   onTap: () {
-                    if (_isLikeProcessing) return;
-                    _isLikeProcessing = true;
-                    widget.onLike();
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      if (mounted) _isLikeProcessing = false;
+                    _likeDebounce?.cancel();
+                    _likeDebounce = Timer(const Duration(milliseconds: 300), () {
+                      if (mounted) widget.onLike();
                     });
                   },
                   borderRadius: BorderRadius.circular(20.r),
                   child: Padding(
                     padding:
-                        EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
                     child: Icon(
                       post.isLikedByCurrentUser
                           ? Icons.favorite
@@ -436,7 +444,7 @@ class _PostCardState extends State<PostCard> {
               onTap: widget.onComment,
               borderRadius: BorderRadius.circular(20.r),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
