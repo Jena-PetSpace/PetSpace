@@ -32,6 +32,8 @@ class _HealthMainView extends StatefulWidget {
 }
 
 class _HealthMainViewState extends State<_HealthMainView> {
+  HealthRecordType? _selectedFilter; // null = 전체
+
   @override
   void initState() {
     super.initState();
@@ -162,45 +164,67 @@ class _HealthMainViewState extends State<_HealthMainView> {
                 ),
               ],
             ),
+            SizedBox(height: 10.h),
+
+            // 유형별 필터 칩
+            _buildFilterChips(),
             SizedBox(height: 12.h),
 
             if (state.records.isEmpty)
               _buildEmptyRecordState()
-            else
-              ...state.records.map((record) => Padding(
-                    padding: EdgeInsets.only(bottom: 12.h),
-                    child: Dismissible(
-                      key: Key(record.id),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        padding: EdgeInsets.only(right: 20.w),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: const Icon(Icons.delete, color: Colors.white),
-                      ),
-                      confirmDismiss: (_) => _confirmDelete(context),
-                      onDismissed: (_) {
-                        context
-                            .read<HealthBloc>()
-                            .add(DeleteHealthRecordEvent(recordId: record.id));
-                      },
-                      child: GestureDetector(
-                        onTap: () => _showEditRecordSheet(context, record),
-                        child: HealthRecordCard(
-                          icon: _getRecordIcon(record.recordType),
-                          iconColor: _getRecordColor(record.recordType),
-                          title: _getRecordTypeName(record.recordType),
-                          subtitle: record.title,
-                          date: _formatDate(record.recordDate),
-                          status: _getStatusName(record.status),
-                          statusColor: _getStatusColor(record.status),
+            else ...[
+              Builder(
+                builder: (context) {
+                  final filtered = _selectedFilter == null
+                      ? state.records
+                      : state.records.where((r) => r.recordType == _selectedFilter).toList();
+                  if (filtered.isEmpty) {
+                    return Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24.h),
+                      child: Center(
+                        child: Text(
+                          '해당 유형의 기록이 없습니다',
+                          style: TextStyle(fontSize: 13.sp, color: AppTheme.secondaryTextColor),
                         ),
                       ),
-                    ),
-                  )),
+                    );
+                  }
+                  return Column(
+                    children: filtered.map((record) => Padding(
+                      padding: EdgeInsets.only(bottom: 12.h),
+                      child: Dismissible(
+                        key: Key(record.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.only(right: 20.w),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        confirmDismiss: (_) => _confirmDelete(context),
+                        onDismissed: (_) {
+                          context.read<HealthBloc>().add(DeleteHealthRecordEvent(recordId: record.id));
+                        },
+                        child: GestureDetector(
+                          onTap: () => _showEditRecordSheet(context, record),
+                          child: HealthRecordCard(
+                            icon: _getRecordIcon(record.recordType),
+                            iconColor: _getRecordColor(record.recordType),
+                            title: _getRecordTypeName(record.recordType),
+                            subtitle: record.title,
+                            date: _formatDate(record.recordDate),
+                            status: _getStatusName(record.status),
+                            statusColor: _getStatusColor(record.status),
+                          ),
+                        ),
+                      ),
+                    )).toList(),
+                  );
+                },
+              ),
 
             if (state.error != null)
               Padding(
@@ -212,8 +236,77 @@ class _HealthMainViewState extends State<_HealthMainView> {
               ),
 
             SizedBox(height: 80.h),
+            ], // else [...] 닫힘
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    const types = [
+      (null, '전체', '📋'),
+      (HealthRecordType.vaccination, '백신', '💉'),
+      (HealthRecordType.checkup, '검진', '🏥'),
+      (HealthRecordType.weight, '체중', '⚖️'),
+      (HealthRecordType.medication, '투약', '💊'),
+      (HealthRecordType.surgery, '수술', '🔬'),
+    ];
+
+    final typeColors = {
+      null: AppTheme.primaryColor,
+      HealthRecordType.vaccination: const Color(0xFF4CAF50),
+      HealthRecordType.checkup: AppTheme.accentColor,
+      HealthRecordType.weight: const Color(0xFFFF9800),
+      HealthRecordType.medication: const Color(0xFF9C27B0),
+      HealthRecordType.surgery: AppTheme.errorColor,
+    };
+
+    return SizedBox(
+      height: 36.h,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        itemCount: types.length,
+        separatorBuilder: (_, __) => SizedBox(width: 6.w),
+        itemBuilder: (context, i) {
+          final (type, label, emoji) = types[i];
+          final isSelected = _selectedFilter == type;
+          final color = typeColors[type]!;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedFilter = type),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: isSelected ? color : Colors.white,
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(
+                  color: isSelected ? color : AppTheme.dividerColor,
+                  width: 1.5,
+                ),
+                boxShadow: isSelected
+                    ? [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))]
+                    : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(emoji, style: TextStyle(fontSize: 12.sp)),
+                  SizedBox(width: 4.w),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

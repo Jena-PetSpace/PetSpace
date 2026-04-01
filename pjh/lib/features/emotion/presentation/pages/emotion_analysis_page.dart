@@ -458,14 +458,21 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                           ),
                         ),
                         SizedBox(width: 8.w),
-                        Text(
-                          '${_imagePaths.length}/$_maxImages',
-                          style: TextStyle(
-                            fontSize: 13.sp,
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                          decoration: BoxDecoration(
                             color: _imagePaths.length >= _maxImages
-                                ? Colors.orange
-                                : Colors.grey[500],
-                            fontWeight: FontWeight.w600,
+                                ? AppTheme.highlightColor
+                                : AppTheme.primaryColor,
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          child: Text(
+                            '${_imagePaths.length} / $_maxImages',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                         const Spacer(),
@@ -553,12 +560,25 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_photo_alternate_outlined,
-                size: 36.w, color: Colors.grey.shade400),
-            SizedBox(height: 8.h),
+            Container(
+              width: 52.w,
+              height: 52.w,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.add_photo_alternate_outlined,
+                  size: 28.w, color: AppTheme.primaryColor.withValues(alpha: 0.6)),
+            ),
+            SizedBox(height: 10.h),
             Text(
-              '카메라 또는 갤러리에서 사진을 추가하세요',
-              style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade500),
+              '사진을 탭해서 추가하세요',
+              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppTheme.primaryColor.withValues(alpha: 0.7)),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              '최대 ${_maxImages}장 · 많을수록 정확해요',
+              style: TextStyle(fontSize: 10.sp, color: AppTheme.secondaryTextColor),
             ),
           ],
         ),

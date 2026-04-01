@@ -119,16 +119,43 @@ class _FeedHubPageState extends State<FeedHubPage>
             tooltip: '검색',
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: AppTheme.secondaryTextColor,
-          indicatorColor: AppTheme.primaryColor,
-          tabs: const [
-            Tab(text: '추천'),
-            Tab(text: '팔로잉'),
-            Tab(text: '커뮤니티'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(52.h),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.subtleBackground,
+                borderRadius: BorderRadius.circular(24.r),
+              ),
+              padding: EdgeInsets.all(3.w),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Colors.white,
+                unselectedLabelColor: AppTheme.secondaryTextColor,
+                labelStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700),
+                unselectedLabelStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
+                indicator: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(20.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                tabs: const [
+                  Tab(text: '추천'),
+                  Tab(text: '팔로잉'),
+                  Tab(text: '커뮤니티'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: TabBarView(
