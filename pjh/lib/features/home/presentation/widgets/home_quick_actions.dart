@@ -22,7 +22,7 @@ class HomeQuickActions extends StatelessWidget {
         label: '병원 찾기',
         sub: '주변 동물병원',
         color: const Color(0xFF4CAF50),
-        onTap: () => context.push('/explore?type=hospital'),
+        onTap: () => context.push('/hospital'),
       ),
     ];
 

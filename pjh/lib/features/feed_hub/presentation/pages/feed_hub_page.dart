@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
+import '../../../social/presentation/pages/channel_subscription_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -113,6 +114,25 @@ class _FeedHubPageState extends State<FeedHubPage>
         ),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.tune_rounded),
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => DraggableScrollableSheet(
+                initialChildSize: 0.7,
+                builder: (ctx, ctrl) => Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: const ChannelSubscriptionPage(),
+                ),
+              ),
+            ),
+            tooltip: '채널 구독',
+          ),
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () => context.push('/search'),

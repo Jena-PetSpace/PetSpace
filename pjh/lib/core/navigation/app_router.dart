@@ -41,6 +41,11 @@ import '../../features/onboarding/presentation/pages/onboarding_tutorial_page.da
 import '../../features/onboarding/presentation/pages/splash_page.dart';
 import '../../features/profile/presentation/pages/privacy_policy_page.dart';
 import '../../features/emotion/presentation/pages/emotion_calendar_page.dart';
+import '../../features/home/presentation/pages/hospital_search_page.dart';
+import '../../features/social/presentation/pages/channel_subscription_page.dart';
+import '../../features/pets/presentation/pages/public_pet_page.dart';
+import '../../features/emotion/presentation/pages/weekly_report_page.dart';
+import '../../features/health/presentation/pages/health_alert_settings_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
 import '../../features/auth/presentation/pages/kakao_consent_page.dart';
@@ -69,6 +74,14 @@ class AppRouter {
       initialLocation: '/splash',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       routes: [
+        GoRoute(path: '/hospital', builder: (_, __) => const HospitalSearchPage()),
+        GoRoute(path: '/channels', builder: (_, __) => const ChannelSubscriptionPage()),
+        GoRoute(
+          path: '/pet/public/:petId',
+          builder: (_, state) => PublicPetPage(petId: state.pathParameters['petId']!),
+        ),
+        GoRoute(path: '/emotion/weekly-report', builder: (_, __) => const WeeklyReportPage()),
+        GoRoute(path: '/health/alert-settings', builder: (_, __) => const HealthAlertSettingsPage()),
         GoRoute(
           path: '/emotion/calendar',
           builder: (context, state) => const EmotionCalendarPage(),

@@ -18,6 +18,7 @@ class MyMenuList extends StatelessWidget {
             _MenuItem(emoji: '🐾', label: '반려동물 관리', route: '/pets'),
             _MenuItem(emoji: '📝', label: '내 게시글', route: '/my/posts'),
             _MenuItem(emoji: '🔖', label: '저장한 글', route: '/my/saved'),
+              _MenuItem(emoji: '📊', label: '주간 감정 리포트', route: '/emotion/weekly-report'),
           ]),
           SizedBox(height: 8.h),
           _buildGroup(context, label: '소통', items: [
@@ -25,7 +26,9 @@ class MyMenuList extends StatelessWidget {
           ]),
           SizedBox(height: 8.h),
           _buildGroup(context, label: '설정', items: [
-            _MenuItem(emoji: '🔔', label: '알림 설정', route: '/settings/notification'),
+            _MenuItem(emoji: '📡', label: '채널 구독', route: '/channels'),
+              _MenuItem(emoji: '🏥', label: '건강 알림 설정', route: '/health/alert-settings'),
+              _MenuItem(emoji: '🔔', label: '알림 설정', route: '/settings/notification'),
             _MenuItem(emoji: '⚙️', label: '설정', route: '/settings'),
           ]),
         ],

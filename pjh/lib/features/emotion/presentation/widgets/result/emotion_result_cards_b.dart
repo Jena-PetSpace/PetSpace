@@ -1,3 +1,4 @@
+import '../../../../../shared/widgets/premium_gate_widget.dart';
 part of 'emotion_result_page.dart';
 
 // ── 카드 B: Stress · HealthTips · MultiPet · Community ──────
@@ -549,7 +550,7 @@ extension _EmotionResultCardsB on _EmotionResultPageState {
     }
   }
 
-  // ── C-2: 커뮤니티 벤치마크 카드 ──
+  // ── C-2: 커뮤니티 벤치마크 카드 (프리미엄) ──
   Widget _buildCommunityCard() {
     if (_breedAverage == null) return const SizedBox.shrink();
 
