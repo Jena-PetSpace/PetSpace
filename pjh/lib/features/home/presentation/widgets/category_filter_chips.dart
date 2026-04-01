@@ -33,7 +33,7 @@ class _CategoryFilterChipsState extends State<CategoryFilterChips> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 46.h,
+      height: 50.h,
       child: Scrollbar(
         controller: _scrollController,
         thumbVisibility: true,
@@ -54,22 +54,26 @@ class _CategoryFilterChipsState extends State<CategoryFilterChips> {
                 setState(() => _selectedIndex = index);
                 widget.onSelected?.call(index);
               },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 9.h),
                 decoration: BoxDecoration(
                   color: isSelected ? AppTheme.primaryColor : Colors.white,
-                  borderRadius: BorderRadius.circular(20.r),
-                  border: isSelected
-                      ? null
-                      : Border.all(color: AppTheme.dividerColor),
+                  borderRadius: BorderRadius.circular(22.r),
+                  border: Border.all(
+                    color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor,
+                    width: 1.5,
+                  ),
+                  boxShadow: isSelected
+                      ? [BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.28), blurRadius: 8, offset: const Offset(0, 2))]
+                      : null,
                 ),
                 child: Text(
                   '${cat['emoji']} ${cat['label']}',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color:
-                        isSelected ? Colors.white : AppTheme.secondaryTextColor,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
                   ),
                 ),
               ),

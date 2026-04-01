@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/section_header.dart';
 
 class MagazineGrid extends StatefulWidget {
   const MagazineGrid({super.key});
@@ -53,29 +54,9 @@ class _MagazineGridState extends State<MagazineGrid> {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '꿀팁 매거진',
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryTextColor,
-                ),
-              ),
-              GestureDetector(
-                onTap: () =>
-                    context.go('/feed?tab=community&category=magazine'),
-                child: Text(
-                  '더보기',
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    color: AppTheme.secondaryTextColor,
-                  ),
-                ),
-              ),
-            ],
+          SectionHeader(
+            title: '📰 꿀팁 매거진',
+            onMore: () => context.go('/feed?tab=community&category=magazine'),
           ),
           SizedBox(height: 12.h),
           if (_loading)

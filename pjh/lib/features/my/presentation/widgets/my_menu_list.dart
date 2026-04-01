@@ -9,97 +9,103 @@ class MyMenuList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: AppTheme.cardDecoration,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMenuItem(
-            context,
-            emoji: '\uD83D\uDC3E',
-            label: '반려동물 관리',
-            onTap: () => context.push('/pets'),
-          ),
-          _buildDivider(),
-          _buildMenuItem(
-            context,
-            emoji: '\uD83D\uDCDD',
-            label: '내 게시글',
-            onTap: () => context.push('/my/posts'),
-          ),
-          _buildDivider(),
-          _buildMenuItem(
-            context,
-            emoji: '\uD83D\uDCAC',
-            label: '채팅',
-            onTap: () => context.push('/chat'),
-          ),
-          _buildDivider(),
-          _buildMenuItem(
-            context,
-            emoji: '\uD83D\uDD16',
-            label: '저장한 글',
-            onTap: () => context.push('/my/saved'),
-          ),
-          _buildDivider(),
-          _buildMenuItem(
-            context,
-            emoji: '\uD83D\uDD14',
-            label: '알림 설정',
-            onTap: () => context.push('/settings/notification'),
-          ),
-          _buildDivider(),
-          _buildMenuItem(
-            context,
-            emoji: '\u2699\uFE0F',
-            label: '설정',
-            onTap: () => context.push('/settings'),
-          ),
+          _buildGroup(context, label: '내 활동', items: [
+            _MenuItem(emoji: '🐾', label: '반려동물 관리', route: '/pets'),
+            _MenuItem(emoji: '📝', label: '내 게시글', route: '/my/posts'),
+            _MenuItem(emoji: '🔖', label: '저장한 글', route: '/my/saved'),
+          ]),
+          SizedBox(height: 8.h),
+          _buildGroup(context, label: '소통', items: [
+            _MenuItem(emoji: '💬', label: '채팅', route: '/chat'),
+          ]),
+          SizedBox(height: 8.h),
+          _buildGroup(context, label: '설정', items: [
+            _MenuItem(emoji: '🔔', label: '알림 설정', route: '/settings/notification'),
+            _MenuItem(emoji: '⚙️', label: '설정', route: '/settings'),
+          ]),
         ],
       ),
     );
   }
 
-  Widget _buildMenuItem(
-    BuildContext context, {
-    required String emoji,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildGroup(BuildContext context, {required String label, required List<_MenuItem> items}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 4.w, bottom: 6.h),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.secondaryTextColor,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              for (int i = 0; i < items.length; i++) ...[
+                _buildMenuItem(context, items[i]),
+                if (i < items.length - 1)
+                  Divider(height: 1, indent: 50.w, color: const Color(0xFFF0F0F0)),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMenuItem(BuildContext context, _MenuItem item) {
     return InkWell(
-      onTap: onTap,
+      onTap: () => context.push(item.route),
+      borderRadius: BorderRadius.circular(16.r),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         child: Row(
           children: [
-            Text(emoji, style: TextStyle(fontSize: 18.sp)),
+            Text(item.emoji, style: TextStyle(fontSize: 19.sp)),
             SizedBox(width: 14.w),
             Expanded(
               child: Text(
-                label,
+                item.label,
                 style: TextStyle(
-                  fontSize: 14.sp,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w500,
                   color: AppTheme.primaryTextColor,
                 ),
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: AppTheme.lightTextColor,
-              size: 20.w,
-            ),
+            Icon(Icons.chevron_right_rounded, color: AppTheme.lightTextColor, size: 20.w),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildDivider() {
-    return Divider(
-      height: 1,
-      indent: 16.w,
-      endIndent: 16.w,
-      color: const Color(0xFFF0F0F0),
-    );
-  }
+class _MenuItem {
+  final String emoji;
+  final String label;
+  final String route;
+  const _MenuItem({required this.emoji, required this.label, required this.route});
 }

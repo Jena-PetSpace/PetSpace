@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/section_header.dart';
 
 class CommunityPreview extends StatefulWidget {
   final String? category;
@@ -90,28 +91,9 @@ class _CommunityPreviewState extends State<CommunityPreview> {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _getCategoryTitle(),
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryTextColor,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => context.go(_getFeedTab()),
-                child: Text(
-                  '더보기',
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    color: AppTheme.secondaryTextColor,
-                  ),
-                ),
-              ),
-            ],
+          SectionHeader(
+            title: _getCategoryTitle(),
+            onMore: () => context.go(_getFeedTab()),
           ),
           SizedBox(height: 12.h),
           if (_loading)

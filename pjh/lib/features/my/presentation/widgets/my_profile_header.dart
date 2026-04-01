@@ -37,25 +37,56 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
       decoration: AppTheme.cardDecoration,
       child: Column(
         children: [
-          // 프로필 사진
-          Container(
-            width: 64.w,
-            height: 64.w,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: AppTheme.primaryGradient,
-            ),
-            padding: const EdgeInsets.all(2),
-            child: CircleAvatar(
-              radius: 30.r,
-              backgroundColor: Colors.white,
-              backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                  ? CachedNetworkImageProvider(photoUrl)
-                  : null,
-              child: photoUrl == null || photoUrl.isEmpty
-                  ? Icon(Icons.person, size: 30.w, color: AppTheme.primaryColor)
-                  : null,
-            ),
+          // 프로필 사진 (88dp + 카메라 편집 버튼)
+          Stack(
+            children: [
+              Container(
+                width: 88.w,
+                height: 88.w,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppTheme.primaryGradient,
+                ),
+                padding: const EdgeInsets.all(3),
+                child: CircleAvatar(
+                  radius: 41.r,
+                  backgroundColor: Colors.white,
+                  backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(photoUrl)
+                      : null,
+                  child: photoUrl == null || photoUrl.isEmpty
+                      ? Icon(Icons.person, size: 38.w, color: AppTheme.primaryColor)
+                      : null,
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: () => context.push('/profile/edit'),
+                  child: Container(
+                    width: 28.w,
+                    height: 28.w,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.camera_alt_rounded,
+                      size: 14.w,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           SizedBox(height: 12.h),
 
@@ -100,21 +131,30 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
               final followers = snapshot.data?['followers'] ?? 0;
               final following = snapshot.data?['following'] ?? 0;
 
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildStat('게시글', '$posts'),
-                  _buildDivider(),
-                  GestureDetector(
-                    onTap: () => _navigateToFollowers(context, 0),
-                    child: _buildStat('팔로워', '$followers'),
-                  ),
-                  _buildDivider(),
-                  GestureDetector(
-                    onTap: () => _navigateToFollowers(context, 1),
-                    child: _buildStat('팔로잉', '$following'),
-                  ),
-                ],
+              return Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.subtleBackground,
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(child: _buildStat('게시글', '$posts')),
+                    Container(width: 1, height: 36.h, color: AppTheme.dividerColor),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _navigateToFollowers(context, 0),
+                        child: _buildStat('팔로워', '$followers'),
+                      ),
+                    ),
+                    Container(width: 1, height: 36.h, color: AppTheme.dividerColor),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _navigateToFollowers(context, 1),
+                        child: _buildStat('팔로잉', '$following'),
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
           ),
@@ -124,25 +164,28 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
   }
 
   Widget _buildStat(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryTextColor,
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 10.h),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primaryColor,
+            ),
           ),
-        ),
-        SizedBox(height: 2.h),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.sp,
-            color: AppTheme.secondaryTextColor,
+          SizedBox(height: 2.h),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.sp,
+              color: AppTheme.secondaryTextColor,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
