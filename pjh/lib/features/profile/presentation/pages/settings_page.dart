@@ -156,9 +156,9 @@ class SettingsPage extends StatelessWidget {
           ),
           ListTile(
             leading: Icon(Icons.privacy_tip, size: 24.w),
-            title: Text('개인정보 보호', style: TextStyle(fontSize: 14.sp)),
+            title: Text('개인정보처리방침', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),
-            onTap: () => context.push('/settings/privacy'),
+            onTap: () => context.push('/privacy'),
           ),
           ListTile(
             leading: Icon(Icons.help, size: 24.w),

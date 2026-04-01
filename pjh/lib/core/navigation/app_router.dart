@@ -38,6 +38,8 @@ import '../../features/onboarding/presentation/pages/onboarding_email_verificati
 import '../../features/onboarding/presentation/pages/onboarding_profile_setup_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_pet_registration_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_tutorial_page.dart';
+import '../../features/onboarding/presentation/pages/splash_page.dart';
+import '../../features/profile/presentation/pages/privacy_policy_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
 import '../../features/auth/presentation/pages/kakao_consent_page.dart';
@@ -63,9 +65,17 @@ class AppRouter {
   static GoRouter createRouter(AuthBloc authBloc) {
     final router = GoRouter(
       // 초기 위치는 홈으로 설정하고, redirect 로직에서 인증 상태에 따라 적절히 리다이렉트
-      initialLocation: '/home',
+      initialLocation: '/splash',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       routes: [
+        GoRoute(
+          path: '/privacy',
+          builder: (context, state) => const PrivacyPolicyPage(),
+        ),
+        GoRoute(
+          path: '/splash',
+          builder: (context, state) => const SplashPage(),
+        ),
         GoRoute(
           path: '/onboarding',
           name: 'onboarding',
