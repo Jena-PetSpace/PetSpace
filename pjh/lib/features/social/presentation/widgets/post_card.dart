@@ -627,7 +627,8 @@ class _PostCardState extends State<PostCard> {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('${post.authorName}님의 차단이 해제되었습니다.'),
+                              content:
+                                  Text('${post.authorName}님의 차단이 해제되었습니다.'),
                             ),
                           );
                         }

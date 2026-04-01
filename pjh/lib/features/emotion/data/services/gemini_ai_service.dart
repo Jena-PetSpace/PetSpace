@@ -435,7 +435,8 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
       try {
         return double.parse(value).clamp(0.0, 1.0);
       } catch (e) {
-        log('Failed to parse double from "$value": $e', name: 'GeminiAiService');
+        log('Failed to parse double from "$value": $e',
+            name: 'GeminiAiService');
       }
     }
     return defaultValue;
