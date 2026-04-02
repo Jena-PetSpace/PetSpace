@@ -105,7 +105,7 @@ class _SplashPageState extends State<SplashPage>
                 curve: Curves.easeOut,
                 child: Column(
                   children: [
-                    PetSpaceLogo(variant: LogoVariant.dark, height: 40.w),
+                    PetSpaceLogo(variant: LogoVariant.dark, height: 36.h),
                     SizedBox(height: 8.h),
                     Text(
                       '반려동물과 더 가까이',
