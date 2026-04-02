@@ -64,6 +64,7 @@ import '../../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart'
 import '../../features/profile/presentation/pages/notification_settings_page.dart';
 import '../../features/profile/presentation/pages/privacy_settings_page.dart';
 import '../../features/profile/presentation/pages/help_page.dart';
+import '../../features/social/presentation/pages/followers_page.dart';
 import '../../main_navigation.dart';
 import 'auth_guard.dart';
 
@@ -236,6 +237,23 @@ class AppRouter {
                   builder: (context, state) => const ProfileEditPage(),
                 ),
               ],
+            ),
+            GoRoute(
+              path: '/followers/:uid',
+              name: 'followers',
+              builder: (context, state) => FollowersPage(
+                userId: state.pathParameters['uid']!,
+                userName: state.uri.queryParameters['name'] ?? '',
+              ),
+            ),
+            GoRoute(
+              path: '/following/:uid',
+              name: 'following',
+              builder: (context, state) => FollowersPage(
+                userId: state.pathParameters['uid']!,
+                userName: state.uri.queryParameters['name'] ?? '',
+                initialTab: 1,
+              ),
             ),
             GoRoute(
               path: '/explore',

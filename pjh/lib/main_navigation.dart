@@ -193,7 +193,7 @@ class _MainNavigationState extends State<MainNavigation> {
               ),
             ),
           ),
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
+          SizedBox(height: MediaQuery.of(context).viewPadding.bottom),
         ],
       ),
     );

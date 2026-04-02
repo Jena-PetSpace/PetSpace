@@ -10,11 +10,13 @@ import '../widgets/user_list_tile.dart';
 class FollowersPage extends StatefulWidget {
   final String userId;
   final String userName;
+  final int initialTab;
 
   const FollowersPage({
     super.key,
     required this.userId,
     required this.userName,
+    this.initialTab = 0,
   });
 
   @override
@@ -36,7 +38,7 @@ class _FollowersPageState extends State<FollowersPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
     _repository = di.sl<SocialRepository>();
 
     _loadFollowers();

@@ -19,14 +19,21 @@ class PetSpaceLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (variant == LogoVariant.dark) {
-      // 흰색 전용 로고 (딥블루 배경용)
+      // 딥블루 배경용: 원본 로고를 흰색으로 변환
       return SvgPicture.asset(
-        'assets/svg/logo_petspace_wh.svg',
+        'assets/svg/logo_petspace_img.svg',
         height: height,
         fit: BoxFit.contain,
+        colorFilter: const ColorFilter.matrix(<double>[
+          // R채널을 흰색으로
+          0, 0, 0, 0, 1,
+          0, 0, 0, 0, 1,
+          0, 0, 0, 0, 1,
+          0, 0, 0, 1, 0,
+        ]),
       );
     }
-    // 컬러 로고 (라이트 배경용) - 딥블루 원본
+    // 라이트 배경용: 원본 컬러 그대로
     return SvgPicture.asset(
       'assets/svg/logo_petspace_img.svg',
       height: height,

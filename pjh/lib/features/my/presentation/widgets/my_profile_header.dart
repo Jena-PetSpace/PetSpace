@@ -167,7 +167,7 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
                         color: Colors.white.withValues(alpha: 0.2)),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => context.push('/followers/${user.uid}'),
+                        onTap: () => context.push('/followers/${user.uid}?name=${Uri.encodeComponent(displayName)}'),
                         child: _buildStat('$followers', '팔로워'),
                       ),
                     ),
@@ -175,7 +175,7 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
                         color: Colors.white.withValues(alpha: 0.2)),
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => context.push('/following/${user.uid}'),
+                        onTap: () => context.push('/following/${user.uid}?name=${Uri.encodeComponent(displayName)}'),
                         child: _buildStat('$following', '팔로잉'),
                       ),
                     ),
