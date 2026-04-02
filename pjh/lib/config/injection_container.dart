@@ -417,11 +417,15 @@ Future<void> _initCore() async {
     ),
   );
 
-  sl.registerLazySingleton<FCMService>(
-    () => FCMService(
-      supabase: sl(),
-    ),
-  );
+  try {
+    sl.registerLazySingleton<FCMService>(
+      () => FCMService(
+        supabase: sl(),
+      ),
+    );
+  } catch (e) {
+    // Firebase 미설정 플랫폼에서는 FCMService 등록 건너뜀
+  }
 }
 
 Future<void> _initExternal() async {

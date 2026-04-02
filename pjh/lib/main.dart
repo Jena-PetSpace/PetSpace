@@ -108,15 +108,19 @@ void main() async {
   }
 
   // Firebase 초기화 (Android FCM 푸시 알림)
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    // 백그라운드 메시지 핸들러 등록 (top-level 함수)
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    log('✅ Firebase 초기화 완료', name: 'main.firebase');
-  } catch (e) {
-    log('⚠️ Firebase 초기화 실패: $e', name: 'main.firebase');
+  bool firebaseInitialized = false;
+  final firebaseOptions = DefaultFirebaseOptions.currentPlatformOrNull;
+  if (firebaseOptions != null) {
+    try {
+      await Firebase.initializeApp(options: firebaseOptions);
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      firebaseInitialized = true;
+      log('✅ Firebase 초기화 완료', name: 'main.firebase');
+    } catch (e) {
+      log('⚠️ Firebase 초기화 실패: $e', name: 'main.firebase');
+    }
+  } else {
+    log('ℹ️ 현재 플랫폼에서 Firebase 미지원 — 건너뜀', name: 'main.firebase');
   }
 
   await di.init();
@@ -131,12 +135,14 @@ void main() async {
     log('✅ RealtimeService 초기화 완료', name: 'main.realtime');
   }
 
-  // FCMService 초기화
-  try {
-    await di.sl<FCMService>().initialize();
-    log('✅ FCMService 초기화 완료', name: 'main.fcm');
-  } catch (e) {
-    log('⚠️ FCMService 초기화 실패 (Firebase 미설정 시 무시): $e', name: 'main.fcm');
+  // FCMService 초기화 (Firebase 성공 시에만)
+  if (firebaseInitialized) {
+    try {
+      await di.sl<FCMService>().initialize();
+      log('✅ FCMService 초기화 완료', name: 'main.fcm');
+    } catch (e) {
+      log('⚠️ FCMService 초기화 실패: $e', name: 'main.fcm');
+    }
   }
 
   runApp(const MeongNyangDiaryApp());
