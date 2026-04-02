@@ -230,6 +230,11 @@ class AppRouter {
                   name: 'my-saved',
                   builder: (context, state) => const MySavedPostsPage(),
                 ),
+                GoRoute(
+                  path: 'edit-profile',
+                  name: 'my-edit-profile',
+                  builder: (context, state) => const ProfileEditPage(),
+                ),
               ],
             ),
             GoRoute(
