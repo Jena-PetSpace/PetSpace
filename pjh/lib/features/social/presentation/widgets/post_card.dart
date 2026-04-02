@@ -42,8 +42,63 @@ class _PostCardState extends State<PostCard> {
   int _currentImageIndex = 0;
   Timer? _likeDebounce;
   Timer? _commentDebounce;
+  bool _isSaved = false;
 
   Post get post => widget.post;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSaved();
+  }
+
+  Future<void> _checkSaved() async {
+    if (widget.currentUserId.isEmpty) return;
+    try {
+      final res = await Supabase.instance.client
+          .from('saved_posts')
+          .select('post_id')
+          .eq('post_id', post.id)
+          .eq('user_id', widget.currentUserId)
+          .maybeSingle();
+      if (mounted) setState(() => _isSaved = res != null);
+    } catch (e) {
+      dev.log('북마크 확인 실패: $e', name: 'PostCard');
+    }
+  }
+
+  Future<void> _toggleSave() async {
+    if (widget.currentUserId.isEmpty) return;
+    final prev = _isSaved;
+    setState(() => _isSaved = !_isSaved);
+    try {
+      if (prev) {
+        await Supabase.instance.client
+            .from('saved_posts')
+            .delete()
+            .eq('post_id', post.id)
+            .eq('user_id', widget.currentUserId);
+      } else {
+        await Supabase.instance.client.from('saved_posts').upsert({
+          'post_id': post.id,
+          'user_id': widget.currentUserId,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('저장되었습니다 🔖'),
+              backgroundColor: AppTheme.primaryColor,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      dev.log('북마크 토글 실패: $e', name: 'PostCard');
+      if (mounted) setState(() => _isSaved = prev);
+    }
+  }
 
   @override
   void dispose() {
@@ -468,6 +523,22 @@ class _PostCardState extends State<PostCard> {
             ),
           ),
           const Spacer(),
+          // 북마크 버튼
+          SizedBox(
+            width: 44.w,
+            height: 44.w,
+            child: InkWell(
+              onTap: _toggleSave,
+              borderRadius: BorderRadius.circular(22.r),
+              child: Icon(
+                _isSaved
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_outlined,
+                size: 22.w,
+                color: _isSaved ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+              ),
+            ),
+          ),
           if (post.location != null)
             Row(
               children: [
