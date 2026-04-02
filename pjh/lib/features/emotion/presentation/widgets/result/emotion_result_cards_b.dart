@@ -1,5 +1,4 @@
-import '../../../../../shared/widgets/premium_gate_widget.dart';
-part of 'emotion_result_page.dart';
+part of 'package:meong_nyang_diary/features/emotion/presentation/pages/emotion_result_page.dart';
 
 // ── 카드 B: Stress · HealthTips · MultiPet · Community ──────
 extension _EmotionResultCardsB on _EmotionResultPageState {

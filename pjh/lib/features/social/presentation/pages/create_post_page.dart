@@ -52,7 +52,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
     // 수정 모드: 기존 내용으로 초기화
     if (widget.editPost != null) {
       _contentController.text = widget.editPost!.content ?? '';
-      final tags = widget.editPost!.hashtags.map((h) => '#$h').join(' ');
+      final tags = widget.editPost!.tags.map((h) => '#$h').join(' ');
       _hashtagController.text = tags;
     }
     _imageUrl = widget.imageUrl;
@@ -599,7 +599,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
     final updatedPost = widget.editPost!.copyWith(
       content: _contentController.text.trim(),
-      hashtags: hashtags,
+      tags: hashtags,
     );
 
     if (!mounted) return;

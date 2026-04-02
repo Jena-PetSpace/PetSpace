@@ -80,6 +80,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
     String? id,
     String? userId,
     String? petId,
+    String? petName,
     String? imageUrl,
     String? localImagePath,
     EmotionScores? emotions,

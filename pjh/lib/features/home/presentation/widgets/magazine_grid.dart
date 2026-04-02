@@ -84,7 +84,7 @@ class _MagazineGridState extends State<MagazineGrid> {
               mainAxisSpacing: 12.h,
               childAspectRatio: 0.85,
               children: _posts.map((post) {
-                final hashtags = post.hashtags;
+                final hashtags = post.tags;
                 final tag = _getTag(hashtags);
                 return _buildMagazineItem(
                   context: context,

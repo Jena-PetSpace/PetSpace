@@ -9,9 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../emotion/presentation/bloc/emotion_analysis_bloc.dart';
-import '../../../emotion/presentation/bloc/emotion_analysis_state.dart';
 import '../../../social/presentation/bloc/feed_bloc.dart';
-import '../../../social/presentation/bloc/feed_state.dart';
 
 class _Quest {
   final String id;

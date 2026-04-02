@@ -1,4 +1,4 @@
-part of 'emotion_result_page.dart';
+part of 'package:meong_nyang_diary/features/emotion/presentation/pages/emotion_result_page.dart';
 
 // ── 헬퍼 메서드 ────────────────────────────────────────────
 extension _EmotionResultHelpers on _EmotionResultPageState {
@@ -117,9 +117,5 @@ extension _EmotionResultHelpers on _EmotionResultPageState {
         );
     }
   }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // Methods from emotion_result_hero.dart
-  // ══════════════════════════════════════════════════════════════════════════
 
 }

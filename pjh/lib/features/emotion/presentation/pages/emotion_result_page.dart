@@ -627,4 +627,71 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       );
     }
   }
+
+  // ── 공통 카드 컨테이너 ──
+  Widget _cardContainer({required Widget child}) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  // ── 이미지 썸네일 ──
+  Widget _buildImageThumbnails() {
+    final paths = widget.imagePaths;
+    if (paths.length == 1) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12.r),
+        child: Image.file(
+          File(paths.first),
+          width: 88.w,
+          height: 88.w,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    return SizedBox(
+      width: 88.w,
+      height: 88.w,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12.r),
+            child: Image.file(
+              File(paths.first),
+              width: 88.w,
+              height: 88.w,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned(
+            bottom: 4.h,
+            right: 4.w,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(6.r),
+              ),
+              child: Text(
+                '${paths.length}장',
+                style: TextStyle(fontSize: 9.sp, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

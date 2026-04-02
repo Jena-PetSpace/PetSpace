@@ -10,9 +10,8 @@ import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../emotion/presentation/bloc/emotion_analysis_bloc.dart';
-import '../../../emotion/presentation/bloc/emotion_analysis_state.dart';
 import '../../../chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
-import '../../presentation/bloc/notification_badge/notification_badge_bloc.dart';
+import '../../../social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
 
 /// 홈 화면 전체 헤더
 /// 딥블루 배경 + 로고 + 스트릭 + 반려동물 감정 대시보드
@@ -232,10 +231,10 @@ class HomeDashboardHeader extends StatelessWidget {
               width: 2,
             ),
           ),
-          child: pet.photoUrl != null && pet.photoUrl!.isNotEmpty
+          child: pet.avatarUrl != null && pet.avatarUrl!.isNotEmpty
               ? ClipOval(
                   child: Image.network(
-                    pet.photoUrl!,
+                    pet.avatarUrl!,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => _defaultPetIcon(),
                   ),
@@ -287,7 +286,7 @@ class HomeDashboardHeader extends StatelessWidget {
           ),
         ),
         Text(
-          '${pet.species ?? ''} · ${pet.age ?? ''}',
+          '${pet.typeDisplayName} · ${pet.displayAge}',
           style: TextStyle(
             fontSize: 10.sp,
             color: Colors.white.withValues(alpha: 0.7),

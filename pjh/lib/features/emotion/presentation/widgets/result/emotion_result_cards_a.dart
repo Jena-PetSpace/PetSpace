@@ -1,4 +1,4 @@
-part of 'emotion_result_page.dart';
+part of 'package:meong_nyang_diary/features/emotion/presentation/pages/emotion_result_page.dart';
 
 // ── 카드 A: Hero · Delta · Distribution ─────────────────────
 extension _EmotionResultCardsA on _EmotionResultPageState {

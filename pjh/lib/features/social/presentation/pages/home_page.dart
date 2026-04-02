@@ -11,7 +11,6 @@ import '../../presentation/bloc/notification_badge/notification_badge_bloc.dart'
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_event.dart';
 import '../../../emotion/presentation/bloc/emotion_analysis_bloc.dart';
-import '../../../emotion/presentation/bloc/emotion_analysis_event.dart';
 import '../../../home/presentation/widgets/home_dashboard_header.dart';
 import '../../../home/presentation/widgets/home_quick_actions.dart';
 import '../../../home/presentation/widgets/home_quest_card.dart';

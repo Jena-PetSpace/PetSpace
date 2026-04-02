@@ -372,7 +372,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
   @override
   Future<List<Post>> getFeedPosts(
-      String userId, int limit, String? lastPostId) async {
+      String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt}) async {
     try {
       _logger.debug('Getting feed posts for user: $userId',
           tag: 'SocialDataSource');

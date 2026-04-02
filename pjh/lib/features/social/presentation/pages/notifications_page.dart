@@ -8,6 +8,7 @@ import "../../domain/entities/notification.dart" as app;
 import "../bloc/notifications_bloc.dart";
 import "../../../../shared/widgets/shimmer_loading.dart";
 import "../../../../shared/widgets/empty_state_widget.dart";
+import "../../../../shared/widgets/default_avatar.dart";
 
 class NotificationsPage extends StatelessWidget {
   final String userId;

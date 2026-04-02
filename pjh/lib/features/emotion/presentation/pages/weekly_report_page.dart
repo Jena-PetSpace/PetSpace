@@ -5,7 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../bloc/emotion_analysis_bloc.dart';
-import '../bloc/emotion_analysis_state.dart';
 
 class WeeklyReportPage extends StatelessWidget {
   const WeeklyReportPage({super.key});
@@ -151,9 +150,9 @@ class WeeklyReportPage extends StatelessWidget {
                   if (weekData.isEmpty)
                     Text('이번 주 분석 데이터가 없어요', style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor))
                   else
-                    ...emotionCount.entries.toList()
-                      ..sort((a, b) => b.value.compareTo(a.value))
-                      ..map((e) {
+                    ...(emotionCount.entries.toList()
+                      ..sort((a, b) => b.value.compareTo(a.value)))
+                      .map((e) {
                         final ratio = weekData.isEmpty ? 0.0 : e.value / weekData.length;
                         final color = _emotionColor[e.key] ?? AppTheme.primaryColor;
                         return Padding(

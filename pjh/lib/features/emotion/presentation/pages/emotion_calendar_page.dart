@@ -7,7 +7,6 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../bloc/emotion_analysis_bloc.dart';
-import '../bloc/emotion_analysis_state.dart';
 
 class EmotionCalendarPage extends StatefulWidget {
   const EmotionCalendarPage({super.key});
@@ -58,8 +57,8 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
           }
 
           final selectedAnalyses = _selectedDay != null
-              ? (_analysisMap[_dateOnly(_selectedDay!)] ?? [])
-              : [];
+              ? (_analysisMap[_dateOnly(_selectedDay!)] ?? <EmotionAnalysis>[])
+              : <EmotionAnalysis>[];
 
           return Column(
             children: [
