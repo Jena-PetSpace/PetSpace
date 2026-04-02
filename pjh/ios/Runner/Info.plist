@@ -68,5 +68,15 @@
 			</array>
 		</dict>
 	</array>
+
+	<!-- 외부 앱 딥링크 스킴 화이트리스트 -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaomap</string>
+		<string>comgooglemaps</string>
+		<string>nmap</string>
+		<string>kakaokompassauth</string>
+		<string>storekit</string>
+	</array>
 </dict>
 </plist>

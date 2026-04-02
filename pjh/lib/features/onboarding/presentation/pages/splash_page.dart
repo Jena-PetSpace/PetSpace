@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_logo.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class SplashPage extends StatefulWidget {
@@ -104,30 +105,7 @@ class _SplashPageState extends State<SplashPage>
                 curve: Curves.easeOut,
                 child: Column(
                   children: [
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Pet',
-                            style: TextStyle(
-                              fontSize: 32.sp,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -1,
-                            ),
-                          ),
-                          TextSpan(
-                            text: 'Space',
-                            style: TextStyle(
-                              fontSize: 32.sp,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.highlightColor,
-                              letterSpacing: -1,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    PetSpaceLogo(variant: LogoVariant.dark, height: 40.w),
                     SizedBox(height: 8.h),
                     Text(
                       '반려동물과 더 가까이',

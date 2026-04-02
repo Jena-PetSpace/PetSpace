@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_logo.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
@@ -35,7 +36,7 @@ class HomeDashboardHeader extends StatelessWidget {
               child: Row(
                 children: [
                   // 로고
-                  _buildLogo(context),
+                  const PetSpaceLogo(variant: LogoVariant.dark, height: 28),
                   const Spacer(),
                   // 스트릭 배지
                   _buildStreakBadge(context),
@@ -60,49 +61,7 @@ class HomeDashboardHeader extends StatelessWidget {
     );
   }
 
-  // ── 로고 ──────────────────────────────────────────────
-  Widget _buildLogo(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // 발바닥 아이콘 (브랜드)
-        Container(
-          width: 28.w,
-          height: 28.w,
-          decoration: const BoxDecoration(
-            color: AppTheme.highlightColor,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(Icons.pets, size: 16.w, color: Colors.white),
-        ),
-        SizedBox(width: 8.w),
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: 'Pet',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              TextSpan(
-                text: 'Space',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.highlightColor,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  // 로고: PetSpaceLogo 공유 위젯 사용
 
   // ── 스트릭 배지 ───────────────────────────────────────
   Widget _buildStreakBadge(BuildContext context) {
