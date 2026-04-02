@@ -8,8 +8,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../emotion/presentation/bloc/emotion_analysis_bloc.dart';
-import '../../../social/presentation/bloc/feed_bloc.dart';
 
 class _Quest {
   final String id;
@@ -37,7 +35,7 @@ class HomeQuestCard extends StatefulWidget {
 }
 
 class _HomeQuestCardState extends State<HomeQuestCard> {
-  static final List<_Quest> _quests = [
+  static const List<_Quest> _quests = [
     _Quest(
       id: 'analyze',
       title: 'AI 감정 분석',
@@ -108,6 +106,7 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
     final today = _todayKey();
     await prefs.setBool('quest_${quest.id}_$today', true);
 
+    if (!mounted) return;
     final auth = context.read<AuthBloc>().state;
     if (auth is AuthAuthenticated) {
       try {
@@ -153,10 +152,6 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
 
   @override
   Widget build(BuildContext context) {
-    final totalQuestPts = _quests.fold(0, (sum, q) => sum + q.points);
-    final earnedPts = _quests
-        .where((q) => _completed[q.id] == true)
-        .fold(0, (sum, q) => sum + q.points);
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),

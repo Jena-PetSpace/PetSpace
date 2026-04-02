@@ -40,7 +40,6 @@ class PostCard extends StatefulWidget {
 
 class _PostCardState extends State<PostCard> {
   int _currentImageIndex = 0;
-  bool _isLikeProcessing = false;
   Timer? _likeDebounce;
   Timer? _commentDebounce;
 

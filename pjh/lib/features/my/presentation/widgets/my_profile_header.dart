@@ -202,12 +202,4 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
       ),
     );
   }
-
-  Widget _buildDivider() {
-    return Container(
-      width: 1,
-      height: 30.h,
-      color: AppTheme.dividerColor,
-    );
-  }
 }

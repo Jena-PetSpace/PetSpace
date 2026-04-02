@@ -577,7 +577,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
             ),
             SizedBox(height: 4.h),
             Text(
-              '최대 ${_maxImages}장 · 많을수록 정확해요',
+              '최대 $_maxImages장 · 많을수록 정확해요',
               style: TextStyle(fontSize: 10.sp, color: AppTheme.secondaryTextColor),
             ),
           ],

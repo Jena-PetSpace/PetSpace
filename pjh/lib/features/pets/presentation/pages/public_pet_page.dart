@@ -5,7 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
-import '../../../../shared/widgets/default_avatar.dart';
 
 class PublicPetPage extends StatefulWidget {
   final String petId;
@@ -119,10 +118,12 @@ class _PublicPetPageState extends State<PublicPetPage> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_pet == null) return Scaffold(
-      appBar: AppBar(title: const Text('반려동물 프로필')),
-      body: const Center(child: Text('반려동물을 찾을 수 없습니다')),
-    );
+    if (_pet == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('반려동물 프로필')),
+        body: const Center(child: Text('반려동물을 찾을 수 없습니다')),
+      );
+    }
 
     final name = _pet!['name'] as String? ?? '이름 없음';
     final species = _pet!['species'] as String? ?? '';
@@ -144,7 +145,7 @@ class _PublicPetPageState extends State<PublicPetPage> {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,

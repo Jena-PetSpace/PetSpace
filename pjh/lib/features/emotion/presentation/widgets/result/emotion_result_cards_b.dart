@@ -113,7 +113,10 @@ extension _EmotionResultCardsB on _EmotionResultPageState {
           SizedBox(height: 10.h),
           // 더보기 토글 버튼
           InkWell(
-            onTap: () => setState(() => _showStressDetail = !_showStressDetail),
+            onTap: () {
+              // ignore: invalid_use_of_protected_member
+              setState(() => _showStressDetail = !_showStressDetail);
+            },
             borderRadius: BorderRadius.circular(8.r),
             child: Container(
               width: double.infinity,

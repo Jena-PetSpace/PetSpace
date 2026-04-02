@@ -304,7 +304,6 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
         final dominant = a.emotions.dominantEmotion;
         final emoji = _emotionEmoji[dominant] ?? '🐾';
         final name = _emotionName[dominant] ?? '';
-        final value = ((a.emotions.happiness + a.emotions.curiosity) * 100).round();
         final time = '${a.analyzedAt.hour.toString().padLeft(2, '0')}:'
             '${a.analyzedAt.minute.toString().padLeft(2, '0')}';
 

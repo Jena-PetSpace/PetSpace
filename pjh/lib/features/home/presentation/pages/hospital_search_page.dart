@@ -256,7 +256,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
         child: Row(children: [
           SizedBox(width: 16.w, height: 16.w,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor)),
+              child: const CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor)),
           SizedBox(width: 10.w),
           Text('현재 위치 확인 중...',
               style: TextStyle(fontSize: 12.sp, color: AppTheme.primaryColor)),

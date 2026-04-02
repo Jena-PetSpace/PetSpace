@@ -151,7 +151,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                   child: Container(
                     width: 4.w,
                     height: 4.w,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppTheme.secondaryTextColor,
                       shape: BoxShape.circle,
                     ),

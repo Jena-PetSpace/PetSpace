@@ -90,8 +90,8 @@ class _HomePageState extends State<HomePage> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             // ── 커스텀 헤더 (딥블루 + 로고 + 대시보드) ──
-            SliverToBoxAdapter(
-              child: const HomeDashboardHeader(),
+            const SliverToBoxAdapter(
+              child: HomeDashboardHeader(),
             ),
 
             // ── 퀵 액션 그리드 ──────────────────────────

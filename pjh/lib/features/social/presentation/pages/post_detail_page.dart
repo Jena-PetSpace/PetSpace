@@ -1,6 +1,5 @@
 import 'dart:developer' as dev;
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../shared/widgets/default_avatar.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

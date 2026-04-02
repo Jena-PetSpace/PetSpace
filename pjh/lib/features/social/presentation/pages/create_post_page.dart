@@ -119,7 +119,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
               onPressed: _isEditMode ? _updatePost : _createPost,
               child: Text(
                 _isEditMode ? '수정완료' : '게시',
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppTheme.primaryColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,

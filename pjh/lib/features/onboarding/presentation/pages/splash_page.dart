@@ -82,7 +82,7 @@ class _SplashPageState extends State<SplashPage>
                     return Container(
                       width: 120.w,
                       height: 120.w,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppTheme.highlightColor,
                         shape: BoxShape.circle,
                       ),

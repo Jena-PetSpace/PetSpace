@@ -36,10 +36,12 @@ class _MagazineGridState extends State<MagazineGrid> {
           if (mounted) setState(() => _loading = false);
         },
         (posts) {
-          if (mounted) setState(() {
-            _posts = posts;
-            _loading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _posts = posts;
+              _loading = false;
+            });
+          }
         },
       );
     } catch (e) {

@@ -13,7 +13,6 @@ class HealthAlertSettingsPage extends StatefulWidget {
 
 class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
   bool _alertEnabled = true;
-  int _daysBeforeAlert = 7; // D-7, D-3, D-1 중 선택
   bool _alertD7 = true, _alertD3 = true, _alertD1 = true;
   String _alertTime = '09:00';
 
@@ -25,13 +24,15 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    if (mounted) setState(() {
-      _alertEnabled = prefs.getBool('health_alert_enabled') ?? true;
-      _alertD7 = prefs.getBool('health_alert_d7') ?? true;
-      _alertD3 = prefs.getBool('health_alert_d3') ?? true;
-      _alertD1 = prefs.getBool('health_alert_d1') ?? true;
-      _alertTime = prefs.getString('health_alert_time') ?? '09:00';
-    });
+    if (mounted) {
+      setState(() {
+        _alertEnabled = prefs.getBool('health_alert_enabled') ?? true;
+        _alertD7 = prefs.getBool('health_alert_d7') ?? true;
+        _alertD3 = prefs.getBool('health_alert_d3') ?? true;
+        _alertD1 = prefs.getBool('health_alert_d1') ?? true;
+        _alertTime = prefs.getString('health_alert_time') ?? '09:00';
+      });
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -182,7 +183,7 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
       title: Text(title, style: TextStyle(fontSize: 14.sp)),
       subtitle: Text(subtitle, style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor)),
       value: value, onChanged: onChanged,
-      activeColor: AppTheme.primaryColor,
+      activeThumbColor: AppTheme.primaryColor,
     );
   }
 
@@ -201,7 +202,8 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
         Text(label, style: TextStyle(fontSize: 13.sp)),
       ]),
       value: value, onChanged: _alertEnabled ? (v) => onChanged(v ?? value) : null,
-      activeColor: AppTheme.primaryColor,
+      fillColor: WidgetStateProperty.resolveWith((states) =>
+          states.contains(WidgetState.selected) ? AppTheme.primaryColor : null),
       controlAffinity: ListTileControlAffinity.trailing,
     );
   }

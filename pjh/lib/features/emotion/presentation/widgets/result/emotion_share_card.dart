@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -102,8 +101,6 @@ class EmotionShareCard extends StatelessWidget {
     final emoji = _emotionEmoji[dominant] ?? '🐾';
     final name = _emotionName[dominant] ?? '';
     final color = _emotionColor[dominant] ?? AppTheme.primaryColor;
-    final value = (analysis.emotions.happiness * 100).round();
-
     final emotions = [
       ('😊', '행복', analysis.emotions.happiness),
       ('😢', '슬픔', analysis.emotions.sadness),

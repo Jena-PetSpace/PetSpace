@@ -349,10 +349,10 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
                   label: '감정 레이더',
                   icon: Icons.radar,
                   isActive: _chartMode == _ChartMode.radar,
-                  onTap: () => setState(() => _chartMode =
-                      _chartMode == _ChartMode.radar
-                          ? _ChartMode.none
-                          : _ChartMode.radar),
+                  onTap: () {
+                    // ignore: invalid_use_of_protected_member
+                    setState(() => _chartMode = _chartMode == _ChartMode.radar ? _ChartMode.none : _ChartMode.radar);
+                  },
                 ),
               ),
               if (hasFacial) ...[
@@ -362,10 +362,10 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
                     label: '부위별 분석',
                     icon: Icons.visibility_outlined,
                     isActive: _chartMode == _ChartMode.facial,
-                    onTap: () => setState(() => _chartMode =
-                        _chartMode == _ChartMode.facial
-                            ? _ChartMode.none
-                            : _ChartMode.facial),
+                    onTap: () {
+                      // ignore: invalid_use_of_protected_member
+                      setState(() => _chartMode = _chartMode == _ChartMode.facial ? _ChartMode.none : _ChartMode.facial);
+                    },
                   ),
                 ),
               ],
