@@ -81,42 +81,41 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
         final user = state.user;
         return Scaffold(
           backgroundColor: AppTheme.backgroundColor,
-          body: NestedScrollView(
-            headerSliverBuilder: (context, _) => [
-              SliverToBoxAdapter(
-                child: MyProfileHeader(
-                  user: user,
-                  onPostsTapped: () => _tabController.animateTo(0),
+          body: Column(
+            children: [
+              // 헤더 + 뱃지 (스크롤 안 됨 - 고정)
+              MyProfileHeader(
+                user: user,
+                onPostsTapped: () => _tabController.animateTo(0),
+              ),
+              UserBadgesSection(userId: user.uid),
+              // 탭 바 (고정)
+              Container(
+                color: Colors.white,
+                child: TabBar(
+                  controller: _tabController,
+                  tabs: const [
+                    Tab(icon: Icon(Icons.grid_on_rounded)),
+                    Tab(icon: Icon(Icons.bookmark_outline_rounded)),
+                  ],
+                  indicatorColor: AppTheme.primaryColor,
+                  indicatorWeight: 2,
+                  labelColor: AppTheme.primaryColor,
+                  unselectedLabelColor: const Color(0xFFBDBDBD),
+                  dividerColor: const Color(0xFFEEEEEE),
                 ),
               ),
-              SliverToBoxAdapter(
-                child: UserBadgesSection(userId: user.uid),
-              ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _TabBarDelegate(
-                  TabBar(
-                    controller: _tabController,
-                    tabs: const [
-                      Tab(icon: Icon(Icons.grid_on_rounded)),
-                      Tab(icon: Icon(Icons.bookmark_outline_rounded)),
-                    ],
-                    indicatorColor: AppTheme.primaryColor,
-                    indicatorWeight: 2,
-                    labelColor: AppTheme.primaryColor,
-                    unselectedLabelColor: const Color(0xFFBDBDBD),
-                    dividerColor: const Color(0xFFEEEEEE),
-                  ),
+              // 그리드 (스크롤 영역)
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildGrid(_myPosts, _postsLoading, isMyPosts: true),
+                    _buildGrid(_savedPosts, false, isMyPosts: false),
+                  ],
                 ),
               ),
             ],
-            body: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildGrid(_myPosts, _postsLoading, isMyPosts: true),
-                _buildGrid(_savedPosts, false, isMyPosts: false),
-              ],
-            ),
           ),
         );
       },
@@ -233,24 +232,3 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   }
 }
 
-class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
-  _TabBarDelegate(this.tabBar);
-
-  @override
-  double get minExtent => tabBar.preferredSize.height;
-  @override
-  double get maxExtent => tabBar.preferredSize.height;
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Colors.white,
-      child: tabBar,
-    );
-  }
-
-  @override
-  bool shouldRebuild(_TabBarDelegate oldDelegate) => false;
-}
