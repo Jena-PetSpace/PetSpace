@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -434,6 +436,7 @@ Future<void> _initExternal() async {
 
   // Google Sign In
   sl.registerLazySingleton(() => GoogleSignIn(
+        clientId: Platform.isIOS ? Secrets.googleIosClientId : null,
         serverClientId:
             ApiConfig.isGoogleLoginConfigured ? Secrets.googleClientId : null,
         scopes: [

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 /// PetSpace 브랜드 로고 위젯
-/// - light : 라이트 배경 → 딥블루+코랄 컬러 로고 (logo_color.svg)
-/// - dark  : 다크/딥블루 배경 → 흰색+코랄 로고 (logo_white.svg)
+/// - light : 라이트 배경 → 딥블루 컬러 로고
+/// - dark  : 다크/딥블루 배경 → 흰색 로고
 enum LogoVariant { light, dark }
 
 class PetSpaceLogo extends StatelessWidget {
@@ -18,11 +18,18 @@ class PetSpaceLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final asset = variant == LogoVariant.dark
-        ? 'assets/svg/logo_white.svg'
-        : 'assets/svg/logo_color.svg';
+    // logo_petspace_img.svg: 딥블루 컬러 원본 로고
+    // dark 배경에서는 ColorFilter로 흰색으로 변환
+    if (variant == LogoVariant.dark) {
+      return SvgPicture.asset(
+        'assets/svg/logo_petspace_img.svg',
+        height: height,
+        fit: BoxFit.contain,
+        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+      );
+    }
     return SvgPicture.asset(
-      asset,
+      'assets/svg/logo_petspace_img.svg',
       height: height,
       fit: BoxFit.contain,
     );

@@ -52,14 +52,14 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<NavigationItem> _navigationItems = [
     const NavigationItem(
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home,
+      icon: Icons.cottage_outlined,
+      selectedIcon: Icons.cottage,
       label: '홈',
       route: '/home',
     ),
     const NavigationItem(
-      icon: Icons.favorite_border,
-      selectedIcon: Icons.favorite,
+      icon: Icons.monitor_heart_outlined,
+      selectedIcon: Icons.monitor_heart,
       label: '건강관리',
       route: '/health',
     ),
@@ -70,14 +70,14 @@ class _MainNavigationState extends State<MainNavigation> {
       route: '/emotion',
     ),
     const NavigationItem(
-      icon: Icons.dynamic_feed_outlined,
-      selectedIcon: Icons.dynamic_feed,
+      icon: Icons.photo_library_outlined,
+      selectedIcon: Icons.photo_library,
       label: '피드',
       route: '/feed',
     ),
     const NavigationItem(
-      icon: Icons.person_outline,
-      selectedIcon: Icons.person,
+      icon: Icons.pets_outlined,
+      selectedIcon: Icons.pets,
       label: 'MY',
       route: '/my',
     ),

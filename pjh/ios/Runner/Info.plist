@@ -67,6 +67,17 @@
 				<string>com.petspace.app</string>
 			</array>
 		</dict>
+		<!-- Google 로그인 콜백 URL -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>Google</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.295912994007-2je5non4shte8hcjd953ckeuoe4etf7n</string>
+			</array>
+		</dict>
 	</array>
 
 	<!-- 외부 앱 딥링크 스킴 화이트리스트 -->

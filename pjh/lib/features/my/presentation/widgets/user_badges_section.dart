@@ -109,9 +109,9 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
     if (_loading) return const SizedBox.shrink();
 
     return Container(
-      color: Colors.white,
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: const BoxDecoration(
+        color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 0.5)),
       ),
       child: Column(

@@ -48,14 +48,9 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 상단 Row: MY 타이틀 + 설정 버튼
+          // 상단 Row: 설정 버튼
           Row(
             children: [
-              Text('MY',
-                  style: TextStyle(
-                      fontSize: 15.sp,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500)),
               const Spacer(),
               InkWell(
                 onTap: () => SettingsBottomSheet.show(context),
