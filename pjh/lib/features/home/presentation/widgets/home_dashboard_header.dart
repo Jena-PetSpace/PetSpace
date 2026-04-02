@@ -439,7 +439,7 @@ class HomeDashboardHeader extends StatelessWidget {
 
   Widget _buildNoPetCard(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push('/pets/add'),
+      onTap: () => context.push('/pets'),
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 16.w),
         decoration: BoxDecoration(

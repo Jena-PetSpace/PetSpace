@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
@@ -385,6 +386,23 @@ class _HealthMainViewState extends State<_HealthMainView> {
           Text(
             '반려동물을 먼저 등록해주세요',
             style: TextStyle(fontSize: 16.sp, color: Colors.grey[500]),
+          ),
+          SizedBox(height: 20.h),
+          ElevatedButton.icon(
+            onPressed: () => context.push('/pets'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+            ),
+            icon: const Icon(Icons.add),
+            label: Text(
+              '반려동물 등록하기',
+              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
