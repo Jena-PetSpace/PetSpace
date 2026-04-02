@@ -1403,3 +1403,169 @@ BEGIN
     RAISE NOTICE '  + RLS 보강: users DELETE, notifications DELETE';
     RAISE NOTICE '================================================';
 END $$;
+
+
+-- ================================================================
+-- PART 10: 포인트 / 퀘스트 / 스토어 / 기부 / 뱃지 (Week 1 추가)
+-- ================================================================
+
+-- 18. 포인트 거래 내역
+CREATE TABLE IF NOT EXISTS point_transactions (
+  id          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  amount      INTEGER NOT NULL,
+  type        TEXT NOT NULL,
+  description TEXT NOT NULL,
+  ref_id      TEXT,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- 포인트 잔액 뷰
+CREATE OR REPLACE VIEW user_points AS
+  SELECT user_id, COALESCE(SUM(amount), 0)::INTEGER AS balance
+  FROM point_transactions
+  GROUP BY user_id;
+
+-- 19. 퀘스트 정의
+CREATE TABLE IF NOT EXISTS quests (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  type         TEXT NOT NULL,
+  key          TEXT UNIQUE NOT NULL,
+  title        TEXT NOT NULL,
+  description  TEXT NOT NULL,
+  point_reward INTEGER NOT NULL,
+  target_count INTEGER DEFAULT 1,
+  is_active    BOOLEAN DEFAULT true
+);
+
+-- 20. 유저 퀘스트 진행
+CREATE TABLE IF NOT EXISTS user_quest_progress (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  quest_id     UUID REFERENCES quests(id),
+  period_key   TEXT NOT NULL,
+  progress     INTEGER DEFAULT 0,
+  completed_at TIMESTAMPTZ,
+  UNIQUE(user_id, quest_id, period_key)
+);
+
+-- 21. 스토어 아이템
+CREATE TABLE IF NOT EXISTS store_items (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  category     TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  description  TEXT,
+  point_cost   INTEGER NOT NULL,
+  image_url    TEXT,
+  is_available BOOLEAN DEFAULT true,
+  stock        INTEGER,
+  partner_name TEXT,
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+
+-- 22. 구매 내역
+CREATE TABLE IF NOT EXISTS user_purchases (
+  id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id      UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  item_id      UUID REFERENCES store_items(id),
+  point_spent  INTEGER NOT NULL,
+  used_at      TIMESTAMPTZ,
+  created_at   TIMESTAMPTZ DEFAULT now()
+);
+
+-- 23. 기부 캠페인
+CREATE TABLE IF NOT EXISTS donation_campaigns (
+  id             UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title          TEXT NOT NULL,
+  description    TEXT,
+  goal_amount    INTEGER NOT NULL,
+  current_amount INTEGER DEFAULT 0,
+  start_at       TIMESTAMPTZ,
+  end_at         TIMESTAMPTZ,
+  is_active      BOOLEAN DEFAULT true
+);
+
+-- 24. 유저 뱃지
+CREATE TABLE IF NOT EXISTS user_badges (
+  id        UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id   UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  badge_id  TEXT NOT NULL,
+  earned_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, badge_id)
+);
+
+
+-- ================================================================
+-- PART 10-B: 인덱스
+-- ================================================================
+
+CREATE INDEX IF NOT EXISTS idx_point_transactions_user_id
+  ON point_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_point_transactions_created_at
+  ON point_transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_quest_progress_user_id
+  ON user_quest_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_quest_progress_period
+  ON user_quest_progress(user_id, period_key);
+CREATE INDEX IF NOT EXISTS idx_user_purchases_user_id
+  ON user_purchases(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_badges_user_id
+  ON user_badges(user_id);
+
+
+-- ================================================================
+-- PART 10-C: RLS
+-- ================================================================
+
+ALTER TABLE point_transactions   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_quest_progress  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_purchases       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE store_items          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE donation_campaigns   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_badges          ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "users read own points"   ON point_transactions;
+DROP POLICY IF EXISTS "users insert own points" ON point_transactions;
+CREATE POLICY "users read own points"   ON point_transactions
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "users insert own points" ON point_transactions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "users manage own quest progress" ON user_quest_progress;
+CREATE POLICY "users manage own quest progress" ON user_quest_progress
+  FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "users manage own purchases" ON user_purchases;
+CREATE POLICY "users manage own purchases" ON user_purchases
+  FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "anyone read store items" ON store_items;
+CREATE POLICY "anyone read store items" ON store_items
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "anyone read campaigns" ON donation_campaigns;
+CREATE POLICY "anyone read campaigns" ON donation_campaigns
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "users manage own badges" ON user_badges;
+CREATE POLICY "users manage own badges" ON user_badges
+  FOR ALL USING (auth.uid() = user_id);
+
+
+-- ================================================================
+-- PART 10-D: 퀘스트 초기 데이터
+-- ================================================================
+
+INSERT INTO quests (type, key, title, description, point_reward, target_count)
+VALUES
+  ('daily',       'daily_emotion_analysis',  'AI 감정 분석하기',       '사진 1장 업로드',       50,  1),
+  ('daily',       'daily_health_record',     '건강 기록 추가하기',      '기록 1개 작성',         30,  1),
+  ('daily',       'daily_community_comment', '커뮤니티 댓글 달기',      '댓글 1개 작성',         30,  1),
+  ('daily',       'daily_app_open',          '오늘 앱 열기',            '앱 접속',               10,  1),
+  ('weekly',      'weekly_streak_7',         '7일 연속 감정 분석',      '7일 연속 분석 달성',    300, 7),
+  ('weekly',      'weekly_likes_10',         '커뮤니티 좋아요 10개',    '이번 주 좋아요',        100, 10),
+  ('weekly',      'weekly_posts_3',          '이번 주 게시글 3개 작성', '피드 포스팅',           150, 3),
+  ('achievement', 'ach_first_analysis',      '첫 AI 분석 완료',         '최초 감정 분석',        100, 1),
+  ('achievement', 'ach_10_records',          '건강 기록 10개 달성',     '누적 기록',             200, 10),
+  ('achievement', 'ach_level_5',             '레벨 5 달성',             '꾸준히 활동',           500, 1)
+ON CONFLICT (key) DO NOTHING;
