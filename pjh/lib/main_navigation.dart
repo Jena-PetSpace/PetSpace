@@ -107,13 +107,15 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ],
       ),
-      child: Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom),
-        child: SizedBox(
-          height: 60,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Row(
+      child: SizedBox(
+        height: 60 + MediaQuery.of(context).viewPadding.bottom,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 16.w,
+            right: 16.w,
+            bottom: MediaQuery.of(context).viewPadding.bottom,
+          ),
+          child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: _navigationItems.asMap().entries.map((entry) {
                 final index = entry.key;
@@ -159,7 +161,7 @@ class _MainNavigationState extends State<MainNavigation> {
                     onTap: () => _onTabTapped(index),
                     behavior: HitTestBehavior.opaque,
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                      padding: EdgeInsets.symmetric(horizontal: 12.w),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -188,7 +190,6 @@ class _MainNavigationState extends State<MainNavigation> {
                   ),
                 );
               }).toList(),
-            ),
           ),
         ),
       ),
