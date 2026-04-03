@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../social/presentation/pages/channel_subscription_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -134,7 +135,7 @@ class _FeedHubPageState extends State<FeedHubPage>
             tooltip: '채널 구독',
           ),
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: SvgPicture.asset('assets/svg/icon_search.svg', width: 24, height: 24, colorFilter: const ColorFilter.mode(Colors.black87, BlendMode.srcIn)),
             onPressed: () => context.push('/search'),
             tooltip: '검색',
           ),

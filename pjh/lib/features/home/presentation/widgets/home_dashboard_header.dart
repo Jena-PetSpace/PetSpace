@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
@@ -35,7 +36,7 @@ class HomeDashboardHeader extends StatelessWidget {
               child: Row(
                 children: [
                   // 로고
-                  PetSpaceLogo(variant: LogoVariant.dark, height: 34.h),
+                  PetSpaceLogo(variant: LogoVariant.dark, height: 51.h),
                   const Spacer(),
                   // 스트릭 배지
                   _buildStreakBadge(context),
@@ -111,7 +112,7 @@ class HomeDashboardHeader extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(Icons.notifications_outlined, color: Colors.white, size: 24.w),
+              SvgPicture.asset('assets/svg/icon_notification.svg', width: 24.w, height: 24.w, colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn)),
               if (notiState.count > 0)
                 Positioned(
                   top: -3.h,
@@ -145,7 +146,7 @@ class HomeDashboardHeader extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 24.w),
+              SvgPicture.asset('assets/svg/icon_message.svg', width: 24.w, height: 24.w, colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn)),
               if (badgeState.count > 0)
                 Positioned(
                   top: -4.h,

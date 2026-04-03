@@ -178,6 +178,16 @@ class _MainNavigationState extends State<MainNavigation> {
                                 BlendMode.srcIn,
                               ),
                             )
+                          else if (index == 3)
+                            SvgPicture.asset(
+                              'assets/svg/icon_feed.svg',
+                              width: 24.w,
+                              height: 24.w,
+                              colorFilter: ColorFilter.mode(
+                                isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                                BlendMode.srcIn,
+                              ),
+                            )
                           else if (index == 4)
                             _buildMyTabIcon(isSelected, item)
                           else
@@ -210,10 +220,12 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget _buildMyTabIcon(bool isSelected, NavigationItem item) {
     return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
       builder: (context, badgeState) {
-        final icon = Icon(
-          isSelected ? item.selectedIcon : item.icon,
-          color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
-          size: 24.w,
+        final color = isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor;
+        final icon = SvgPicture.asset(
+          'assets/svg/icon_my.svg',
+          width: 24.w,
+          height: 24.w,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
         );
 
         if (badgeState.count <= 0) return icon;
