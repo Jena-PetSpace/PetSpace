@@ -107,94 +107,90 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            height: 60.h,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: _navigationItems.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  final isSelected = _currentIndex == index;
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom),
+        child: SizedBox(
+          height: 60,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: _navigationItems.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                final isSelected = _currentIndex == index;
 
-                  // 중앙 AI분석 FAB 버튼
-                  if (index == 2) {
-                    return Semantics(
-                      label: 'AI 감정 분석',
-                      button: true,
-                      selected: _currentIndex == 2,
-                      child: GestureDetector(
-                        onTap: () => _onTabTapped(index),
-                        child: Container(
-                          width: 56.w,
-                          height: 56.w,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(18.r),
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [AppTheme.primaryColor, AppTheme.accentColor],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(Icons.psychology, color: Colors.white, size: 28.w),
-                        ),
-                      ),
-                    );
-                  }
-
+                if (index == 2) {
                   return Semantics(
-                    label: item.label,
+                    label: 'AI 감정 분석',
                     button: true,
-                    selected: isSelected,
+                    selected: _currentIndex == 2,
                     child: GestureDetector(
                       onTap: () => _onTabTapped(index),
-                      behavior: HitTestBehavior.opaque,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (index == 0)
-                              _buildHomeBadgeIcon(isSelected, item)
-                            else if (index == 4)
-                              _buildMyTabIcon(isSelected, item)
-                            else
-                              Icon(
-                                isSelected ? item.selectedIcon : item.icon,
-                                color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
-                                size: 24.w,
-                              ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              item.label,
-                              style: TextStyle(
-                                fontSize: 11.sp,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
-                              ),
+                        width: 56.w,
+                        height: 56.w,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18.r),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [AppTheme.primaryColor, AppTheme.accentColor],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
+                        child: Icon(Icons.psychology, color: Colors.white, size: 28.w),
                       ),
                     ),
                   );
-                }).toList(),
-              ),
+                }
+
+                return Semantics(
+                  label: item.label,
+                  button: true,
+                  selected: isSelected,
+                  child: GestureDetector(
+                    onTap: () => _onTabTapped(index),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (index == 0)
+                            _buildHomeBadgeIcon(isSelected, item)
+                          else if (index == 4)
+                            _buildMyTabIcon(isSelected, item)
+                          else
+                            Icon(
+                              isSelected ? item.selectedIcon : item.icon,
+                              color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                              size: 24.w,
+                            ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            item.label,
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
-          SizedBox(height: MediaQuery.of(context).viewPadding.bottom),
-        ],
+        ),
       ),
     );
   }
