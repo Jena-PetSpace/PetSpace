@@ -168,6 +168,16 @@ class _MainNavigationState extends State<MainNavigation> {
                         children: [
                           if (index == 0)
                             _buildHomeBadgeIcon(isSelected, item)
+                          else if (index == 1)
+                            SvgPicture.asset(
+                              'assets/svg/icon_health.svg',
+                              width: 24.w,
+                              height: 24.w,
+                              colorFilter: ColorFilter.mode(
+                                isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                                BlendMode.srcIn,
+                              ),
+                            )
                           else if (index == 4)
                             _buildMyTabIcon(isSelected, item)
                           else
