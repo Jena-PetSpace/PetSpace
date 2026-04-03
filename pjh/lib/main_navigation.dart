@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -233,11 +234,12 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget _buildHomeBadgeIcon(bool isSelected, NavigationItem item) {
     return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
       builder: (context, badgeState) {
-        final icon = Icon(
-          isSelected ? item.selectedIcon : item.icon,
-          color:
-              isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
-          size: 24.w,
+        final color = isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor;
+        final icon = SvgPicture.asset(
+          'assets/svg/icon_home.svg',
+          width: 24.w,
+          height: 24.w,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
         );
 
         if (badgeState.count <= 0) return icon;
