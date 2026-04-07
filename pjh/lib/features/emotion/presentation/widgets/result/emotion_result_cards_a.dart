@@ -450,82 +450,280 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
     }
   }
 
-  // A-1: 부위별 분석 콘텐츠
-  Widget _buildFacialFeaturesContent() {
+  // ── 부위별 signal → 색상 매핑 ──
+  Color _signalColor(String signal) {
+    final s = signal.toLowerCase();
+    if (s.contains('이완') || s.contains('평온') || s.contains('안정') || s.contains('긍정')) {
+      return const Color(0xFF2ECC71);
+    }
+    if (s.contains('경계') || s.contains('긴장') || s.contains('주의') || s.contains('흥분')) {
+      return const Color(0xFFF39C12);
+    }
+    if (s.contains('불안') || s.contains('공포') || s.contains('두려') || s.contains('스트레스') || s.contains('부정')) {
+      return const Color(0xFFE74C3C);
+    }
+    return AppTheme.primaryColor;
+  }
+
+  // ── A-1: 부위별 분석 — Option A 카드형 그리드 ──
+  Widget _buildFacialFeaturesGrid() {
     final features = widget.analysis.emotions.facialFeatures;
     if (features == null || features.isEmpty) return const SizedBox.shrink();
 
-    final partLabels = {
-      'eyes': ('눈', Icons.remove_red_eye_outlined),
-      'ears': ('귀', Icons.hearing_outlined),
-      'mouth': ('입', Icons.mood_outlined),
-      'posture': ('자세', Icons.accessibility_new_outlined),
+    final partMeta = {
+      'eyes':    ('눈',  Icons.remove_red_eye_outlined, '동공·눈꺼풀 상태'),
+      'ears':    ('귀',  Icons.hearing_outlined,        '귀 방향·각도'),
+      'mouth':   ('입',  Icons.mood_outlined,           '입 모양·긴장도'),
+      'posture': ('자세', Icons.accessibility_new_outlined, '몸 전체 자세'),
     };
 
-    return Padding(
-      padding: EdgeInsets.only(top: 16.h),
-      child: Column(
-        children: features.entries.map((entry) {
-          final part = partLabels[entry.key];
-          final label = part?.$1 ?? entry.key;
-          final icon = part?.$2 ?? Icons.circle_outlined;
-          final feature = entry.value;
+    final entries = features.entries.toList();
 
-          return Padding(
-            padding: EdgeInsets.only(bottom: 8.h),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F6FA),
-                borderRadius: BorderRadius.circular(10.r),
+    return Padding(
+      padding: EdgeInsets.only(top: 14.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 뷰 전환 토글
+          Row(
+            children: [
+              _buildViewToggle('카드형', _facialViewMode == 0, () {
+                // ignore: invalid_use_of_protected_member
+                setState(() => _facialViewMode = 0);
+              }),
+              SizedBox(width: 8.w),
+              _buildViewToggle('목록형', _facialViewMode == 1, () {
+                // ignore: invalid_use_of_protected_member
+                setState(() => _facialViewMode = 1);
+              }),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          if (_facialViewMode == 0)
+            // Option A: 2열 카드 그리드
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10.w,
+                mainAxisSpacing: 10.h,
+                childAspectRatio: 1.05,
               ),
-              child: Row(
-                children: [
-                  Icon(icon, size: 18.w, color: AppTheme.primaryColor),
-                  SizedBox(width: 10.w),
-                  SizedBox(
-                    width: 32.w,
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryTextColor,
+              itemCount: entries.length,
+              itemBuilder: (context, i) {
+                final key = entries[i].key;
+                final feature = entries[i].value;
+                final meta = partMeta[key];
+                final label = meta?.$1 ?? key;
+                final icon = meta?.$2 ?? Icons.circle_outlined;
+                final hint = meta?.$3 ?? '';
+                final color = _signalColor(feature.signal);
+
+                return Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(color: color.withValues(alpha: 0.25)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 헤더
+                      Row(
+                        children: [
+                          Container(
+                            width: 32.w,
+                            height: 32.w,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Icon(icon, size: 18.w, color: color),
+                          ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.primaryTextColor,
+                                  ),
+                                ),
+                                Text(
+                                  hint,
+                                  style: TextStyle(
+                                    fontSize: 9.sp,
+                                    color: Colors.grey[400],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Text(
-                      feature.state,
-                      style:
-                          TextStyle(fontSize: 12.sp, color: Colors.grey[700]),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6.r),
-                    ),
-                    child: Text(
-                      feature.signal,
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryColor,
+                      const Spacer(),
+                      // 설명
+                      Text(
+                        feature.state,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: Colors.grey[700],
+                          height: 1.4,
+                        ),
                       ),
-                    ),
+                      SizedBox(height: 6.h),
+                      // signal 배지
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
+                        child: Text(
+                          feature.signal,
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
+            )
+          else
+            // Option B: 타임라인형 목록
+            Column(
+              children: entries.asMap().entries.map((e) {
+                final isLast = e.key == entries.length - 1;
+                final key = e.value.key;
+                final feature = e.value.value;
+                final meta = partMeta[key];
+                final label = meta?.$1 ?? key;
+                final icon = meta?.$2 ?? Icons.circle_outlined;
+                final color = _signalColor(feature.signal);
+
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 타임라인 라인 + 아이콘
+                      SizedBox(
+                        width: 36.w,
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 36.w,
+                              height: 36.w,
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: color.withValues(alpha: 0.4)),
+                              ),
+                              child: Icon(icon, size: 18.w, color: color),
+                            ),
+                            if (!isLast)
+                              Expanded(
+                                child: Container(
+                                  width: 2.w,
+                                  color: Colors.grey.withValues(alpha: 0.2),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      // 내용
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: isLast ? 0 : 16.h),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.primaryTextColor,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.13),
+                                      borderRadius: BorderRadius.circular(5.r),
+                                    ),
+                                    child: Text(
+                                      feature.signal,
+                                      style: TextStyle(
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: color,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 4.h),
+                              Text(
+                                feature.state,
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.grey[600],
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
-          );
-        }).toList(),
+        ],
       ),
     );
   }
+
+  Widget _buildViewToggle(String label, bool isActive, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+        decoration: BoxDecoration(
+          color: isActive ? AppTheme.primaryColor : const Color(0xFFF5F6FA),
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w600,
+            color: isActive ? Colors.white : Colors.grey[500],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 하위 호환 — 기존 호출부 유지
+  Widget _buildFacialFeaturesContent() => _buildFacialFeaturesGrid();
 
   // ══════════════════════════════════════════════════════════════════════════
   // Methods from emotion_result_stress.dart

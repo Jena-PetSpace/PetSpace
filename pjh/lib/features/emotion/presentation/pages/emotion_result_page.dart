@@ -48,6 +48,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
 
   // 더보기 모드: none / radar / facial
   _ChartMode _chartMode = _ChartMode.none;
+  int _facialViewMode = 0; // 0: 카드형 그리드, 1: 타임라인형 목록
 
   // A-5: 이전 분석 비교
   EmotionAnalysis? _previousAnalysis;
