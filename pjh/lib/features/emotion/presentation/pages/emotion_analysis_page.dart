@@ -509,7 +509,13 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                         width: double.infinity,
                         height: 52.h,
                         child: ElevatedButton.icon(
-                          onPressed: _canAnalyze ? _startAnalysis : null,
+                          onPressed: _canAnalyze
+                              ? _startAnalysis
+                              : () {
+                                  if (!(_selectedPet != null || _analyzeWithoutPet)) {
+                                    _showPetNotSelectedSnackBar();
+                                  }
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primaryColor,
                             foregroundColor: Colors.white,
@@ -545,42 +551,52 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
 
   // 사진 그리드 (선택된 사진들 + 빈 슬롯 힌트)
   Widget _buildImageGrid() {
+    final petSelected = _selectedPet != null || _analyzeWithoutPet;
     if (_imagePaths.isEmpty) {
-      return Container(
-        width: double.infinity,
-        height: 120.h,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(
-            color: Colors.grey.shade200,
-            width: 1.5,
+      return GestureDetector(
+        onTap: () {
+          if (!petSelected) {
+            _showPetNotSelectedSnackBar();
+          } else {
+            _addPicture(ImageSource.gallery);
+          }
+        },
+        child: Container(
+          width: double.infinity,
+          height: 120.h,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+              color: Colors.grey.shade200,
+              width: 1.5,
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 52.w,
-              height: 52.w,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52.w,
+                height: 52.w,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.add_photo_alternate_outlined,
+                    size: 28.w, color: AppTheme.primaryColor.withValues(alpha: 0.6)),
               ),
-              child: Icon(Icons.add_photo_alternate_outlined,
-                  size: 28.w, color: AppTheme.primaryColor.withValues(alpha: 0.6)),
-            ),
-            SizedBox(height: 10.h),
-            Text(
-              '사진을 탭해서 추가하세요',
-              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppTheme.primaryColor.withValues(alpha: 0.7)),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              '최대 $_maxImages장 · 많을수록 정확해요',
-              style: TextStyle(fontSize: 10.sp, color: AppTheme.secondaryTextColor),
-            ),
-          ],
+              SizedBox(height: 10.h),
+              Text(
+                '사진을 탭해서 추가하세요',
+                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppTheme.primaryColor.withValues(alpha: 0.7)),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                '최대 $_maxImages장 · 많을수록 정확해요',
+                style: TextStyle(fontSize: 10.sp, color: AppTheme.secondaryTextColor),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -656,7 +672,10 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
             icon: Icons.camera_alt_outlined,
             label: '카메라',
             color: AppTheme.highlightColor,
-            onTap: enabled ? () => _addPicture(ImageSource.camera) : null,
+            isEnabled: enabled,
+            onTap: enabled
+                ? () => _addPicture(ImageSource.camera)
+                : _showPetNotSelectedSnackBar,
           ),
         ),
         SizedBox(width: 10.w),
@@ -665,7 +684,10 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
             icon: Icons.photo_library_outlined,
             label: '갤러리',
             color: AppTheme.accentColor,
-            onTap: enabled ? () => _addPicture(ImageSource.gallery) : null,
+            isEnabled: enabled,
+            onTap: enabled
+                ? () => _addPicture(ImageSource.gallery)
+                : _showPetNotSelectedSnackBar,
           ),
         ),
       ],
@@ -677,8 +699,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     required String label,
     required Color color,
     required VoidCallback? onTap,
+    bool isEnabled = true,
   }) {
-    final isEnabled = onTap != null;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -843,11 +865,39 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     );
   }
 
+  void _showPetNotSelectedSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('반려동물을 먼저 선택해주세요 🐾'),
+        backgroundColor: AppTheme.primaryColor,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _addPicture(ImageSource source) async {
+    // 반려동물 미선택 시 안내
+    if (!(_selectedPet != null || _analyzeWithoutPet)) {
+      _showPetNotSelectedSnackBar();
+      return;
+    }
+
     try {
       if (source == ImageSource.gallery) {
         // 갤러리: 여러 장 한번에 선택
         final remaining = _maxImages - _imagePaths.length;
+        if (remaining <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('사진은 최대 $_maxImages장까지만 선택할 수 있어요.'),
+              backgroundColor: AppTheme.primaryColor,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
         final picker = ImagePicker();
         final List<XFile> images = await picker.pickMultiImage(
           maxWidth: 1920,
@@ -857,13 +907,23 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         );
         if (!mounted) return;
         if (images.isNotEmpty) {
+          final addable = images.take(remaining).toList();
           setState(() {
-            for (final img in images) {
-              if (_imagePaths.length < _maxImages) {
-                _imagePaths.add(img.path);
-              }
+            for (final img in addable) {
+              _imagePaths.add(img.path);
             }
           });
+          // 초과 선택 시 안내
+          if (images.length > addable.length) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('사진은 최대 $_maxImages장까지만 추가할 수 있어요. ${addable.length}장만 추가됐습니다.'),
+                backgroundColor: AppTheme.primaryColor,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
         }
       } else {
         // 카메라: 한 장씩

@@ -90,9 +90,19 @@ class _MainNavigationState extends State<MainNavigation> {
     final location = GoRouterState.of(context).uri.path;
     _updateCurrentIndex(location);
 
-    return Scaffold(
-      body: widget.child,
-      bottomNavigationBar: _buildCustomBottomNav(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        final router = GoRouter.of(context);
+        if (router.canPop()) {
+          router.pop();
+        }
+      },
+      child: Scaffold(
+        body: widget.child,
+        bottomNavigationBar: _buildCustomBottomNav(),
+      ),
     );
   }
 
