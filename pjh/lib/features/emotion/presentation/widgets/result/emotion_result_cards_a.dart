@@ -165,11 +165,14 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
     final cur = widget.analysis.emotions;
     final prev = _previousAnalysis!.emotions;
     final deltas = [
-      ('기쁨', cur.happiness - prev.happiness),
-      ('슬픔', cur.sadness - prev.sadness),
-      ('불안', cur.anxiety - prev.anxiety),
-      ('졸림', cur.sleepiness - prev.sleepiness),
-      ('호기심', cur.curiosity - prev.curiosity),
+      ('기쁨',   cur.happiness  - prev.happiness),
+      ('편안함', cur.calm       - prev.calm),
+      ('흥분',   cur.excitement - prev.excitement),
+      ('호기심', cur.curiosity  - prev.curiosity),
+      ('불안',   cur.anxiety    - prev.anxiety),
+      ('공포',   cur.fear       - prev.fear),
+      ('슬픔',   cur.sadness    - prev.sadness),
+      ('불편함', cur.discomfort - prev.discomfort),
     ];
 
     return Padding(
@@ -246,13 +249,11 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
   // ══════════════════════════════════════════════════════════════════════════
 
   Widget _buildEmotionDistributionCard() {
-    final emotions = [
-      ('happiness', '😊 기쁨', widget.analysis.emotions.happiness),
-      ('sadness', '😢 슬픔', widget.analysis.emotions.sadness),
-      ('anxiety', '😰 불안', widget.analysis.emotions.anxiety),
-      ('sleepiness', '😴 졸림', widget.analysis.emotions.sleepiness),
-      ('curiosity', '🧐 호기심', widget.analysis.emotions.curiosity),
-    ];
+    final emotions = AppTheme.emotionOrder.map((key) => (
+      key,
+      '${AppTheme.getEmotionEmoji(key)} ${AppTheme.getEmotionLabel(key)}',
+      _getEmotionValue(key),
+    )).toList();
     emotions.sort((a, b) => b.$3.compareTo(a.$3));
     final dominant = widget.analysis.emotions.dominantEmotion;
     final hasFacial = widget.analysis.emotions.facialFeatures != null &&

@@ -253,6 +253,11 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                   child: Column(
                     children: [
+                      // isSleepy 생리지표 배너
+                      if (widget.analysis.isSleepy) ...[
+                        _buildSleepyBanner(),
+                        SizedBox(height: 10.h),
+                      ],
                       // 0. 감정 요약 메시지
                       _buildEmotionSummaryCard(dominant, emotionColor),
                       SizedBox(height: 14.h),
@@ -325,14 +330,50 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
   }
 
+  // ── isSleepy 생리지표 배너 ──
+  Widget _buildSleepyBanner() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: AppTheme.physiologicalColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: AppTheme.physiologicalColor.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text('💤', style: TextStyle(fontSize: 18.sp)),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              '졸린 상태가 감지됐어요. 편히 쉴 수 있는 공간을 만들어주세요.',
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: AppTheme.primaryTextColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── 0. 감정 요약 메시지 카드 ──
   Widget _buildEmotionSummaryCard(String dominant, Color emotionColor) {
     final summaryMap = {
-      'happiness': '오늘 반려동물이 매우 행복해 보여요! \u{1F60A}',
-      'sadness': '조금 우울해 보이네요. 많이 안아주세요 \u{1F499}',
-      'anxiety': '불안한 모습이 보여요. 편안한 환경을 만들어주세요 \u{1F917}',
-      'sleepiness': '졸린 모습이네요. 편히 쉴 수 있게 해주세요 \u{1F634}',
-      'curiosity': '호기심이 가득해 보여요! 새로운 놀이를 해보세요 \u{2728}',
+      'happiness':  '오늘 반려동물이 매우 행복해 보여요! 😊',
+      'calm':       '편안하고 안정적인 상태예요. 좋은 환경을 유지해주세요 😌',
+      'excitement': '에너지가 넘치는 흥분 상태예요! 함께 놀아주세요 🤩',
+      'curiosity':  '호기심이 가득해 보여요! 새로운 놀이를 해보세요 🧐',
+      'anxiety':    '불안한 모습이 보여요. 편안한 환경을 만들어주세요 😰',
+      'fear':       '무언가를 무서워하고 있어요. 안전한 공간을 제공해주세요 😨',
+      'sadness':    '조금 우울해 보이네요. 많이 안아주세요 😢',
+      'discomfort': '불편한 것이 있어 보여요. 몸 상태를 확인해주세요 😣',
     };
 
     final summary = summaryMap[dominant] ?? '감정 분석이 완료되었습니다.';
@@ -582,32 +623,21 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     ctx.read<FeedBloc>().add(CreatePostRequested(post: post));
   }
 
-  String _getEmotionNameForShare(String emotion) {
-    const map = {
-      'happiness': '기쁨',
-      'sadness': '슬픔',
-      'anxiety': '불안',
-      'sleepiness': '졸림',
-      'curiosity': '호기심',
-    };
-    return map[emotion] ?? '알 수 없음';
-  }
+  String _getEmotionNameForShare(String emotion) =>
+      AppTheme.getEmotionLabel(emotion);
 
   double _getEmotionValueForShare(String emotion) {
     final e = widget.analysis.emotions;
     switch (emotion) {
-      case 'happiness':
-        return e.happiness;
-      case 'sadness':
-        return e.sadness;
-      case 'anxiety':
-        return e.anxiety;
-      case 'sleepiness':
-        return e.sleepiness;
-      case 'curiosity':
-        return e.curiosity;
-      default:
-        return 0.0;
+      case 'happiness':  return e.happiness;
+      case 'calm':       return e.calm;
+      case 'excitement': return e.excitement;
+      case 'curiosity':  return e.curiosity;
+      case 'anxiety':    return e.anxiety;
+      case 'fear':       return e.fear;
+      case 'sadness':    return e.sadness;
+      case 'discomfort': return e.discomfort;
+      default:           return 0.0;
     }
   }
 
