@@ -12,14 +12,20 @@ class AppConstants {
   static const int imageQuality = 85;
   static const double cropAspectRatio = 1.0; // 정사각형
 
-  // 감정 분석 관련
+  // 감정 분석 관련 (8종, AppTheme.emotionOrder와 동일 순서)
   static const List<String> emotionTypes = [
     'happiness',
-    'sadness',
-    'anxiety',
-    'sleepiness',
+    'calm',
+    'excitement',
     'curiosity',
+    'anxiety',
+    'fear',
+    'sadness',
+    'discomfort',
   ];
+
+  // 구버전 DB 데이터 호환용 (생리지표로 분리됨)
+  static const List<String> legacyEmotionTypes = ['sleepiness'];
 
   // 페이지네이션
   static const int defaultPageSize = 20;
