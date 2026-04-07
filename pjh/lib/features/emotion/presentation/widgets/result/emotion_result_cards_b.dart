@@ -179,8 +179,11 @@ extension _EmotionResultCardsB on _EmotionResultPageState {
     if (emotions.happiness < 0.2) {
       analysisItems.add('기쁨 수치가 낮아 전반적인 기분 개선이 필요해 보여요.');
     }
-    if (emotions.sleepiness > 0.4) {
-      analysisItems.add('졸림 수치가 높아 수면 부족이나 체력 저하가 의심돼요.');
+    if (emotions.fear > 0.4) {
+      analysisItems.add('공포 수치가 높아요. 특정 자극이 원인일 수 있어요. 안전한 환경을 만들어주세요.');
+    }
+    if (emotions.discomfort > 0.35) {
+      analysisItems.add('불편함이 감지돼요. 신체 이상이나 환경 불쾌 요인을 확인해 주세요.');
     }
 
     // 감정 조합 기반 심층 분석
@@ -190,8 +193,8 @@ extension _EmotionResultCardsB on _EmotionResultPageState {
     if (emotions.anxiety > 0.3 && emotions.curiosity > 0.3) {
       analysisItems.add('불안 속에서도 호기심이 있어요. 새로운 환경에 대한 경계와 탐구가 공존하는 상태예요.');
     }
-    if (emotions.sleepiness > 0.3 && emotions.sadness > 0.2) {
-      analysisItems.add('졸림과 슬픔이 함께 나타나요. 무기력함이나 우울 경향을 주의 깊게 관찰해 주세요.');
+    if (emotions.fear > 0.3 && emotions.discomfort > 0.2) {
+      analysisItems.add('공포와 불편함이 함께 나타나요. 신체적 고통이 공포를 유발하는지 확인이 필요해요.');
     }
     if (emotions.happiness > 0.5 && stress >= 40) {
       analysisItems.add('기쁨은 높지만 스트레스도 있어요. 흥분 상태로 인한 과각성일 수 있어요.');
@@ -208,11 +211,8 @@ extension _EmotionResultCardsB on _EmotionResultPageState {
 
     // 감정 균형도 분석
     final emotionValues = [
-      emotions.happiness,
-      emotions.sadness,
-      emotions.anxiety,
-      emotions.sleepiness,
-      emotions.curiosity,
+      emotions.happiness, emotions.calm, emotions.excitement, emotions.curiosity,
+      emotions.anxiety, emotions.fear, emotions.sadness, emotions.discomfort,
     ];
     final maxEmotion = emotionValues.reduce((a, b) => a > b ? a : b);
     final minEmotion = emotionValues.reduce((a, b) => a < b ? a : b);
@@ -454,13 +454,9 @@ extension _EmotionResultCardsB on _EmotionResultPageState {
     if (_otherPetAnalyses.isEmpty) return const SizedBox.shrink();
 
     final cur = widget.analysis.emotions;
-    final emotionNames = {
-      'happiness': '기쁨',
-      'sadness': '슬픔',
-      'anxiety': '불안',
-      'sleepiness': '졸림',
-      'curiosity': '호기심'
-    };
+    final emotionNames = Map.fromEntries(
+      AppTheme.emotionOrder.map((k) => MapEntry(k, AppTheme.getEmotionLabel(k))),
+    );
 
     return Padding(
       padding: EdgeInsets.only(bottom: 14.h),
@@ -537,18 +533,15 @@ extension _EmotionResultCardsB on _EmotionResultPageState {
 
   double _getEmotionValueByKey(EmotionScores e, String key) {
     switch (key) {
-      case 'happiness':
-        return e.happiness;
-      case 'sadness':
-        return e.sadness;
-      case 'anxiety':
-        return e.anxiety;
-      case 'sleepiness':
-        return e.sleepiness;
-      case 'curiosity':
-        return e.curiosity;
-      default:
-        return 0.0;
+      case 'happiness':  return e.happiness;
+      case 'calm':       return e.calm;
+      case 'excitement': return e.excitement;
+      case 'curiosity':  return e.curiosity;
+      case 'anxiety':    return e.anxiety;
+      case 'fear':       return e.fear;
+      case 'sadness':    return e.sadness;
+      case 'discomfort': return e.discomfort;
+      default:           return 0.0;
     }
   }
 
@@ -561,13 +554,11 @@ extension _EmotionResultCardsB on _EmotionResultPageState {
     if (count == 0) return const SizedBox.shrink();
 
     final cur = widget.analysis.emotions;
-    final comparisons = [
-      ('기쁨', cur.happiness, (avg['happiness'] as num?)?.toDouble() ?? 0),
-      ('슬픔', cur.sadness, (avg['sadness'] as num?)?.toDouble() ?? 0),
-      ('불안', cur.anxiety, (avg['anxiety'] as num?)?.toDouble() ?? 0),
-      ('졸림', cur.sleepiness, (avg['sleepiness'] as num?)?.toDouble() ?? 0),
-      ('호기심', cur.curiosity, (avg['curiosity'] as num?)?.toDouble() ?? 0),
-    ];
+    final comparisons = AppTheme.emotionOrder.map((key) => (
+      AppTheme.getEmotionLabel(key),
+      _getEmotionValueByKey(cur, key),
+      (avg[key] as num?)?.toDouble() ?? 0.0,
+    )).toList();
 
     return Padding(
       padding: EdgeInsets.only(bottom: 14.h),

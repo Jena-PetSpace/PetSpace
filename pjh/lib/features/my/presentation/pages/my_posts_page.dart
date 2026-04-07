@@ -476,13 +476,11 @@ class _MyPostsPageState extends State<MyPostsPage>
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildMiniBar(
-                    analysis.emotions.happiness, AppTheme.happinessColor),
+                _buildMiniBar(analysis.emotions.happiness, AppTheme.happinessColor),
+                SizedBox(height: 2.h),
+                _buildMiniBar(analysis.emotions.calm, AppTheme.calmColor),
                 SizedBox(height: 2.h),
                 _buildMiniBar(analysis.emotions.anxiety, AppTheme.anxietyColor),
-                SizedBox(height: 2.h),
-                _buildMiniBar(
-                    analysis.emotions.curiosity, AppTheme.curiosityColor),
               ],
             ),
           ],
@@ -515,54 +513,7 @@ class _MyPostsPageState extends State<MyPostsPage>
     return '${date.month}/${date.day}';
   }
 
-  String _getEmotionKorean(String emotion) {
-    switch (emotion) {
-      case 'happiness':
-        return '기쁨';
-      case 'sadness':
-        return '슬픔';
-      case 'anxiety':
-        return '불안';
-      case 'sleepiness':
-        return '졸림';
-      case 'curiosity':
-        return '호기심';
-      default:
-        return emotion;
-    }
-  }
-
-  String _getEmotionEmoji(String emotion) {
-    switch (emotion) {
-      case 'happiness':
-        return '😊';
-      case 'sadness':
-        return '😢';
-      case 'anxiety':
-        return '😰';
-      case 'sleepiness':
-        return '😴';
-      case 'curiosity':
-        return '🧐';
-      default:
-        return '🐾';
-    }
-  }
-
-  Color _getEmotionColor(String emotion) {
-    switch (emotion) {
-      case 'happiness':
-        return AppTheme.happinessColor;
-      case 'sadness':
-        return AppTheme.sadnessColor;
-      case 'anxiety':
-        return AppTheme.anxietyColor;
-      case 'sleepiness':
-        return AppTheme.sleepinessColor;
-      case 'curiosity':
-        return AppTheme.curiosityColor;
-      default:
-        return AppTheme.primaryColor;
-    }
-  }
+  String _getEmotionKorean(String emotion) => AppTheme.getEmotionLabel(emotion);
+  String _getEmotionEmoji(String emotion) => AppTheme.getEmotionEmoji(emotion);
+  Color _getEmotionColor(String emotion) => AppTheme.getEmotionColor(emotion);
 }

@@ -151,13 +151,9 @@ extension _EmotionResultCardsC on _EmotionResultPageState {
       );
     }
 
-    final emotionNames = {
-      'happiness': '기쁨',
-      'sadness': '슬픔',
-      'anxiety': '불안',
-      'sleepiness': '졸림',
-      'curiosity': '호기심',
-    };
+    final emotionNames = Map.fromEntries(
+      AppTheme.emotionOrder.map((k) => MapEntry(k, AppTheme.getEmotionLabel(k))),
+    );
 
     return Padding(
       padding: EdgeInsets.only(bottom: 14.h),

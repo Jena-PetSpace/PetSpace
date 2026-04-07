@@ -89,25 +89,11 @@ class StatisticsSummaryCard extends StatelessWidget {
   }
 
   Widget _buildEmotionBars(Map<String, dynamic> emotions) {
-    final emotionList = [
-      {
-        'name': 'happiness',
-        'label': '기쁨',
-        'value': emotions['happiness'] ?? 0.0
-      },
-      {'name': 'sadness', 'label': '슬픔', 'value': emotions['sadness'] ?? 0.0},
-      {'name': 'anxiety', 'label': '불안', 'value': emotions['anxiety'] ?? 0.0},
-      {
-        'name': 'sleepiness',
-        'label': '졸림',
-        'value': emotions['sleepiness'] ?? 0.0
-      },
-      {
-        'name': 'curiosity',
-        'label': '호기심',
-        'value': emotions['curiosity'] ?? 0.0
-      },
-    ];
+    final emotionList = AppTheme.emotionOrder.map((key) => {
+      'name': key,
+      'label': AppTheme.getEmotionLabel(key),
+      'value': emotions[key] ?? 0.0,
+    }).toList();
 
     return Column(
       children: emotionList.map((emotion) {
@@ -155,37 +141,19 @@ class StatisticsSummaryCard extends StatelessWidget {
     );
   }
 
-  String _getEmotionName(String emotion) {
-    switch (emotion) {
-      case 'happiness':
-        return '기쁨';
-      case 'sadness':
-        return '슬픔';
-      case 'anxiety':
-        return '불안';
-      case 'sleepiness':
-        return '졸림';
-      case 'curiosity':
-        return '호기심';
-      default:
-        return '알 수 없음';
-    }
-  }
+  String _getEmotionName(String emotion) => AppTheme.getEmotionLabel(emotion);
 
   IconData _getEmotionIcon(String emotion) {
     switch (emotion) {
-      case 'happiness':
-        return Icons.mood;
-      case 'sadness':
-        return Icons.mood_bad;
-      case 'anxiety':
-        return Icons.warning;
-      case 'sleepiness':
-        return Icons.bedtime;
-      case 'curiosity':
-        return Icons.psychology;
-      default:
-        return Icons.help_outline;
+      case 'happiness':  return Icons.mood;
+      case 'calm':       return Icons.self_improvement;
+      case 'excitement': return Icons.celebration;
+      case 'curiosity':  return Icons.psychology;
+      case 'anxiety':    return Icons.warning;
+      case 'fear':       return Icons.warning_amber_outlined;
+      case 'sadness':    return Icons.mood_bad;
+      case 'discomfort': return Icons.sick_outlined;
+      default:           return Icons.help_outline;
     }
   }
 }
