@@ -291,6 +291,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                       _buildCommunityCard(),
                       // 12. 메모
                       _buildMemoCard(),
+                      // 13. 이론 출처
+                      _buildTheoryAttribution(),
                     ],
                   ),
                 ),

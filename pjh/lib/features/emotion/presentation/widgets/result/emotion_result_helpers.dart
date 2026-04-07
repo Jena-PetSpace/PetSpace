@@ -113,4 +113,20 @@ extension _EmotionResultHelpers on _EmotionResultPageState {
         );
     }
   }
+
+  // ── 이론 출처 ──
+  Widget _buildTheoryAttribution() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
+      child: Text(
+        '감정 분류: Russell(1980) 감정 원형 모델 · Panksepp(1998) 정동 신경과학 · Ekman(1992) 기본 감정 이론 기반',
+        style: TextStyle(
+          fontSize: 9.sp,
+          color: Colors.grey[400],
+          height: 1.5,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
 }
