@@ -352,15 +352,6 @@ extension _EmotionResultCardsC on _EmotionResultPageState {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '오늘의 추천',
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
                   rec.title,
                   style: TextStyle(
                     fontSize: 14.sp,

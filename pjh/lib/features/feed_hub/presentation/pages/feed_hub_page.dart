@@ -37,7 +37,6 @@ class _FeedHubPageState extends State<FeedHubPage>
     {'label': '훈련', 'value': 'training'},
     {'label': '먹거리', 'value': 'food'},
     {'label': '생활', 'value': 'life'},
-    {'label': '매거진', 'value': 'magazine'},
   ];
 
   @override
@@ -83,11 +82,15 @@ class _FeedHubPageState extends State<FeedHubPage>
           .from('posts')
           .select(
               'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
-          .isFilter('deleted_at', null);
+          .isFilter('deleted_at', null)
+          // 매거진 태그가 있는 글은 커뮤니티 탭에서 항상 제외
+          .not('hashtags', 'cs', '{"magazine"}');
 
       if (category != null) {
+        // 특정 카테고리: 해당 태그가 반드시 포함된 글만
         query = query.contains('hashtags', [category]);
       }
+      // 전체: 매거진 제외된 모든 글 표시 (community 태그 강제 안함)
 
       final response =
           await query.order('created_at', ascending: false).limit(30);
@@ -284,11 +287,12 @@ class _FeedHubPageState extends State<FeedHubPage>
                           final user = post['users'] as Map<String, dynamic>?;
                           final hashtags =
                               List<String>.from(post['hashtags'] ?? []);
+                          final displayName =
+                              user?['display_name'] as String? ?? '익명';
                           return GestureDetector(
                             onTap: () => context.push('/post/${post['id']}'),
                             child: CommunityPostCard(
-                              authorName:
-                                  user?['display_name'] as String? ?? '익명',
+                              authorName: displayName,
                               category: _categoryFromHashtags(hashtags),
                               title: '',
                               content: post['caption'] as String? ?? '',
@@ -296,6 +300,7 @@ class _FeedHubPageState extends State<FeedHubPage>
                               comments: post['comments_count'] as int? ?? 0,
                               timeAgo:
                                   _timeAgo(post['created_at'] as String? ?? ''),
+                              isAdmin: displayName == '관리자',
                             ),
                           );
                         },

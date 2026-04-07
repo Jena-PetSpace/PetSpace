@@ -72,7 +72,7 @@ class AppRouter {
   static GoRouter createRouter(AuthBloc authBloc) {
     final router = GoRouter(
       // 초기 위치는 홈으로 설정하고, redirect 로직에서 인증 상태에 따라 적절히 리다이렉트
-      initialLocation: '/splash',
+      initialLocation: '/home',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       routes: [
         GoRoute(path: '/hospital', builder: (_, __) => const HospitalSearchPage()),
@@ -360,8 +360,13 @@ class AppRouter {
               name: 'user-profile',
               builder: (context, state) {
                 final userId = state.pathParameters['userId']!;
-                final currentUserId =
-                    state.uri.queryParameters['currentUserId'];
+                // query param 없거나 빈 문자열이면 현재 로그인 유저 ID 사용
+                final paramId = state.uri.queryParameters['currentUserId'];
+                final currentUserId = (paramId != null && paramId.isNotEmpty)
+                    ? paramId
+                    : authBloc.state is AuthAuthenticated
+                        ? (authBloc.state as AuthAuthenticated).user.uid
+                        : null;
 
                 return BlocProvider(
                   create: (context) => sl<ProfileBloc>(),
@@ -427,7 +432,7 @@ class AppRouter {
               },
               routes: [
                 GoRoute(
-                  path: '/result/:analysisId',
+                  path: 'result/:analysisId',
                   name: 'emotion-result',
                   builder: (context, state) => EmotionResultLoaderPage(
                     analysisId: state.pathParameters['analysisId']!,
@@ -468,13 +473,11 @@ class AppRouter {
           return '/onboarding/login';
         }
 
-        // 초기 상태이거나 로딩 중일 때
-        // authStateChanges 스트림이 첫 이벤트를 발생시킬 때까지 대기
+        // 초기 상태이거나 로딩 중일 때 → splash에서 BlocListener가 처리
         if (authState is AuthInitial || authState is AuthLoading) {
-          // 인증 확인이 완료될 때까지 현재 위치 유지 (온보딩 깜빡임 방지)
-          log('Auth state is initial/loading - staying at $currentPath',
+          log('Auth state is initial/loading - holding at splash',
               name: 'GoRouter');
-          return null;
+          return '/splash';
         }
 
         // 이메일 인증 필요 상태 (회원가입 직후)

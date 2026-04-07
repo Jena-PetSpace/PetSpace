@@ -25,7 +25,7 @@ abstract class SocialRemoteDataSource {
   Future<Post> createPost(Post post, List<File> images);
   Future<Post> getPost(String postId);
   Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId);
-  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt});
+  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt, bool followingOnly = false});
   Future<List<Post>> getExplorePosts(int limit, String? lastPostId, {DateTime? lastCreatedAt});
   Future<Post> updatePost(Post post);
   Future<void> deletePost(String postId);
@@ -243,10 +243,18 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     try {
       _logger.debug('Searching users: $query', tag: 'SocialDataSource');
 
-      final response = await supabaseClient
+      final currentUserId = supabaseClient.auth.currentUser?.id;
+
+      var dbQuery = supabaseClient
           .from('users')
           .select('*')
-          .or('display_name.ilike.%$query%,username.ilike.%$query%')
+          .or('display_name.ilike.%$query%,username.ilike.%$query%');
+
+      if (currentUserId != null) {
+        dbQuery = dbQuery.neq('id', currentUserId);
+      }
+
+      final response = await dbQuery
           .order('created_at', ascending: false)
           .limit(limit);
 
@@ -372,9 +380,10 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
   @override
   Future<List<Post>> getFeedPosts(
-      String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt}) async {
+      String userId, int limit, String? lastPostId,
+      {DateTime? lastCreatedAt, bool followingOnly = false}) async {
     try {
-      _logger.debug('Getting feed posts for user: $userId',
+      _logger.debug('Getting feed posts for user: $userId (followingOnly: $followingOnly)',
           tag: 'SocialDataSource');
 
       // 내가 차단한 사용자 ID 목록 조회
@@ -386,10 +395,30 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       final blockedIds =
           (blockedRes as List).map((b) => b['blocked_id'] as String).toList();
 
-      // 기본 쿼리 (필터를 먼저 적용한 후 order/limit)
+      // 팔로잉 탭: 내가 팔로우한 사용자 ID 목록 조회
+      List<String> followingIds = [];
+      if (followingOnly) {
+        final followingRes = await supabaseClient
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', userId);
+        followingIds = (followingRes as List)
+            .map((f) => f['following_id'] as String)
+            .toList();
+
+        // 팔로우한 사람이 없으면 빈 목록 반환
+        if (followingIds.isEmpty) return [];
+      }
+
+      // 기본 쿼리
       var query = supabaseClient
           .from('posts')
           .select('*, users!posts_author_id_fkey(id, display_name, photo_url)');
+
+      // 팔로잉 필터: 팔로우한 사용자 게시글만
+      if (followingOnly && followingIds.isNotEmpty) {
+        query = query.inFilter('author_id', followingIds);
+      }
 
       // 차단 사용자 제외
       if (blockedIds.isNotEmpty) {
@@ -397,11 +426,10 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             '(${blockedIds.map((id) => "'$id'").join(',')})');
       }
 
-      // cursor 페이지네이션 (extra 쿼리 없이 lastCreatedAt 직접 사용)
+      // cursor 페이지네이션
       if (lastCreatedAt != null) {
         query = query.lt('created_at', lastCreatedAt.toIso8601String());
       } else if (lastPostId != null) {
-        // fallback: lastCreatedAt 없을 때만 extra 쿼리
         final lastPost = await supabaseClient
             .from('posts').select('created_at')
             .eq('id', lastPostId).maybeSingle();

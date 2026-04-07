@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/services/realtime_service.dart';
 import 'features/social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
+import 'features/my/presentation/pages/my_page.dart';
 import 'shared/models/navigation_item.dart';
 import 'shared/themes/app_theme.dart';
 
@@ -341,6 +342,11 @@ class _MainNavigationState extends State<MainNavigation> {
     // 홈 탭 이동 시 알림 뱃지 새로고침
     if (index == 0) {
       _refreshNotificationBadge();
+    }
+
+    // MY탭 이동 시 stats 갱신
+    if (index == 4) {
+      MyPageStatsNotifier.instance.refresh();
     }
 
     context.go(route);

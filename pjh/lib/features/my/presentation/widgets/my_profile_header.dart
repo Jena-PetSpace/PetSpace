@@ -12,8 +12,14 @@ import 'settings_bottom_sheet.dart';
 class MyProfileHeader extends StatefulWidget {
   final User user;
   final VoidCallback? onPostsTapped;
+  final int statsRefreshKey;
 
-  const MyProfileHeader({super.key, required this.user, this.onPostsTapped});
+  const MyProfileHeader({
+    super.key,
+    required this.user,
+    this.onPostsTapped,
+    this.statsRefreshKey = 0,
+  });
 
   @override
   State<MyProfileHeader> createState() => _MyProfileHeaderState();
@@ -26,6 +32,14 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
   void initState() {
     super.initState();
     _statsFuture = sl<ProfileService>().getProfileStats();
+  }
+
+  @override
+  void didUpdateWidget(MyProfileHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.statsRefreshKey != widget.statsRefreshKey) {
+      _statsFuture = sl<ProfileService>().getProfileStats();
+    }
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -31,6 +32,7 @@ class _SearchPageState extends State<SearchPage>
   final TextEditingController _searchController = TextEditingController();
   late SearchBloc _searchBloc;
   String? _currentUserId;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -58,6 +60,7 @@ class _SearchPageState extends State<SearchPage>
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _tabController.dispose();
     _searchController.dispose();
     _searchBloc.close();
@@ -123,7 +126,27 @@ class _SearchPageState extends State<SearchPage>
                 vertical: 12.h,
               ),
             ),
-            onChanged: (value) => setState(() {}),
+            onChanged: (value) {
+              setState(() {});
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 300), () {
+                final query = value.trim();
+                if (query.isEmpty) {
+                  _searchBloc.add(const ClearSearchRequested());
+                  return;
+                }
+                final tab = _tabController.index;
+                if (tab == 0) {
+                  if (query.startsWith('#')) {
+                    _searchBloc.add(SearchPostsByHashtagRequested(hashtag: query.substring(1)));
+                  } else {
+                    _searchBloc.add(SearchPostsRequested(query: query));
+                  }
+                } else if (tab == 2) {
+                  _searchBloc.add(SearchUsersRequested(query: query));
+                }
+              });
+            },
             onSubmitted: _performSearch,
           ),
         ),
@@ -148,8 +171,13 @@ class _SearchPageState extends State<SearchPage>
                   Tab(text: '사용자'),
                 ],
                 onTap: (index) {
-                  if (_searchController.text.isNotEmpty) {
-                    _performSearch(_searchController.text);
+                  final query = _searchController.text.trim();
+                  if (query.isNotEmpty) {
+                    if (index == 2) {
+                      _searchBloc.add(SearchUsersRequested(query: query));
+                    } else {
+                      _performSearch(query);
+                    }
                   }
                 },
               ),
@@ -426,8 +454,9 @@ class _SearchPageState extends State<SearchPage>
           : null,
       trailing: Icon(Icons.chevron_right, size: 20.w),
       onTap: () {
-        // 사용자 프로필로 이동
-        context.push('/user-profile/${user.id}');
+        context.push(
+          '/user-profile/${user.id}?currentUserId=${_currentUserId ?? ''}',
+        );
       },
     );
   }

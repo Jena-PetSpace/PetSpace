@@ -12,6 +12,14 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../widgets/my_profile_header.dart';
 import '../widgets/user_badges_section.dart';
 
+/// MY탭 stats 갱신 신호를 보내는 싱글톤 notifier
+class MyPageStatsNotifier extends ChangeNotifier {
+  static final MyPageStatsNotifier instance = MyPageStatsNotifier._();
+  MyPageStatsNotifier._();
+
+  void refresh() => notifyListeners();
+}
+
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
 
@@ -24,18 +32,27 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _myPosts = [];
   List<Map<String, dynamic>> _savedPosts = [];
   bool _postsLoading = true;
+  int _statsRefreshKey = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadPosts();
+    MyPageStatsNotifier.instance.addListener(_onStatsRefresh);
   }
 
   @override
   void dispose() {
+    MyPageStatsNotifier.instance.removeListener(_onStatsRefresh);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onStatsRefresh() {
+    if (mounted) {
+      setState(() => _statsRefreshKey++);
+    }
   }
 
   Future<void> _loadPosts() async {
@@ -87,6 +104,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
               MyProfileHeader(
                 user: user,
                 onPostsTapped: () => _tabController.animateTo(0),
+                statsRefreshKey: _statsRefreshKey,
               ),
               UserBadgesSection(userId: user.uid),
               // 탭 바 (고정)
@@ -212,7 +230,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
             if (isMyPosts) ...[
               SizedBox(height: 20.h),
               ElevatedButton(
-                onPressed: () => context.push('/feed/create'),
+                onPressed: () => context.push('/create-post'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,

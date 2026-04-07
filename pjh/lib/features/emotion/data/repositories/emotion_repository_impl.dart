@@ -92,7 +92,23 @@ class EmotionRepositoryImpl implements EmotionRepository {
     }
 
     try {
-      final analysisModel = EmotionAnalysisModel.fromEntity(analysis);
+      final user = supabaseClient.auth.currentUser;
+      String imageUrl = analysis.imageUrl;
+
+      // imageUrl이 비어있고 localImagePath가 있으면 저장 시점에 재업로드
+      if (imageUrl.isEmpty && analysis.localImagePath.isNotEmpty) {
+        final localFile = File(analysis.localImagePath);
+        if (localFile.existsSync()) {
+          final uploadResult =
+              await uploadImage(localFile, 'emotions/${user?.id ?? 'unknown'}');
+          imageUrl = uploadResult.fold((_) => '', (url) => url);
+        }
+      }
+
+      final analysisModel = (analysis is EmotionAnalysisModel)
+          ? analysis.copyWith(imageUrl: imageUrl)
+          : EmotionAnalysisModel.fromEntity(analysis).copyWith(imageUrl: imageUrl);
+
       await supabaseClient
           .from('emotion_history')
           .insert(analysisModel.toMap());

@@ -244,9 +244,9 @@ class _ProfilePageState extends State<ProfilePage>
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () => _toggleFollow(user.id, isFollowing),
-            icon: Icon(isFollowing ? Icons.person_remove : Icons.person_add,
+            icon: Icon(isFollowing ? Icons.check : Icons.person_add,
                 size: 20.w),
-            label: Text(isFollowing ? '언팔로우' : '팔로우',
+            label: Text(isFollowing ? '팔로우 중' : '팔로우',
                 style: TextStyle(fontSize: 14.sp)),
             style: ElevatedButton.styleFrom(
               backgroundColor: isFollowing ? Colors.grey : Colors.white,
@@ -406,7 +406,9 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   void _toggleFollow(String userId, bool isCurrentlyFollowing) {
-    final currentUserId = widget.currentUserId;
+    // currentUserId가 없으면 Supabase에서 직접 가져옴
+    final currentUserId = widget.currentUserId ??
+        Supabase.instance.client.auth.currentUser?.id;
     if (currentUserId == null) return;
 
     if (isCurrentlyFollowing) {

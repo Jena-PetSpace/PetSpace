@@ -109,7 +109,7 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
     if (_loading) return const SizedBox.shrink();
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 0.5)),
@@ -119,9 +119,10 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
         children: [
           Text('활동한 뱃지',
               style: TextStyle(
-                  fontSize: 10.sp,
-                  color: const Color(0xFF999999))),
-          SizedBox(height: 8.h),
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF888888))),
+          SizedBox(height: 10.h),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -130,7 +131,7 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
                 final badge = entry.value;
                 final isEarned = _earnedIds.contains(badge.id);
                 return Padding(
-                  padding: EdgeInsets.only(right: i < _allBadges.length - 1 ? 10.w : 0),
+                  padding: EdgeInsets.only(right: i < _allBadges.length - 1 ? 16.w : 0),
                   child: GestureDetector(
                     onTap: () => _showBadgeDetail(context, badge, isEarned),
                     child: Column(
@@ -138,24 +139,24 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
                         Opacity(
                           opacity: isEarned ? 1.0 : 0.3,
                           child: Container(
-                            width: 40.w,
-                            height: 40.w,
+                            width: 48.w,
+                            height: 48.w,
                             decoration: BoxDecoration(
                               color: isEarned ? badge.color : const Color(0xFFF1EFE8),
                               shape: BoxShape.circle,
                             ),
                             child: Center(
                               child: Text(badge.emoji,
-                                  style: TextStyle(fontSize: 18.sp)),
+                                  style: TextStyle(fontSize: 22.sp)),
                             ),
                           ),
                         ),
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 5.h),
                         SizedBox(
-                          width: 40.w,
+                          width: 48.w,
                           child: Text(badge.name,
                               style: TextStyle(
-                                  fontSize: 9.sp, color: const Color(0xFF666666)),
+                                  fontSize: 10.sp, color: const Color(0xFF666666)),
                               textAlign: TextAlign.center,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis),

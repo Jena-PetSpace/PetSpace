@@ -121,20 +121,20 @@ class ProfileService {
 
       // 게시물 수
       final postsResponse =
-          await _supabase.from('posts').select('id').eq('user_id', userId);
+          await _supabase.from('posts').select('author_id').eq('author_id', userId);
       final postsCount = (postsResponse as List).length;
 
       // 팔로워 수
       final followersResponse = await _supabase
           .from('follows')
-          .select('id')
+          .select('following_id')
           .eq('following_id', userId);
       final followersCount = (followersResponse as List).length;
 
       // 팔로잉 수
       final followingResponse = await _supabase
           .from('follows')
-          .select('id')
+          .select('follower_id')
           .eq('follower_id', userId);
       final followingCount = (followingResponse as List).length;
 

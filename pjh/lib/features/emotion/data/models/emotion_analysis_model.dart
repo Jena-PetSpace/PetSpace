@@ -77,7 +77,6 @@ class EmotionAnalysisModel extends EmotionAnalysis {
       'image_url': imageUrl,
       'emotion_analysis': (emotions as EmotionScoresModel).toMap(),
       'memo': memo,
-      'is_sleepy': isSleepy,
     };
   }
 

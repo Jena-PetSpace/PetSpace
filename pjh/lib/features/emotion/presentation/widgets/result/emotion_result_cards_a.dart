@@ -109,21 +109,25 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
                           ),
                         ],
                       ),
-                      SizedBox(height: 8.h),
+                      SizedBox(height: 10.h),
                       Container(
+                        width: double.infinity,
                         padding: EdgeInsets.symmetric(
-                            horizontal: 10.w, vertical: 6.h),
+                            horizontal: 12.w, vertical: 10.h),
                         decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8.r),
+                          color: color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: color.withValues(alpha: 0.25),
+                          ),
                         ),
                         child: Text(
                           _getShortDescription(dominant),
                           style: TextStyle(
-                            fontSize: 12.sp,
+                            fontSize: 13.sp,
                             color: color,
-                            fontWeight: FontWeight.w500,
-                            height: 1.4,
+                            fontWeight: FontWeight.w600,
+                            height: 1.5,
                           ),
                         ),
                       ),

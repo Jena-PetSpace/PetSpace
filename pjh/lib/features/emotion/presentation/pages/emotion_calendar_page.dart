@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 
@@ -22,6 +23,20 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
   // 날짜 → 분석 목록 맵
   Map<DateTime, List<EmotionAnalysis>> _analysisMap = {};
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHistory());
+  }
+
+  void _loadHistory() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<EmotionAnalysisBloc>().add(
+            LoadAnalysisHistory(userId: authState.user.uid, limit: 200),
+          );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +49,12 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
         backgroundColor: Colors.white,
         foregroundColor: AppTheme.primaryTextColor,
         elevation: 0.5,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadHistory,
+          ),
+        ],
       ),
       body: BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
         builder: (context, state) {
@@ -293,7 +314,7 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
             '${a.analyzedAt.minute.toString().padLeft(2, '0')}';
 
         return GestureDetector(
-          onTap: () => context.push('/emotion/result', extra: a),
+          onTap: () => context.push('/emotion/result/${a.id}'),
           child: Container(
             margin: EdgeInsets.only(bottom: 10.h),
             padding: EdgeInsets.all(14.w),

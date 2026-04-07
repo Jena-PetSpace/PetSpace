@@ -51,8 +51,15 @@ extension _EmotionResultBottom on _EmotionResultPageState {
                     side: BorderSide(
                         color: AppTheme.primaryColor.withValues(alpha: 0.5)),
                   ),
-                  child: Icon(Icons.dynamic_feed_outlined,
-                      size: 20.w, color: AppTheme.primaryColor),
+                  child: SvgPicture.asset(
+                    'assets/svg/icon_feed.svg',
+                    width: 22.w,
+                    height: 22.w,
+                    colorFilter: const ColorFilter.mode(
+                      AppTheme.primaryColor,
+                      BlendMode.srcIn,
+                    ),
+                  ),
                 ),
               ),
               SizedBox(width: 8.w),

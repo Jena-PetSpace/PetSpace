@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
@@ -238,7 +239,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('분석 결과가 저장되었습니다.')),
             );
-            Navigator.of(context).pop();
+            context.pushReplacement('/emotion/calendar');
           } else if (state is EmotionAnalysisError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
@@ -254,14 +255,6 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                   child: Column(
                     children: [
-                      // isSleepy 생리지표 배너
-                      if (widget.analysis.isSleepy) ...[
-                        _buildSleepyBanner(),
-                        SizedBox(height: 10.h),
-                      ],
-                      // 0. 감정 요약 메시지
-                      _buildEmotionSummaryCard(dominant, emotionColor),
-                      SizedBox(height: 14.h),
                       // 1. HeroCard
                       _buildHeroCard(dominant, dominantName, dominantIcon,
                           dominantValue, emotionColor),
@@ -324,93 +317,6 @@ class _EmotionResultPageState extends State<EmotionResultPage>
         ),
       ),
       centerTitle: true,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.share_outlined, color: Colors.black87),
-          onPressed: _shareResult,
-        ),
-      ],
-    );
-  }
-
-  // ── isSleepy 생리지표 배너 ──
-  Widget _buildSleepyBanner() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOut,
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-      decoration: BoxDecoration(
-        color: AppTheme.physiologicalColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: AppTheme.physiologicalColor.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Row(
-        children: [
-          Text('💤', style: TextStyle(fontSize: 18.sp)),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: Text(
-              '졸린 상태가 감지됐어요. 편히 쉴 수 있는 공간을 만들어주세요.',
-              style: TextStyle(
-                fontSize: 13.sp,
-                color: AppTheme.primaryTextColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── 0. 감정 요약 메시지 카드 ──
-  Widget _buildEmotionSummaryCard(String dominant, Color emotionColor) {
-    final summaryMap = {
-      'happiness':  '오늘 반려동물이 매우 행복해 보여요! 😊',
-      'calm':       '편안하고 안정적인 상태예요. 좋은 환경을 유지해주세요 😌',
-      'excitement': '에너지가 넘치는 흥분 상태예요! 함께 놀아주세요 🤩',
-      'curiosity':  '호기심이 가득해 보여요! 새로운 놀이를 해보세요 🧐',
-      'anxiety':    '불안한 모습이 보여요. 편안한 환경을 만들어주세요 😰',
-      'fear':       '무언가를 무서워하고 있어요. 안전한 공간을 제공해주세요 😨',
-      'sadness':    '조금 우울해 보이네요. 많이 안아주세요 😢',
-      'discomfort': '불편한 것이 있어 보여요. 몸 상태를 확인해주세요 😣',
-    };
-
-    final summary = summaryMap[dominant] ?? '감정 분석이 완료되었습니다.';
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16.r),
-          gradient: LinearGradient(
-            colors: [
-              emotionColor.withValues(alpha: 0.15),
-              emotionColor.withValues(alpha: 0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Text(
-          summary,
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.primaryTextColor,
-            height: 1.4,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ),
     );
   }
 
@@ -513,7 +419,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                                     fontSize: 12.sp,
                                     color: AppTheme.secondaryTextColor)),
                             Text(
-                              '$dominantName $dominantPct% · 신뢰도 ${(widget.analysis.confidence * 100).toInt()}%',
+                              '$dominantName $dominantPct%',
                               style: TextStyle(
                                   fontSize: 14.sp,
                                   fontWeight: FontWeight.w600,

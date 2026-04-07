@@ -11,6 +11,7 @@ class CommunityPostCard extends StatelessWidget {
   final int likes;
   final int comments;
   final String timeAgo;
+  final bool isAdmin;
 
   const CommunityPostCard({
     super.key,
@@ -21,6 +22,7 @@ class CommunityPostCard extends StatelessWidget {
     required this.likes,
     required this.comments,
     required this.timeAgo,
+    this.isAdmin = false,
   });
 
   @override
@@ -66,14 +68,16 @@ class CommunityPostCard extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 8.w),
-              Text(
-                timeAgo,
-                style: TextStyle(
-                  fontSize: 10.sp,
-                  color: AppTheme.secondaryTextColor,
+              if (!isAdmin) ...[
+                SizedBox(width: 8.w),
+                Text(
+                  timeAgo,
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: AppTheme.secondaryTextColor,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
           SizedBox(height: 10.h),
