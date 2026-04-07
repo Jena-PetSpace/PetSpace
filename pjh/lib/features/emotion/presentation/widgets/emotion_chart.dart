@@ -125,13 +125,13 @@ class EmotionBarChart extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
-                  const emotionNames = ['기쁨', '슬픔', '불안', '졸림', '호기심'];
-                  if (value.toInt() < emotionNames.length) {
+                  final idx = value.toInt();
+                  if (idx < AppTheme.emotionOrder.length) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
-                        emotionNames[value.toInt()],
-                        style: const TextStyle(fontSize: 10),
+                        AppTheme.getEmotionLabel(AppTheme.emotionOrder[idx]),
+                        style: const TextStyle(fontSize: 9),
                       ),
                     );
                   }
@@ -165,31 +165,43 @@ class EmotionBarChart extends StatelessWidget {
   }
 
   List<BarChartGroupData> _buildBarGroups() {
-    final emotionValues = [
-      emotions.happiness,
-      emotions.sadness,
-      emotions.anxiety,
-      emotions.sleepiness,
-      emotions.curiosity,
-    ];
-
-    final emotionColors = [
-      AppTheme.happinessColor,
-      AppTheme.sadnessColor,
-      AppTheme.anxietyColor,
-      AppTheme.sleepinessColor,
-      AppTheme.curiosityColor,
-    ];
-
-    return emotionValues.asMap().entries.map((entry) {
+    return AppTheme.emotionOrder.asMap().entries.map((entry) {
+      final idx = entry.key;
+      final key = entry.value;
+      double value;
+      switch (key) {
+        case 'happiness':  value = emotions.happiness;  break;
+        case 'calm':       value = emotions.calm;        break;
+        case 'excitement': value = emotions.excitement;  break;
+        case 'curiosity':  value = emotions.curiosity;   break;
+        case 'anxiety':    value = emotions.anxiety;     break;
+        case 'fear':       value = emotions.fear;        break;
+        case 'sadness':    value = emotions.sadness;     break;
+        case 'discomfort': value = emotions.discomfort;  break;
+        default:           value = 0.0;
+      }
+      final group = AppTheme.getEmotionGroup(key);
+      final Color bgColor;
+      if (group == 'positive') {
+        bgColor = const Color(0xFFE8F5E9);
+      } else if (group == 'negative') {
+        bgColor = const Color(0xFFFCE4EC);
+      } else {
+        bgColor = const Color(0xFFF3E5F5);
+      }
       return BarChartGroupData(
-        x: entry.key,
+        x: idx,
         barRods: [
           BarChartRodData(
-            toY: entry.value,
-            color: emotionColors[entry.key],
-            width: 20,
+            toY: value,
+            color: AppTheme.getEmotionColor(key),
+            width: 16,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            backDrawRodData: BackgroundBarChartRodData(
+              show: true,
+              toY: 1.0,
+              color: bgColor,
+            ),
           ),
         ],
         showingTooltipIndicators: [0],
@@ -205,38 +217,38 @@ class EmotionLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final emotionData = [
-      {
-        'label': '기쁨',
-        'value': emotions.happiness,
-        'color': AppTheme.happinessColor,
-        'icon': Icons.mood,
-      },
-      {
-        'label': '슬픔',
-        'value': emotions.sadness,
-        'color': AppTheme.sadnessColor,
-        'icon': Icons.mood_bad,
-      },
-      {
-        'label': '불안',
-        'value': emotions.anxiety,
-        'color': AppTheme.anxietyColor,
-        'icon': Icons.warning,
-      },
-      {
-        'label': '졸림',
-        'value': emotions.sleepiness,
-        'color': AppTheme.sleepinessColor,
-        'icon': Icons.bedtime,
-      },
-      {
-        'label': '호기심',
-        'value': emotions.curiosity,
-        'color': AppTheme.curiosityColor,
-        'icon': Icons.psychology,
-      },
-    ];
+    final emotionData = AppTheme.emotionOrder.map((key) {
+      double value;
+      switch (key) {
+        case 'happiness':  value = emotions.happiness;  break;
+        case 'calm':       value = emotions.calm;        break;
+        case 'excitement': value = emotions.excitement;  break;
+        case 'curiosity':  value = emotions.curiosity;   break;
+        case 'anxiety':    value = emotions.anxiety;     break;
+        case 'fear':       value = emotions.fear;        break;
+        case 'sadness':    value = emotions.sadness;     break;
+        case 'discomfort': value = emotions.discomfort;  break;
+        default:           value = 0.0;
+      }
+      IconData icon;
+      switch (key) {
+        case 'happiness':  icon = Icons.mood;                       break;
+        case 'calm':       icon = Icons.self_improvement;           break;
+        case 'excitement': icon = Icons.celebration;                break;
+        case 'curiosity':  icon = Icons.psychology;                 break;
+        case 'anxiety':    icon = Icons.warning;                    break;
+        case 'fear':       icon = Icons.warning_amber_outlined;     break;
+        case 'sadness':    icon = Icons.mood_bad;                   break;
+        case 'discomfort': icon = Icons.sick_outlined;              break;
+        default:           icon = Icons.circle;
+      }
+      return {
+        'label': AppTheme.getEmotionLabel(key),
+        'value': value,
+        'color': AppTheme.getEmotionColor(key),
+        'icon': icon,
+      };
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
