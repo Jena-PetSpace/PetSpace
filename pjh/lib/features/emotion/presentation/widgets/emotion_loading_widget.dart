@@ -116,7 +116,7 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
   Widget _buildAmbientBlobs() {
     final colors = [
       AppTheme.happinessColor,
-      AppTheme.anxietyColor,
+      AppTheme.calmColor,
       AppTheme.curiosityColor,
     ];
 
@@ -264,13 +264,9 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
 
   /// 원형 프로그레스 링
   Widget _buildCircularProgress() {
-    final emotionColors = [
-      AppTheme.happinessColor,
-      AppTheme.sadnessColor,
-      AppTheme.anxietyColor,
-      AppTheme.sleepinessColor,
-      AppTheme.curiosityColor,
-    ];
+    final emotionColors = AppTheme.emotionOrder
+        .map(AppTheme.getEmotionColor)
+        .toList();
     final currentColor = emotionColors[_currentStep % emotionColors.length];
 
     return AnimatedBuilder(
@@ -310,18 +306,10 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
 
   /// 현재 단계에 맞는 감정 컬러 쌍 반환
   (Color, Color) _getStepColors() {
-    switch (_currentStep) {
-      case 0:
-        return (AppTheme.happinessColor, AppTheme.curiosityColor);
-      case 1:
-        return (AppTheme.curiosityColor, AppTheme.sadnessColor);
-      case 2:
-        return (AppTheme.anxietyColor, AppTheme.happinessColor);
-      case 3:
-        return (AppTheme.happinessColor, AppTheme.anxietyColor);
-      default:
-        return (AppTheme.happinessColor, AppTheme.curiosityColor);
-    }
+    final colors = AppTheme.emotionOrder.map(AppTheme.getEmotionColor).toList();
+    final idx = _currentStep % colors.length;
+    final nextIdx = (_currentStep + 1) % colors.length;
+    return (colors[idx], colors[nextIdx]);
   }
 }
 
