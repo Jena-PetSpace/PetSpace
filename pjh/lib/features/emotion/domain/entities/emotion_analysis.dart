@@ -360,6 +360,7 @@ class EmotionScores extends Equatable {
   List<Object?> get props => [
         happiness, calm, excitement, curiosity,
         anxiety, fear, sadness, discomfort,
+        // ignore: deprecated_member_use_from_same_package
         sleepiness,
         stressLevel, activityLevel, healthSignal, comfortLevel,
         facialFeatures, healthTips, breedInsight,

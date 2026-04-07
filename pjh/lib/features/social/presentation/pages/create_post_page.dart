@@ -67,10 +67,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
     // 가장 높은 감정 점수에 따라 해시태그 제안
     final Map<String, double> emotions = {
       '행복': analysis.emotions.happiness,
-      '슬픔': analysis.emotions.sadness,
-      '불안': analysis.emotions.anxiety,
-      '졸림': analysis.emotions.sleepiness,
+      '편안': analysis.emotions.calm,
+      '흥분': analysis.emotions.excitement,
       '호기심': analysis.emotions.curiosity,
+      '불안': analysis.emotions.anxiety,
+      '공포': analysis.emotions.fear,
+      '슬픔': analysis.emotions.sadness,
+      '불편': analysis.emotions.discomfort,
     };
 
     final topEmotion =
@@ -79,10 +82,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
     if (topEmotion.value > 0.3) {
       final hashtagMap = {
         '행복': ['행복한하루', '행복'],
-        '슬픔': ['위로', '슬픔'],
+        '편안': ['편안한하루', '힐링'],
+        '흥분': ['신나는하루', '활기차'],
+        '호기심': ['호기심왕성', '탐구'],
         '불안': ['불안', '진정'],
-        '졸림': ['졸림', '휴식'],
-        '호기심': ['호기심', '탐험'],
+        '공포': ['공포', '안정'],
+        '슬픔': ['위로', '슬픔'],
+        '불편': ['불편', '케어'],
       };
 
       final suggestions = hashtagMap[topEmotion.key] ?? [];
@@ -279,10 +285,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
   String _getEmotionSummary(EmotionAnalysis analysis) {
     final Map<String, double> emotions = {
       '행복': analysis.emotions.happiness,
-      '슬픔': analysis.emotions.sadness,
-      '불안': analysis.emotions.anxiety,
-      '졸림': analysis.emotions.sleepiness,
+      '편안': analysis.emotions.calm,
+      '흥분': analysis.emotions.excitement,
       '호기심': analysis.emotions.curiosity,
+      '불안': analysis.emotions.anxiety,
+      '공포': analysis.emotions.fear,
+      '슬픔': analysis.emotions.sadness,
+      '불편': analysis.emotions.discomfort,
     };
 
     final topEmotion =
