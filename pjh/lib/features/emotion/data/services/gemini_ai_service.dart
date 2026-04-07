@@ -18,55 +18,51 @@ class GeminiAIService {
         : '';
 
     return """
-이 사진의 동물(강아지 또는 고양이)을 종합 분석해주세요.
+이 사진의 반려동물을 아래 심리학·신경과학 이론에 기반하여 분석해주세요.
 $breedContext
 
-[1] 감정 분포 (0.0~1.0, 합계 = 1.0):
-- happiness: 행복함 (꼬리 흔들기, 입 벌림, 편안한 표정)
-- sadness: 슬픔 (귀 처짐, 눈 처짐, 우울한 표정)
-- anxiety: 불안 (경계, 긴장된 자세, 스트레스)
-- sleepiness: 졸림 (눈 감김, 휴식 자세, 나른함)
-- curiosity: 호기심 (귀 세움, 집중, 탐색 자세)
+[분석 이론 기반]
+- Russell(1980) 원형 모델: valence(긍정/부정) × arousal(고각성/저각성)
+- Panksepp(1998) 정동 신경과학: 포유류 7대 감정 시스템
+- Ekman(1992) 기본 감정: 얼굴 근육 움직임 기반 분류
 
-[2] 추가 분석 지표 (각각 0~100 정수):
-- stress_level: 스트레스 지수
-- activity_level: 활동량 예측
-- comfort_level: 편안함/사회성
+[1] 감정 분포 (0.0~1.0, 합계 반드시 1.0):
+- happiness  (기쁨):  긍정-중간각성 | Panksepp PLAY    | 입 열림·눈 빛남·편안한 귀
+- calm       (편안함): 긍정-저각성  | Panksepp CARE    | 눈 반쯤 감음·이완된 귀입자세
+- excitement (흥분):  긍정-고각성  | Ekman 확장       | 귀 세움·눈 크게·입 열림
+- curiosity  (호기심): 중립-중간각성 | Panksepp SEEKING | 귀 앞·고개 기울임
+- anxiety    (불안):  부정-중간각성 | Panksepp ANXIETY | 귀 뒤·눈 흰자·긴장
+- fear       (공포):  부정-고각성  | Panksepp FEAR    | 귀 완전뒤·동공확대·몸낮춤
+- sadness    (슬픔):  부정-저각성  | Panksepp GRIEF   | 귀처짐·눈처짐·고개숙임
+- discomfort (불편함): 부정-중간각성 | Panksepp RAGE전  | 눈살찌푸림·입긴장
 
-[3] 건강 신호 (문자열):
-- health_signal: "good" / "normal" / "caution"
+[2] 생리 지표 (Russell 모델: 각성 상태, 감정과 별도):
+- is_sleepy: 졸림 true/false
+- stress_level: 0~100
+- activity_level: 0~100
+- comfort_level: 0~100
 
-[4] 부위별 분석 (한국어):
-- eyes: 눈 상태와 감지된 감정 신호
-- ears: 귀 상태와 감지된 감정 신호
-- mouth: 입 상태와 감지된 감정 신호
-- posture: 자세 상태와 감지된 감정 신호
-
-[5] 건강 관련 팁:
-- 현재 감정/스트레스 상태에서 보호자가 체크해야 할 항목 2~3가지 (짧은 한국어 문장)
-
-${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 특성을 고려한 감정 해석 1~2문장\n' : ''}
+[3] 건강 신호: "good" / "normal" / "caution"
+[4] 부위별 분석 (한국어): eyes, ears, mouth, posture (state + signal)
+[5] 건강 관련 팁 2~3가지 (짧은 한국어 문장)
+${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 반드시 아래 JSON 형식으로만 응답하세요:
 {
-  "happiness": 0.3,
-  "sadness": 0.1,
-  "anxiety": 0.2,
-  "sleepiness": 0.1,
-  "curiosity": 0.3,
-  "stress_level": 35,
-  "activity_level": 60,
+  "happiness": 0.0, "calm": 0.0, "excitement": 0.0, "curiosity": 0.0,
+  "anxiety": 0.0, "fear": 0.0, "sadness": 0.0, "discomfort": 0.0,
+  "is_sleepy": false,
+  "stress_level": 0, "activity_level": 0, "comfort_level": 0,
   "health_signal": "good",
-  "comfort_level": 75,
   "facial_features": {
-    "eyes": {"state": "초롱초롱한 눈", "signal": "호기심"},
-    "ears": {"state": "앞으로 세움", "signal": "집중"},
-    "mouth": {"state": "살짝 벌림", "signal": "이완"},
-    "posture": {"state": "앉아 있음", "signal": "안정"}
+    "eyes": {"state": "", "signal": ""},
+    "ears": {"state": "", "signal": ""},
+    "mouth": {"state": "", "signal": ""},
+    "posture": {"state": "", "signal": ""}
   },
-  "health_tips": ["식욕 변화가 없는지 확인하세요", "산책 후 발바닥 상태를 체크하세요"]${(breed != null && breed.isNotEmpty) ? ',\n  "breed_insight": "이 품종은..."' : ''}
+  "health_tips": ["", ""]${breedContext.isNotEmpty ? ',\n  "breed_insight": ""' : ''}
 }
 
-동물이 보이지 않으면 감정은 각각 0.2, 추가 지표는 50, health_signal은 "normal", facial_features의 state/signal은 "확인 불가"로 응답하세요.
+동물이 보이지 않으면 감정 각각 0.125, is_sleepy false, 추가 지표 50, health_signal "normal"로 응답하세요.
 """;
   }
 
@@ -350,29 +346,40 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
 
     final emotionData = jsonDecode(jsonStr) as Map<String, dynamic>;
 
-    // 감정 점수 (합계 1.0 정규화)
-    double happiness = _parseDouble(emotionData['happiness'], 0.2);
-    double sadness = _parseDouble(emotionData['sadness'], 0.2);
-    double anxiety = _parseDouble(emotionData['anxiety'], 0.2);
-    double sleepiness = _parseDouble(emotionData['sleepiness'], 0.2);
-    double curiosity = _parseDouble(emotionData['curiosity'], 0.2);
+    // 8감정 파싱 (sleepiness 제외)
+    double happiness  = _parseDouble(emotionData['happiness'],  0.125);
+    double calm       = _parseDouble(emotionData['calm'],       0.125);
+    double excitement = _parseDouble(emotionData['excitement'], 0.125);
+    double curiosity  = _parseDouble(emotionData['curiosity'],  0.125);
+    double anxiety    = _parseDouble(emotionData['anxiety'],    0.125);
+    double fear       = _parseDouble(emotionData['fear'],       0.125);
+    double sadness    = _parseDouble(emotionData['sadness'],    0.125);
+    double discomfort = _parseDouble(emotionData['discomfort'], 0.125);
 
-    final total = happiness + sadness + anxiety + sleepiness + curiosity;
+    // 합계 1.0 정규화 (sleepiness 제외)
+    final total = happiness + calm + excitement + curiosity +
+                  anxiety + fear + sadness + discomfort;
     if (total > 0) {
-      happiness /= total;
-      sadness /= total;
-      anxiety /= total;
-      sleepiness /= total;
-      curiosity /= total;
+      happiness  /= total;
+      calm       /= total;
+      excitement /= total;
+      curiosity  /= total;
+      anxiety    /= total;
+      fear       /= total;
+      sadness    /= total;
+      discomfort /= total;
     }
 
-    // 추가 지표
-    final stressLevel = _parseInt(emotionData['stress_level'], 50);
-    final activityLevel = _parseInt(emotionData['activity_level'], 50);
-    final comfortLevel = _parseInt(emotionData['comfort_level'], 50);
-    final healthSignal = emotionData['health_signal'] as String? ?? 'normal';
+    // 생리지표 파싱 (is_sleepy)
+    final isSleepy = emotionData['is_sleepy'] as bool? ?? false;
 
-    // A-1: 부위별 분석
+    // 추가 지표
+    final stressLevel   = _parseInt(emotionData['stress_level'],   50);
+    final activityLevel = _parseInt(emotionData['activity_level'], 50);
+    final comfortLevel  = _parseInt(emotionData['comfort_level'],  50);
+    final healthSignal  = emotionData['health_signal'] as String? ?? 'normal';
+
+    // 부위별 분석
     Map<String, FacialFeature>? facialFeatures;
     final rawFeatures = emotionData['facial_features'];
     if (rawFeatures is Map<String, dynamic>) {
@@ -385,32 +392,50 @@ ${(breed != null && breed.isNotEmpty) ? '[6] 품종 해석:\n- 해당 품종의 
       if (facialFeatures.isEmpty) facialFeatures = null;
     }
 
-    // A-3: 건강 팁
+    // 건강 팁
     final rawTips = emotionData['health_tips'];
     final healthTips =
         rawTips is List ? List<String>.from(rawTips) : <String>[];
 
-    // A-6: 품종 해석
+    // 품종 해석
     final breedInsight = emotionData['breed_insight'] as String?;
 
-    log('분석 완료 - happiness: ${happiness.toStringAsFixed(2)}, stress: $stressLevel',
+    log('분석 완료 - happiness: ${happiness.toStringAsFixed(2)}, '
+        'fear: ${fear.toStringAsFixed(2)}, discomfort: ${discomfort.toStringAsFixed(2)}, '
+        'isSleepy: $isSleepy, stress: $stressLevel',
         name: 'GeminiAI');
 
+    // EmotionScoresModel에 isSleepy를 직접 담을 수 없으므로
+    // gemini_ai_service에서는 EmotionScoresModel만 반환하고
+    // isSleepy는 별도 처리를 위해 breedInsight 필드 대신 호출부에서 처리.
+    // → analyzeEmotionFromImage/Images 에서 EmotionAnalysisModel로 래핑 시 isSleepy 전달.
+    // 임시로 breedInsight 필드에 isSleepy 정보를 전달하는 대신
+    // EmotionScoresModel을 반환 후 호출부에서 isSleepy를 별도 파싱하도록
+    // _lastIsSleepy 에 캐시한다.
+    _lastIsSleepy = isSleepy;
+
     return EmotionScoresModel(
-      happiness: happiness,
-      sadness: sadness,
-      anxiety: anxiety,
-      sleepiness: sleepiness,
-      curiosity: curiosity,
-      stressLevel: stressLevel,
+      happiness:   happiness,
+      calm:        calm,
+      excitement:  excitement,
+      curiosity:   curiosity,
+      anxiety:     anxiety,
+      fear:        fear,
+      sadness:     sadness,
+      discomfort:  discomfort,
+      stressLevel:   stressLevel,
       activityLevel: activityLevel,
-      healthSignal: healthSignal,
-      comfortLevel: comfortLevel,
+      healthSignal:  healthSignal,
+      comfortLevel:  comfortLevel,
       facialFeatures: facialFeatures,
-      healthTips: healthTips,
-      breedInsight: breedInsight,
+      healthTips:    healthTips,
+      breedInsight:  breedInsight,
     );
   }
+
+  // isSleepy를 호출부(EmotionAnalysisBloc 등)에서 읽을 수 있도록 캐시
+  bool _lastIsSleepy = false;
+  bool get lastIsSleepy => _lastIsSleepy;
 
   AnalysisException _handleDioException(DioException e) {
     log('DioException: ${e.type} - ${e.message}', name: 'GeminiAI');
