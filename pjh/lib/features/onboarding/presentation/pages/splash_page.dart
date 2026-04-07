@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lottie/lottie.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_logo.dart';
@@ -19,15 +18,15 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
-  late AnimationController _lottieController;
+  late AnimationController _charController;
   late AnimationController _logoController;
+  late Animation<double> _charOpacity;
+  late Animation<double> _charScale;
   late Animation<double> _logoOpacity;
   late Animation<Offset> _logoSlide;
 
-  bool _lottieLoaded = false;
-  bool _symbolVisible = true; // 네이티브 브릿지용 발바닥 PNG
   bool _authReady = false;
-  bool _lottieFinished = false;
+  bool _animFinished = false;
   Timer? _maxWaitTimer;
 
   @override
@@ -41,55 +40,62 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       ),
     );
 
-    _lottieController = AnimationController(vsync: this);
-
-    _logoController = AnimationController(
+    // 캐릭터 팝인 애니메이션 (0.6초)
+    _charController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
+    );
+    _charOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _charController, curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
+    );
+    _charScale = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _charController, curve: Curves.elasticOut),
+    );
+
+    // 로고 슬라이드인 애니메이션 (0.5초)
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
     );
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
     );
     _logoSlide = Tween<Offset>(
-      begin: const Offset(0, 0.25),
+      begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.easeOutCubic),
     );
 
-    // 최대 3초 타임아웃
-    _maxWaitTimer = Timer(const Duration(seconds: 3), _navigate);
+    // 캐릭터 애니메이션 시작 → 완료 후 로고 애니메이션
+    _charController.forward().then((_) {
+      if (!mounted) return;
+      _logoController.forward().then((_) {
+        if (!mounted) return;
+        setState(() => _animFinished = true);
+        _tryNavigate();
+      });
+    });
+
+    // auth가 이미 준비된 경우를 위해 첫 프레임 후 확인
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = context.read<AuthBloc>().state;
+      if (state is AuthAuthenticated || state is AuthUnauthenticated) {
+        _authReady = true;
+      }
+    });
+
+    // 최대 1.5초 대기 후 강제 이동
+    _maxWaitTimer = Timer(const Duration(milliseconds: 1500), _navigate);
   }
 
   @override
   void dispose() {
-    _lottieController.dispose();
+    _charController.dispose();
     _logoController.dispose();
     _maxWaitTimer?.cancel();
     super.dispose();
-  }
-
-  void _onLottieLoaded(LottieComposition composition) {
-    if (!mounted) return;
-    setState(() {
-      _lottieLoaded = true;
-      _symbolVisible = false; // PNG → Lottie 교체
-    });
-    _lottieController
-      ..duration = composition.duration
-      ..forward().then((_) {
-        if (!mounted) return;
-        setState(() => _lottieFinished = true);
-        _logoController.forward();
-        Future.delayed(const Duration(milliseconds: 400), _tryNavigate);
-      });
-
-    // Lottie 시작 800ms 후 로고 미리 등장
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted && !_logoController.isAnimating && !_lottieFinished) {
-        _logoController.forward();
-      }
-    });
   }
 
   void _onAuthStateChanged() {
@@ -99,7 +105,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
 
   void _tryNavigate() {
     if (!mounted) return;
-    if (_lottieFinished && _authReady) _navigate();
+    if (_animFinished && _authReady) _navigate();
   }
 
   void _navigate() {
@@ -146,61 +152,25 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 심볼 + Lottie 영역
-                  SizedBox(
-                    width: 160.w,
-                    height: 160.w,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // 네이티브 브릿지 발바닥 PNG (Lottie 로드 전 표시)
-                        AnimatedOpacity(
-                          opacity: _symbolVisible ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 150),
-                          child: Image.asset(
-                            'assets/icons/splash_symbol.png',
-                            width: 100.w,
-                            height: 100.w,
-                          ),
-                        ),
-                        // Lottie 발바닥 애니메이션
-                        AnimatedOpacity(
-                          opacity: _lottieLoaded ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 150),
-                          child: Lottie.asset(
-                            'assets/lottie/splash.json',
-                            controller: _lottieController,
-                            onLoaded: _onLottieLoaded,
-                            errorBuilder: (_, __, ___) {
-                              // Lottie 실패 시 PNG 유지 + 타이머로 진행
-                              WidgetsBinding.instance
-                                  .addPostFrameCallback((_) {
-                                if (!mounted) return;
-                                setState(() {
-                                  _symbolVisible = true;
-                                  _lottieFinished = true;
-                                });
-                                Future.delayed(
-                                  const Duration(milliseconds: 800),
-                                  () {
-                                    _logoController.forward();
-                                    Future.delayed(
-                                      const Duration(milliseconds: 600),
-                                      _tryNavigate,
-                                    );
-                                  },
-                                );
-                              });
-                              return const SizedBox.shrink();
-                            },
-                            repeat: false,
-                          ),
-                        ),
-                      ],
+                  // 캐릭터 이미지 팝인
+                  AnimatedBuilder(
+                    animation: _charController,
+                    builder: (_, child) => Opacity(
+                      opacity: _charOpacity.value,
+                      child: Transform.scale(
+                        scale: _charScale.value,
+                        child: child,
+                      ),
+                    ),
+                    child: Image.asset(
+                      'assets/icons/splash_char.png',
+                      width: 160.w,
+                      height: 160.w,
+                      fit: BoxFit.contain,
                     ),
                   ),
 
-                  SizedBox(height: 32.h),
+                  SizedBox(height: 28.h),
 
                   // 로고 + 슬로건 슬라이드인
                   SlideTransition(
@@ -224,7 +194,6 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                             ),
                           ),
                           SizedBox(height: 14.h),
-                          // AI 서비스 배지
                           Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: 16.w,
@@ -258,7 +227,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               ),
             ),
 
-            // 하단: 3dot 로딩 + JENA Team
+            // 하단: JENA Team
             Positioned(
               bottom: 48.h,
               left: 0,
@@ -291,7 +260,6 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   }
 }
 
-// 배경 장식 링
 class _DecoRing extends StatelessWidget {
   final double size;
   const _DecoRing({required this.size});
@@ -312,7 +280,6 @@ class _DecoRing extends StatelessWidget {
   }
 }
 
-// 3dot 로딩 인디케이터
 class _LoadingDot extends StatefulWidget {
   final int index;
   const _LoadingDot({required this.index});

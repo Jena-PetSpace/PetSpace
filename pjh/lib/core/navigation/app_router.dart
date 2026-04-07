@@ -473,11 +473,17 @@ class AppRouter {
           return '/onboarding/login';
         }
 
-        // 초기 상태이거나 로딩 중일 때 → splash에서 BlocListener가 처리
-        if (authState is AuthInitial || authState is AuthLoading) {
-          log('Auth state is initial/loading - holding at splash',
-              name: 'GoRouter');
+        // 초기 상태일 때만 splash로 → AuthLoading은 현재 위치 유지 (로그인 중 스플래시로 튕기지 않도록)
+        if (authState is AuthInitial) {
+          log('Auth state is initial - holding at splash', name: 'GoRouter');
           return '/splash';
+        }
+
+        // 로딩 중일 때는 현재 위치 유지 (로그인 버튼 누른 후 splash로 튕기지 않도록)
+        if (authState is AuthLoading) {
+          log('Auth state is loading - staying at current path: $currentPath',
+              name: 'GoRouter');
+          return null;
         }
 
         // 이메일 인증 필요 상태 (회원가입 직후)

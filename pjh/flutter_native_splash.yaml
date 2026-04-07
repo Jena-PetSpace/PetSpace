@@ -4,19 +4,20 @@ flutter_native_splash:
   color: "#1E3A5F"
   color_dark: "#1E3A5F"
 
-  # 발바닥 심볼 PNG (Lottie와 동일한 모양)
-  image: assets/icons/splash_symbol.png
-  image_dark: assets/icons/splash_symbol.png
+  # 캐릭터 PNG - 구형 Android
+  image: assets/icons/splash_char.png
+  image_dark: assets/icons/splash_char.png
 
   # Android 12+ Splash Screen API
+  # icon은 정확히 중앙에 배치됨 (1152x1152 안에 768x768 실제 이미지)
   android_12:
     color: "#1E3A5F"
     color_dark: "#1E3A5F"
-    image: assets/icons/splash_symbol.png
-    image_dark: assets/icons/splash_symbol.png
+    image: assets/icons/splash_char.png
+    image_dark: assets/icons/splash_char.png
     icon_background_color: "#1E3A5F"
     icon_background_color_dark: "#1E3A5F"
-    image_percent: 0.35
+    # branding 이미지 없음 - 중앙 아이콘만 표시
 
   android: true
   ios: false
