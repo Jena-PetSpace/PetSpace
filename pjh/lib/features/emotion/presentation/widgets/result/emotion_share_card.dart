@@ -65,29 +65,6 @@ class EmotionShareCard extends StatelessWidget {
   final EmotionAnalysis analysis;
   final String? petName;
 
-  static const _emotionEmoji = {
-    'happiness': '😊',
-    'sadness': '😢',
-    'anxiety': '😰',
-    'sleepiness': '😴',
-    'curiosity': '🧐',
-  };
-
-  static const _emotionName = {
-    'happiness': '행복',
-    'sadness': '슬픔',
-    'anxiety': '불안',
-    'sleepiness': '졸림',
-    'curiosity': '호기심',
-  };
-
-  static const _emotionColor = {
-    'happiness': Color(0xFF5BC0EB),
-    'sadness': Color(0xFF2C4482),
-    'anxiety': Color(0xFFFF6F61),
-    'sleepiness': Color(0xFF1E3A5F),
-    'curiosity': Color(0xFF0077B6),
-  };
 
   const EmotionShareCard({
     super.key,
@@ -98,16 +75,27 @@ class EmotionShareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dominant = analysis.emotions.dominantEmotion;
-    final emoji = _emotionEmoji[dominant] ?? '🐾';
-    final name = _emotionName[dominant] ?? '';
-    final color = _emotionColor[dominant] ?? AppTheme.primaryColor;
-    final emotions = [
-      ('😊', '행복', analysis.emotions.happiness),
-      ('😢', '슬픔', analysis.emotions.sadness),
-      ('😰', '불안', analysis.emotions.anxiety),
-      ('😴', '졸림', analysis.emotions.sleepiness),
-      ('🧐', '호기심', analysis.emotions.curiosity),
-    ];
+    final emoji = AppTheme.getEmotionEmoji(dominant);
+    final name = AppTheme.getEmotionLabel(dominant);
+    final color = AppTheme.getEmotionColor(dominant);
+    final e = analysis.emotions;
+    double getVal(String key) {
+      switch (key) {
+        case 'happiness':  return e.happiness;
+        case 'calm':       return e.calm;
+        case 'excitement': return e.excitement;
+        case 'curiosity':  return e.curiosity;
+        case 'anxiety':    return e.anxiety;
+        case 'fear':       return e.fear;
+        case 'sadness':    return e.sadness;
+        case 'discomfort': return e.discomfort;
+        default:           return 0.0;
+      }
+    }
+    final dominantPct = (getVal(dominant) * 100).round();
+    final emotions = AppTheme.emotionOrder
+        .map((key) => (AppTheme.getEmotionEmoji(key), AppTheme.getEmotionLabel(key), getVal(key)))
+        .toList();
 
     return SizedBox(
       width: 320,
@@ -177,7 +165,7 @@ class EmotionShareCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${(analysis.emotions.happiness * 100).round()}%',
+                      '$dominantPct%',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
