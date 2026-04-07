@@ -1,0 +1,23 @@
+flutter_native_splash:
+
+  # Flutter SplashPage와 동일한 배경색 (#1E3A5F)
+  color: "#1E3A5F"
+  color_dark: "#1E3A5F"
+
+  # 발바닥 심볼 PNG (Lottie와 동일한 모양)
+  image: assets/icons/splash_symbol.png
+  image_dark: assets/icons/splash_symbol.png
+
+  # Android 12+ Splash Screen API
+  android_12:
+    color: "#1E3A5F"
+    color_dark: "#1E3A5F"
+    image: assets/icons/splash_symbol.png
+    image_dark: assets/icons/splash_symbol.png
+    icon_background_color: "#1E3A5F"
+    icon_background_color_dark: "#1E3A5F"
+    image_percent: 0.35
+
+  android: true
+  ios: false
+  web: false
