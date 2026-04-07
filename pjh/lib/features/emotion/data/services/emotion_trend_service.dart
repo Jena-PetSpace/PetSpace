@@ -66,44 +66,40 @@ class EmotionTrendService {
   }
 
   double _calculateOverallScore(EmotionAnalysis analysis) {
-    // Weight positive emotions higher
     final emotions = analysis.emotions;
-
-    // Calculate score based on emotion values
     double score = 0.5; // neutral baseline
 
-    // Add positive emotions
-    score += emotions.happiness * 0.5;
-    score += emotions.curiosity * 0.3;
+    // 긍정 감정 가산
+    score += emotions.happiness  * 0.40;
+    score += emotions.calm       * 0.35;
+    score += emotions.excitement * 0.20;
+    score += emotions.curiosity  * 0.25;
 
-    // Subtract negative emotions
-    score -= emotions.sadness * 0.5;
-    score -= emotions.anxiety * 0.4;
-
-    // Sleepiness is neutral
+    // 부정 감정 차감 (공포가 가장 강한 부정 신호)
+    score -= emotions.sadness    * 0.40;
+    score -= emotions.anxiety    * 0.35;
+    score -= emotions.fear       * 0.45;
+    score -= emotions.discomfort * 0.30;
 
     return score.clamp(0.0, 1.0);
   }
 
   String _findDominantEmotion(List<EmotionAnalysis> analyses) {
     final emotionTotals = <String, double>{
-      'happiness': 0.0,
-      'sadness': 0.0,
-      'anxiety': 0.0,
-      'sleepiness': 0.0,
-      'curiosity': 0.0,
+      'happiness': 0.0, 'calm': 0.0, 'excitement': 0.0, 'curiosity': 0.0,
+      'anxiety': 0.0, 'fear': 0.0, 'sadness': 0.0, 'discomfort': 0.0,
     };
 
     for (final analysis in analyses) {
-      final emotions = analysis.emotions;
-      emotionTotals['happiness'] =
-          emotionTotals['happiness']! + emotions.happiness;
-      emotionTotals['sadness'] = emotionTotals['sadness']! + emotions.sadness;
-      emotionTotals['anxiety'] = emotionTotals['anxiety']! + emotions.anxiety;
-      emotionTotals['sleepiness'] =
-          emotionTotals['sleepiness']! + emotions.sleepiness;
-      emotionTotals['curiosity'] =
-          emotionTotals['curiosity']! + emotions.curiosity;
+      final e = analysis.emotions;
+      emotionTotals['happiness']  = emotionTotals['happiness']!  + e.happiness;
+      emotionTotals['calm']       = emotionTotals['calm']!       + e.calm;
+      emotionTotals['excitement'] = emotionTotals['excitement']! + e.excitement;
+      emotionTotals['curiosity']  = emotionTotals['curiosity']!  + e.curiosity;
+      emotionTotals['anxiety']    = emotionTotals['anxiety']!    + e.anxiety;
+      emotionTotals['fear']       = emotionTotals['fear']!       + e.fear;
+      emotionTotals['sadness']    = emotionTotals['sadness']!    + e.sadness;
+      emotionTotals['discomfort'] = emotionTotals['discomfort']! + e.discomfort;
     }
 
     return emotionTotals.entries
@@ -259,18 +255,7 @@ class EmotionTrendService {
   }
 
   String _getPrimaryEmotion(EmotionAnalysis analysis) {
-    final emotions = analysis.emotions;
-
-    // Find the emotion with highest value
-    final emotionMap = {
-      'happiness': emotions.happiness,
-      'sadness': emotions.sadness,
-      'anxiety': emotions.anxiety,
-      'sleepiness': emotions.sleepiness,
-      'curiosity': emotions.curiosity,
-    };
-
-    return emotionMap.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    return analysis.emotions.dominantEmotion;
   }
 
   String _findMostFrequent(List<String> items) {
@@ -282,17 +267,17 @@ class EmotionTrendService {
   }
 
   bool _isPositive(String emotion) {
-    const positiveEmotions = ['happiness', 'curiosity'];
+    const positiveEmotions = ['happiness', 'calm', 'excitement'];
     return positiveEmotions.contains(emotion.toLowerCase());
   }
 
   bool _isNegative(String emotion) {
-    const negativeEmotions = ['sadness', 'anxiety'];
+    const negativeEmotions = ['sadness', 'anxiety', 'fear', 'discomfort'];
     return negativeEmotions.contains(emotion.toLowerCase());
   }
 
   bool _isNeutral(String emotion) {
-    const neutralEmotions = ['sleepiness'];
+    const neutralEmotions = ['curiosity'];
     return neutralEmotions.contains(emotion.toLowerCase());
   }
 
