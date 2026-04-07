@@ -314,10 +314,13 @@ class _EmotionTrendPageState extends State<EmotionTrendPage>
       final emotions = analysis.emotions;
       final emotionMap = {
         'happiness': emotions.happiness,
-        'sadness': emotions.sadness,
-        'anxiety': emotions.anxiety,
-        'sleepiness': emotions.sleepiness,
+        'calm': emotions.calm,
+        'excitement': emotions.excitement,
         'curiosity': emotions.curiosity,
+        'anxiety': emotions.anxiety,
+        'fear': emotions.fear,
+        'sadness': emotions.sadness,
+        'discomfort': emotions.discomfort,
       };
 
       // Find dominant emotion for this analysis
@@ -499,78 +502,23 @@ class _EmotionTrendPageState extends State<EmotionTrendPage>
     return score.clamp(0.0, 1.0);
   }
 
-  Color _getEmotionColor(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happy':
-      case 'joyful':
-        return Colors.yellow[700]!;
-      case 'excited':
-        return Colors.orange;
-      case 'content':
-      case 'peaceful':
-        return Colors.green;
-      case 'sad':
-        return Colors.blue[700]!;
-      case 'angry':
-      case 'frustrated':
-        return Colors.red;
-      case 'anxious':
-      case 'worried':
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
-  }
+  Color _getEmotionColor(String emotion) => AppTheme.getEmotionColor(emotion);
 
   IconData _getEmotionIcon(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happy':
-      case 'joyful':
-        return Icons.sentiment_very_satisfied;
-      case 'excited':
-        return Icons.celebration;
-      case 'content':
-      case 'peaceful':
-        return Icons.sentiment_satisfied;
-      case 'sad':
-        return Icons.sentiment_dissatisfied;
-      case 'angry':
-      case 'frustrated':
-        return Icons.sentiment_very_dissatisfied;
-      case 'anxious':
-      case 'worried':
-        return Icons.psychology;
-      default:
-        return Icons.sentiment_neutral;
+    switch (emotion) {
+      case 'happiness':  return Icons.mood;
+      case 'calm':       return Icons.self_improvement;
+      case 'excitement': return Icons.celebration;
+      case 'curiosity':  return Icons.psychology;
+      case 'anxiety':    return Icons.warning;
+      case 'fear':       return Icons.warning_amber_outlined;
+      case 'sadness':    return Icons.mood_bad;
+      case 'discomfort': return Icons.sick_outlined;
+      default:           return Icons.sentiment_neutral;
     }
   }
 
-  String _getEmotionName(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happy':
-        return '행복';
-      case 'excited':
-        return '신남';
-      case 'content':
-        return '만족';
-      case 'peaceful':
-        return '평온';
-      case 'joyful':
-        return '기쁨';
-      case 'sad':
-        return '슬픔';
-      case 'angry':
-        return '화남';
-      case 'frustrated':
-        return '좌절';
-      case 'anxious':
-        return '불안';
-      case 'worried':
-        return '걱정';
-      default:
-        return emotion;
-    }
-  }
+  String _getEmotionName(String emotion) => AppTheme.getEmotionLabel(emotion);
 
   IconData _getPatternIcon(PatternType type) {
     switch (type) {

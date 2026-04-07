@@ -9,19 +9,6 @@ import '../bloc/emotion_analysis_bloc.dart';
 class WeeklyReportPage extends StatelessWidget {
   const WeeklyReportPage({super.key});
 
-  static const _emotionEmoji = {
-    'happiness': '😊', 'sadness': '😢', 'anxiety': '😰',
-    'sleepiness': '😴', 'curiosity': '🧐',
-  };
-  static const _emotionName = {
-    'happiness': '행복', 'sadness': '슬픔', 'anxiety': '불안',
-    'sleepiness': '졸림', 'curiosity': '호기심',
-  };
-  static const _emotionColor = {
-    'happiness': Color(0xFF5BC0EB), 'sadness': Color(0xFF2C4482),
-    'anxiety': Color(0xFFFF6F61), 'sleepiness': Color(0xFF1E3A5F),
-    'curiosity': Color(0xFF0077B6),
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -86,10 +73,10 @@ class WeeklyReportPage extends StatelessWidget {
                   Text('이번 주 리포트', style: TextStyle(fontSize: 12.sp, color: Colors.white.withValues(alpha: 0.7))),
                   SizedBox(height: 6.h),
                   Row(children: [
-                    Text(_emotionEmoji[topEmotion] ?? '🐾', style: TextStyle(fontSize: 36.sp)),
+                    Text(AppTheme.getEmotionEmoji(topEmotion), style: TextStyle(fontSize: 36.sp)),
                     SizedBox(width: 14.w),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('${_emotionName[topEmotion] ?? ''} 감정이 많았어요',
+                      Text('${AppTheme.getEmotionLabel(topEmotion)} 감정이 많았어요',
                         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800, color: Colors.white)),
                       Text('총 ${weekData.length}회 분석 · 평균 행복도 ${(avgHappiness * 100).round()}%',
                         style: TextStyle(fontSize: 11.sp, color: Colors.white.withValues(alpha: 0.75))),
@@ -115,14 +102,14 @@ class WeeklyReportPage extends StatelessWidget {
                       final analysis = dayMap[key];
                       final dayLabel = ['월', '화', '수', '목', '금', '토', '일'][day.weekday - 1];
                       final emoji = analysis != null
-                          ? (_emotionEmoji[analysis.emotions.dominantEmotion] ?? '🐾') : '';
+                          ? (AppTheme.getEmotionEmoji(analysis.emotions.dominantEmotion)) : '';
 
                       return Column(children: [
                         Container(
                           width: 36.w, height: 36.w,
                           decoration: BoxDecoration(
                             color: analysis != null
-                                ? (_emotionColor[analysis.emotions.dominantEmotion] ?? AppTheme.primaryColor).withValues(alpha: 0.15)
+                                ? AppTheme.getEmotionColor(analysis.emotions.dominantEmotion).withValues(alpha: 0.15)
                                 : AppTheme.subtleBackground,
                             shape: BoxShape.circle,
                           ),
@@ -154,13 +141,13 @@ class WeeklyReportPage extends StatelessWidget {
                       ..sort((a, b) => b.value.compareTo(a.value)))
                       .map((e) {
                         final ratio = weekData.isEmpty ? 0.0 : e.value / weekData.length;
-                        final color = _emotionColor[e.key] ?? AppTheme.primaryColor;
+                        final color = AppTheme.getEmotionColor(e.key);
                         return Padding(
                           padding: EdgeInsets.only(bottom: 10.h),
                           child: Row(children: [
-                            Text(_emotionEmoji[e.key] ?? '', style: TextStyle(fontSize: 16.sp)),
+                            Text(AppTheme.getEmotionEmoji(e.key), style: TextStyle(fontSize: 16.sp)),
                             SizedBox(width: 8.w),
-                            SizedBox(width: 40.w, child: Text(_emotionName[e.key] ?? '',
+                            SizedBox(width: 40.w, child: Text(AppTheme.getEmotionLabel(e.key),
                               style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor))),
                             Expanded(child: ClipRRect(
                               borderRadius: BorderRadius.circular(4.r),
@@ -211,10 +198,13 @@ class WeeklyReportPage extends StatelessWidget {
     final happinessStr = (avgHappiness * 100).round();
     final map = {
       'happiness': '이번 주 반려동물이 전반적으로 행복한 상태를 유지했어요! 평균 행복도 $happinessStr%로 아주 좋아요 😊 지금처럼 사랑을 듬뿍 주세요.',
-      'sadness': '이번 주 반려동물이 다소 우울한 시간이 있었어요. 더 많은 스킨십과 놀이 시간을 늘려주세요 💙',
+      'calm': '이번 주 반려동물이 매우 편안한 상태였어요! 안정적인 환경을 잘 유지하고 계세요 😌',
+      'excitement': '이번 주 반려동물이 활기차고 신난 시간이 많았어요! 충분한 운동으로 에너지를 발산해주세요 🎉',
+      'curiosity': '이번 주 호기심이 왕성했어요! 새로운 장난감이나 탐색 공간을 제공해보세요 🤔',
       'anxiety': '이번 주 불안한 순간이 있었어요. 조용하고 안정적인 환경을 만들어주세요. 규칙적인 일상도 도움이 돼요 🌿',
-      'sleepiness': '이번 주 잘 쉬고 있는 것 같아요! 충분한 수면은 반려동물 건강에 매우 중요해요 😴',
-      'curiosity': '이번 주 호기심이 왕성했어요! 새로운 장난감이나 탐색 공간을 제공해보세요 🧐',
+      'fear': '이번 주 두려움을 느낀 순간이 있었어요. 안전한 공간을 확보하고 공포 원인을 파악해주세요 😨',
+      'sadness': '이번 주 반려동물이 다소 우울한 시간이 있었어요. 더 많은 스킨십과 놀이 시간을 늘려주세요 💙',
+      'discomfort': '이번 주 불편함을 느낀 순간이 있었어요. 신체 상태와 환경을 꼼꼼히 점검해주세요 😣',
     };
     return map[topEmotion] ?? '이번 주도 반려동물을 잘 보살펴주셔서 고마워요 🐾';
   }

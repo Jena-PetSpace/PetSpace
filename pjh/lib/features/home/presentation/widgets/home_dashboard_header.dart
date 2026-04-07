@@ -557,30 +557,23 @@ class HomeDashboardHeader extends StatelessWidget {
 
   String _getLatestEmotionEmoji(EmotionAnalysisState state) {
     if (state is EmotionAnalysisHistoryLoaded && state.history.isNotEmpty) {
-      final top = state.history.first.emotions.dominantEmotion;
-      const map = {
-        'happiness': '😊',
-        'sadness': '😢',
-        'anxiety': '😰',
-        'sleepiness': '😴',
-        'curiosity': '🧐',
-      };
-      return map[top] ?? '🐾';
+      return AppTheme.getEmotionEmoji(state.history.first.emotions.dominantEmotion);
     }
     return '🐾';
   }
 
   String _getEmotionSummary(EmotionAnalysisState state) {
     if (state is EmotionAnalysisHistoryLoaded && state.history.isNotEmpty) {
-      final latest = state.history.first;
-      final top = latest.emotions.dominantEmotion;
-      
-      const map = {
+      final top = state.history.first.emotions.dominantEmotion;
+      final map = {
         'happiness': '오늘 행복해 보여요 😊',
-        'sadness': '조금 슬퍼 보여요 😢',
+        'calm': '오늘 편안해 보여요 😌',
+        'excitement': '오늘 신나 보여요 🎉',
+        'curiosity': '궁금한 게 많아요 🤔',
         'anxiety': '불안해 보여요 😰',
-        'sleepiness': '졸린가봐요 😴',
-        'curiosity': '궁금한 게 많아요 🧐',
+        'fear': '무서워하는 것 같아요 😨',
+        'sadness': '조금 슬퍼 보여요 😢',
+        'discomfort': '불편해 보여요 😣',
       };
       return map[top] ?? '분석 결과 확인하기';
     }

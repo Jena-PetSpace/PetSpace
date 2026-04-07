@@ -106,52 +106,31 @@ class RecentEmotionCard extends StatelessWidget {
 
   double _getEmotionValue(EmotionScores emotions, String emotion) {
     switch (emotion) {
-      case 'happiness':
-        return emotions.happiness;
-      case 'sadness':
-        return emotions.sadness;
-      case 'anxiety':
-        return emotions.anxiety;
-      case 'sleepiness':
-        return emotions.sleepiness;
-      case 'curiosity':
-        return emotions.curiosity;
-      default:
-        return 0.0;
+      case 'happiness':  return emotions.happiness;
+      case 'calm':       return emotions.calm;
+      case 'excitement': return emotions.excitement;
+      case 'curiosity':  return emotions.curiosity;
+      case 'anxiety':    return emotions.anxiety;
+      case 'fear':       return emotions.fear;
+      case 'sadness':    return emotions.sadness;
+      case 'discomfort': return emotions.discomfort;
+      default:           return 0.0;
     }
   }
 
-  String _getEmotionName(String emotion) {
-    switch (emotion) {
-      case 'happiness':
-        return '기쁨';
-      case 'sadness':
-        return '슬픔';
-      case 'anxiety':
-        return '불안';
-      case 'sleepiness':
-        return '졸림';
-      case 'curiosity':
-        return '호기심';
-      default:
-        return '알 수 없음';
-    }
-  }
+  String _getEmotionName(String emotion) => AppTheme.getEmotionLabel(emotion);
 
   IconData _getEmotionIcon(String emotion) {
     switch (emotion) {
-      case 'happiness':
-        return Icons.mood;
-      case 'sadness':
-        return Icons.mood_bad;
-      case 'anxiety':
-        return Icons.warning;
-      case 'sleepiness':
-        return Icons.bedtime;
-      case 'curiosity':
-        return Icons.psychology;
-      default:
-        return Icons.help_outline;
+      case 'happiness':  return Icons.mood;
+      case 'calm':       return Icons.self_improvement;
+      case 'excitement': return Icons.celebration;
+      case 'curiosity':  return Icons.psychology;
+      case 'anxiety':    return Icons.warning;
+      case 'fear':       return Icons.warning_amber_outlined;
+      case 'sadness':    return Icons.mood_bad;
+      case 'discomfort': return Icons.sick_outlined;
+      default:           return Icons.help_outline;
     }
   }
 

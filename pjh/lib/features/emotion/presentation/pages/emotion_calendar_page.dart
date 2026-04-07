@@ -22,21 +22,6 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
   // 날짜 → 분석 목록 맵
   Map<DateTime, List<EmotionAnalysis>> _analysisMap = {};
 
-  static const _emotionEmoji = {
-    'happiness': '😊',
-    'sadness': '😢',
-    'anxiety': '😰',
-    'sleepiness': '😴',
-    'curiosity': '🧐',
-  };
-
-  static const _emotionName = {
-    'happiness': '행복',
-    'sadness': '슬픔',
-    'anxiety': '불안',
-    'sleepiness': '졸림',
-    'curiosity': '호기심',
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +107,7 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
                     markerBuilder: (context, day, events) {
                       if (events.isEmpty) return null;
                       final dominant = events.first.emotions.dominantEmotion;
-                      final emoji = _emotionEmoji[dominant] ?? '🐾';
+                      final emoji = AppTheme.getEmotionEmoji(dominant);
                       return Positioned(
                         bottom: 2,
                         child: Row(
@@ -215,7 +200,7 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
     }
     final topEmotion = emotionCount.entries
         .reduce((a, b) => a.value > b.value ? a : b).key;
-    final emoji = _emotionEmoji[topEmotion] ?? '🐾';
+    final emoji = AppTheme.getEmotionEmoji(topEmotion);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
@@ -239,7 +224,7 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
                     style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor),
                   ),
                   Text(
-                    '총 ${thisMonth.length}회 · 가장 많은 감정: ${_emotionName[topEmotion] ?? ''}',
+                    '총 ${thisMonth.length}회 · 가장 많은 감정: ${AppTheme.getEmotionLabel(topEmotion)}',
                     style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700, color: AppTheme.primaryTextColor),
                   ),
                 ],
@@ -302,8 +287,8 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
       itemBuilder: (context, index) {
         final a = analyses[index];
         final dominant = a.emotions.dominantEmotion;
-        final emoji = _emotionEmoji[dominant] ?? '🐾';
-        final name = _emotionName[dominant] ?? '';
+        final emoji = AppTheme.getEmotionEmoji(dominant);
+        final name = AppTheme.getEmotionLabel(dominant);
         final time = '${a.analyzedAt.hour.toString().padLeft(2, '0')}:'
             '${a.analyzedAt.minute.toString().padLeft(2, '0')}';
 
