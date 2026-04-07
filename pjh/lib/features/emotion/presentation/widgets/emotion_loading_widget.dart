@@ -29,7 +29,7 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
   static const _steps = [
     _LoadingStep('👀', 'AI가 감지 중', '반려동물의 감정을 섬세하게 읽어내고 있어요'),
     _LoadingStep('🧠', 'AI가 분석 중', '표정과 외관에서 감정 신호를 추출하고 있어요'),
-    _LoadingStep('📊', 'AI가 계산 중', '5가지 감정 지표를 정밀하게 산출하고 있어요'),
+    _LoadingStep('📊', 'AI가 계산 중', '8가지 감정 지표를 정밀하게 산출하고 있어요'),
     _LoadingStep('✨', 'AI가 완료 중', '맞춤형 리포트를 정리하고 있어요'),
   ];
 
