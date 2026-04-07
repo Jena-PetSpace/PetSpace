@@ -26,8 +26,79 @@ class AppTheme {
   static const Color happinessColor = Color(0xFF5BC0EB); // 하늘색 (기쁨)
   static const Color sadnessColor = Color(0xFF2C4482); // 인디고 (슬픔)
   static const Color anxietyColor = Color(0xFFFF6F61); // 코랄 레드 (불안)
-  static const Color sleepinessColor = Color(0xFF1E3A5F); // 딥 블루 (졸림)
+  /// @deprecated Use physiologicalColor. 생리지표용으로 의미 분리됨.
+  static const Color sleepinessColor = Color(0xFF1E3A5F); // 딥 블루 (졸림 → deprecated)
   static const Color curiosityColor = Color(0xFF0077B6); // 브라이트 블루 (호기심)
+
+  // 신규 감정 컬러 (8종 확장 — JENA 팔레트 기반)
+  static const Color physiologicalColor = Color(0xFF1E3A5F); // 생리지표 (sleepinessColor 동일값)
+  static const Color calmColor = Color(0xFF2E7D6B); // 틸 그린 (편안함)
+  static const Color excitementColor = Color(0xFFE8A838); // 따뜻한 앰버 (흥분)
+  static const Color fearColor = Color(0xFF6B3FA0); // 딥 퍼플 (공포)
+  static const Color discomfortColor = Color(0xFFD4511E); // 딥 오렌지 (불편함)
+
+  // 감정 정렬 순서 상수 (긍정 → 중립 → 부정)
+  static const List<String> emotionOrder = [
+    'happiness', 'calm', 'excitement', 'curiosity',
+    'anxiety', 'fear', 'sadness', 'discomfort',
+  ];
+
+  // 감정 컬러 헬퍼 (8종 + 하위 호환)
+  static Color getEmotionColor(String emotion) {
+    switch (emotion.toLowerCase()) {
+      case 'happiness':  return happinessColor;
+      case 'calm':       return calmColor;
+      case 'excitement': return excitementColor;
+      case 'curiosity':  return curiosityColor;
+      case 'anxiety':    return anxietyColor;
+      case 'fear':       return fearColor;
+      case 'sadness':    return sadnessColor;
+      case 'discomfort': return discomfortColor;
+      case 'sleepiness': return physiologicalColor; // 하위 호환
+      default:           return primaryColor;
+    }
+  }
+
+  // 감정 한국어 라벨 헬퍼
+  static String getEmotionLabel(String emotion) {
+    switch (emotion.toLowerCase()) {
+      case 'happiness':  return '기쁨';
+      case 'calm':       return '편안함';
+      case 'excitement': return '흥분';
+      case 'curiosity':  return '호기심';
+      case 'anxiety':    return '불안';
+      case 'fear':       return '공포';
+      case 'sadness':    return '슬픔';
+      case 'discomfort': return '불편함';
+      case 'sleepiness': return '졸림';
+      default:           return emotion;
+    }
+  }
+
+  // 감정 이모지 헬퍼
+  static String getEmotionEmoji(String emotion) {
+    switch (emotion.toLowerCase()) {
+      case 'happiness':  return '😊';
+      case 'calm':       return '😌';
+      case 'excitement': return '🤩';
+      case 'curiosity':  return '🧐';
+      case 'anxiety':    return '😰';
+      case 'fear':       return '😨';
+      case 'sadness':    return '😢';
+      case 'discomfort': return '😣';
+      case 'sleepiness': return '😴';
+      default:           return '🐾';
+    }
+  }
+
+  // 감정 그룹 헬퍼 (UI 그룹핑용)
+  static String getEmotionGroup(String emotion) {
+    const positive = ['happiness', 'calm', 'excitement'];
+    const neutral  = ['curiosity'];
+    if (positive.contains(emotion)) return 'positive';
+    if (neutral.contains(emotion))  return 'neutral';
+    return 'negative';
+  }
 
   // 시맨틱 컬러 — 상태/피드백
   static const Color successColor = Color(0xFF4CAF50); // 성공·완료 (초록)
@@ -446,21 +517,4 @@ class AppTheme {
     );
   }
 
-  // 감정별 컬러를 가져오는 헬퍼 메서드
-  static Color getEmotionColor(String emotion) {
-    switch (emotion.toLowerCase()) {
-      case 'happiness':
-        return happinessColor;
-      case 'sadness':
-        return sadnessColor;
-      case 'anxiety':
-        return anxietyColor;
-      case 'sleepiness':
-        return sleepinessColor;
-      case 'curiosity':
-        return curiosityColor;
-      default:
-        return primaryColor;
-    }
-  }
 }
