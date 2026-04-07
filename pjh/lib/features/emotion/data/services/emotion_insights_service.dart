@@ -52,37 +52,40 @@ class EmotionInsightsService {
   }
 
   double _calculateWellbeing(List<EmotionAnalysis> history) {
-    // 긍정 감정 비율 (happiness + curiosity) / total
+    // 긍정 감정 비율: happiness + calm + excitement + curiosity*0.5
     double positiveRatioSum = 0;
     double stressSum = 0;
 
     for (final a in history) {
       final e = a.emotions;
-      positiveRatioSum += e.happiness + e.curiosity;
+      positiveRatioSum += e.happiness + e.calm + e.excitement + (e.curiosity * 0.5);
       stressSum += e.stressLevel;
     }
 
-    final positiveRatio = positiveRatioSum / history.length; // 0~1 범위
-    final avgStress = stressSum / history.length; // 0~100 범위
-    final stressStability = 1.0 - (avgStress / 100); // 스트레스 낮을수록 좋음
+    final positiveRatio = (positiveRatioSum / history.length).clamp(0.0, 1.0);
+    final avgStress = stressSum / history.length;
+    final stressStability = 1.0 - (avgStress / 100);
 
-    // 감정 변동 안정성: 각 분석 간 감정 변화폭의 평균
+    // 감정 변동 안정성: 8개 감정 변화폭 평균
     double totalVariation = 0;
     for (int i = 1; i < history.length; i++) {
-      final cur = history[i].emotions;
+      final cur  = history[i].emotions;
       final prev = history[i - 1].emotions;
-      totalVariation += (cur.happiness - prev.happiness).abs() +
-          (cur.sadness - prev.sadness).abs() +
-          (cur.anxiety - prev.anxiety).abs() +
-          (cur.sleepiness - prev.sleepiness).abs() +
-          (cur.curiosity - prev.curiosity).abs();
+      totalVariation +=
+          (cur.happiness  - prev.happiness).abs()  +
+          (cur.calm       - prev.calm).abs()       +
+          (cur.excitement - prev.excitement).abs() +
+          (cur.curiosity  - prev.curiosity).abs()  +
+          (cur.anxiety    - prev.anxiety).abs()    +
+          (cur.fear       - prev.fear).abs()       +
+          (cur.sadness    - prev.sadness).abs()    +
+          (cur.discomfort - prev.discomfort).abs();
     }
     final avgVariation = history.length > 1
-        ? totalVariation / (history.length - 1) / 5 // 5개 감정으로 나눔, 0~1 범위
+        ? totalVariation / (history.length - 1) / 8 // 8개 감정
         : 0.0;
     final emotionStability = 1.0 - avgVariation.clamp(0.0, 1.0);
 
-    // 웰빙 = 긍정(40%) + 스트레스안정(40%) + 감정안정(20%)
     final score =
         (positiveRatio * 40) + (stressStability * 40) + (emotionStability * 20);
 
@@ -91,30 +94,25 @@ class EmotionInsightsService {
 
   Map<String, double> _calculateEmotionStability(
       List<EmotionAnalysis> history) {
-    final emotions = [
-      'happiness',
-      'sadness',
-      'anxiety',
-      'sleepiness',
-      'curiosity'
+    const emotionKeys = [
+      'happiness', 'calm', 'excitement', 'curiosity',
+      'anxiety', 'fear', 'sadness', 'discomfort',
     ];
     final result = <String, double>{};
 
-    for (final emotion in emotions) {
+    for (final emotion in emotionKeys) {
       final values = history.map((a) {
+        final e = a.emotions;
         switch (emotion) {
-          case 'happiness':
-            return a.emotions.happiness;
-          case 'sadness':
-            return a.emotions.sadness;
-          case 'anxiety':
-            return a.emotions.anxiety;
-          case 'sleepiness':
-            return a.emotions.sleepiness;
-          case 'curiosity':
-            return a.emotions.curiosity;
-          default:
-            return 0.0;
+          case 'happiness':  return e.happiness;
+          case 'calm':       return e.calm;
+          case 'excitement': return e.excitement;
+          case 'curiosity':  return e.curiosity;
+          case 'anxiety':    return e.anxiety;
+          case 'fear':       return e.fear;
+          case 'sadness':    return e.sadness;
+          case 'discomfort': return e.discomfort;
+          default:           return 0.0;
         }
       }).toList();
 
@@ -124,7 +122,6 @@ class EmotionInsightsService {
               values.length;
       final stddev = math.sqrt(variance);
 
-      // stddev 0~0.5 범위를 0~1 안정성으로 변환 (stddev 낮을수록 안정적)
       result[emotion] = (1.0 - (stddev / 0.5)).clamp(0.0, 1.0);
     }
 
