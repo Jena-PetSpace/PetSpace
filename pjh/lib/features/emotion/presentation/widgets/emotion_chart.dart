@@ -31,33 +31,25 @@ class EmotionChart extends StatelessWidget {
   }
 
   List<PieChartSectionData> _buildSections() {
-    final emotionData = [
-      {
-        'label': '기쁨',
-        'value': emotions.happiness,
-        'color': AppTheme.happinessColor,
-      },
-      {
-        'label': '슬픔',
-        'value': emotions.sadness,
-        'color': AppTheme.sadnessColor,
-      },
-      {
-        'label': '불안',
-        'value': emotions.anxiety,
-        'color': AppTheme.anxietyColor,
-      },
-      {
-        'label': '졸림',
-        'value': emotions.sleepiness,
-        'color': AppTheme.sleepinessColor,
-      },
-      {
-        'label': '호기심',
-        'value': emotions.curiosity,
-        'color': AppTheme.curiosityColor,
-      },
-    ];
+    final emotionData = AppTheme.emotionOrder.map((key) {
+      double value;
+      switch (key) {
+        case 'happiness':  value = emotions.happiness;  break;
+        case 'calm':       value = emotions.calm;        break;
+        case 'excitement': value = emotions.excitement;  break;
+        case 'curiosity':  value = emotions.curiosity;   break;
+        case 'anxiety':    value = emotions.anxiety;     break;
+        case 'fear':       value = emotions.fear;        break;
+        case 'sadness':    value = emotions.sadness;     break;
+        case 'discomfort': value = emotions.discomfort;  break;
+        default:           value = 0.0;
+      }
+      return {
+        'label': AppTheme.getEmotionLabel(key),
+        'value': value,
+        'color': AppTheme.getEmotionColor(key),
+      };
+    }).toList();
 
     return emotionData.map((emotion) {
       final value = emotion['value'] as double;
@@ -65,7 +57,7 @@ class EmotionChart extends StatelessWidget {
       final percentage = (value * 100).toInt();
 
       return PieChartSectionData(
-        value: value,
+        value: value > 0 ? value : 0.001,
         color: color,
         title: percentage > 5 ? '$percentage%' : '',
         titleStyle: const TextStyle(
