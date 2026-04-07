@@ -254,8 +254,13 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
       '${AppTheme.getEmotionEmoji(key)} ${AppTheme.getEmotionLabel(key)}',
       _getEmotionValue(key),
     )).toList();
-    emotions.sort((a, b) => b.$3.compareTo(a.$3));
     final dominant = widget.analysis.emotions.dominantEmotion;
+    // 주요 감정 최상단 고정 + 나머지는 % 내림차순
+    emotions.sort((a, b) {
+      if (a.$1 == dominant) return -1;
+      if (b.$1 == dominant) return 1;
+      return b.$3.compareTo(a.$3);
+    });
     final hasFacial = widget.analysis.emotions.facialFeatures != null &&
         widget.analysis.emotions.facialFeatures!.isNotEmpty;
 
