@@ -16,13 +16,13 @@ class EmotionDiaryService {
       final date = '${a.analyzedAt.month}/${a.analyzedAt.day}';
       final dominant = e.dominantEmotion;
       summaryLines.add(
-        '$date: $dominant(${(e.happiness * 100).toInt()}/${(e.sadness * 100).toInt()}/${(e.anxiety * 100).toInt()}/${(e.sleepiness * 100).toInt()}/${(e.curiosity * 100).toInt()}) 스트레스:${e.stressLevel}',
+        '$date: $dominant(기쁨${(e.happiness*100).toInt()}/편안${(e.calm*100).toInt()}/흥분${(e.excitement*100).toInt()}/호기심${(e.curiosity*100).toInt()}/불안${(e.anxiety*100).toInt()}/공포${(e.fear*100).toInt()}/슬픔${(e.sadness*100).toInt()}/불편${(e.discomfort*100).toInt()}) 스트레스:${e.stressLevel}',
       );
     }
 
     final prompt = '''
 아래는 반려동물의 최근 감정 분석 기록입니다.
-각 줄: 날짜: 주감정(행복/슬픔/불안/졸림/호기심 %) 스트레스:수치
+각 줄: 날짜: 주감정(기쁨/편안/흥분/호기심/불안/공포/슬픔/불편 %) 스트레스:수치
 
 ${summaryLines.join('\n')}
 
