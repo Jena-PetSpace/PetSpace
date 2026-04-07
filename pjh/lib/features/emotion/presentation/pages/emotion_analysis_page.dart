@@ -899,11 +899,12 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           return;
         }
         final picker = ImagePicker();
+        // limit은 최소 2 이상이어야 함 (1이면 오류) → remaining >= 2일 때만 전달
         final List<XFile> images = await picker.pickMultiImage(
           maxWidth: 1920,
           maxHeight: 1920,
           imageQuality: 85,
-          limit: remaining,
+          limit: remaining >= 2 ? remaining : null,
         );
         if (!mounted) return;
         if (images.isNotEmpty) {
