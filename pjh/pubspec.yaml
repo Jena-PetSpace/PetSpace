@@ -61,6 +61,7 @@ dependencies:
   share_plus: ^10.1.2
   app_links: ^6.3.3
   url_launcher: ^6.2.5
+  webview_flutter: ^4.13.0
 
   # Local Storage
   shared_preferences: ^2.2.3
