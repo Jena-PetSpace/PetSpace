@@ -562,6 +562,12 @@ class AppRouter {
           return null;
         }
 
+        // 스플래시 페이지는 인증 상태와 무관하게 항상 허용
+        // (SplashPage 내부에서 BlocListener가 인증 확인 후 직접 이동)
+        if (currentPath == '/splash') {
+          return null;
+        }
+
         // 이미 로그인 페이지에 있으면 그대로 유지
         if (currentPath == '/onboarding/login') {
           return null;

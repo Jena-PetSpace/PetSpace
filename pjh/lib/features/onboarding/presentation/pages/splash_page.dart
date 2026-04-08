@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_logo.dart';
@@ -18,15 +19,14 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
-  late AnimationController _charController;
+  late AnimationController _lottieController;
   late AnimationController _logoController;
-  late Animation<double> _charOpacity;
-  late Animation<double> _charScale;
   late Animation<double> _logoOpacity;
   late Animation<Offset> _logoSlide;
 
+  bool _lottieLoaded = false;
+  bool _lottieFinished = false;
   bool _authReady = false;
-  bool _animFinished = false;
   Timer? _maxWaitTimer;
 
   @override
@@ -40,78 +40,78 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       ),
     );
 
-    // 캐릭터 팝인 애니메이션 (0.6초)
-    _charController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _charOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _charController, curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
-    );
-    _charScale = Tween<double>(begin: 0.6, end: 1.0).animate(
-      CurvedAnimation(parent: _charController, curve: Curves.elasticOut),
-    );
+    _lottieController = AnimationController(vsync: this);
 
-    // 로고 슬라이드인 애니메이션 (0.5초)
+    // 로고 슬라이드인 + 페이드인 (600ms)
     _logoController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 600),
     );
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
     );
     _logoSlide = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.25),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.easeOutCubic),
     );
 
-    // 캐릭터 애니메이션 시작 → 완료 후 로고 애니메이션
-    _charController.forward().then((_) {
-      if (!mounted) return;
-      _logoController.forward().then((_) {
-        if (!mounted) return;
-        setState(() => _animFinished = true);
-        _tryNavigate();
-      });
-    });
-
-    // auth가 이미 준비된 경우를 위해 첫 프레임 후 확인
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final state = context.read<AuthBloc>().state;
-      if (state is AuthAuthenticated || state is AuthUnauthenticated) {
-        _authReady = true;
-      }
-    });
-
-    // 최대 1.5초 대기 후 강제 이동
-    _maxWaitTimer = Timer(const Duration(milliseconds: 1500), _navigate);
+    // 최대 3초 타임아웃 (네트워크 느릴 때 보호)
+    _maxWaitTimer = Timer(const Duration(seconds: 3), _navigate);
   }
 
   @override
   void dispose() {
-    _charController.dispose();
+    _lottieController.dispose();
     _logoController.dispose();
     _maxWaitTimer?.cancel();
     super.dispose();
   }
 
+  // Lottie 로드 완료 콜백 — 딜레이 없이 즉시 재생
+  void _onLottieLoaded(LottieComposition composition) {
+    if (!mounted) return;
+    setState(() => _lottieLoaded = true);
+    _lottieController
+      ..duration = composition.duration
+      ..forward().then((_) {
+        if (!mounted) return;
+        setState(() => _lottieFinished = true);
+        _logoController.forward();
+        // Lottie 완료 후 400ms 대기 후 이동 시도
+        Future.delayed(const Duration(milliseconds: 400), _tryNavigate);
+      });
+
+    // Lottie 시작 800ms 후 로고 미리 등장 (자연스러운 타이밍)
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted && !_logoController.isAnimating && !_lottieFinished) {
+        _logoController.forward();
+      }
+    });
+  }
+
+  // BlocListener에서 호출
   void _onAuthStateChanged() {
     _authReady = true;
     _tryNavigate();
   }
 
+  // Lottie 완료 + Auth 준비 둘 다 충족 시 이동
   void _tryNavigate() {
     if (!mounted) return;
-    if (_animFinished && _authReady) _navigate();
+    if (_lottieFinished && _authReady) _navigate();
   }
 
   void _navigate() {
     _maxWaitTimer?.cancel();
     if (!mounted) return;
     final authState = context.read<AuthBloc>().state;
+
+    // AuthInitial/AuthLoading은 아직 인증 확인 중 — 이동하지 않음
+    // BlocListener나 타이머가 재호출할 때까지 대기
+    if (authState is AuthInitial || authState is AuthLoading) return;
+
     if (authState is AuthAuthenticated) {
       if (!authState.user.isOnboardingCompleted) {
         context.go('/onboarding/terms');
@@ -126,6 +126,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
+      // AuthInitial/AuthLoading 무시 — 확정 상태만 처리
       listenWhen: (_, current) =>
           current is AuthAuthenticated || current is AuthUnauthenticated,
       listener: (_, __) => _onAuthStateChanged(),
@@ -133,7 +134,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
         backgroundColor: AppTheme.primaryColor,
         body: Stack(
           children: [
-            // 배경 장식 링
+            // ── 배경 장식 링 (화이트 7% opacity, 깊이감) ──
             Positioned(
               top: -80, right: -100,
               child: _DecoRing(size: 300.r),
@@ -147,32 +148,50 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               child: _DecoRing(size: 140.r),
             ),
 
-            // 메인 콘텐츠
+            // ── 메인 콘텐츠 ──
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 캐릭터 이미지 팝인
-                  AnimatedBuilder(
-                    animation: _charController,
-                    builder: (_, child) => Opacity(
-                      opacity: _charOpacity.value,
-                      child: Transform.scale(
-                        scale: _charScale.value,
-                        child: child,
-                      ),
-                    ),
-                    child: Image.asset(
-                      'assets/icons/splash_char.png',
+                  // Lottie 캐릭터 애니메이션
+                  // 로드 전에는 투명, 로드 완료 후 페이드인
+                  AnimatedOpacity(
+                    opacity: _lottieLoaded ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: SizedBox(
                       width: 160.w,
                       height: 160.w,
-                      fit: BoxFit.contain,
+                      child: Lottie.asset(
+                        'assets/lottie/splash.json',
+                        controller: _lottieController,
+                        onLoaded: _onLottieLoaded,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) {
+                          // Lottie 실패 시 splash_char.png fallback
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            setState(() => _lottieFinished = true);
+                            _logoController.forward();
+                            Future.delayed(
+                              const Duration(milliseconds: 600),
+                              _tryNavigate,
+                            );
+                          });
+                          return Image.asset(
+                            'assets/icons/splash_char.png',
+                            width: 120.w,
+                            height: 120.w,
+                            fit: BoxFit.contain,
+                          );
+                        },
+                        repeat: false,
+                      ),
                     ),
                   ),
 
-                  SizedBox(height: 28.h),
+                  SizedBox(height: 32.h),
 
-                  // 로고 + 슬로건 슬라이드인
+                  // ── 로고 + 슬로건 슬라이드인 페이드인 ──
                   SlideTransition(
                     position: _logoSlide,
                     child: FadeTransition(
@@ -194,6 +213,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                             ),
                           ),
                           SizedBox(height: 14.h),
+                          // AI 서비스 뱃지
                           Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: 16.w,
@@ -227,11 +247,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               ),
             ),
 
-            // 하단: JENA Team
+            // ── 하단: 3dot 로딩 인디케이터 + JENA Team ──
             Positioned(
-              bottom: 48.h,
-              left: 0,
-              right: 0,
+              bottom: 48.h, left: 0, right: 0,
               child: Column(
                 children: [
                   Row(
@@ -260,6 +278,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   }
 }
 
+// ── 배경 장식 링 ─────────────────────────────────────────────────
 class _DecoRing extends StatelessWidget {
   final double size;
   const _DecoRing({required this.size});
@@ -267,8 +286,7 @@ class _DecoRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
+      width: size, height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
@@ -280,6 +298,7 @@ class _DecoRing extends StatelessWidget {
   }
 }
 
+// ── 3dot 로딩 인디케이터 ──────────────────────────────────────────
 class _LoadingDot extends StatefulWidget {
   final int index;
   const _LoadingDot({required this.index});
@@ -324,8 +343,7 @@ class _LoadingDotState extends State<_LoadingDot>
       child: FadeTransition(
         opacity: _anim,
         child: Container(
-          width: 5.w,
-          height: 5.w,
+          width: 5.w, height: 5.w,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
             color: AppTheme.highlightColor,

@@ -107,39 +107,47 @@ void main() async {
     log('   lib/config/api_config.dart 파일을 확인하세요.', name: 'main.warning');
   }
 
-  // Firebase 초기화 (Android FCM 푸시 알림)
+  // DI 컨테이너 초기화 (BLoC 생성에 필수 - runApp 전에 await)
+  await di.init();
+
+  // ✅ runApp을 최대한 앞으로 당김 (네이티브 스플래시 시간 최소화)
+  runApp(const MeongNyangDiaryApp());
+
+  // 나머지는 백그라운드에서 처리 (네이티브 스플래시 시간에 영향 없음)
+  unawaited(_initBackground());
+}
+
+/// runApp 이후 백그라운드에서 실행되는 초기화
+/// Firebase/Cache/Realtime/FCM은 인증보다 우선순위가 낮으므로 백그라운드 처리
+Future<void> _initBackground() async {
+  // Firebase (가장 느린 작업 - 네트워크 권한 요청 + 토큰 발급 포함)
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    // 백그라운드 메시지 핸들러 등록 (top-level 함수)
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     log('✅ Firebase 초기화 완료', name: 'main.firebase');
   } catch (e) {
     log('⚠️ Firebase 초기화 실패: $e', name: 'main.firebase');
   }
 
-  await di.init();
-
-  // CacheManager 초기화
+  // CacheManager
   await CacheManager().initialize();
   log('✅ CacheManager 초기화 완료', name: 'main.cache');
 
-  // RealtimeService 초기화
+  // RealtimeService
   if (SupabaseOptions.isConfigured) {
     await RealtimeService().initialize();
     log('✅ RealtimeService 초기화 완료', name: 'main.realtime');
   }
 
-  // FCMService 초기화
+  // FCMService (Firebase 완료 후 실행 - 토큰 조회 + DB upsert)
   try {
     await di.sl<FCMService>().initialize();
     log('✅ FCMService 초기화 완료', name: 'main.fcm');
   } catch (e) {
-    log('⚠️ FCMService 초기화 실패 (Firebase 미설정 시 무시): $e', name: 'main.fcm');
+    log('⚠️ FCMService 초기화 실패: $e', name: 'main.fcm');
   }
-
-  runApp(const MeongNyangDiaryApp());
 }
 
 class MeongNyangDiaryApp extends StatefulWidget {
