@@ -62,6 +62,7 @@ dependencies:
   app_links: ^6.3.3
   url_launcher: ^6.2.5
   webview_flutter: ^4.13.0
+  webview_flutter_android: ^4.10.2
 
   # Local Storage
   shared_preferences: ^2.2.3
@@ -75,6 +76,8 @@ dependencies:
   permission_handler: ^11.3.1
 
   cupertino_icons: ^1.0.8
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:

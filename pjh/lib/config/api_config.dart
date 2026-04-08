@@ -23,9 +23,11 @@ class ApiConfig {
   static String get googleClientId => Secrets.googleClientId;
   static String get kakaoAppKey => Secrets.kakaoAppKey;
   static String get kakaoJsKey => Secrets.kakaoJsKey;
+  static String get kakaoRestApiKey => Secrets.kakaoRestApiKey;
 
-  static bool get isKakaoJsConfigured =>
-      Secrets.kakaoJsKey != 'YOUR_KAKAO_JS_KEY' && Secrets.kakaoJsKey.isNotEmpty;
+  static bool get isKakaoRestConfigured =>
+      Secrets.kakaoRestApiKey != 'YOUR_KAKAO_REST_API_KEY' &&
+      Secrets.kakaoRestApiKey.isNotEmpty;
 
   // API 설정 확인 메서드
   static bool get isEmotionApiConfigured =>

@@ -75,7 +75,6 @@ class AppRouter {
       initialLocation: '/home',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       routes: [
-        GoRoute(path: '/hospital', builder: (_, __) => const HospitalSearchPage()),
         GoRoute(path: '/channels', builder: (_, __) => const ChannelSubscriptionPage()),
         GoRoute(
           path: '/pet/public/:petId',
@@ -415,6 +414,11 @@ class AppRouter {
                 roomId: state.pathParameters['roomId']!,
                 roomName: state.uri.queryParameters['name'],
               ),
+            ),
+            GoRoute(
+              path: '/hospital',
+              name: 'hospital',
+              builder: (_, __) => const HospitalSearchPage(),
             ),
             GoRoute(
               path: '/emotion',
