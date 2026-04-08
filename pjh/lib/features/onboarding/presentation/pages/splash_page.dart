@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -57,8 +58,13 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       CurvedAnimation(parent: _logoController, curve: Curves.easeOutCubic),
     );
 
-    // 최대 3초 타임아웃 (네트워크 느릴 때 보호)
-    _maxWaitTimer = Timer(const Duration(seconds: 3), _navigate);
+    // 최대 3초 타임아웃 — Lottie가 로드됐든 아니든 강제 이동
+    // (단, Lottie가 이미 재생 중이면 최소 애니메이션은 보장)
+    _maxWaitTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      setState(() => _lottieFinished = true); // 강제로 완료 처리
+      _navigate();
+    });
   }
 
   @override
@@ -166,11 +172,15 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                         controller: _lottieController,
                         onLoaded: _onLottieLoaded,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) {
+                        errorBuilder: (_, error, ___) {
                           // Lottie 실패 시 splash_char.png fallback
+                          log('Lottie 로드 실패: $error', name: 'SplashPage');
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             if (!mounted) return;
-                            setState(() => _lottieFinished = true);
+                            setState(() {
+                              _lottieLoaded = true; // fallback 이미지 표시
+                              _lottieFinished = true;
+                            });
                             _logoController.forward();
                             Future.delayed(
                               const Duration(milliseconds: 600),

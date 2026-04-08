@@ -1,4 +1,4 @@
-part of 'package:meong_nyang_diary/features/emotion/presentation/pages/emotion_result_page.dart';
+part of '../../pages/emotion_result_page.dart';
 
 // ── BottomBar ─────────────────────────────────────────────────
 extension _EmotionResultBottom on _EmotionResultPageState {
