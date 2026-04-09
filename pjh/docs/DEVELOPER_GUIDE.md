@@ -993,7 +993,7 @@ flutter run
 // pjh/lib/config/secrets.dart (gitignore — 직접 생성 필요)
 const String supabaseUrl = 'YOUR_SUPABASE_URL';
 const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
-const String geminiApiKey = 'AIzaSyBc6Q5SJV4FgER-6RWzRNyh70qvGuX3rVE';
+const String geminiApiKey = 'YOUR_GEMINI_API_KEY';
 const String kakaoNativeKey = 'YOUR_KAKAO_NATIVE_KEY';
 const String googleClientId = 'YOUR_GOOGLE_CLIENT_ID';
 ```

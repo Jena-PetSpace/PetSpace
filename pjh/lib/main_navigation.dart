@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/services/realtime_service.dart';
 import 'features/social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
+import 'features/my/presentation/pages/my_page.dart';
 import 'shared/models/navigation_item.dart';
 import 'shared/themes/app_theme.dart';
 
@@ -52,14 +54,14 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<NavigationItem> _navigationItems = [
     const NavigationItem(
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home,
+      icon: Icons.cottage_outlined,
+      selectedIcon: Icons.cottage,
       label: '홈',
       route: '/home',
     ),
     const NavigationItem(
-      icon: Icons.favorite_border,
-      selectedIcon: Icons.favorite,
+      icon: Icons.monitor_heart_outlined,
+      selectedIcon: Icons.monitor_heart,
       label: '건강관리',
       route: '/health',
     ),
@@ -70,14 +72,14 @@ class _MainNavigationState extends State<MainNavigation> {
       route: '/emotion',
     ),
     const NavigationItem(
-      icon: Icons.dynamic_feed_outlined,
-      selectedIcon: Icons.dynamic_feed,
+      icon: Icons.photo_library_outlined,
+      selectedIcon: Icons.photo_library,
       label: '피드',
       route: '/feed',
     ),
     const NavigationItem(
-      icon: Icons.person_outline,
-      selectedIcon: Icons.person,
+      icon: Icons.pets_outlined,
+      selectedIcon: Icons.pets,
       label: 'MY',
       route: '/my',
     ),
@@ -88,9 +90,19 @@ class _MainNavigationState extends State<MainNavigation> {
     final location = GoRouterState.of(context).uri.path;
     _updateCurrentIndex(location);
 
-    return Scaffold(
-      body: widget.child,
-      bottomNavigationBar: _buildCustomBottomNav(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        final router = GoRouter.of(context);
+        if (router.canPop()) {
+          router.pop();
+        }
+      },
+      child: Scaffold(
+        body: widget.child,
+        bottomNavigationBar: _buildCustomBottomNav(),
+      ),
     );
   }
 
@@ -107,20 +119,23 @@ class _MainNavigationState extends State<MainNavigation> {
           ),
         ],
       ),
-      child: SafeArea(
-        child: Container(
-          height: 60.h,
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: SizedBox(
+        height: 60 + MediaQuery.of(context).viewPadding.bottom,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 16.w,
+            right: 16.w,
+            bottom: MediaQuery.of(context).viewPadding.bottom,
+          ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: _navigationItems.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final isSelected = _currentIndex == index;
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: _navigationItems.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                final isSelected = _currentIndex == index;
 
-              // 중앙 AI분석 FAB 버튼
-              if (index == 2) {
-                return Semantics(
+                if (index == 2) {
+                  return Semantics(
                     label: 'AI 감정 분석',
                     button: true,
                     selected: _currentIndex == 2,
@@ -134,83 +149,130 @@ class _MainNavigationState extends State<MainNavigation> {
                           gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              AppTheme.primaryColor,
-                              AppTheme.accentColor
-                            ],
+                            colors: [AppTheme.primaryColor, AppTheme.accentColor],
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color:
-                                  AppTheme.primaryColor.withValues(alpha: 0.3),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        child: Icon(Icons.psychology,
-                            color: Colors.white, size: 28.w),
+                        child: Icon(Icons.psychology, color: Colors.white, size: 28.w),
                       ),
-                    ));
-              }
-
-              return Semantics(
-                label: item.label,
-                button: true,
-                selected: isSelected,
-                child: GestureDetector(
-                  onTap: () => _onTabTapped(index),
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 8.h,
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (index == 0)
-                          _buildHomeBadgeIcon(isSelected, item)
-                        else
-                          Icon(
-                            isSelected ? item.selectedIcon : item.icon,
-                            color: isSelected
-                                ? AppTheme.primaryColor
-                                : AppTheme.secondaryTextColor,
-                            size: 24.w,
+                  );
+                }
+
+                return Semantics(
+                  label: item.label,
+                  button: true,
+                  selected: isSelected,
+                  child: GestureDetector(
+                    onTap: () => _onTabTapped(index),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (index == 0)
+                            _buildHomeBadgeIcon(isSelected, item)
+                          else if (index == 1)
+                            SvgPicture.asset(
+                              'assets/svg/icon_health.svg',
+                              width: 24.w,
+                              height: 24.w,
+                              colorFilter: ColorFilter.mode(
+                                isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                                BlendMode.srcIn,
+                              ),
+                            )
+                          else if (index == 3)
+                            SvgPicture.asset(
+                              'assets/svg/icon_feed.svg',
+                              width: 24.w,
+                              height: 24.w,
+                              colorFilter: ColorFilter.mode(
+                                isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                                BlendMode.srcIn,
+                              ),
+                            )
+                          else if (index == 4)
+                            _buildMyTabIcon(isSelected, item)
+                          else
+                            Icon(
+                              isSelected ? item.selectedIcon : item.icon,
+                              color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                              size: 24.w,
+                            ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            item.label,
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                            ),
                           ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            fontSize: 10.sp,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.w400,
-                            color: isSelected
-                                ? AppTheme.primaryColor
-                                : AppTheme.secondaryTextColor,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
           ),
         ),
       ),
     );
   }
 
+  Widget _buildMyTabIcon(bool isSelected, NavigationItem item) {
+    return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
+      builder: (context, badgeState) {
+        final color = isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor;
+        final icon = SvgPicture.asset(
+          'assets/svg/icon_my.svg',
+          width: 24.w,
+          height: 24.w,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+        );
+
+        if (badgeState.count <= 0) return icon;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            icon,
+            Positioned(
+              right: -3.w,
+              top: -2.w,
+              child: Container(
+                width: 8.w,
+                height: 8.w,
+                decoration: BoxDecoration(
+                  color: AppTheme.highlightColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildHomeBadgeIcon(bool isSelected, NavigationItem item) {
     return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
       builder: (context, badgeState) {
-        final icon = Icon(
-          isSelected ? item.selectedIcon : item.icon,
-          color:
-              isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
-          size: 24.w,
+        final color = isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor;
+        final icon = SvgPicture.asset(
+          'assets/svg/icon_home.svg',
+          width: 24.w,
+          height: 24.w,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
         );
 
         if (badgeState.count <= 0) return icon;
@@ -290,6 +352,11 @@ class _MainNavigationState extends State<MainNavigation> {
     // 홈 탭 이동 시 알림 뱃지 새로고침
     if (index == 0) {
       _refreshNotificationBadge();
+    }
+
+    // MY탭 이동 시 stats 갱신
+    if (index == 4) {
+      MyPageStatsNotifier.instance.refresh();
     }
 
     context.go(route);

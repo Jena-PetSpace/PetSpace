@@ -1,10 +1,12 @@
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../shared/widgets/profile_image_picker.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../config/injection_container.dart' as di;
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
@@ -206,6 +208,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
       // 성공 메시지 표시
       if (mounted) {
+        // AuthBloc 상태 갱신 (MY탭 프로필 즉시 반영)
+        context.read<AuthBloc>().add(AuthProfileRefreshRequested());
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('프로필이 저장되었습니다'),
@@ -213,7 +217,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             duration: Duration(seconds: 2),
           ),
         );
-        Navigator.pop(context, true); // true를 반환하여 업데이트 알림
+        Navigator.pop(context, true);
       }
     } catch (e) {
       developer.log('프로필 저장 오류: $e', name: 'ProfileEditPage', error: e);

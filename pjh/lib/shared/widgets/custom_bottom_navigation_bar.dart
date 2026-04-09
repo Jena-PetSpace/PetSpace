@@ -19,51 +19,60 @@ class CustomBottomNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        border: Border(top: BorderSide(color: Color(0xFFE0E0E0), width: 0.5)),
       ),
       child: SafeArea(
-        child: Container(
-          height: 60.h,
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: SizedBox(
+          height: 56.h,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: items.asMap().entries.map((entry) {
               final index = entry.key;
               final item = entry.value;
               final isSelected = currentIndex == index;
 
-              // 중앙 AI분석 FAB 버튼
+              // 중앙 AI분석 FAB
               if (index == 2) {
                 return GestureDetector(
                   onTap: () => onTap(index),
-                  child: Container(
-                    width: 56.w,
-                    height: 56.w,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(18.r),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppTheme.primaryColor, AppTheme.accentColor],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 52.w,
+                        height: 52.w,
+                        margin: EdgeInsets.only(bottom: 2.h),
+                        decoration: BoxDecoration(
+                          color: AppTheme.highlightColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.highlightColor.withValues(alpha: 0.45),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child:
-                        Icon(Icons.psychology, color: Colors.white, size: 28.w),
+                        child: Icon(
+                          Icons.psychology_outlined,
+                          size: 26.w,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'AI분석',
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? AppTheme.highlightColor
+                              : AppTheme.highlightColor,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }
@@ -71,11 +80,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
               return GestureDetector(
                 onTap: () => onTap(index),
                 behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 8.h,
-                  ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -83,7 +89,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                         isSelected ? item.selectedIcon : item.icon,
                         color: isSelected
                             ? AppTheme.primaryColor
-                            : AppTheme.secondaryTextColor,
+                            : const Color(0xFFBDBDBD),
                         size: 24.w,
                       ),
                       SizedBox(height: 4.h),
@@ -91,11 +97,12 @@ class CustomBottomNavigationBar extends StatelessWidget {
                         item.label,
                         style: TextStyle(
                           fontSize: 10.sp,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                           color: isSelected
                               ? AppTheme.primaryColor
-                              : AppTheme.secondaryTextColor,
+                              : const Color(0xFFBDBDBD),
                         ),
                       ),
                     ],

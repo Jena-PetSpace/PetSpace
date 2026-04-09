@@ -54,6 +54,8 @@ class AuthSignOutRequested extends AuthEvent {}
 
 class AuthDeleteAccountRequested extends AuthEvent {}
 
+class AuthProfileRefreshRequested extends AuthEvent {}
+
 class AuthPasswordResetRequested extends AuthEvent {
   final String email;
 

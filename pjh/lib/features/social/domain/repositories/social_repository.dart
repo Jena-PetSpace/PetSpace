@@ -21,16 +21,20 @@ abstract class SocialRepository {
     String? userId,
     int limit = 20,
     String? lastPostId,
+    DateTime? lastCreatedAt,
     bool followingOnly = false,
   });
   Future<Either<Failure, List<Post>>> getFeedPosts({
     required String userId,
     int limit = 20,
     String? lastPostId,
+    DateTime? lastCreatedAt,
+    bool followingOnly = false,
   });
   Future<Either<Failure, List<Post>>> getExplorePosts({
     int limit = 20,
     String? lastPostId,
+    DateTime? lastCreatedAt,
   });
   Future<Either<Failure, List<Post>>> getUserPosts({
     required String userId,

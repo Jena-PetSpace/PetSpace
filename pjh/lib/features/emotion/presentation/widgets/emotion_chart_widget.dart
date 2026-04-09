@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/emotion_analysis.dart';
 
 class EmotionChartWidget extends StatelessWidget {
@@ -29,13 +30,13 @@ class EmotionChartWidget extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
-                  const emotions = ['행복', '슬픔', '불안', '졸림', '호기심'];
-                  if (value.toInt() >= 0 && value.toInt() < emotions.length) {
+                  final idx = value.toInt();
+                  if (idx >= 0 && idx < AppTheme.emotionOrder.length) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
-                        emotions[value.toInt()],
-                        style: const TextStyle(fontSize: 12),
+                        AppTheme.getEmotionLabel(AppTheme.emotionOrder[idx]),
+                        style: const TextStyle(fontSize: 10),
                       ),
                     );
                   }
@@ -68,13 +69,23 @@ class EmotionChartWidget extends StatelessWidget {
             horizontalInterval: 0.2,
           ),
           borderData: FlBorderData(show: false),
-          barGroups: [
-            _createBarGroup(0, emotions.happiness, Colors.amber),
-            _createBarGroup(1, emotions.sadness, Colors.blue),
-            _createBarGroup(2, emotions.anxiety, Colors.red),
-            _createBarGroup(3, emotions.sleepiness, Colors.purple),
-            _createBarGroup(4, emotions.curiosity, Colors.green),
-          ],
+          barGroups: AppTheme.emotionOrder.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final key = entry.value;
+            double value;
+            switch (key) {
+              case 'happiness':  value = emotions.happiness;  break;
+              case 'calm':       value = emotions.calm;        break;
+              case 'excitement': value = emotions.excitement;  break;
+              case 'curiosity':  value = emotions.curiosity;   break;
+              case 'anxiety':    value = emotions.anxiety;     break;
+              case 'fear':       value = emotions.fear;        break;
+              case 'sadness':    value = emotions.sadness;     break;
+              case 'discomfort': value = emotions.discomfort;  break;
+              default:           value = 0.0;
+            }
+            return _createBarGroup(idx, value, AppTheme.getEmotionColor(key));
+          }).toList(),
         ),
       ),
     );

@@ -1,5 +1,7 @@
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../../../social/presentation/pages/channel_subscription_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -35,7 +37,6 @@ class _FeedHubPageState extends State<FeedHubPage>
     {'label': '훈련', 'value': 'training'},
     {'label': '먹거리', 'value': 'food'},
     {'label': '생활', 'value': 'life'},
-    {'label': '매거진', 'value': 'magazine'},
   ];
 
   @override
@@ -81,11 +82,15 @@ class _FeedHubPageState extends State<FeedHubPage>
           .from('posts')
           .select(
               'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
-          .isFilter('deleted_at', null);
+          .isFilter('deleted_at', null)
+          // 매거진 태그가 있는 글은 커뮤니티 탭에서 항상 제외
+          .not('hashtags', 'cs', '{"magazine"}');
 
       if (category != null) {
+        // 특정 카테고리: 해당 태그가 반드시 포함된 글만
         query = query.contains('hashtags', [category]);
       }
+      // 전체: 매거진 제외된 모든 글 표시 (community 태그 강제 안함)
 
       final response =
           await query.order('created_at', ascending: false).limit(30);
@@ -114,21 +119,67 @@ class _FeedHubPageState extends State<FeedHubPage>
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.tune_rounded),
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => DraggableScrollableSheet(
+                initialChildSize: 0.7,
+                builder: (ctx, ctrl) => Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: const ChannelSubscriptionPage(),
+                ),
+              ),
+            ),
+            tooltip: '채널 구독',
+          ),
+          IconButton(
+            icon: SvgPicture.asset('assets/svg/icon_search.svg', width: 24, height: 24, colorFilter: const ColorFilter.mode(Colors.black87, BlendMode.srcIn)),
             onPressed: () => context.push('/search'),
             tooltip: '검색',
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: AppTheme.secondaryTextColor,
-          indicatorColor: AppTheme.primaryColor,
-          tabs: const [
-            Tab(text: '추천'),
-            Tab(text: '팔로잉'),
-            Tab(text: '커뮤니티'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(52.h),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.subtleBackground,
+                borderRadius: BorderRadius.circular(24.r),
+              ),
+              padding: EdgeInsets.all(3.w),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Colors.white,
+                unselectedLabelColor: AppTheme.secondaryTextColor,
+                labelStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700),
+                unselectedLabelStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
+                indicator: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(20.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                tabs: const [
+                  Tab(text: '추천'),
+                  Tab(text: '팔로잉'),
+                  Tab(text: '커뮤니티'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: TabBarView(
@@ -236,11 +287,12 @@ class _FeedHubPageState extends State<FeedHubPage>
                           final user = post['users'] as Map<String, dynamic>?;
                           final hashtags =
                               List<String>.from(post['hashtags'] ?? []);
+                          final displayName =
+                              user?['display_name'] as String? ?? '익명';
                           return GestureDetector(
                             onTap: () => context.push('/post/${post['id']}'),
                             child: CommunityPostCard(
-                              authorName:
-                                  user?['display_name'] as String? ?? '익명',
+                              authorName: displayName,
                               category: _categoryFromHashtags(hashtags),
                               title: '',
                               content: post['caption'] as String? ?? '',
@@ -248,6 +300,7 @@ class _FeedHubPageState extends State<FeedHubPage>
                               comments: post['comments_count'] as int? ?? 0,
                               timeAgo:
                                   _timeAgo(post['created_at'] as String? ?? ''),
+                              isAdmin: displayName == '관리자',
                             ),
                           );
                         },

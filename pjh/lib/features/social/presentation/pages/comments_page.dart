@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -80,7 +81,7 @@ class _CommentsPageState extends State<CommentsPage> {
               },
               builder: (context, state) {
                 if (state is CommentLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const CommentShimmerLoading();
                 } else if (state is CommentLoaded) {
                   return RefreshIndicator(
                     onRefresh: () async {

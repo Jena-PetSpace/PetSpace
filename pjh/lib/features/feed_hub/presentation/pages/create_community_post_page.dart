@@ -19,14 +19,14 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   bool _isSubmitting = false;
-  String _selectedCategory = 'free';
+  String _selectedCategory = 'qa';
 
   static const _categories = [
-    {'label': '자유', 'value': 'free'},
-    {'label': '건강Q&A', 'value': 'health_qa'},
-    {'label': '사료추천', 'value': 'food_recommend'},
-    {'label': '자유Q&A', 'value': 'parenting_qa'},
-    {'label': '정보공유', 'value': 'info_share'},
+    {'label': 'Q&A', 'value': 'qa'},
+    {'label': '건강', 'value': 'health'},
+    {'label': '훈련', 'value': 'training'},
+    {'label': '먹거리', 'value': 'food'},
+    {'label': '생활', 'value': 'life'},
   ];
 
   @override

@@ -29,7 +29,7 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
   static const _steps = [
     _LoadingStep('👀', 'AI가 감지 중', '반려동물의 감정을 섬세하게 읽어내고 있어요'),
     _LoadingStep('🧠', 'AI가 분석 중', '표정과 외관에서 감정 신호를 추출하고 있어요'),
-    _LoadingStep('📊', 'AI가 계산 중', '5가지 감정 지표를 정밀하게 산출하고 있어요'),
+    _LoadingStep('📊', 'AI가 계산 중', '8가지 감정 지표를 정밀하게 산출하고 있어요'),
     _LoadingStep('✨', 'AI가 완료 중', '맞춤형 리포트를 정리하고 있어요'),
   ];
 
@@ -116,7 +116,7 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
   Widget _buildAmbientBlobs() {
     final colors = [
       AppTheme.happinessColor,
-      AppTheme.anxietyColor,
+      AppTheme.calmColor,
       AppTheme.curiosityColor,
     ];
 
@@ -264,13 +264,9 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
 
   /// 원형 프로그레스 링
   Widget _buildCircularProgress() {
-    final emotionColors = [
-      AppTheme.happinessColor,
-      AppTheme.sadnessColor,
-      AppTheme.anxietyColor,
-      AppTheme.sleepinessColor,
-      AppTheme.curiosityColor,
-    ];
+    final emotionColors = AppTheme.emotionOrder
+        .map(AppTheme.getEmotionColor)
+        .toList();
     final currentColor = emotionColors[_currentStep % emotionColors.length];
 
     return AnimatedBuilder(
@@ -310,18 +306,10 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
 
   /// 현재 단계에 맞는 감정 컬러 쌍 반환
   (Color, Color) _getStepColors() {
-    switch (_currentStep) {
-      case 0:
-        return (AppTheme.happinessColor, AppTheme.curiosityColor);
-      case 1:
-        return (AppTheme.curiosityColor, AppTheme.sadnessColor);
-      case 2:
-        return (AppTheme.anxietyColor, AppTheme.happinessColor);
-      case 3:
-        return (AppTheme.happinessColor, AppTheme.anxietyColor);
-      default:
-        return (AppTheme.happinessColor, AppTheme.curiosityColor);
-    }
+    final colors = AppTheme.emotionOrder.map(AppTheme.getEmotionColor).toList();
+    final idx = _currentStep % colors.length;
+    final nextIdx = (_currentStep + 1) % colors.length;
+    return (colors[idx], colors[nextIdx]);
   }
 }
 

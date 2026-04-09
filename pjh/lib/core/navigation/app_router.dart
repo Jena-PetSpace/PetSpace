@@ -38,6 +38,14 @@ import '../../features/onboarding/presentation/pages/onboarding_email_verificati
 import '../../features/onboarding/presentation/pages/onboarding_profile_setup_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_pet_registration_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_tutorial_page.dart';
+import '../../features/onboarding/presentation/pages/splash_page.dart';
+import '../../features/profile/presentation/pages/privacy_policy_page.dart';
+import '../../features/emotion/presentation/pages/emotion_calendar_page.dart';
+import '../../features/home/presentation/pages/hospital_search_page.dart';
+import '../../features/social/presentation/pages/channel_subscription_page.dart';
+import '../../features/pets/presentation/pages/public_pet_page.dart';
+import '../../features/emotion/presentation/pages/weekly_report_page.dart';
+import '../../features/health/presentation/pages/health_alert_settings_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
 import '../../features/auth/presentation/pages/kakao_consent_page.dart';
@@ -56,6 +64,7 @@ import '../../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart'
 import '../../features/profile/presentation/pages/notification_settings_page.dart';
 import '../../features/profile/presentation/pages/privacy_settings_page.dart';
 import '../../features/profile/presentation/pages/help_page.dart';
+import '../../features/social/presentation/pages/followers_page.dart';
 import '../../main_navigation.dart';
 import 'auth_guard.dart';
 
@@ -66,6 +75,25 @@ class AppRouter {
       initialLocation: '/home',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       routes: [
+        GoRoute(path: '/channels', builder: (_, __) => const ChannelSubscriptionPage()),
+        GoRoute(
+          path: '/pet/public/:petId',
+          builder: (_, state) => PublicPetPage(petId: state.pathParameters['petId']!),
+        ),
+        GoRoute(path: '/emotion/weekly-report', builder: (_, __) => const WeeklyReportPage()),
+        GoRoute(path: '/health/alert-settings', builder: (_, __) => const HealthAlertSettingsPage()),
+        GoRoute(
+          path: '/emotion/calendar',
+          builder: (context, state) => const EmotionCalendarPage(),
+        ),
+        GoRoute(
+          path: '/privacy',
+          builder: (context, state) => const PrivacyPolicyPage(),
+        ),
+        GoRoute(
+          path: '/splash',
+          builder: (context, state) => const SplashPage(),
+        ),
         GoRoute(
           path: '/onboarding',
           name: 'onboarding',
@@ -202,7 +230,29 @@ class AppRouter {
                   name: 'my-saved',
                   builder: (context, state) => const MySavedPostsPage(),
                 ),
+                GoRoute(
+                  path: 'edit-profile',
+                  name: 'my-edit-profile',
+                  builder: (context, state) => const ProfileEditPage(),
+                ),
               ],
+            ),
+            GoRoute(
+              path: '/followers/:uid',
+              name: 'followers',
+              builder: (context, state) => FollowersPage(
+                userId: state.pathParameters['uid']!,
+                userName: state.uri.queryParameters['name'] ?? '',
+              ),
+            ),
+            GoRoute(
+              path: '/following/:uid',
+              name: 'following',
+              builder: (context, state) => FollowersPage(
+                userId: state.pathParameters['uid']!,
+                userName: state.uri.queryParameters['name'] ?? '',
+                initialTab: 1,
+              ),
             ),
             GoRoute(
               path: '/explore',
@@ -309,8 +359,13 @@ class AppRouter {
               name: 'user-profile',
               builder: (context, state) {
                 final userId = state.pathParameters['userId']!;
-                final currentUserId =
-                    state.uri.queryParameters['currentUserId'];
+                // query param 없거나 빈 문자열이면 현재 로그인 유저 ID 사용
+                final paramId = state.uri.queryParameters['currentUserId'];
+                final currentUserId = (paramId != null && paramId.isNotEmpty)
+                    ? paramId
+                    : authBloc.state is AuthAuthenticated
+                        ? (authBloc.state as AuthAuthenticated).user.uid
+                        : null;
 
                 return BlocProvider(
                   create: (context) => sl<ProfileBloc>(),
@@ -361,6 +416,11 @@ class AppRouter {
               ),
             ),
             GoRoute(
+              path: '/hospital',
+              name: 'hospital',
+              builder: (_, __) => const HospitalSearchPage(),
+            ),
+            GoRoute(
               path: '/emotion',
               name: 'emotion',
               builder: (context, state) {
@@ -376,7 +436,7 @@ class AppRouter {
               },
               routes: [
                 GoRoute(
-                  path: '/result/:analysisId',
+                  path: 'result/:analysisId',
                   name: 'emotion-result',
                   builder: (context, state) => EmotionResultLoaderPage(
                     analysisId: state.pathParameters['analysisId']!,
@@ -417,11 +477,15 @@ class AppRouter {
           return '/onboarding/login';
         }
 
-        // 초기 상태이거나 로딩 중일 때
-        // authStateChanges 스트림이 첫 이벤트를 발생시킬 때까지 대기
-        if (authState is AuthInitial || authState is AuthLoading) {
-          // 인증 확인이 완료될 때까지 현재 위치 유지 (온보딩 깜빡임 방지)
-          log('Auth state is initial/loading - staying at $currentPath',
+        // 초기 상태일 때만 splash로 → AuthLoading은 현재 위치 유지 (로그인 중 스플래시로 튕기지 않도록)
+        if (authState is AuthInitial) {
+          log('Auth state is initial - holding at splash', name: 'GoRouter');
+          return '/splash';
+        }
+
+        // 로딩 중일 때는 현재 위치 유지 (로그인 버튼 누른 후 splash로 튕기지 않도록)
+        if (authState is AuthLoading) {
+          log('Auth state is loading - staying at current path: $currentPath',
               name: 'GoRouter');
           return null;
         }
@@ -499,6 +563,12 @@ class AppRouter {
 
         // 비밀번호 재설정 페이지는 허용
         if (currentPath.startsWith('/auth/password-reset')) {
+          return null;
+        }
+
+        // 스플래시 페이지는 인증 상태와 무관하게 항상 허용
+        // (SplashPage 내부에서 BlocListener가 인증 확인 후 직접 이동)
+        if (currentPath == '/splash') {
           return null;
         }
 

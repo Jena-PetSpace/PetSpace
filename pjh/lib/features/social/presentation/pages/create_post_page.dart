@@ -20,6 +20,7 @@ class CreatePostPage extends StatefulWidget {
   final EmotionAnalysis? emotionAnalysis;
   final String? petId;
   final String? petName;
+  final Post? editPost; // null이면 작성, non-null이면 수정 모드
 
   const CreatePostPage({
     super.key,
@@ -27,6 +28,7 @@ class CreatePostPage extends StatefulWidget {
     this.emotionAnalysis,
     this.petId,
     this.petName,
+    this.editPost,
   });
 
   @override
@@ -38,6 +40,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
   final _hashtagController = TextEditingController();
 
   File? _selectedImage;
+  bool get _isEditMode => widget.editPost != null;
   String? _imageUrl;
   final List<String> _hashtags = [];
   bool _isPublic = true;
@@ -46,6 +49,12 @@ class _CreatePostPageState extends State<CreatePostPage> {
   @override
   void initState() {
     super.initState();
+    // 수정 모드: 기존 내용으로 초기화
+    if (widget.editPost != null) {
+      _contentController.text = widget.editPost!.content ?? '';
+      final tags = widget.editPost!.tags.map((h) => '#$h').join(' ');
+      _hashtagController.text = tags;
+    }
     _imageUrl = widget.imageUrl;
 
     // 자동 해시태그 제안 (감정 분석 결과 기반)
@@ -58,10 +67,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
     // 가장 높은 감정 점수에 따라 해시태그 제안
     final Map<String, double> emotions = {
       '행복': analysis.emotions.happiness,
-      '슬픔': analysis.emotions.sadness,
-      '불안': analysis.emotions.anxiety,
-      '졸림': analysis.emotions.sleepiness,
+      '편안': analysis.emotions.calm,
+      '흥분': analysis.emotions.excitement,
       '호기심': analysis.emotions.curiosity,
+      '불안': analysis.emotions.anxiety,
+      '공포': analysis.emotions.fear,
+      '슬픔': analysis.emotions.sadness,
+      '불편': analysis.emotions.discomfort,
     };
 
     final topEmotion =
@@ -70,10 +82,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
     if (topEmotion.value > 0.3) {
       final hashtagMap = {
         '행복': ['행복한하루', '행복'],
-        '슬픔': ['위로', '슬픔'],
+        '편안': ['편안한하루', '힐링'],
+        '흥분': ['신나는하루', '활기차'],
+        '호기심': ['호기심왕성', '탐구'],
         '불안': ['불안', '진정'],
-        '졸림': ['졸림', '휴식'],
-        '호기심': ['호기심', '탐험'],
+        '공포': ['공포', '안정'],
+        '슬픔': ['위로', '슬픔'],
+        '불편': ['불편', '케어'],
       };
 
       final suggestions = hashtagMap[topEmotion.key] ?? [];
@@ -103,14 +118,14 @@ class _CreatePostPageState extends State<CreatePostPage> {
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text('게시글 작성'),
+          title: Text(_isEditMode ? '게시글 수정' : '게시글 작성'),
           centerTitle: true,
           actions: [
             TextButton(
-              onPressed: _createPost,
-              child: const Text(
-                '게시',
-                style: TextStyle(
+              onPressed: _isEditMode ? _updatePost : _createPost,
+              child: Text(
+                _isEditMode ? '수정완료' : '게시',
+                style: const TextStyle(
                   color: AppTheme.primaryColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -270,10 +285,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
   String _getEmotionSummary(EmotionAnalysis analysis) {
     final Map<String, double> emotions = {
       '행복': analysis.emotions.happiness,
-      '슬픔': analysis.emotions.sadness,
-      '불안': analysis.emotions.anxiety,
-      '졸림': analysis.emotions.sleepiness,
+      '편안': analysis.emotions.calm,
+      '흥분': analysis.emotions.excitement,
       '호기심': analysis.emotions.curiosity,
+      '불안': analysis.emotions.anxiety,
+      '공포': analysis.emotions.fear,
+      '슬픔': analysis.emotions.sadness,
+      '불편': analysis.emotions.discomfort,
     };
 
     final topEmotion =
@@ -572,6 +590,35 @@ class _CreatePostPageState extends State<CreatePostPage> {
     // 홈 화면으로 이동 (GoRouter 사용)
     if (!mounted) return;
     context.go('/home');
+  }
+
+  // 게시글 수정
+  Future<void> _updatePost() async {
+    if (_contentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('내용을 입력해주세요.')),
+      );
+      return;
+    }
+    if (widget.editPost == null) return;
+
+    final hashtags = HashtagUtils.extractHashtags(
+      '${_contentController.text} ${_hashtagController.text}',
+    );
+
+    final updatedPost = widget.editPost!.copyWith(
+      content: _contentController.text.trim(),
+      tags: hashtags,
+    );
+
+    if (!mounted) return;
+    context.read<FeedBloc>().add(UpdatePostRequested(post: updatedPost));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('게시글이 수정되었습니다!')),
+    );
+    if (!mounted) return;
+    context.pop();
   }
 
   @override

@@ -102,14 +102,19 @@ class SocialRepositoryImpl implements SocialRepository {
     required String userId,
     int limit = 20,
     String? lastPostId,
+    DateTime? lastCreatedAt,
+    bool followingOnly = false,
   }) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
-      final posts =
-          await remoteDataSource.getFeedPosts(userId, limit, lastPostId);
+      final posts = await remoteDataSource.getFeedPosts(
+        userId, limit, lastPostId,
+        lastCreatedAt: lastCreatedAt,
+        followingOnly: followingOnly,
+      );
       return Right(posts);
     } catch (e) {
       return Left(
@@ -121,13 +126,14 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<Post>>> getExplorePosts({
     int limit = 20,
     String? lastPostId,
+    DateTime? lastCreatedAt,
   }) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
-      final posts = await remoteDataSource.getExplorePosts(limit, lastPostId);
+      final posts = await remoteDataSource.getExplorePosts(limit, lastPostId, lastCreatedAt: lastCreatedAt);
       return Right(posts);
     } catch (e) {
       return Left(
@@ -341,10 +347,12 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  @override
   Future<Either<Failure, List<Post>>> getFeed({
     String? userId,
     int limit = 20,
     String? lastPostId,
+    DateTime? lastCreatedAt,
     bool followingOnly = false,
   }) async {
     // userId가 null이거나 빈 문자열이면 전체 피드 조회 (explore)
@@ -352,14 +360,15 @@ class SocialRepositoryImpl implements SocialRepository {
         (userId != null && userId.isNotEmpty) ? userId : null;
 
     if (effectiveUserId == null) {
-      return await getExplorePosts(limit: limit, lastPostId: lastPostId);
-    }
-    if (followingOnly) {
-      return await getFeedPosts(
-          userId: effectiveUserId, limit: limit, lastPostId: lastPostId);
+      return await getExplorePosts(limit: limit, lastPostId: lastPostId, lastCreatedAt: lastCreatedAt);
     }
     return await getFeedPosts(
-        userId: effectiveUserId, limit: limit, lastPostId: lastPostId);
+      userId: effectiveUserId,
+      limit: limit,
+      lastPostId: lastPostId,
+      lastCreatedAt: lastCreatedAt,
+      followingOnly: followingOnly,
+    );
   }
 
   @override

@@ -10,6 +10,7 @@ import '../widgets/post_card.dart';
 import '../widgets/create_post_bottom_sheet.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
+import '../../../../shared/widgets/network_error_widget.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 
 class FeedPage extends StatefulWidget {
@@ -108,6 +109,9 @@ class _FeedPageState extends State<FeedPage> {
             child: _buildFeedList(state),
           );
         } else if (state is FeedError) {
+          if (state.isNetworkError) {
+            return _buildNetworkErrorState();
+          }
           return _buildErrorState(state.message);
         }
 
@@ -188,12 +192,28 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Widget _buildEmptyState() {
+    final isFollowing = widget.followingOnly;
     return EmptyStateWidget(
       icon: Icons.feed_outlined,
-      title: '아직 게시물이 없습니다',
-      subtitle: '첫 번째 게시물을 작성해보세요!',
-      actionLabel: '게시물 작성',
+      emoji: isFollowing ? '🐾' : '🐾',
+      badgeEmoji: '✨',
+      title: isFollowing ? '팔로잉 피드가 비어있어요' : '아직 게시물이 없어요',
+      subtitle: isFollowing
+          ? '친구를 팔로우하고\n반려동물 일상을 함께해보세요!'
+          : '반려동물의 일상을 공유하고\n친구들과 소통해보세요!',
+      secondaryLabel: isFollowing ? '탐색하기' : null,
+      onSecondary: isFollowing ? () => context.go('/explore') : null,
+      actionLabel: '첫 게시물 작성',
       onAction: _showCreatePostBottomSheet,
+    );
+  }
+
+  Widget _buildNetworkErrorState() {
+    return NetworkErrorScreen(
+      onRetry: () => context.read<FeedBloc>().add(
+            LoadFeedRequested(
+                userId: widget.userId, followingOnly: widget.followingOnly),
+          ),
     );
   }
 

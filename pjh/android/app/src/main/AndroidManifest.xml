@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <!-- 카메라 사용 필수 -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -94,5 +96,9 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- 카카오맵 -->
+        <package android:name="net.daum.android.map"/>
+        <!-- 구글맵 (fallback) -->
+        <package android:name="com.google.android.apps.maps"/>
     </queries>
 </manifest>

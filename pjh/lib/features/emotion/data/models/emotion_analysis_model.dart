@@ -12,6 +12,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
     required super.analyzedAt,
     super.memo,
     required super.tags,
+    super.isSleepy = false,
   });
 
   factory EmotionAnalysisModel.fromEntity(EmotionAnalysis analysis) {
@@ -26,17 +27,19 @@ class EmotionAnalysisModel extends EmotionAnalysis {
       analyzedAt: analysis.analyzedAt,
       memo: analysis.memo,
       tags: analysis.tags,
+      isSleepy: analysis.isSleepy,
     );
   }
 
   factory EmotionAnalysisModel.fromJson(Map<String, dynamic> data) {
+    final emotionMap = data['emotion_analysis'] as Map<String, dynamic>? ?? {};
     return EmotionAnalysisModel(
       id: data['id'] ?? '',
       userId: data['user_id'] ?? '',
       petId: data['pet_id'],
       imageUrl: data['image_url'] ?? '',
       localImagePath: '',
-      emotions: EmotionScoresModel.fromMap(data['emotion_analysis'] ?? {}),
+      emotions: EmotionScoresModel.fromMap(emotionMap),
       confidence: 0.8,
       analyzedAt: data['created_at'] != null
           ? DateTime.parse(data['created_at'])
@@ -45,6 +48,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
       tags: data['tags'] != null
           ? List<String>.from(data['tags'] as List)
           : const [],
+      isSleepy: emotionMap['is_sleepy'] as bool? ?? false,
     );
   }
 
@@ -62,6 +66,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
           : DateTime.now(),
       memo: map['memo'],
       tags: List<String>.from(map['tags'] ?? []),
+      isSleepy: map['is_sleepy'] as bool? ?? false,
     );
   }
 
@@ -80,6 +85,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
     String? id,
     String? userId,
     String? petId,
+    String? petName,
     String? imageUrl,
     String? localImagePath,
     EmotionScores? emotions,
@@ -87,6 +93,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
     DateTime? analyzedAt,
     String? memo,
     List<String>? tags,
+    bool? isSleepy,
   }) {
     return EmotionAnalysisModel(
       id: id ?? this.id,
@@ -99,6 +106,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
       analyzedAt: analyzedAt ?? this.analyzedAt,
       memo: memo ?? this.memo,
       tags: tags ?? this.tags,
+      isSleepy: isSleepy ?? this.isSleepy,
     );
   }
 }
@@ -108,8 +116,13 @@ class EmotionScoresModel extends EmotionScores {
     required super.happiness,
     required super.sadness,
     required super.anxiety,
-    required super.sleepiness,
     required super.curiosity,
+    super.calm        = 0.0,
+    super.excitement  = 0.0,
+    super.fear        = 0.0,
+    super.discomfort  = 0.0,
+    // ignore: deprecated_member_use_from_same_package
+    super.sleepiness  = 0.0,
     super.stressLevel,
     super.activityLevel,
     super.healthSignal,
@@ -121,18 +134,23 @@ class EmotionScoresModel extends EmotionScores {
 
   factory EmotionScoresModel.fromEntity(EmotionScores scores) {
     return EmotionScoresModel(
-      happiness: scores.happiness,
-      sadness: scores.sadness,
-      anxiety: scores.anxiety,
-      sleepiness: scores.sleepiness,
-      curiosity: scores.curiosity,
-      stressLevel: scores.stressLevel,
+      happiness:   scores.happiness,
+      calm:        scores.calm,
+      excitement:  scores.excitement,
+      curiosity:   scores.curiosity,
+      anxiety:     scores.anxiety,
+      fear:        scores.fear,
+      sadness:     scores.sadness,
+      discomfort:  scores.discomfort,
+      // ignore: deprecated_member_use_from_same_package
+      sleepiness:  scores.sleepiness,
+      stressLevel:   scores.stressLevel,
       activityLevel: scores.activityLevel,
-      healthSignal: scores.healthSignal,
-      comfortLevel: scores.comfortLevel,
+      healthSignal:  scores.healthSignal,
+      comfortLevel:  scores.comfortLevel,
       facialFeatures: scores.facialFeatures,
-      healthTips: scores.healthTips,
-      breedInsight: scores.breedInsight,
+      healthTips:    scores.healthTips,
+      breedInsight:  scores.breedInsight,
     );
   }
 
@@ -155,21 +173,20 @@ class EmotionScoresModel extends EmotionScores {
         rawTips is List ? List<String>.from(rawTips) : <String>[];
 
     return EmotionScoresModel(
-      happiness: (map['happiness'] ?? 0.0).toDouble(),
-      sadness: (map['sadness'] ?? 0.0).toDouble(),
-      anxiety: (map['anxiety'] ?? 0.0).toDouble(),
-      sleepiness: (map['sleepiness'] ?? 0.0).toDouble(),
-      curiosity: (map['curiosity'] ?? 0.0).toDouble(),
-      stressLevel: (map['stress_level'] ?? 0) is int
-          ? map['stress_level'] ?? 0
-          : (map['stress_level'] as num?)?.toInt() ?? 0,
-      activityLevel: (map['activity_level'] ?? 0) is int
-          ? map['activity_level'] ?? 0
-          : (map['activity_level'] as num?)?.toInt() ?? 0,
+      happiness:   (map['happiness']  as num?)?.toDouble() ?? 0.0,
+      calm:        (map['calm']       as num?)?.toDouble() ?? 0.0,
+      excitement:  (map['excitement'] as num?)?.toDouble() ?? 0.0,
+      curiosity:   (map['curiosity']  as num?)?.toDouble() ?? 0.0,
+      anxiety:     (map['anxiety']    as num?)?.toDouble() ?? 0.0,
+      fear:        (map['fear']       as num?)?.toDouble() ?? 0.0,
+      sadness:     (map['sadness']    as num?)?.toDouble() ?? 0.0,
+      discomfort:  (map['discomfort'] as num?)?.toDouble() ?? 0.0,
+      // ignore: deprecated_member_use_from_same_package
+      sleepiness:  (map['sleepiness'] as num?)?.toDouble() ?? 0.0, // 하위 호환
+      stressLevel: (map['stress_level']   as num?)?.toInt() ?? 0,
+      activityLevel: (map['activity_level'] as num?)?.toInt() ?? 0,
       healthSignal: map['health_signal'] as String? ?? 'normal',
-      comfortLevel: (map['comfort_level'] ?? 0) is int
-          ? map['comfort_level'] ?? 0
-          : (map['comfort_level'] as num?)?.toInt() ?? 0,
+      comfortLevel: (map['comfort_level'] as num?)?.toInt() ?? 0,
       facialFeatures: facialFeatures,
       healthTips: healthTips,
       breedInsight: map['breed_insight'] as String?,
@@ -179,15 +196,18 @@ class EmotionScoresModel extends EmotionScores {
   @override
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
-      'happiness': happiness,
-      'sadness': sadness,
-      'anxiety': anxiety,
-      'sleepiness': sleepiness,
-      'curiosity': curiosity,
-      'stress_level': stressLevel,
+      'happiness':  happiness,
+      'calm':       calm,
+      'excitement': excitement,
+      'curiosity':  curiosity,
+      'anxiety':    anxiety,
+      'fear':       fear,
+      'sadness':    sadness,
+      'discomfort': discomfort,
+      'stress_level':   stressLevel,
       'activity_level': activityLevel,
-      'health_signal': healthSignal,
-      'comfort_level': comfortLevel,
+      'health_signal':  healthSignal,
+      'comfort_level':  comfortLevel,
     };
     if (facialFeatures != null) {
       map['facial_features'] =
@@ -205,10 +225,14 @@ class EmotionScoresModel extends EmotionScores {
   @override
   EmotionScoresModel copyWith({
     double? happiness,
-    double? sadness,
-    double? anxiety,
-    double? sleepiness,
+    double? calm,
+    double? excitement,
     double? curiosity,
+    double? anxiety,
+    double? fear,
+    double? sadness,
+    double? discomfort,
+    double? sleepiness,
     int? stressLevel,
     int? activityLevel,
     String? healthSignal,
@@ -218,18 +242,23 @@ class EmotionScoresModel extends EmotionScores {
     String? breedInsight,
   }) {
     return EmotionScoresModel(
-      happiness: happiness ?? this.happiness,
-      sadness: sadness ?? this.sadness,
-      anxiety: anxiety ?? this.anxiety,
-      sleepiness: sleepiness ?? this.sleepiness,
-      curiosity: curiosity ?? this.curiosity,
-      stressLevel: stressLevel ?? this.stressLevel,
+      happiness:   happiness   ?? this.happiness,
+      calm:        calm        ?? this.calm,
+      excitement:  excitement  ?? this.excitement,
+      curiosity:   curiosity   ?? this.curiosity,
+      anxiety:     anxiety     ?? this.anxiety,
+      fear:        fear        ?? this.fear,
+      sadness:     sadness     ?? this.sadness,
+      discomfort:  discomfort  ?? this.discomfort,
+      // ignore: deprecated_member_use_from_same_package
+      sleepiness:  sleepiness  ?? this.sleepiness,
+      stressLevel:   stressLevel   ?? this.stressLevel,
       activityLevel: activityLevel ?? this.activityLevel,
-      healthSignal: healthSignal ?? this.healthSignal,
-      comfortLevel: comfortLevel ?? this.comfortLevel,
+      healthSignal:  healthSignal  ?? this.healthSignal,
+      comfortLevel:  comfortLevel  ?? this.comfortLevel,
       facialFeatures: facialFeatures ?? this.facialFeatures,
-      healthTips: healthTips ?? this.healthTips,
-      breedInsight: breedInsight ?? this.breedInsight,
+      healthTips:    healthTips    ?? this.healthTips,
+      breedInsight:  breedInsight  ?? this.breedInsight,
     );
   }
 }

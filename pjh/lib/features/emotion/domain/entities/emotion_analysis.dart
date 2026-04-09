@@ -5,6 +5,7 @@ class EmotionAnalysis extends Equatable {
   final String id;
   final String userId;
   final String? petId;
+  final String? petName;
   final String imageUrl;
   final String localImagePath;
   final EmotionScores emotions;
@@ -12,11 +13,14 @@ class EmotionAnalysis extends Equatable {
   final DateTime analyzedAt;
   final String? memo;
   final List<String> tags;
+  // 생리지표: 졸림 (감정 점수에서 분리)
+  final bool isSleepy;
 
   const EmotionAnalysis({
     required this.id,
     required this.userId,
     this.petId,
+    this.petName,
     required this.imageUrl,
     required this.localImagePath,
     required this.emotions,
@@ -24,6 +28,7 @@ class EmotionAnalysis extends Equatable {
     required this.analyzedAt,
     this.memo,
     required this.tags,
+    this.isSleepy = false,
   });
 
   factory EmotionAnalysis.empty() {
@@ -31,18 +36,23 @@ class EmotionAnalysis extends Equatable {
       id: '',
       userId: '',
       petId: '',
+      petName: null,
       imageUrl: '',
       localImagePath: '',
       emotions: const EmotionScores(
-        happiness: 0.5,
-        sadness: 0.2,
-        anxiety: 0.1,
-        sleepiness: 0.1,
-        curiosity: 0.1,
+        happiness: 0.125,
+        calm:      0.125,
+        excitement:0.125,
+        curiosity: 0.125,
+        anxiety:   0.125,
+        fear:      0.125,
+        sadness:   0.125,
+        discomfort:0.125,
       ),
       confidence: 0.0,
       analyzedAt: DateTime.now(),
       tags: const [],
+      isSleepy: false,
     );
   }
 
@@ -51,16 +61,13 @@ class EmotionAnalysis extends Equatable {
       id: json['id'] as String? ?? '',
       userId: json['user_id'] as String? ?? '',
       petId: json['pet_id'] as String? ?? '',
+      petName: json['pet_name'] as String?,
       imageUrl: json['image_url'] as String? ?? '',
       localImagePath: json['local_image_path'] as String? ?? '',
       emotions: json['emotions'] != null
           ? EmotionScores.fromJson(json['emotions'] as Map<String, dynamic>)
           : const EmotionScores(
-              happiness: 0.0,
-              sadness: 0.0,
-              anxiety: 0.0,
-              sleepiness: 0.0,
-              curiosity: 0.0,
+              happiness: 0.0, sadness: 0.0, anxiety: 0.0, curiosity: 0.0,
             ),
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
       analyzedAt: json['analyzed_at'] != null
@@ -68,6 +75,7 @@ class EmotionAnalysis extends Equatable {
           : DateTime.now(),
       memo: json['memo'] as String?,
       tags: json['tags'] != null ? List<String>.from(json['tags'] as List) : [],
+      isSleepy: json['is_sleepy'] as bool? ?? false,
     );
   }
 
@@ -76,6 +84,7 @@ class EmotionAnalysis extends Equatable {
       'id': id,
       'user_id': userId,
       'pet_id': petId,
+      'pet_name': petName,
       'image_url': imageUrl,
       'local_image_path': localImagePath,
       'emotions': emotions.toJson(),
@@ -83,6 +92,7 @@ class EmotionAnalysis extends Equatable {
       'analyzed_at': analyzedAt.toIso8601String(),
       'memo': memo,
       'tags': tags,
+      'is_sleepy': isSleepy,
     };
   }
 
@@ -90,6 +100,7 @@ class EmotionAnalysis extends Equatable {
     String? id,
     String? userId,
     String? petId,
+    String? petName,
     String? imageUrl,
     String? localImagePath,
     EmotionScores? emotions,
@@ -97,11 +108,13 @@ class EmotionAnalysis extends Equatable {
     DateTime? analyzedAt,
     String? memo,
     List<String>? tags,
+    bool? isSleepy,
   }) {
     return EmotionAnalysis(
       id: id ?? this.id,
       userId: userId ?? this.userId,
       petId: petId ?? this.petId,
+      petName: petName ?? this.petName,
       imageUrl: imageUrl ?? this.imageUrl,
       localImagePath: localImagePath ?? this.localImagePath,
       emotions: emotions ?? this.emotions,
@@ -109,21 +122,16 @@ class EmotionAnalysis extends Equatable {
       analyzedAt: analyzedAt ?? this.analyzedAt,
       memo: memo ?? this.memo,
       tags: tags ?? this.tags,
+      isSleepy: isSleepy ?? this.isSleepy,
     );
   }
 
   @override
   List<Object?> get props => [
-        id,
-        userId,
-        petId,
-        imageUrl,
-        localImagePath,
-        emotions,
-        confidence,
-        analyzedAt,
-        memo,
-        tags,
+        id, userId, petId, petName,
+        imageUrl, localImagePath,
+        emotions, confidence, analyzedAt,
+        memo, tags, isSleepy,
       ];
 }
 
@@ -146,13 +154,23 @@ class FacialFeature extends Equatable {
 }
 
 class EmotionScores extends Equatable {
+  // ── 기존 감정 (유지) ──────────────────────────────────────────
   final double happiness;
   final double sadness;
   final double anxiety;
-  final double sleepiness;
   final double curiosity;
 
-  // 추가 분석 지표 (0~100 스케일)
+  // ── 신규 감정 (8종 확장) ──────────────────────────────────────
+  final double calm;
+  final double excitement;
+  final double fear;
+  final double discomfort;
+
+  // ── deprecated: 생리지표로 분리됨 → isSleepy 사용 ─────────────
+  @Deprecated('생리지표로 분리됨. EmotionAnalysis.isSleepy 사용')
+  final double sleepiness;
+
+  // ── 추가 분석 지표 (0~100 스케일) ────────────────────────────
   final int stressLevel;
   final int activityLevel;
   final String healthSignal;
@@ -169,8 +187,13 @@ class EmotionScores extends Equatable {
     required this.happiness,
     required this.sadness,
     required this.anxiety,
-    required this.sleepiness,
     required this.curiosity,
+    this.calm        = 0.0,
+    this.excitement  = 0.0,
+    this.fear        = 0.0,
+    this.discomfort  = 0.0,
+    // ignore: deprecated_member_use_from_same_package
+    this.sleepiness  = 0.0,
     this.stressLevel = 0,
     this.activityLevel = 0,
     this.healthSignal = 'normal',
@@ -180,22 +203,29 @@ class EmotionScores extends Equatable {
     this.breedInsight,
   });
 
-  double get total => happiness + sadness + anxiety + sleepiness + curiosity;
+  // 8감정 합계 (sleepiness 제외)
+  double get total =>
+      happiness + calm + excitement + curiosity +
+      anxiety + fear + sadness + discomfort;
 
   String get dominantEmotion {
-    final emotions = {
-      'happiness': happiness,
-      'sadness': sadness,
-      'anxiety': anxiety,
-      'sleepiness': sleepiness,
-      'curiosity': curiosity,
+    final scores = {
+      'happiness':  happiness,
+      'calm':       calm,
+      'excitement': excitement,
+      'curiosity':  curiosity,
+      'anxiety':    anxiety,
+      'fear':       fear,
+      'sadness':    sadness,
+      'discomfort': discomfort,
     };
-    return emotions.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    return scores.entries.reduce((a, b) => a.value > b.value ? a : b).key;
   }
 
-  // A-2: 감정 복합도 (Shannon Entropy, 0.0~1.0)
+  // A-2: 감정 복합도 (Shannon Entropy, 0.0~1.0) — 8종 기준
   double get complexityIndex {
-    final values = [happiness, sadness, anxiety, sleepiness, curiosity]
+    final values = [happiness, calm, excitement, curiosity,
+                    anxiety, fear, sadness, discomfort]
         .where((v) => v > 0)
         .toList();
     if (values.isEmpty) return 0.0;
@@ -203,17 +233,20 @@ class EmotionScores extends Equatable {
     for (final v in values) {
       entropy -= v * (math.log(v) / math.log(2));
     }
-    // max entropy for 5 emotions = log2(5) ~= 2.322
-    return (entropy / 2.322).clamp(0.0, 1.0);
+    // max entropy for 8 emotions = log2(8) = 3.0
+    return (entropy / 3.0).clamp(0.0, 1.0);
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'happiness': happiness,
-      'sadness': sadness,
-      'anxiety': anxiety,
-      'sleepiness': sleepiness,
-      'curiosity': curiosity,
+      'happiness':  happiness,
+      'calm':       calm,
+      'excitement': excitement,
+      'curiosity':  curiosity,
+      'anxiety':    anxiety,
+      'fear':       fear,
+      'sadness':    sadness,
+      'discomfort': discomfort,
     };
   }
 
@@ -236,32 +269,40 @@ class EmotionScores extends Equatable {
         rawTips is List ? List<String>.from(rawTips) : <String>[];
 
     return EmotionScores(
-      happiness: (json['happiness'] as num?)?.toDouble() ?? 0.0,
-      sadness: (json['sadness'] as num?)?.toDouble() ?? 0.0,
-      anxiety: (json['anxiety'] as num?)?.toDouble() ?? 0.0,
-      sleepiness: (json['sleepiness'] as num?)?.toDouble() ?? 0.0,
-      curiosity: (json['curiosity'] as num?)?.toDouble() ?? 0.0,
-      stressLevel: (json['stress_level'] as num?)?.toInt() ?? 0,
-      activityLevel: (json['activity_level'] as num?)?.toInt() ?? 0,
-      healthSignal: json['health_signal'] as String? ?? 'normal',
-      comfortLevel: (json['comfort_level'] as num?)?.toInt() ?? 0,
+      happiness:   (json['happiness']   as num?)?.toDouble() ?? 0.0,
+      calm:        (json['calm']        as num?)?.toDouble() ?? 0.0,
+      excitement:  (json['excitement']  as num?)?.toDouble() ?? 0.0,
+      curiosity:   (json['curiosity']   as num?)?.toDouble() ?? 0.0,
+      anxiety:     (json['anxiety']     as num?)?.toDouble() ?? 0.0,
+      fear:        (json['fear']        as num?)?.toDouble() ?? 0.0,
+      sadness:     (json['sadness']     as num?)?.toDouble() ?? 0.0,
+      discomfort:  (json['discomfort']  as num?)?.toDouble() ?? 0.0,
+      // ignore: deprecated_member_use_from_same_package
+      sleepiness:  (json['sleepiness']  as num?)?.toDouble() ?? 0.0, // 하위 호환
+      stressLevel:    (json['stress_level']   as num?)?.toInt() ?? 0,
+      activityLevel:  (json['activity_level'] as num?)?.toInt() ?? 0,
+      healthSignal:   json['health_signal']   as String? ?? 'normal',
+      comfortLevel:   (json['comfort_level']  as num?)?.toInt() ?? 0,
       facialFeatures: facialFeatures,
-      healthTips: healthTips,
-      breedInsight: json['breed_insight'] as String?,
+      healthTips:     healthTips,
+      breedInsight:   json['breed_insight'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{
-      'happiness': happiness,
-      'sadness': sadness,
-      'anxiety': anxiety,
-      'sleepiness': sleepiness,
-      'curiosity': curiosity,
-      'stress_level': stressLevel,
-      'activity_level': activityLevel,
-      'health_signal': healthSignal,
-      'comfort_level': comfortLevel,
+      'happiness':  happiness,
+      'calm':       calm,
+      'excitement': excitement,
+      'curiosity':  curiosity,
+      'anxiety':    anxiety,
+      'fear':       fear,
+      'sadness':    sadness,
+      'discomfort': discomfort,
+      'stress_level':    stressLevel,
+      'activity_level':  activityLevel,
+      'health_signal':   healthSignal,
+      'comfort_level':   comfortLevel,
     };
     if (facialFeatures != null) {
       json['facial_features'] =
@@ -278,10 +319,14 @@ class EmotionScores extends Equatable {
 
   EmotionScores copyWith({
     double? happiness,
-    double? sadness,
-    double? anxiety,
-    double? sleepiness,
+    double? calm,
+    double? excitement,
     double? curiosity,
+    double? anxiety,
+    double? fear,
+    double? sadness,
+    double? discomfort,
+    double? sleepiness,
     int? stressLevel,
     int? activityLevel,
     String? healthSignal,
@@ -291,34 +336,33 @@ class EmotionScores extends Equatable {
     String? breedInsight,
   }) {
     return EmotionScores(
-      happiness: happiness ?? this.happiness,
-      sadness: sadness ?? this.sadness,
-      anxiety: anxiety ?? this.anxiety,
-      sleepiness: sleepiness ?? this.sleepiness,
-      curiosity: curiosity ?? this.curiosity,
-      stressLevel: stressLevel ?? this.stressLevel,
-      activityLevel: activityLevel ?? this.activityLevel,
-      healthSignal: healthSignal ?? this.healthSignal,
-      comfortLevel: comfortLevel ?? this.comfortLevel,
+      happiness:   happiness   ?? this.happiness,
+      calm:        calm        ?? this.calm,
+      excitement:  excitement  ?? this.excitement,
+      curiosity:   curiosity   ?? this.curiosity,
+      anxiety:     anxiety     ?? this.anxiety,
+      fear:        fear        ?? this.fear,
+      sadness:     sadness     ?? this.sadness,
+      discomfort:  discomfort  ?? this.discomfort,
+      // ignore: deprecated_member_use_from_same_package
+      sleepiness:  sleepiness  ?? this.sleepiness,
+      stressLevel:    stressLevel    ?? this.stressLevel,
+      activityLevel:  activityLevel  ?? this.activityLevel,
+      healthSignal:   healthSignal   ?? this.healthSignal,
+      comfortLevel:   comfortLevel   ?? this.comfortLevel,
       facialFeatures: facialFeatures ?? this.facialFeatures,
-      healthTips: healthTips ?? this.healthTips,
-      breedInsight: breedInsight ?? this.breedInsight,
+      healthTips:     healthTips     ?? this.healthTips,
+      breedInsight:   breedInsight   ?? this.breedInsight,
     );
   }
 
   @override
   List<Object?> get props => [
-        happiness,
-        sadness,
-        anxiety,
+        happiness, calm, excitement, curiosity,
+        anxiety, fear, sadness, discomfort,
+        // ignore: deprecated_member_use_from_same_package
         sleepiness,
-        curiosity,
-        stressLevel,
-        activityLevel,
-        healthSignal,
-        comfortLevel,
-        facialFeatures,
-        healthTips,
-        breedInsight,
+        stressLevel, activityLevel, healthSignal, comfortLevel,
+        facialFeatures, healthTips, breedInsight,
       ];
 }

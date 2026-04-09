@@ -35,6 +35,10 @@ dependencies:
   # UI & Charts
   fl_chart: ^0.68.0
   lottie: ^3.1.2
+  flutter_svg: ^2.0.10+1
+  table_calendar: ^3.1.2
+  geolocator: ^13.0.2
+  flutter_rating_bar: ^4.0.1
   shimmer: ^3.0.0
   flutter_screenutil: ^5.9.3
 
@@ -52,6 +56,8 @@ dependencies:
   share_plus: ^10.1.2
   app_links: ^6.3.3
   url_launcher: ^6.2.5
+  webview_flutter: ^4.13.0
+  webview_flutter_android: ^4.10.2
 
   # Local Storage
   shared_preferences: ^2.2.3
@@ -65,11 +71,14 @@ dependencies:
   permission_handler: ^11.3.1
 
   cupertino_icons: ^1.0.8
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_native_splash: ^2.4.1
   bloc_test: ^9.1.7
   mockito: ^5.4.4
   mocktail: ^1.0.4
@@ -83,6 +92,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/lottie/
+    - assets/svg/
 
   fonts:
     - family: Pretendard

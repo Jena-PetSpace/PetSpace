@@ -1,6 +1,7 @@
 import 'dart:developer' as dev;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -163,7 +164,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     if (_postLoading) {
       return Padding(
           padding: EdgeInsets.all(24.w),
-          child: const Center(child: CircularProgressIndicator()));
+          child: const CommentShimmerLoading());
     }
     if (_post == null) return const SizedBox.shrink();
 

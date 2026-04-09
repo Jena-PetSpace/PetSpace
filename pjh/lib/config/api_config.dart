@@ -22,6 +22,12 @@ class ApiConfig {
   // 소셜 로그인 설정 (secrets.dart에서 로드)
   static String get googleClientId => Secrets.googleClientId;
   static String get kakaoAppKey => Secrets.kakaoAppKey;
+  static String get kakaoJsKey => Secrets.kakaoJsKey;
+  static String get kakaoRestApiKey => Secrets.kakaoRestApiKey;
+
+  static bool get isKakaoRestConfigured =>
+      Secrets.kakaoRestApiKey != 'YOUR_KAKAO_REST_API_KEY' &&
+      Secrets.kakaoRestApiKey.isNotEmpty;
 
   // API 설정 확인 메서드
   static bool get isEmotionApiConfigured =>

@@ -16,6 +16,20 @@ class EmotionRadarChart extends StatelessWidget {
     this.size = 250,
   });
 
+  double _getValue(String key) {
+    switch (key) {
+      case 'happiness':  return emotions.happiness;
+      case 'calm':       return emotions.calm;
+      case 'excitement': return emotions.excitement;
+      case 'curiosity':  return emotions.curiosity;
+      case 'anxiety':    return emotions.anxiety;
+      case 'fear':       return emotions.fear;
+      case 'sadness':    return emotions.sadness;
+      case 'discomfort': return emotions.discomfort;
+      default:           return 0.0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -39,22 +53,16 @@ class EmotionRadarChart extends StatelessWidget {
           ),
           radarBorderData: const BorderSide(color: Colors.transparent),
           titleTextStyle: TextStyle(
-            fontSize: 12.sp,
+            fontSize: 11.sp,
             fontWeight: FontWeight.w600,
             color: AppTheme.primaryTextColor,
           ),
           titlePositionPercentageOffset: 0.35,
           getTitle: (index, angle) {
-            final titles = [
-              _EmotionTitle('😊 기쁨', emotions.happiness),
-              _EmotionTitle('😢 슬픔', emotions.sadness),
-              _EmotionTitle('😰 불안', emotions.anxiety),
-              _EmotionTitle('😴 졸림', emotions.sleepiness),
-              _EmotionTitle('🤔 호기심', emotions.curiosity),
-            ];
+            final key = AppTheme.emotionOrder[index];
+            final value = _getValue(key);
             return RadarChartTitle(
-              text:
-                  '${titles[index].label}\n${(titles[index].value * 100).toInt()}%',
+              text: '${AppTheme.getEmotionEmoji(key)} ${AppTheme.getEmotionLabel(key)}\n${(value * 100).toInt()}%',
             );
           },
           dataSets: [
@@ -63,26 +71,15 @@ class EmotionRadarChart extends StatelessWidget {
               borderColor: AppTheme.primaryColor,
               borderWidth: 2,
               entryRadius: 4,
-              dataEntries: [
-                RadarEntry(value: emotions.happiness),
-                RadarEntry(value: emotions.sadness),
-                RadarEntry(value: emotions.anxiety),
-                RadarEntry(value: emotions.sleepiness),
-                RadarEntry(value: emotions.curiosity),
-              ],
+              dataEntries: AppTheme.emotionOrder
+                  .map((key) => RadarEntry(value: _getValue(key)))
+                  .toList(),
             ),
           ],
         ),
       ),
     );
   }
-}
-
-class _EmotionTitle {
-  final String label;
-  final double value;
-
-  _EmotionTitle(this.label, this.value);
 }
 
 /// 감정 강도 게이지 위젯
@@ -223,20 +220,42 @@ class EmotionComparisonBar extends StatelessWidget {
 
   const EmotionComparisonBar({super.key, required this.emotions});
 
+  IconData _iconFor(String key) {
+    switch (key) {
+      case 'happiness':  return Icons.mood;
+      case 'calm':       return Icons.self_improvement;
+      case 'excitement': return Icons.celebration;
+      case 'curiosity':  return Icons.psychology;
+      case 'anxiety':    return Icons.warning;
+      case 'fear':       return Icons.warning_amber_outlined;
+      case 'sadness':    return Icons.mood_bad;
+      case 'discomfort': return Icons.sick_outlined;
+      default:           return Icons.circle;
+    }
+  }
+
+  double _getValue(String key) {
+    switch (key) {
+      case 'happiness':  return emotions.happiness;
+      case 'calm':       return emotions.calm;
+      case 'excitement': return emotions.excitement;
+      case 'curiosity':  return emotions.curiosity;
+      case 'anxiety':    return emotions.anxiety;
+      case 'fear':       return emotions.fear;
+      case 'sadness':    return emotions.sadness;
+      case 'discomfort': return emotions.discomfort;
+      default:           return 0.0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final emotionList = [
-      _EmotionData(
-          '기쁨', emotions.happiness, AppTheme.happinessColor, Icons.mood),
-      _EmotionData(
-          '슬픔', emotions.sadness, AppTheme.sadnessColor, Icons.mood_bad),
-      _EmotionData(
-          '불안', emotions.anxiety, AppTheme.anxietyColor, Icons.warning_amber),
-      _EmotionData(
-          '졸림', emotions.sleepiness, AppTheme.sleepinessColor, Icons.bedtime),
-      _EmotionData(
-          '호기심', emotions.curiosity, AppTheme.curiosityColor, Icons.psychology),
-    ];
+    final emotionList = AppTheme.emotionOrder.map((key) => _EmotionData(
+      AppTheme.getEmotionLabel(key),
+      _getValue(key),
+      AppTheme.getEmotionColor(key),
+      _iconFor(key),
+    )).toList();
 
     // 값으로 정렬
     emotionList.sort((a, b) => b.value.compareTo(a.value));

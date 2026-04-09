@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -433,11 +435,12 @@ Future<void> _initExternal() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
 
-  // Supabase client
+  // Supabase client — lazy하게 접근 (백그라운드 초기화 완료 후 실제 사용됨)
   sl.registerLazySingleton(() => Supabase.instance.client);
 
   // Google Sign In
   sl.registerLazySingleton(() => GoogleSignIn(
+        clientId: Platform.isIOS ? Secrets.googleIosClientId : null,
         serverClientId:
             ApiConfig.isGoogleLoginConfigured ? Secrets.googleClientId : null,
         scopes: [

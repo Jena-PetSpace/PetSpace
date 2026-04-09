@@ -92,7 +92,23 @@ class EmotionRepositoryImpl implements EmotionRepository {
     }
 
     try {
-      final analysisModel = EmotionAnalysisModel.fromEntity(analysis);
+      final user = supabaseClient.auth.currentUser;
+      String imageUrl = analysis.imageUrl;
+
+      // imageUrl이 비어있고 localImagePath가 있으면 저장 시점에 재업로드
+      if (imageUrl.isEmpty && analysis.localImagePath.isNotEmpty) {
+        final localFile = File(analysis.localImagePath);
+        if (localFile.existsSync()) {
+          final uploadResult =
+              await uploadImage(localFile, 'emotions/${user?.id ?? 'unknown'}');
+          imageUrl = uploadResult.fold((_) => '', (url) => url);
+        }
+      }
+
+      final analysisModel = (analysis is EmotionAnalysisModel)
+          ? analysis.copyWith(imageUrl: imageUrl)
+          : EmotionAnalysisModel.fromEntity(analysis).copyWith(imageUrl: imageUrl);
+
       await supabaseClient
           .from('emotion_history')
           .insert(analysisModel.toMap());
@@ -353,10 +369,13 @@ class EmotionRepositoryImpl implements EmotionRepository {
   double _calculateConfidence(EmotionScoresModel scores) {
     final values = [
       scores.happiness,
-      scores.sadness,
-      scores.anxiety,
-      scores.sleepiness,
+      scores.calm,
+      scores.excitement,
       scores.curiosity,
+      scores.anxiety,
+      scores.fear,
+      scores.sadness,
+      scores.discomfort,
     ];
 
     // 분산을 이용한 신뢰도 계산 (분산이 클수록 신뢰도가 높음)
@@ -379,11 +398,14 @@ class EmotionRepositoryImpl implements EmotionRepository {
     }
 
     final emotionSums = {
-      'happiness': 0.0,
-      'sadness': 0.0,
-      'anxiety': 0.0,
-      'sleepiness': 0.0,
-      'curiosity': 0.0,
+      'happiness':  0.0,
+      'calm':       0.0,
+      'excitement': 0.0,
+      'curiosity':  0.0,
+      'anxiety':    0.0,
+      'fear':       0.0,
+      'sadness':    0.0,
+      'discomfort': 0.0,
     };
 
     final emotionCounts = Map<String, int>.fromIterables(
@@ -391,18 +413,16 @@ class EmotionRepositoryImpl implements EmotionRepository {
       List.filled(emotionSums.length, 0),
     );
 
-    // 감정별 평균 계산
+    // 감정별 합산
     for (final analysis in analyses) {
-      emotionSums['happiness'] =
-          emotionSums['happiness']! + analysis.emotions.happiness;
-      emotionSums['sadness'] =
-          emotionSums['sadness']! + analysis.emotions.sadness;
-      emotionSums['anxiety'] =
-          emotionSums['anxiety']! + analysis.emotions.anxiety;
-      emotionSums['sleepiness'] =
-          emotionSums['sleepiness']! + analysis.emotions.sleepiness;
-      emotionSums['curiosity'] =
-          emotionSums['curiosity']! + analysis.emotions.curiosity;
+      emotionSums['happiness']  = emotionSums['happiness']!  + analysis.emotions.happiness;
+      emotionSums['calm']       = emotionSums['calm']!       + analysis.emotions.calm;
+      emotionSums['excitement'] = emotionSums['excitement']! + analysis.emotions.excitement;
+      emotionSums['curiosity']  = emotionSums['curiosity']!  + analysis.emotions.curiosity;
+      emotionSums['anxiety']    = emotionSums['anxiety']!    + analysis.emotions.anxiety;
+      emotionSums['fear']       = emotionSums['fear']!       + analysis.emotions.fear;
+      emotionSums['sadness']    = emotionSums['sadness']!    + analysis.emotions.sadness;
+      emotionSums['discomfort'] = emotionSums['discomfort']! + analysis.emotions.discomfort;
 
       // 주요 감정 카운트
       final dominantEmotion = analysis.emotions.dominantEmotion;
@@ -432,27 +452,18 @@ class EmotionRepositoryImpl implements EmotionRepository {
           .toList();
 
       if (dayAnalyses.isNotEmpty) {
+        double avg(double Function(EmotionAnalysis a) f) =>
+            dayAnalyses.map(f).reduce((a, b) => a + b) / dayAnalyses.length;
+
         final dayAverage = {
-          'happiness': dayAnalyses
-                  .map((a) => a.emotions.happiness)
-                  .reduce((a, b) => a + b) /
-              dayAnalyses.length,
-          'sadness': dayAnalyses
-                  .map((a) => a.emotions.sadness)
-                  .reduce((a, b) => a + b) /
-              dayAnalyses.length,
-          'anxiety': dayAnalyses
-                  .map((a) => a.emotions.anxiety)
-                  .reduce((a, b) => a + b) /
-              dayAnalyses.length,
-          'sleepiness': dayAnalyses
-                  .map((a) => a.emotions.sleepiness)
-                  .reduce((a, b) => a + b) /
-              dayAnalyses.length,
-          'curiosity': dayAnalyses
-                  .map((a) => a.emotions.curiosity)
-                  .reduce((a, b) => a + b) /
-              dayAnalyses.length,
+          'happiness':  avg((a) => a.emotions.happiness),
+          'calm':       avg((a) => a.emotions.calm),
+          'excitement': avg((a) => a.emotions.excitement),
+          'curiosity':  avg((a) => a.emotions.curiosity),
+          'anxiety':    avg((a) => a.emotions.anxiety),
+          'fear':       avg((a) => a.emotions.fear),
+          'sadness':    avg((a) => a.emotions.sadness),
+          'discomfort': avg((a) => a.emotions.discomfort),
         };
 
         trend.add({

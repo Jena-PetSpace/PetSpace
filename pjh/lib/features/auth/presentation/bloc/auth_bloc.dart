@@ -42,6 +42,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthDeleteAccountRequested>(_onDeleteAccountRequested);
     on<AuthPasswordResetRequested>(_onPasswordResetRequested);
     on<AuthOnboardingCompleted>(_onOnboardingCompleted);
+    on<AuthProfileRefreshRequested>(_onProfileRefreshRequested);
   }
 
   void _onAuthStarted(AuthStarted event, Emitter<AuthState> emit) {
@@ -206,6 +207,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (user) => emit(AuthAuthenticated(user)),
+    );
+  }
+
+  Future<void> _onProfileRefreshRequested(
+    AuthProfileRefreshRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final result = await _authRepository.getCurrentUser();
+    result.fold(
+      (_) {},
+      (user) {
+        if (user != null) emit(AuthAuthenticated(user));
+      },
     );
   }
 

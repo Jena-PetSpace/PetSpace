@@ -59,55 +59,42 @@ void main() async {
     return true;
   };
 
-  // Kakao SDK 초기화
+  // Kakao SDK 초기화 (동기, 빠름)
   if (ApiConfig.isKakaoLoginConfigured) {
     try {
       kakao.KakaoSdk.init(nativeAppKey: ApiConfig.kakaoAppKey);
-      log('✅ Kakao SDK 초기화 완료', name: 'main.kakao');
     } catch (e) {
       log('⚠️ Kakao SDK init failed: $e', name: 'main.kakao');
     }
-  } else {
-    log('⚠️ Kakao 로그인을 사용하려면 API 키를 설정해주세요.', name: 'main.kakao');
   }
 
-  // Supabase 초기화
+  // Supabase 초기화 (AuthBloc에 필수)
   if (SupabaseOptions.isConfigured) {
     await Supabase.initialize(
       url: SupabaseOptions.supabaseUrl,
       anonKey: SupabaseOptions.supabaseAnonKey,
       authOptions: const FlutterAuthClientOptions(
         authFlowType: AuthFlowType.pkce,
-        // Supabase가 deep link를 자동으로 처리하지 않도록 설정
-        // 대신 _handleDeepLink에서 수동으로 처리
-        // NOTE: detectSessionInUri를 false로 설정하면 Supabase가 deep link를 자동으로 감지하지 않음
+        detectSessionInUri: false,
       ),
-      // Deep link 자동 처리 비활성화 - Supabase가 모든 deep link를 가로채는 것을 방지
-      // 이제 com.petspace.app scheme만 수동으로 처리하고, kakao scheme은 Kakao SDK에게 넘김
       debug: false,
     );
-    log('✅ Supabase 초기화 완료', name: 'main.supabase');
-  } else {
-    log('⚠️ Supabase 설정이 필요합니다. supabase_options.dart 파일을 확인해주세요.',
-        name: 'main.supabase');
   }
 
-  // API 설정 확인 및 안내
-  log('\n📱 펫페이스 설정 현황:', name: 'main.config');
-  log('✅ Supabase: ${SupabaseOptions.isConfigured ? "설정됨" : "미설정 (데모용)"}',
-      name: 'main.config');
-  final features = ApiConfig.availableFeatures;
-  log('🔧 사용 가능한 기능들:', name: 'main.config');
-  for (final feature in features) {
-    log('   • $feature', name: 'main.features');
-  }
+  // DI 초기화 (BLoC 생성에 필수)
+  await di.init();
 
-  if (!ApiConfig.isGoogleLoginConfigured && !ApiConfig.isKakaoLoginConfigured) {
-    log('\n⚠️ 실제 소셜 로그인을 위해서는 API 키 설정이 필요합니다.', name: 'main.warning');
-    log('   lib/config/api_config.dart 파일을 확인하세요.', name: 'main.warning');
-  }
+  // ✅ runApp 호출 — 네이티브 스플래시 종료
+  runApp(const MeongNyangDiaryApp());
 
-  // Firebase 초기화 (Android FCM 푸시 알림)
+  // Firebase + Cache + Realtime + FCM 백그라운드 처리
+  unawaited(_initBackground());
+}
+
+
+/// runApp 이후 백그라운드 초기화 (Flutter 스플래시가 보이는 동안 처리)
+Future<void> _initBackground() async {
+  // Firebase 초기화 (iOS는 미지원 — graceful skip)
   bool firebaseInitialized = false;
   final firebaseOptions = DefaultFirebaseOptions.currentPlatformOrNull;
   if (firebaseOptions != null) {
@@ -123,16 +110,12 @@ void main() async {
     log('ℹ️ 현재 플랫폼에서 Firebase 미지원 — 건너뜀', name: 'main.firebase');
   }
 
-  await di.init();
-
-  // CacheManager 초기화
+  // CacheManager
   await CacheManager().initialize();
-  log('✅ CacheManager 초기화 완료', name: 'main.cache');
 
-  // RealtimeService 초기화
+  // RealtimeService
   if (SupabaseOptions.isConfigured) {
     await RealtimeService().initialize();
-    log('✅ RealtimeService 초기화 완료', name: 'main.realtime');
   }
 
   // FCMService 초기화 (Firebase 성공 시에만)
@@ -144,8 +127,6 @@ void main() async {
       log('⚠️ FCMService 초기화 실패: $e', name: 'main.fcm');
     }
   }
-
-  runApp(const MeongNyangDiaryApp());
 }
 
 class MeongNyangDiaryApp extends StatefulWidget {
