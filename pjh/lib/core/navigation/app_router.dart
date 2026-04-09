@@ -72,7 +72,7 @@ class AppRouter {
   static GoRouter createRouter(AuthBloc authBloc) {
     final router = GoRouter(
       // 초기 위치는 홈으로 설정하고, redirect 로직에서 인증 상태에 따라 적절히 리다이렉트
-      initialLocation: '/home',
+      initialLocation: '/splash',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       routes: [
         GoRoute(path: '/channels', builder: (_, __) => const ChannelSubscriptionPage()),
