@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/services/realtime_service.dart';
+import 'core/utils/back_press_handler.dart';
 import 'features/social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
 import 'features/my/presentation/pages/my_page.dart';
 import 'shared/models/navigation_item.dart';
@@ -28,6 +29,7 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
+  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
@@ -92,18 +94,55 @@ class _MainNavigationState extends State<MainNavigation> {
 
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
+      onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final router = GoRouter.of(context);
         if (router.canPop()) {
           router.pop();
+          return;
         }
+        await _handleBackPress();
       },
       child: Scaffold(
         body: widget.child,
         bottomNavigationBar: _buildCustomBottomNav(),
       ),
     );
+  }
+
+  Future<void> _handleBackPress() async {
+    if (!mounted) return;
+
+    // 홈 탭이 아니면 홈으로 이동
+    if (_currentIndex != 0) {
+      setState(() => _currentIndex = 0);
+      context.go('/home');
+      return;
+    }
+
+    // 홈 탭 2단계 종료
+    final now = DateTime.now();
+    final last = _lastBackPressTime;
+    if (last == null || now.difference(last) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('한 번 더 누르면 앱이 종료됩니다'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: 70.h, left: 16.w, right: 16.w),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+        ),
+      );
+      return;
+    }
+
+    // 2초 이내 재입력 → 종료 다이얼로그
+    _lastBackPressTime = null;
+    if (!mounted) return;
+    final shouldExit = await BackPressHandler.showExitDialog(context);
+    if (shouldExit) BackPressHandler.exitApp();
   }
 
   Widget _buildCustomBottomNav() {

@@ -6,10 +6,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
+import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/social_user.dart';
 import '../bloc/profile_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../widgets/profile_stats_card.dart';
 import '../widgets/user_posts_list.dart';
 
@@ -443,7 +445,44 @@ class _ProfilePageState extends State<ProfilePage>
     context.push('/settings');
   }
 
-  void _sendMessage(SocialUser user) {
-    context.push('/chat?userId=${user.id}');
+  void _sendMessage(SocialUser user) async {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
+    // 로딩 인디케이터
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final bloc = di.sl<ChatRoomsBloc>();
+      bloc.add(ChatRoomsCreateDirectRequested(
+        currentUserId: currentUserId,
+        otherUserId: user.id,
+      ));
+
+      final state = await bloc.stream
+          .firstWhere((s) => s is ChatRoomCreated || s is ChatRoomsError)
+          .timeout(const Duration(seconds: 10));
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // 로딩 닫기
+
+      if (state is ChatRoomCreated) {
+        context.push('/chat/${state.room.id}?name=${Uri.encodeComponent(user.displayName)}');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('채팅방을 열 수 없습니다. 다시 시도해주세요.')),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('채팅방 생성에 실패했습니다.')),
+      );
+    }
   }
 }

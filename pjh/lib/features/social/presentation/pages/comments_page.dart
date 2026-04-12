@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/utils/back_press_handler.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/comment.dart';
 import '../bloc/comment_bloc.dart';
@@ -52,9 +54,28 @@ class _CommentsPageState extends State<CommentsPage> {
     }
   }
 
+  Future<void> _handleBackPress() async {
+    if (_commentController.text.isNotEmpty) {
+      final shouldDiscard = await BackPressHandler.showDiscardDialog(
+        context,
+        title: '댓글 작성 취소',
+        content: '입력 중인 댓글이 있습니다.\n돌아가면 내용이 사라집니다.',
+      );
+      if (shouldDiscard && mounted && context.canPop()) context.pop();
+    } else {
+      if (mounted && context.canPop()) context.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _handleBackPress();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('댓글'),
         elevation: 1,
@@ -102,7 +123,8 @@ class _CommentsPageState extends State<CommentsPage> {
           _buildCommentInput(),
         ],
       ),
-    );
+      ),   // Scaffold
+    );     // PopScope
   }
 
   Widget _buildCommentsList(CommentLoaded state) {

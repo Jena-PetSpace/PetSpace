@@ -8,6 +8,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/utils/back_press_handler.dart';
+
 import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../emotion/presentation/widgets/emotion_chart_widget.dart';
 import '../../domain/entities/post.dart';
@@ -105,9 +107,29 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
   }
 
+  Future<void> _handleBackPress() async {
+    final hasContent = _contentController.text.isNotEmpty || _selectedImage != null;
+    if (hasContent) {
+      final shouldDiscard = await BackPressHandler.showDiscardDialog(
+        context,
+        title: '게시글 작성 취소',
+        content: '작성 중인 게시글이 있습니다.\n돌아가면 내용이 사라집니다.',
+      );
+      if (shouldDiscard && mounted && context.canPop()) context.pop();
+    } else {
+      if (mounted && context.canPop()) context.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocListener<FeedBloc, FeedState>(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _handleBackPress();
+      },
+      child: BlocListener<FeedBloc, FeedState>(
       listener: (context, state) {
         if (state is FeedError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -165,8 +187,9 @@ class _CreatePostPageState extends State<CreatePostPage> {
             ),
           ),
         ),
-      ),
-    );
+      ),    // Scaffold
+      ),    // BlocListener
+    );      // PopScope
   }
 
   Widget _buildImageSection() {

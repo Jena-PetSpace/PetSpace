@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../domain/entities/post.dart';
 import '../../domain/entities/social_user.dart';
@@ -169,6 +170,31 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     }
   }
 
+  Future<Set<String>> _getFollowingIds() async {
+    final currentUserId =
+        Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null) return {};
+    try {
+      final rows = await Supabase.instance.client
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', currentUserId);
+      return (rows as List)
+          .map((r) => r['following_id'] as String)
+          .toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  List<SocialUser> _sortByFollowing(
+      List<SocialUser> users, Set<String> followingIds) {
+    if (followingIds.isEmpty) return users;
+    final following = users.where((u) => followingIds.contains(u.id)).toList();
+    final others = users.where((u) => !followingIds.contains(u.id)).toList();
+    return [...following, ...others];
+  }
+
   Future<void> _onSearchUsersRequested(
     SearchUsersRequested event,
     Emitter<SearchState> emit,
@@ -182,10 +208,11 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       result.fold(
         (failure) => emit(SearchError(message: failure.message)),
         (newUsers) {
-          final updatedUsers = [...currentState.users, ...newUsers];
-          emit(UserSearchSuccess(
+          final sorted =
+              _sortByFollowing(newUsers, currentState.followingIds);
+          final updatedUsers = [...currentState.users, ...sorted];
+          emit(currentState.copyWith(
             users: updatedUsers,
-            query: event.query,
             hasMore: newUsers.length >= 20,
           ));
         },
@@ -193,15 +220,20 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     } else {
       emit(const SearchLoading());
 
-      final result = await repository.searchUsers(event.query);
+      final usersResult = await repository.searchUsers(event.query);
+      final followingIds = await _getFollowingIds();
 
-      result.fold(
+      usersResult.fold(
         (failure) => emit(SearchError(message: failure.message)),
-        (users) => emit(UserSearchSuccess(
-          users: users,
-          query: event.query,
-          hasMore: users.length >= 20,
-        )),
+        (users) {
+          final sorted = _sortByFollowing(users, followingIds);
+          emit(UserSearchSuccess(
+            users: sorted,
+            query: event.query,
+            hasMore: users.length >= 20,
+            followingIds: followingIds,
+          ));
+        },
       );
     }
   }

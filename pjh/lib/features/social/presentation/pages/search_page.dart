@@ -412,8 +412,11 @@ class _SearchPageState extends State<SearchPage>
 
         List<SocialUser> users = [];
 
+        Set<String> followingIds = {};
+
         if (state is UserSearchSuccess) {
           users = state.users;
+          followingIds = state.followingIds;
         } else if (state is SearchSuccess) {
           users = state.users;
         }
@@ -426,14 +429,15 @@ class _SearchPageState extends State<SearchPage>
           itemCount: users.length,
           itemBuilder: (context, index) {
             final user = users[index];
-            return _buildUserCard(user);
+            return _buildUserCard(user,
+                isFollowing: followingIds.contains(user.id));
           },
         );
       },
     );
   }
 
-  Widget _buildUserCard(SocialUser user) {
+  Widget _buildUserCard(SocialUser user, {bool isFollowing = false}) {
     return ListTile(
       leading: CircleAvatar(
         radius: 20.r,
@@ -445,9 +449,32 @@ class _SearchPageState extends State<SearchPage>
                 style: TextStyle(fontSize: 16.sp))
             : null,
       ),
-      title: Text(
-        user.displayName,
-        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
+      title: Row(
+        children: [
+          Text(
+            user.displayName,
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
+          ),
+          if (isFollowing) ...[
+            SizedBox(width: 6.w),
+            Container(
+              padding:
+                  EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: Text(
+                '팔로우 중',
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
       subtitle: user.bio != null
           ? Text(user.bio!, style: TextStyle(fontSize: 12.sp))

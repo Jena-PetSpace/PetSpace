@@ -83,10 +83,6 @@ class AppRouter {
         GoRoute(path: '/emotion/weekly-report', builder: (_, __) => const WeeklyReportPage()),
         GoRoute(path: '/health/alert-settings', builder: (_, __) => const HealthAlertSettingsPage()),
         GoRoute(
-          path: '/emotion/calendar',
-          builder: (context, state) => const EmotionCalendarPage(),
-        ),
-        GoRoute(
           path: '/privacy',
           builder: (context, state) => const PrivacyPolicyPage(),
         ),
@@ -452,6 +448,11 @@ class AppRouter {
                         : '';
                     return EmotionHistoryPage(userId: userId);
                   },
+                ),
+                GoRoute(
+                  path: 'calendar',
+                  name: 'emotion-calendar',
+                  builder: (_, __) => const EmotionCalendarPage(),
                 ),
               ],
             ),

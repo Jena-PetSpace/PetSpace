@@ -97,25 +97,29 @@ class UserSearchSuccess extends SearchState {
   final List<SocialUser> users;
   final String query;
   final bool hasMore;
+  final Set<String> followingIds;
 
   const UserSearchSuccess({
     required this.users,
     required this.query,
     this.hasMore = false,
+    this.followingIds = const {},
   });
 
   @override
-  List<Object?> get props => [users, query, hasMore];
+  List<Object?> get props => [users, query, hasMore, followingIds];
 
   UserSearchSuccess copyWith({
     List<SocialUser>? users,
     String? query,
     bool? hasMore,
+    Set<String>? followingIds,
   }) {
     return UserSearchSuccess(
       users: users ?? this.users,
       query: query ?? this.query,
       hasMore: hasMore ?? this.hasMore,
+      followingIds: followingIds ?? this.followingIds,
     );
   }
 }

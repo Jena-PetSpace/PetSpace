@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
@@ -39,6 +40,13 @@ import 'shared/themes/theme_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // StatusBar 전역 설정: 투명 배경 + 어두운 아이콘
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light, // iOS
+  ));
 
   // Flutter 이미지 캐시 크기 제한 (기본값: 100MB 무제한 → 명시적 설정)
   PaintingBinding.instance.imageCache.maximumSize = 200; // 최대 200개 이미지

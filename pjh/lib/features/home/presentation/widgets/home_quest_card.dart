@@ -110,11 +110,10 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
     final auth = context.read<AuthBloc>().state;
     if (auth is AuthAuthenticated) {
       try {
-        // user_points upsert
-        await Supabase.instance.client.from('user_points').upsert({
-          'user_id': auth.user.uid,
-          'total_points': _totalPoints + quest.points,
-          'updated_at': DateTime.now().toIso8601String(),
+        // increment_user_points RPC로 포인트 증가 (race condition 방지)
+        await Supabase.instance.client.rpc('increment_user_points', params: {
+          'p_user_id': auth.user.uid,
+          'p_points': quest.points,
         });
         // user_quests 기록
         await Supabase.instance.client.from('user_quests').insert({
