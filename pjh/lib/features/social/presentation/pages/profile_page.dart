@@ -34,6 +34,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isSendingMessage = false;
 
   @override
   void initState() {
@@ -257,12 +258,21 @@ class _ProfilePageState extends State<ProfilePage>
         ),
         SizedBox(width: 12.w),
         ElevatedButton(
-          onPressed: () => _sendMessage(user),
+          onPressed: _isSendingMessage ? null : () => _sendMessage(user),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white.withValues(alpha: 0.2),
             foregroundColor: Colors.white,
           ),
-          child: Icon(Icons.message, size: 24.w),
+          child: _isSendingMessage
+              ? SizedBox(
+                  width: 20.w,
+                  height: 20.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Icon(Icons.message, size: 24.w),
         ),
       ],
     );
@@ -447,11 +457,7 @@ class _ProfilePageState extends State<ProfilePage>
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     if (currentUserId == null) return;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+    setState(() => _isSendingMessage = true);
 
     try {
       final supabase = Supabase.instance.client;
@@ -482,11 +488,11 @@ class _ProfilePageState extends State<ProfilePage>
       }
 
       if (!mounted) return;
-      Navigator.of(context).pop();
+      setState(() => _isSendingMessage = false);
       context.push('/chat/$roomId?name=${Uri.encodeComponent(user.displayName)}');
     } catch (e) {
       if (!mounted) return;
-      Navigator.of(context).pop();
+      setState(() => _isSendingMessage = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('채팅방 생성에 실패했습니다.')),
       );

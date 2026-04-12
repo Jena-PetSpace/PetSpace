@@ -99,47 +99,94 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
     }
   }
 
-  Future<void> _completeQuest(_Quest quest) async {
-    if (_completed[quest.id] == true) return;
+  /// 퀘스트 탭 → 페이지 이동 후 실제 수행 여부를 DB로 검증
+  Future<void> _onQuestTap(_Quest quest) async {
+    await context.push(quest.route);
+    if (!mounted) return;
+    // 페이지에서 돌아오면 실제 완료 여부 검증
+    await _verifyAndComplete(quest);
+  }
 
+  /// DB에서 오늘 실제 수행 여부 확인 후 포인트 지급
+  Future<void> _verifyAndComplete(_Quest quest) async {
+    final auth = context.read<AuthBloc>().state;
+    if (auth is! AuthAuthenticated) return;
+
+    final uid = auth.user.uid;
+    final supabase = Supabase.instance.client;
+    final todayStart = DateTime.now().copyWith(
+        hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
+
+    bool achieved = false;
+    try {
+      switch (quest.id) {
+        case 'analyze':
+          // 오늘 감정 분석 기록이 있는지 확인
+          final rows = await supabase
+              .from('emotion_history')
+              .select('id')
+              .eq('user_id', uid)
+              .gte('created_at', todayStart.toIso8601String())
+              .limit(1);
+          achieved = (rows as List).isNotEmpty;
+          break;
+        case 'post':
+          // 오늘 게시글을 작성했는지 확인
+          final rows = await supabase
+              .from('posts')
+              .select('id')
+              .eq('author_id', uid)
+              .isFilter('deleted_at', null)
+              .gte('created_at', todayStart.toIso8601String())
+              .limit(1);
+          achieved = (rows as List).isNotEmpty;
+          break;
+        case 'like':
+          // 오늘 좋아요를 눌렀는지 확인
+          final rows = await supabase
+              .from('post_likes')
+              .select('id')
+              .eq('user_id', uid)
+              .gte('created_at', todayStart.toIso8601String())
+              .limit(1);
+          achieved = (rows as List).isNotEmpty;
+          break;
+      }
+    } catch (e) {
+      dev.log('퀘스트 검증 실패: $e', name: 'QuestCard');
+      return;
+    }
+
+    if (!achieved || !mounted) return;
+
+    // 이미 완료 처리된 경우 skip (SharedPreferences 기준)
     final prefs = await SharedPreferences.getInstance();
-    final today = _todayKey();
-    await prefs.setBool('quest_${quest.id}_$today', true);
+    final key = 'quest_${quest.id}_${_todayKey()}';
+    if (prefs.getBool(key) == true) return;
+
+    await prefs.setBool(key, true);
+
+    try {
+      await supabase.rpc('increment_user_points', params: {
+        'p_user_id': uid,
+        'p_points': quest.points,
+      });
+    } catch (e) {
+      dev.log('포인트 지급 실패: $e', name: 'QuestCard');
+    }
 
     if (!mounted) return;
-    final auth = context.read<AuthBloc>().state;
-    if (auth is AuthAuthenticated) {
-      try {
-        // increment_user_points RPC로 포인트 증가 (race condition 방지)
-        await Supabase.instance.client.rpc('increment_user_points', params: {
-          'p_user_id': auth.user.uid,
-          'p_points': quest.points,
-        });
-        // user_quests 기록
-        await Supabase.instance.client.from('user_quests').insert({
-          'user_id': auth.user.uid,
-          'date': today,
-          'quest_type': quest.id,
-          'completed': true,
-        });
-      } catch (e) {
-        dev.log('퀘스트 저장 실패: $e', name: 'QuestCard');
-      }
-    }
-
-    if (mounted) {
-      setState(() {
-        _completed[quest.id] = true;
-        _totalPoints += quest.points;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${quest.emoji} +${quest.points}pt 획득!'),
-          backgroundColor: AppTheme.primaryColor,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+    setState(() {
+      _completed[quest.id] = true;
+      _totalPoints += quest.points;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${quest.emoji} +${quest.points}pt 획득!'),
+        backgroundColor: AppTheme.primaryColor,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   String _todayKey() {
@@ -252,10 +299,7 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
               children: _quests.map((quest) {
                 final done = _completed[quest.id] == true;
                 return GestureDetector(
-                  onTap: () async {
-                    context.push(quest.route);
-                    if (!done) await _completeQuest(quest);
-                  },
+                  onTap: done ? null : () => _onQuestTap(quest),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: EdgeInsets.only(bottom: 6.h),
