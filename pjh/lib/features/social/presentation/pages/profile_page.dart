@@ -6,12 +6,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
-import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/social_user.dart';
 import '../bloc/profile_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../widgets/profile_stats_card.dart';
 import '../widgets/user_posts_list.dart';
 
@@ -449,7 +447,6 @@ class _ProfilePageState extends State<ProfilePage>
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     if (currentUserId == null) return;
 
-    // 로딩 인디케이터
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -457,27 +454,37 @@ class _ProfilePageState extends State<ProfilePage>
     );
 
     try {
-      final bloc = di.sl<ChatRoomsBloc>();
-      bloc.add(ChatRoomsCreateDirectRequested(
-        currentUserId: currentUserId,
-        otherUserId: user.id,
-      ));
+      final supabase = Supabase.instance.client;
 
-      final state = await bloc.stream
-          .firstWhere((s) => s is ChatRoomCreated || s is ChatRoomsError)
-          .timeout(const Duration(seconds: 10));
+      // 기존 1:1 채팅방 찾기
+      final existingRoomId = await supabase.rpc('find_direct_chat', params: {
+        'p_user1_id': currentUserId,
+        'p_user2_id': user.id,
+      });
+
+      String roomId;
+      if (existingRoomId != null) {
+        roomId = existingRoomId as String;
+      } else {
+        // 새 채팅방 생성
+        final roomRes = await supabase
+            .from('chat_rooms')
+            .insert({'type': 'direct', 'created_by': currentUserId})
+            .select()
+            .single();
+        roomId = roomRes['id'] as String;
+
+        // 참여자 추가
+        await supabase.from('chat_participants').insert([
+          {'room_id': roomId, 'user_id': currentUserId, 'role': 'admin'},
+          {'room_id': roomId, 'user_id': user.id, 'role': 'member'},
+        ]);
+      }
 
       if (!mounted) return;
-      Navigator.of(context).pop(); // 로딩 닫기
-
-      if (state is ChatRoomCreated) {
-        context.push('/chat/${state.room.id}?name=${Uri.encodeComponent(user.displayName)}');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('채팅방을 열 수 없습니다. 다시 시도해주세요.')),
-        );
-      }
-    } catch (_) {
+      Navigator.of(context).pop();
+      context.push('/chat/$roomId?name=${Uri.encodeComponent(user.displayName)}');
+    } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
