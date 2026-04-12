@@ -1569,3 +1569,28 @@ VALUES
   ('achievement', 'ach_10_records',          '건강 기록 10개 달성',     '누적 기록',             200, 10),
   ('achievement', 'ach_level_5',             '레벨 5 달성',             '꾸준히 활동',           500, 1)
 ON CONFLICT (key) DO NOTHING;
+
+
+-- ================================================================
+-- PART 11: increment_user_points RPC
+-- 퀘스트 포인트 저장 시 race condition 없이 원자적으로 증가
+-- 호출: supabase.rpc('increment_user_points', { p_user_id: uid, p_points: 30 })
+-- ================================================================
+
+CREATE OR REPLACE FUNCTION increment_user_points(
+  p_user_id UUID,
+  p_points   INT
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  INSERT INTO user_points (user_id, total_points, updated_at)
+  VALUES (p_user_id, p_points, NOW())
+  ON CONFLICT (user_id)
+  DO UPDATE SET
+    total_points = user_points.total_points + EXCLUDED.total_points,
+    updated_at   = NOW();
+END;
+$$;
