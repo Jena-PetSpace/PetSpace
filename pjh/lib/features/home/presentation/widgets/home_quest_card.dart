@@ -88,11 +88,11 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
     try {
       final res = await Supabase.instance.client
           .from('user_points')
-          .select('total_points')
+          .select('balance')
           .eq('user_id', auth.user.uid)
           .maybeSingle();
       if (mounted && res != null) {
-        setState(() => _totalPoints = res['total_points'] as int? ?? 0);
+        setState(() => _totalPoints = res['balance'] as int? ?? 0);
       }
     } catch (e) {
       dev.log('포인트 조회 실패: $e', name: 'QuestCard');

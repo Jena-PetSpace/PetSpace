@@ -1574,23 +1574,27 @@ ON CONFLICT (key) DO NOTHING;
 -- ================================================================
 -- PART 11: increment_user_points RPC
 -- 퀘스트 포인트 저장 시 race condition 없이 원자적으로 증가
+--
+-- 구조: user_points는 VIEW (point_transactions의 SUM)
+--       → INSERT는 point_transactions 테이블에 직접 수행
+--       → user_points VIEW가 자동으로 잔액 합산
+--
 -- 호출: supabase.rpc('increment_user_points', { p_user_id: uid, p_points: 30 })
 -- ================================================================
 
 CREATE OR REPLACE FUNCTION increment_user_points(
-  p_user_id UUID,
-  p_points   INT
+  p_user_id    UUID,
+  p_points     INT,
+  p_type       TEXT DEFAULT 'quest',
+  p_description TEXT DEFAULT '퀘스트 완료'
 )
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO user_points (user_id, total_points, updated_at)
-  VALUES (p_user_id, p_points, NOW())
-  ON CONFLICT (user_id)
-  DO UPDATE SET
-    total_points = user_points.total_points + EXCLUDED.total_points,
-    updated_at   = NOW();
+  INSERT INTO point_transactions (user_id, amount, type, description)
+  VALUES (p_user_id, p_points, p_type, p_description);
 END;
 $$;
