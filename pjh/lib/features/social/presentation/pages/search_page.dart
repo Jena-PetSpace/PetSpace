@@ -41,13 +41,14 @@ class _SearchPageState extends State<SearchPage>
     _searchBloc = di.sl<SearchBloc>();
     _currentUserId = Supabase.instance.client.auth.currentUser?.id;
 
-    // initialHashtag이 있으면 해시태그로 검색
+    // initialHashtag이 있으면 해시태그 탭(2)으로 이동 후 검색
     if (widget.initialHashtag != null) {
+      _tabController.index = 1; // 게시물 탭으로 이동 (해시태그는 게시물 검색)
       _searchController.text = '#${widget.initialHashtag}';
       _searchBloc
           .add(SearchPostsByHashtagRequested(hashtag: widget.initialHashtag!));
     }
-    // initialQuery가 있으면 해당 쿼리로 검색
+    // initialQuery가 있으면 해당 쿼리로 검색 (사용자 탭이 기본)
     else if (widget.initialQuery != null) {
       _searchController.text = widget.initialQuery!;
       _performSearch(widget.initialQuery!);
@@ -73,6 +74,9 @@ class _SearchPageState extends State<SearchPage>
     final currentTab = _tabController.index;
 
     if (currentTab == 0) {
+      // 사용자 탭
+      _searchBloc.add(SearchUsersRequested(query: query));
+    } else if (currentTab == 1) {
       // 게시물 탭
       if (query.startsWith('#')) {
         final hashtag = query.substring(1);
@@ -80,12 +84,9 @@ class _SearchPageState extends State<SearchPage>
       } else {
         _searchBloc.add(SearchPostsRequested(query: query));
       }
-    } else if (currentTab == 1) {
+    } else {
       // 해시태그 탭
       _searchBloc.add(const GetPopularHashtagsRequested(limit: 50));
-    } else {
-      // 사용자 탭
-      _searchBloc.add(SearchUsersRequested(query: query));
     }
   }
 
@@ -137,13 +138,13 @@ class _SearchPageState extends State<SearchPage>
                 }
                 final tab = _tabController.index;
                 if (tab == 0) {
+                  _searchBloc.add(SearchUsersRequested(query: query));
+                } else if (tab == 1) {
                   if (query.startsWith('#')) {
                     _searchBloc.add(SearchPostsByHashtagRequested(hashtag: query.substring(1)));
                   } else {
                     _searchBloc.add(SearchPostsRequested(query: query));
                   }
-                } else if (tab == 2) {
-                  _searchBloc.add(SearchUsersRequested(query: query));
                 }
               });
             },
@@ -166,14 +167,14 @@ class _SearchPageState extends State<SearchPage>
                 unselectedLabelColor: Colors.grey,
                 indicatorColor: AppTheme.primaryColor,
                 tabs: const [
+                  Tab(text: '사용자'),
                   Tab(text: '게시물'),
                   Tab(text: '해시태그'),
-                  Tab(text: '사용자'),
                 ],
                 onTap: (index) {
                   final query = _searchController.text.trim();
                   if (query.isNotEmpty) {
-                    if (index == 2) {
+                    if (index == 0) {
                       _searchBloc.add(SearchUsersRequested(query: query));
                     } else {
                       _performSearch(query);
@@ -188,9 +189,9 @@ class _SearchPageState extends State<SearchPage>
               child: TabBarView(
                 controller: _tabController,
                 children: [
+                  _buildUsersTab(),
                   _buildPostsTab(),
                   _buildHashtagsTab(),
-                  _buildUsersTab(),
                 ],
               ),
             ),
