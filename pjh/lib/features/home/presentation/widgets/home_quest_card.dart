@@ -28,7 +28,9 @@ class _Quest {
 }
 
 class HomeQuestCard extends StatefulWidget {
-  const HomeQuestCard({super.key});
+  final ValueNotifier<int>? checkNotifier;
+
+  const HomeQuestCard({super.key, this.checkNotifier});
 
   @override
   State<HomeQuestCard> createState() => _HomeQuestCardState();
@@ -70,6 +72,25 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
     super.initState();
     _loadQuestStatus();
     _loadPoints();
+    widget.checkNotifier?.addListener(_onCheckNotified);
+  }
+
+  @override
+  void dispose() {
+    widget.checkNotifier?.removeListener(_onCheckNotified);
+    super.dispose();
+  }
+
+  void _onCheckNotified() {
+    _verifyAllPendingQuests();
+  }
+
+  /// 홈 복귀 시 아직 완료 안 된 퀘스트들을 일괄 DB 검증
+  Future<void> _verifyAllPendingQuests() async {
+    for (final quest in _quests) {
+      if (_completed[quest.id] == true) continue;
+      await _verifyAndComplete(quest);
+    }
   }
 
   Future<void> _loadQuestStatus() async {
@@ -99,12 +120,9 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
     }
   }
 
-  /// 퀘스트 탭 → 페이지 이동 후 실제 수행 여부를 DB로 검증
-  Future<void> _onQuestTap(_Quest quest) async {
-    await context.push(quest.route);
-    if (!mounted) return;
-    // 페이지에서 돌아오면 실제 완료 여부 검증
-    await _verifyAndComplete(quest);
+  /// 퀘스트 탭 → 해당 페이지로 이동 (복귀 시 GoRouter listener가 _verifyAllPendingQuests 호출)
+  void _onQuestTap(_Quest quest) {
+    context.push(quest.route);
   }
 
   /// DB에서 오늘 실제 수행 여부 확인 후 포인트 지급

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:io';
 import '../../../../shared/widgets/image_source_picker.dart';
 
@@ -317,8 +318,12 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
           ),
           TextButton(
             onPressed: () {
+              // 다이얼로그 닫기
               Navigator.pop(context);
-              // Handle emotion analysis attachment
+              // bottom sheet 닫기
+              Navigator.pop(context);
+              // AI 감정 분석 페이지로 이동
+              context.push('/emotion');
             },
             child: const Text('연결'),
           ),
