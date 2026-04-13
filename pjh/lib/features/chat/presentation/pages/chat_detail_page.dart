@@ -428,17 +428,18 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Widget _buildDateSeparator(DateTime date) {
+    final local = date.toLocal();
     final now = DateTime.now();
     String text;
 
-    if (_isSameDay(date, now)) {
+    if (_isSameDay(local, now)) {
       text = '오늘';
-    } else if (_isSameDay(date, now.subtract(const Duration(days: 1)))) {
+    } else if (_isSameDay(local, now.subtract(const Duration(days: 1)))) {
       text = '어제';
-    } else if (date.year == now.year) {
-      text = '${date.month}월 ${date.day}일';
+    } else if (local.year == now.year) {
+      text = '${local.month}월 ${local.day}일';
     } else {
-      text = '${date.year}년 ${date.month}월 ${date.day}일';
+      text = '${local.year}년 ${local.month}월 ${local.day}일';
     }
 
     return Center(

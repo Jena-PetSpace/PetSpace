@@ -443,8 +443,9 @@ class ChatBubble extends StatelessWidget {
   }
 
   String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour;
-    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final local = dateTime.toLocal();
+    final hour = local.hour;
+    final minute = local.minute.toString().padLeft(2, '0');
     if (hour < 12) {
       return '오전 ${hour == 0 ? 12 : hour}:$minute';
     } else {
