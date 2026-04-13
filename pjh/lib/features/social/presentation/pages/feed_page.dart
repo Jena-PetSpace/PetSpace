@@ -263,7 +263,7 @@ class _FeedPageState extends State<FeedPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => CreatePostBottomSheet(
-        currentUserId: widget.userId ?? '',
+        currentUserId: _effectiveUserId ?? '',
         onPostCreated: (post) {
           context.read<FeedBloc>().add(CreatePostRequested(post: post));
         },

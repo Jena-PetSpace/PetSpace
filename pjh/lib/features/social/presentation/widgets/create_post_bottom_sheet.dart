@@ -305,25 +305,25 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
   }
 
   void _attachEmotionAnalysis() {
-    // Navigate to emotion analysis or show selection dialog
+    final sheetContext = context;
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: sheetContext,
+      builder: (dialogContext) => AlertDialog(
         title: const Text('감정 분석 연결'),
         content: const Text('감정 분석 결과를 게시물에 연결하시겠습니까?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('취소'),
           ),
           TextButton(
             onPressed: () {
               // 다이얼로그 닫기
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               // bottom sheet 닫기
-              Navigator.pop(context);
+              Navigator.pop(sheetContext);
               // AI 감정 분석 페이지로 이동
-              context.push('/emotion');
+              sheetContext.push('/emotion');
             },
             child: const Text('연결'),
           ),
