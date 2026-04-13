@@ -66,6 +66,7 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
 
   Map<String, bool> _completed = {};
   int _totalPoints = 0;
+  bool _isExpanded = true;
 
   @override
   void initState() {
@@ -216,182 +217,197 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
 
   @override
   Widget build(BuildContext context) {
-
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: AppTheme.dividerColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: [
-          // 헤더
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.05),
-              borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(20.r)),
-            ),
-            child: Row(
-              children: [
-                Text('🎯', style: TextStyle(fontSize: 18.sp)),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '오늘의 퀘스트',
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                      Text(
-                        '$_completedCount/${_quests.length} 완료',
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          color: AppTheme.secondaryTextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 포인트 배지
-                Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-                  decoration: BoxDecoration(
-                    color: AppTheme.highlightColor,
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Text('⭐', style: TextStyle(fontSize: 12.sp)),
-                      SizedBox(width: 4.w),
-                      Text(
-                        '$_totalPoints pt',
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // 진행 바
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4.r),
-              child: LinearProgressIndicator(
-                value: _quests.isEmpty ? 0 : _completedCount / _quests.length,
-                backgroundColor: AppTheme.subtleBackground,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                    _completedCount == _quests.length
-                        ? AppTheme.successColor
-                        : AppTheme.primaryColor),
-                minHeight: 6,
+          // 헤더 (탭으로 접기/펼치기)
+          GestureDetector(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: _isExpanded
+                    ? BorderRadius.vertical(top: Radius.circular(16.r))
+                    : BorderRadius.circular(16.r),
               ),
-            ),
-          ),
-
-          // 퀘스트 목록
-          Padding(
-            padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 12.h),
-            child: Column(
-              children: _quests.map((quest) {
-                final done = _completed[quest.id] == true;
-                return GestureDetector(
-                  onTap: done ? null : () => _onQuestTap(quest),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: EdgeInsets.only(bottom: 6.h),
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 12.w, vertical: 10.h),
-                    decoration: BoxDecoration(
-                      color: done
-                          ? AppTheme.successColor.withValues(alpha: 0.08)
-                          : AppTheme.subtleBackground,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(
-                        color: done
-                            ? AppTheme.successColor.withValues(alpha: 0.3)
-                            : Colors.transparent,
-                      ),
-                    ),
-                    child: Row(
+              child: Row(
+                children: [
+                  Text('🎯', style: TextStyle(fontSize: 18.sp)),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(quest.emoji,
-                            style: TextStyle(fontSize: 20.sp)),
-                        SizedBox(width: 10.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                quest.title,
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: done
-                                      ? AppTheme.successColor
-                                      : AppTheme.primaryTextColor,
-                                  decoration: done
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
-                                ),
-                              ),
-                              Text(
-                                quest.desc,
-                                style: TextStyle(
-                                  fontSize: 10.sp,
-                                  color: AppTheme.secondaryTextColor,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          '오늘의 퀘스트',
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryColor,
                           ),
                         ),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 8.w, vertical: 3.h),
-                          decoration: BoxDecoration(
-                            color: done
-                                ? AppTheme.successColor
-                                : AppTheme.primaryColor
-                                    .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Text(
-                            done ? '완료' : '+${quest.points}pt',
-                            style: TextStyle(
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w700,
-                              color: done
-                                  ? Colors.white
-                                  : AppTheme.primaryColor,
-                            ),
+                        Text(
+                          '$_completedCount/${_quests.length} 완료',
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            color: AppTheme.secondaryTextColor,
                           ),
                         ),
                       ],
                     ),
                   ),
-                );
-              }).toList(),
+                  // 포인트 배지
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                    decoration: BoxDecoration(
+                      color: AppTheme.highlightColor,
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Text('⭐', style: TextStyle(fontSize: 12.sp)),
+                        SizedBox(width: 4.w),
+                        Text(
+                          '$_totalPoints pt',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  // 접기/펼치기 아이콘
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, animation) =>
+                        ScaleTransition(scale: animation, child: child),
+                    child: Icon(
+                      _isExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      key: ValueKey(_isExpanded),
+                      size: 22.w,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 접기/펼치기 영역
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 250),
+            crossFadeState: _isExpanded
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
+            secondChild: const SizedBox.shrink(),
+            firstChild: Column(
+              children: [
+                const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
+                // 퀘스트 목록
+                Padding(
+                  padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 12.h),
+                  child: Column(
+                    children: _quests.map((quest) {
+                      final done = _completed[quest.id] == true;
+                      return GestureDetector(
+                        onTap: done ? null : () => _onQuestTap(quest),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: EdgeInsets.only(bottom: 8.h),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12.w, vertical: 10.h),
+                          decoration: BoxDecoration(
+                            color: done
+                                ? AppTheme.successColor.withValues(alpha: 0.08)
+                                : AppTheme.subtleBackground,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(
+                              color: done
+                                  ? AppTheme.successColor.withValues(alpha: 0.3)
+                                  : Colors.transparent,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(quest.emoji,
+                                  style: TextStyle(fontSize: 20.sp)),
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      quest.title,
+                                      style: TextStyle(
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: done
+                                            ? AppTheme.successColor
+                                            : AppTheme.primaryTextColor,
+                                        decoration: done
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
+                                      ),
+                                    ),
+                                    Text(
+                                      quest.desc,
+                                      style: TextStyle(
+                                        fontSize: 10.sp,
+                                        color: AppTheme.secondaryTextColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 8.w, vertical: 3.h),
+                                decoration: BoxDecoration(
+                                  color: done
+                                      ? AppTheme.successColor
+                                      : AppTheme.primaryColor
+                                          .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                                child: Text(
+                                  done ? '완료' : '+${quest.points}pt',
+                                  style: TextStyle(
+                                    fontSize: 9.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: done
+                                        ? Colors.white
+                                        : AppTheme.primaryColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
