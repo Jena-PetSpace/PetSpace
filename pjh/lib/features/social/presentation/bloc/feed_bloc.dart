@@ -149,6 +149,9 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     CreatePostRequested event,
     Emitter<FeedState> emit,
   ) async {
+    // 현재 FeedLoaded 상태를 미리 저장
+    final prevLoaded = state is FeedLoaded ? state as FeedLoaded : null;
+
     emit(FeedCreatingPost());
 
     final result = await _createPost(CreatePostParams(post: event.post));
@@ -156,25 +159,15 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     result.fold(
       (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (post) {
-        // FeedPostCreated를 먼저 emit하여 네비게이션 처리
+        // 스낵바 트리거용 FeedPostCreated emit
         emit(FeedPostCreated(post));
 
-        // 그 다음 피드에 게시물이 추가된 상태로 업데이트
-        if (state is FeedLoaded || state is FeedPostCreated) {
-          FeedLoaded currentState;
-          if (state is FeedLoaded) {
-            currentState = state as FeedLoaded;
-          } else {
-            // FeedPostCreated 직후이므로 새로운 FeedLoaded 생성
-            currentState = const FeedLoaded(posts: [], hasReachedMax: false);
-          }
-
-          emit(currentState.copyWith(
-            posts: [post, ...currentState.posts],
-          ));
-        } else {
-          emit(FeedLoaded(posts: [post], hasReachedMax: false));
-        }
+        // 기존 피드 목록 앞에 새 게시물 추가
+        final existingPosts = prevLoaded?.posts ?? [];
+        emit(FeedLoaded(
+          posts: [post, ...existingPosts],
+          hasReachedMax: prevLoaded?.hasReachedMax ?? false,
+        ));
       },
     );
   }
