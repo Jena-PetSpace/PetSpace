@@ -329,29 +329,36 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           BlocBuilder<ChatDetailBloc, ChatDetailState>(
             builder: (context, state) {
               final isSending = state is ChatDetailLoaded && state.isSending;
-              return ChatInputBar(
-                isSending: isSending,
-                onSendText: (text) {
-                  context.read<ChatDetailBloc>().add(
-                        ChatDetailSendTextRequested(
-                          roomId: widget.roomId,
-                          senderId: _currentUserId,
-                          content: text,
-                        ),
-                      );
-                },
-                onSendImage: (File imageFile) {
-                  context.read<ChatDetailBloc>().add(
-                        ChatDetailSendImageRequested(
-                          roomId: widget.roomId,
-                          senderId: _currentUserId,
-                          imageFile: imageFile,
-                        ),
-                      );
-                },
-                onSendMultipleImages: (List<File> images) {
-                  _sendMultipleImages(images);
-                },
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ChatInputBar(
+                    isSending: isSending,
+                    onSendText: (text) {
+                      context.read<ChatDetailBloc>().add(
+                            ChatDetailSendTextRequested(
+                              roomId: widget.roomId,
+                              senderId: _currentUserId,
+                              content: text,
+                            ),
+                          );
+                    },
+                    onSendImage: (File imageFile) {
+                      context.read<ChatDetailBloc>().add(
+                            ChatDetailSendImageRequested(
+                              roomId: widget.roomId,
+                              senderId: _currentUserId,
+                              imageFile: imageFile,
+                            ),
+                          );
+                    },
+                    onSendMultipleImages: (List<File> images) {
+                      _sendMultipleImages(images);
+                    },
+                  ),
+                  // ShellRoute 하단 네비바 높이만큼 여백
+                  SizedBox(height: 60.h + MediaQuery.of(context).viewPadding.bottom),
+                ],
               );
             },
           ),

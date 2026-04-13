@@ -85,9 +85,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
+    return Container(
       padding: EdgeInsets.only(
         left: 8.w,
         right: 8.w,
@@ -157,7 +155,6 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   ),
                 ),
         ],
-      ),
       ),
     );
   }
