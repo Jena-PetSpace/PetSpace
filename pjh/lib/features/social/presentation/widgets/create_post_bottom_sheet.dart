@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
 import 'dart:io';
 import '../../../../shared/widgets/image_source_picker.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../emotion/domain/entities/emotion_analysis.dart';
+import '../../../emotion/presentation/pages/emotion_history_page.dart';
 import '../../domain/entities/post.dart';
 
 class CreatePostBottomSheet extends StatefulWidget {
@@ -27,6 +28,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
   PostType _postType = PostType.text;
   bool _isPublic = true;
   String? _location;
+  EmotionAnalysis? _attachedEmotion;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +55,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
                     _buildContentInput(),
                     SizedBox(height: 16.h),
                     if (_selectedImages.isNotEmpty) _buildSelectedImages(),
+                    if (_attachedEmotion != null) _buildAttachedEmotion(),
                     _buildPostTypeSelector(),
                     SizedBox(height: 16.h),
                     _buildPostOptions(),
@@ -284,6 +287,57 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
     );
   }
 
+  Widget _buildAttachedEmotion() {
+    final emotion = _attachedEmotion!;
+    final dominant = emotion.emotions.dominantEmotion;
+    final emotionNames = {
+      'happiness': '행복', 'calm': '평온', 'excitement': '흥분',
+      'curiosity': '호기심', 'anxiety': '불안', 'fear': '두려움',
+      'sadness': '슬픔', 'discomfort': '불편',
+    };
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.05),
+        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.psychology, color: AppTheme.primaryColor, size: 20.w),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '감정 분석 연결됨',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                Text(
+                  '${emotion.petName ?? '반려동물'} · ${emotionNames[dominant] ?? dominant} ${(emotion.emotions.toMap()[dominant]! * 100).toInt()}%',
+                  style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => setState(() {
+              _attachedEmotion = null;
+              _postType = PostType.text;
+            }),
+            child: Icon(Icons.close, size: 18.w, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _pickImages() async {
     final images = await ImageSourcePicker.pickMultiple(context);
 
@@ -304,32 +358,23 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
     });
   }
 
-  void _attachEmotionAnalysis() {
-    final sheetContext = context;
-    showDialog(
-      context: sheetContext,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('감정 분석 연결'),
-        content: const Text('감정 분석 결과를 게시물에 연결하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () {
-              // 다이얼로그 닫기
-              Navigator.pop(dialogContext);
-              // bottom sheet 닫기
-              Navigator.pop(sheetContext);
-              // AI 감정 분석 페이지로 이동
-              sheetContext.push('/emotion');
-            },
-            child: const Text('연결'),
-          ),
-        ],
+  void _attachEmotionAnalysis() async {
+    if (widget.currentUserId.isEmpty) return;
+    final result = await Navigator.push<EmotionAnalysis>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EmotionHistoryPage(
+          userId: widget.currentUserId,
+          selectMode: true,
+        ),
       ),
     );
+    if (result != null && mounted) {
+      setState(() {
+        _attachedEmotion = result;
+        _postType = PostType.emotionAnalysis;
+      });
+    }
   }
 
   void _addLocation() {
@@ -369,7 +414,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
   void _createPost() {
     final content = _contentController.text.trim();
 
-    if (content.isEmpty && _selectedImages.isEmpty) {
+    if (content.isEmpty && _selectedImages.isEmpty && _attachedEmotion == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('내용을 입력하거나 이미지를 추가해주세요.')),
       );
@@ -377,12 +422,13 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
     }
 
     final post = Post(
-      id: '', // Will be generated by repository
+      id: '',
       authorId: widget.currentUserId,
-      authorName: 'Current User', // Should get from auth
+      authorName: '',
       type: _postType,
       content: content.isNotEmpty ? content : null,
-      imageUrls: const [], // Will be populated after upload
+      imageUrls: const [],
+      emotionAnalysis: _attachedEmotion,
       createdAt: DateTime.now(),
       isPublic: _isPublic,
       location: _location,

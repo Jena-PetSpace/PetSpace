@@ -260,6 +260,9 @@ ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT FALSE;
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS location TEXT;
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
 
+-- image_url NOT NULL 제약 제거 (텍스트/감정분석 게시물은 이미지 없음)
+ALTER TABLE posts ALTER COLUMN image_url DROP NOT NULL;
+
 COMMENT ON COLUMN users.provider IS '가입 방식 (email, google, kakao)';
 COMMENT ON COLUMN users.is_onboarding_completed IS '온보딩 프로세스 완료 여부';
 COMMENT ON COLUMN users.pets IS '사용자가 소유한 반려동물 UUID 배열';

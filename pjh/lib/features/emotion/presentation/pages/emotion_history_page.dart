@@ -13,11 +13,14 @@ import 'emotion_result_page.dart';
 class EmotionHistoryPage extends StatefulWidget {
   final String userId;
   final String? petId;
+  /// true이면 항목 탭 시 EmotionAnalysis를 반환하고 페이지를 닫음
+  final bool selectMode;
 
   const EmotionHistoryPage({
     super.key,
     required this.userId,
     this.petId,
+    this.selectMode = false,
   });
 
   @override
@@ -53,7 +56,7 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('감정 분석 히스토리'),
+        title: Text(widget.selectMode ? '감정 분석 선택' : '감정 분석 히스토리'),
         actions: [
           IconButton(
             icon: Icon(_isCalendarView ? Icons.list : Icons.calendar_month),
@@ -843,6 +846,10 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
   }
 
   void _navigateToDetail(EmotionAnalysis analysis) {
+    if (widget.selectMode) {
+      Navigator.pop(context, analysis);
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
