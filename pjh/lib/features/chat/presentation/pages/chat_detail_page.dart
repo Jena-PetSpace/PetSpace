@@ -329,36 +329,29 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           BlocBuilder<ChatDetailBloc, ChatDetailState>(
             builder: (context, state) {
               final isSending = state is ChatDetailLoaded && state.isSending;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ChatInputBar(
-                    isSending: isSending,
-                    onSendText: (text) {
-                      context.read<ChatDetailBloc>().add(
-                            ChatDetailSendTextRequested(
-                              roomId: widget.roomId,
-                              senderId: _currentUserId,
-                              content: text,
-                            ),
-                          );
-                    },
-                    onSendImage: (File imageFile) {
-                      context.read<ChatDetailBloc>().add(
-                            ChatDetailSendImageRequested(
-                              roomId: widget.roomId,
-                              senderId: _currentUserId,
-                              imageFile: imageFile,
-                            ),
-                          );
-                    },
-                    onSendMultipleImages: (List<File> images) {
-                      _sendMultipleImages(images);
-                    },
-                  ),
-                  // ShellRoute 하단 네비바 높이만큼 여백
-                  SizedBox(height: 60.h + MediaQuery.of(context).viewPadding.bottom),
-                ],
+              return ChatInputBar(
+                isSending: isSending,
+                onSendText: (text) {
+                  context.read<ChatDetailBloc>().add(
+                        ChatDetailSendTextRequested(
+                          roomId: widget.roomId,
+                          senderId: _currentUserId,
+                          content: text,
+                        ),
+                      );
+                },
+                onSendImage: (File imageFile) {
+                  context.read<ChatDetailBloc>().add(
+                        ChatDetailSendImageRequested(
+                          roomId: widget.roomId,
+                          senderId: _currentUserId,
+                          imageFile: imageFile,
+                        ),
+                      );
+                },
+                onSendMultipleImages: (List<File> images) {
+                  _sendMultipleImages(images);
+                },
               );
             },
           ),
@@ -380,6 +373,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     return ListView.builder(
       controller: _scrollController,
       reverse: true,
+      padding: EdgeInsets.symmetric(vertical: 8.h),
       itemCount: state.messages.length + (state.isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (state.isLoadingMore && index == state.messages.length) {
