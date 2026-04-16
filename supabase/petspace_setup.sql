@@ -1641,3 +1641,41 @@ CREATE POLICY "users can manage own health_history"
   ON health_history FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+-- ── get_latest_health_by_area RPC ────────────────────────────────────────────
+-- 부위별 최신 건강 분석 결과 조회 (AiHistoryPage 현황 탭용)
+-- p_user_id: 조회할 유저 UUID
+-- p_pet_id:  NULL이면 pet_id IS NULL인 미등록 분석만 조회,
+--            값이 있으면 해당 pet의 분석만 조회
+CREATE OR REPLACE FUNCTION get_latest_health_by_area(
+  p_user_id UUID,
+  p_pet_id  UUID DEFAULT NULL
+)
+RETURNS TABLE (
+  area          TEXT,
+  overall_score INT,
+  status        TEXT,
+  risk_alert    BOOLEAN,
+  created_at    TIMESTAMPTZ
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT DISTINCT ON (area)
+    area,
+    overall_score,
+    status,
+    risk_alert,
+    created_at
+  FROM health_history
+  WHERE user_id = p_user_id
+    AND (
+      p_pet_id IS NULL
+        AND pet_id IS NULL
+      OR
+      p_pet_id IS NOT NULL
+        AND pet_id = p_pet_id
+    )
+  ORDER BY area, created_at DESC;
+$$;
