@@ -41,11 +41,13 @@ import 'shared/themes/theme_cubit.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // StatusBar 전역 설정: 투명 배경 + 어두운 아이콘
+  // StatusBar 전역 설정: 흰색 배경 + 검은 아이콘 (고정)
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
-    statusBarBrightness: Brightness.light, // iOS
+    statusBarColor: Colors.white,
+    statusBarIconBrightness: Brightness.dark,  // Android: 검은 아이콘
+    statusBarBrightness: Brightness.light,     // iOS: 검은 아이콘
+    systemNavigationBarColor: Colors.white,
+    systemNavigationBarIconBrightness: Brightness.dark,
   ));
 
   // Flutter 이미지 캐시 크기 제한 (기본값: 100MB 무제한 → 명시적 설정)
