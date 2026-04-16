@@ -1604,3 +1604,40 @@ BEGIN
   VALUES (p_user_id, p_points, p_type, p_description);
 END;
 $$;
+
+-- ================================================================
+-- 건강 분석 히스토리 (AI 건강분석 결과 저장)
+-- 추가: 2026-04-16
+-- ================================================================
+
+CREATE TABLE IF NOT EXISTS health_history (
+  id                 BIGSERIAL PRIMARY KEY,
+  user_id            UUID REFERENCES auth.users NOT NULL,
+  pet_id             UUID,
+  pet_name           TEXT,
+  area               TEXT NOT NULL,
+  image_urls         TEXT[]   DEFAULT '{}',
+  overall_score      INT      NOT NULL,
+  status             TEXT     NOT NULL,          -- '양호' | '주의' | '위험' | '확인불가'
+  findings           JSONB    DEFAULT '[]',
+  risk_alert         BOOLEAN  DEFAULT FALSE,
+  risk_reason        TEXT,
+  recommendations    TEXT[]   DEFAULT '{}',
+  confidence         FLOAT    NOT NULL,
+  summary            TEXT     NOT NULL,
+  additional_context TEXT,
+  created_at         TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 인덱스
+CREATE INDEX IF NOT EXISTS idx_health_history_user_id   ON health_history (user_id);
+CREATE INDEX IF NOT EXISTS idx_health_history_pet_id    ON health_history (pet_id);
+CREATE INDEX IF NOT EXISTS idx_health_history_created_at ON health_history (created_at DESC);
+
+-- RLS
+ALTER TABLE health_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "users can manage own health_history"
+  ON health_history FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);

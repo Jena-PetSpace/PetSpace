@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -94,7 +95,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       // AppBar 완전 제거 → 커스텀 헤더
       body: RefreshIndicator(
@@ -148,7 +155,8 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-    );
+    ), // Scaffold
+    ); // AnnotatedRegion
   }
 
   Widget _buildCategoryContent() {

@@ -776,37 +776,20 @@ class _PostCardState extends State<PostCard> {
     }
   }
 
-  String _getEmotionName(String emotion) {
-    switch (emotion) {
-      case 'happiness':
-        return '기쁨';
-      case 'sadness':
-        return '슬픔';
-      case 'anxiety':
-        return '불안';
-      case 'sleepiness':
-        return '졸림';
-      case 'curiosity':
-        return '호기심';
-      default:
-        return '알 수 없음';
-    }
-  }
+  String _getEmotionName(String emotion) => AppTheme.getEmotionLabel(emotion);
 
   IconData _getEmotionIcon(String emotion) {
     switch (emotion) {
-      case 'happiness':
-        return Icons.mood;
-      case 'sadness':
-        return Icons.mood_bad;
-      case 'anxiety':
-        return Icons.warning;
-      case 'sleepiness':
-        return Icons.bedtime;
-      case 'curiosity':
-        return Icons.psychology;
-      default:
-        return Icons.help_outline;
+      case 'happiness':  return Icons.mood;
+      case 'calm':       return Icons.self_improvement;
+      case 'excitement': return Icons.celebration;
+      case 'curiosity':  return Icons.psychology;
+      case 'anxiety':    return Icons.warning;
+      case 'fear':       return Icons.warning_amber_outlined;
+      case 'sadness':    return Icons.mood_bad;
+      case 'discomfort': return Icons.sick_outlined;
+      case 'sleepiness': return Icons.bedtime; // 하위 호환
+      default:           return Icons.help_outline;
     }
   }
 }

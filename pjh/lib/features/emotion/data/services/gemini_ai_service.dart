@@ -5,21 +5,40 @@ import 'package:dio/dio.dart';
 import '../../../../config/api_config.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../domain/entities/emotion_analysis.dart';
+import '../../domain/entities/health_analysis.dart';
 import '../models/emotion_analysis_model.dart';
+import '../models/health_analysis_model.dart';
 
 class GeminiAIService {
   final Dio _dio;
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
-  static String _buildPrompt({String? petType, String? breed}) {
-    final breedContext = (breed != null && breed.isNotEmpty)
+  static String _buildPrompt({
+    String? petName,
+    String? petType,
+    String? breed,
+    String? age,
+    String? gender,
+    String? additionalContext,
+  }) {
+    final buf = StringBuffer();
+    if (petName != null) buf.writeln('- 이름: $petName');
+    if (petType != null) buf.writeln('- 종: ${petType == 'dog' ? '강아지' : '고양이'}');
+    if (breed?.isNotEmpty == true) buf.writeln('- 품종: $breed');
+    if (age?.isNotEmpty == true) buf.writeln('- 나이: $age');
+    if (gender?.isNotEmpty == true) buf.writeln('- 성별: $gender');
+
+    final petSection = buf.isNotEmpty ? '\n[반려동물 정보]\n$buf' : '';
+    final ctxSection = (additionalContext?.isNotEmpty == true)
+        ? '\n[추가 맥락 - 보호자 입력]\n"$additionalContext"\n→ 이 맥락을 분석에 반드시 반영.'
+        : '';
+    final breedContext = (breed?.isNotEmpty == true)
         ? '\n[참고] 분석 대상: ${petType ?? '반려동물'}($breed). 이 품종의 특성을 고려해 해석해주세요.'
         : '';
 
     return """
-이 사진의 반려동물을 아래 심리학·신경과학 이론에 기반하여 분석해주세요.
-$breedContext
+이 사진의 반려동물을 아래 심리학·신경과학 이론에 기반하여 분석해주세요.$petSection$ctxSection$breedContext
 
 [분석 이론 기반]
 - Russell(1980) 원형 모델: valence(긍정/부정) × arousal(고각성/저각성)
@@ -73,8 +92,12 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 
   Future<EmotionScoresModel> analyzeEmotionFromImage(
     File imageFile, {
+    String? petName,
     String? petType,
     String? breed,
+    String? age,
+    String? gender,
+    String? additionalContext,
   }) async {
     if (!ApiConfig.isGeminiConfigured) {
       throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
@@ -95,7 +118,14 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       final bytes = await imageFile.readAsBytes();
       final base64Image = base64Encode(bytes);
       final mimeType = _getMimeType(imageFile.path);
-      final prompt = _buildPrompt(petType: petType, breed: breed);
+      final prompt = _buildPrompt(
+        petName: petName,
+        petType: petType,
+        breed: breed,
+        age: age,
+        gender: gender,
+        additionalContext: additionalContext,
+      );
 
       final requestData = _buildRequest([
         {"text": prompt},
@@ -116,8 +146,12 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 
   Future<EmotionScoresModel> analyzeEmotionFromImages(
     List<File> imageFiles, {
+    String? petName,
     String? petType,
     String? breed,
+    String? age,
+    String? gender,
+    String? additionalContext,
   }) async {
     if (!ApiConfig.isGeminiConfigured) {
       throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
@@ -126,15 +160,29 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       throw const AnalysisException('분석할 이미지가 없습니다.');
     }
     if (imageFiles.length == 1) {
-      return analyzeEmotionFromImage(imageFiles.first,
-          petType: petType, breed: breed);
+      return analyzeEmotionFromImage(
+        imageFiles.first,
+        petName: petName,
+        petType: petType,
+        breed: breed,
+        age: age,
+        gender: gender,
+        additionalContext: additionalContext,
+      );
     }
 
     try {
       log('다중 이미지 분석 시작 (${imageFiles.length}장)', name: 'GeminiAI');
 
       final parts = <Map<String, dynamic>>[];
-      final prompt = _buildPrompt(petType: petType, breed: breed);
+      final prompt = _buildPrompt(
+        petName: petName,
+        petType: petType,
+        breed: breed,
+        age: age,
+        gender: gender,
+        additionalContext: additionalContext,
+      );
 
       parts.add({
         "text":
@@ -181,8 +229,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
         {"text": prompt},
       ]);
       final response = await _callApi(requestData);
-      final textContent =
-          response['candidates'][0]['content']['parts'][0]['text'] as String;
+      final textContent = _extractTextFromResponse(response);
       return textContent.trim();
     } catch (e) {
       log('generateText 오류: $e', name: 'GeminiAI');
@@ -334,9 +381,23 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     return null;
   }
 
+  /// candidates[0].content.parts 에서 JSON이 담긴 텍스트를 찾아 반환
+  /// gemini-2.5-flash는 thinking part(text 없음)와 answer part(text 있음)를 분리해서 줌
+  String _extractTextFromResponse(Map<String, dynamic> responseData) {
+    final parts = responseData['candidates'][0]['content']['parts'] as List;
+    // JSON 중괄호가 포함된 part를 우선, 없으면 마지막 text part 사용
+    String? bestText;
+    for (final part in parts) {
+      final t = part['text'] as String?;
+      if (t == null || t.trim().isEmpty) continue;
+      bestText = t;
+      if (t.contains('{')) break; // JSON 있는 part 발견 시 즉시 사용
+    }
+    return bestText ?? '';
+  }
+
   EmotionScoresModel _parseResponse(Map<String, dynamic> responseData) {
-    final textContent =
-        responseData['candidates'][0]['content']['parts'][0]['text'] as String;
+    final textContent = _extractTextFromResponse(responseData);
     log('응답 텍스트: $textContent', name: 'GeminiAI');
 
     final jsonStr = _extractJson(textContent);
@@ -477,5 +538,147 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       }
     }
     return defaultValue;
+  }
+
+  // ── 건강분석 ─────────────────────────────────────────────────
+
+  Future<HealthAnalysisModel> analyzeHealth(
+    List<String> imagePaths, {
+    required String area,
+    String? petName,
+    String? petType,
+    String? breed,
+    String? age,
+    String? gender,
+    String? additionalContext,
+    required String userId,
+    String? petId,
+  }) async {
+    if (!ApiConfig.isGeminiConfigured) {
+      throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
+    }
+    if (imagePaths.isEmpty) {
+      throw const AnalysisException('분석할 이미지가 없습니다.');
+    }
+
+    try {
+      log('건강분석 시작 → 부위: $area (${imagePaths.length}장)', name: 'GeminiAI');
+
+      final prompt = _buildHealthPrompt(
+        area: area,
+        petName: petName,
+        petType: petType,
+        breed: breed,
+        age: age,
+        gender: gender,
+        additionalContext: additionalContext,
+      );
+
+      final parts = <Map<String, dynamic>>[];
+      final prefix = imagePaths.length > 1
+          ? '아래 ${imagePaths.length}장은 같은 반려동물입니다. 종합 분석해주세요.\n\n'
+          : '';
+      parts.add({'text': '$prefix$prompt'});
+
+      for (final path in imagePaths) {
+        final file = File(path);
+        if (!await file.exists()) continue;
+        final fileSize = await file.length();
+        if (fileSize > 20 * 1024 * 1024) continue;
+        final bytes = await file.readAsBytes();
+        parts.add({
+          'inline_data': {
+            'mime_type': _getMimeType(path),
+            'data': base64Encode(bytes),
+          }
+        });
+      }
+
+      if (parts.length < 2) {
+        throw const AnalysisException('유효한 이미지가 없습니다.');
+      }
+
+      final response = await _callApi(_buildRequest(parts));
+      final text = _extractTextFromResponse(response);
+      log('건강분석 응답: $text', name: 'GeminiAI');
+
+      final jsonStr = _extractJson(text);
+      if (jsonStr == null) {
+        throw const AnalysisException('응답에서 JSON을 찾을 수 없습니다.');
+      }
+      final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+      return HealthAnalysisModel.fromGeminiJson(
+        userId: userId,
+        petId: petId,
+        petName: petName,
+        area: HealthArea.fromDisplayName(area),
+        imageUrls: imagePaths,
+        json: data,
+        additionalContext: additionalContext,
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      if (e is AnalysisException) rethrow;
+      throw AnalysisException('건강 분석 중 오류: ${e.toString()}');
+    }
+  }
+
+  static String _buildHealthPrompt({
+    required String area,
+    String? petName,
+    String? petType,
+    String? breed,
+    String? age,
+    String? gender,
+    String? additionalContext,
+  }) {
+    final buf = StringBuffer();
+    if (petName != null) buf.writeln('- 이름: $petName');
+    if (petType != null) buf.writeln('- 종: ${petType == 'dog' ? '강아지' : '고양이'}');
+    if (breed?.isNotEmpty == true) buf.writeln('- 품종: $breed');
+    if (age?.isNotEmpty == true) buf.writeln('- 나이: $age');
+    if (gender?.isNotEmpty == true) buf.writeln('- 성별: $gender');
+
+    final petSection = buf.isNotEmpty ? '\n[반려동물 정보]\n$buf' : '';
+    final ctxSection = (additionalContext?.isNotEmpty == true)
+        ? '\n[추가 맥락]\n"$additionalContext"\n→ 분석에 반영.' : '';
+
+    return """
+당신은 반려동물 건강 분석 전문 AI입니다.$petSection$ctxSection
+
+[분석 부위]: $area
+${_getAreaGuide(area)}
+
+JSON만 응답:
+{
+  "area":"$area","overall_score":85,"status":"양호",
+  "findings":[{"item":"항목명","result":"정상","detail":"설명","severity":"normal"}],
+  "risk_alert":false,"risk_reason":null,
+  "recommendations":["권장1","권장2"],"confidence":0.8,
+  "summary":"한 문장 요약"
+}
+status: 양호/주의/위험/확인불가 | severity: normal/caution/warning
+risk_alert true = 즉시 수의사 상담 필요. risk_reason 한국어 작성.
+분석 불가시 overall_score 50, status "확인불가", result "확인불가"
+""";
+  }
+
+  static String _getAreaGuide(String area) {
+    switch (area) {
+      case '눈·귀':
+        return '[항목] 눈충혈/눈물색/분비물/귀안쪽색/귀부종\n[위험] 눈의 체충혈, 고름분비물';
+      case '코·입':
+        return '[항목] 코건조/분비물색/잇몸색(분홍=정상,창백=위험)\n[위험] 잇몸창백·파란색, 혈액성분비물';
+      case '피부·털':
+        return '[항목] 발진/부음/병변/탈모/트스기\n[위험] 광범위발진, 출혈병변, 대면탈모';
+      case '체형(BCS)':
+        return '[항목] BCS1~9점: 1~3저체중/4~5정상/6~7과체중/8~9비만\n[위험] BCS1~2 또는 BCS9';
+      case '자세·체형 대칭':
+        return '[항목] 척추굴곡/다리대칭/체중분산\n[위험] 다리에서 다리기, 심한척추굴곡, 머리기울기고정';
+      default:
+        return '[항목] 눈/귀/코/입/피부/털/체형/자세 종합분석. 우려사항 최우선 보고.';
+    }
   }
 }

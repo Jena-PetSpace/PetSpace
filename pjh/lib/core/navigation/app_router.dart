@@ -47,6 +47,8 @@ import '../../features/social/presentation/pages/channel_subscription_page.dart'
 import '../../features/pets/presentation/pages/public_pet_page.dart';
 import '../../features/emotion/presentation/pages/weekly_report_page.dart';
 import '../../features/health/presentation/pages/health_alert_settings_page.dart';
+import '../../features/emotion/presentation/pages/health_result_page.dart';
+import '../../features/emotion/data/models/health_analysis_model.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
 import '../../features/auth/presentation/pages/kakao_consent_page.dart';
@@ -420,6 +422,14 @@ class AppRouter {
               path: '/hospital',
               name: 'hospital',
               builder: (_, __) => const HospitalSearchPage(),
+            ),
+            GoRoute(
+              path: '/health/result',
+              name: 'health-result',
+              builder: (context, state) {
+                final result = state.extra as HealthAnalysisModel;
+                return HealthResultPage(result: result);
+              },
             ),
             GoRoute(
               path: '/emotion',

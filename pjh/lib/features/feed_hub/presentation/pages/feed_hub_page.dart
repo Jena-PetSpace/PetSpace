@@ -144,24 +144,24 @@ class _FeedHubPageState extends State<FeedHubPage>
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(52.h),
+          preferredSize: Size.fromHeight(68.h),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 9.h),
             child: Container(
               decoration: BoxDecoration(
                 color: AppTheme.subtleBackground,
-                borderRadius: BorderRadius.circular(24.r),
+                borderRadius: BorderRadius.circular(30.r),
               ),
               padding: EdgeInsets.all(3.w),
               child: TabBar(
                 controller: _tabController,
                 labelColor: Colors.white,
                 unselectedLabelColor: AppTheme.secondaryTextColor,
-                labelStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700),
-                unselectedLabelStyle: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
+                labelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700),
+                unselectedLabelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w500),
                 indicator: BoxDecoration(
                   color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(20.r),
+                  borderRadius: BorderRadius.circular(26.r),
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.primaryColor.withValues(alpha: 0.3),
