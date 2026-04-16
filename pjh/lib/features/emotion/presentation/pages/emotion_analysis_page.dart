@@ -97,11 +97,13 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   bool _showAdditionalInput = false;
   final TextEditingController _additionalCtrl = TextEditingController();
 
-  // 건강분석 로딩
-  bool _healthLoading = false;
+  // 건강분석 로딩 페이지 push 여부
+  bool _healthLoadingPushed = false;
 
   // EmotionAnalysisBloc stream 구독 (initState에서 등록, dispose에서 취소)
   StreamSubscription? _emotionSub;
+  // 감정분석 로딩 페이지가 현재 push되어 있는지 추적
+  bool _emotionLoadingPushed = false;
 
   @override
   void initState() {
@@ -111,11 +113,29 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       context.read<PetBloc>().add(LoadUserPets());
     }
     _checkFirstVisit();
-    // BlocListener를 initState에서 등록 → build에서 로딩 Scaffold 반환해도 listener 유지
+    // BlocListener를 initState에서 등록
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _emotionSub = context.read<EmotionAnalysisBloc>().stream.listen((state) {
         if (!mounted) return;
-        if (state is EmotionAnalysisSuccess) {
+        if (state is EmotionAnalysisLoading) {
+          // 로딩 시작 → fullscreen 로딩 페이지 push (하단 네비바 가림)
+          if (!_emotionLoadingPushed) {
+            _emotionLoadingPushed = true;
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                fullscreenDialog: true,
+                builder: (_) => const Scaffold(
+                  body: SizedBox.expand(child: EmotionLoadingWidget()),
+                ),
+              ),
+            );
+          }
+        } else if (state is EmotionAnalysisSuccess) {
+          // 로딩 페이지 제거 후 결과 페이지로 교체
+          if (_emotionLoadingPushed) {
+            _emotionLoadingPushed = false;
+            Navigator.of(context).pop(); // 로딩 페이지 pop
+          }
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => EmotionResultPage(
@@ -125,6 +145,11 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
             ),
           );
         } else if (state is EmotionAnalysisError) {
+          // 로딩 페이지가 열려 있으면 닫기
+          if (_emotionLoadingPushed) {
+            _emotionLoadingPushed = false;
+            Navigator.of(context).pop();
+          }
           _showErrorDialog(state.message);
         }
       });
@@ -408,16 +433,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       );
     }
 
-    return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
-      builder: (context, emotionState) {
-        // 로딩 중: AppBar 없이 전체화면 로딩
-        if (emotionState is EmotionAnalysisLoading || _healthLoading) {
-          return const Scaffold(
-            body: SizedBox.expand(child: EmotionLoadingWidget()),
-          );
-        }
-
-        return Scaffold(
+    return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         title: const Text('AI 분석'),
@@ -585,8 +601,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         },
       ),
     ); // Scaffold
-      }, // BlocBuilder<EmotionAnalysisBloc> builder
-    ); // BlocBuilder<EmotionAnalysisBloc>
   }
 
   // 사진 그리드 (선택된 사진들 + 빈 슬롯 힌트)
@@ -1249,7 +1263,16 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
 
-    setState(() => _healthLoading = true);
+    // 로딩 페이지 push (fullscreen → 하단 네비바 가림)
+    _healthLoadingPushed = true;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const Scaffold(
+          body: SizedBox.expand(child: EmotionLoadingWidget()),
+        ),
+      ),
+    );
     try {
       final service = GeminiAIService();
       final result = await service.analyzeHealth(
@@ -1265,6 +1288,11 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         petId: _selectedPet?.id,
       );
       if (!mounted) return;
+      // 로딩 페이지 닫기 + 결과 페이지 이동
+      if (_healthLoadingPushed) {
+        _healthLoadingPushed = false;
+        Navigator.of(context).pop();
+      }
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => HealthResultPage(result: result),
@@ -1272,9 +1300,11 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       );
     } catch (e) {
       if (!mounted) return;
+      if (_healthLoadingPushed) {
+        _healthLoadingPushed = false;
+        Navigator.of(context).pop();
+      }
       _showErrorDialog(e.toString());
-    } finally {
-      if (mounted) setState(() => _healthLoading = false);
     }
   }
 

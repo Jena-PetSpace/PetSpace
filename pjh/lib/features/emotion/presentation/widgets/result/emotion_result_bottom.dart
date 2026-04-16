@@ -77,7 +77,7 @@ extension _EmotionResultBottom on _EmotionResultPageState {
                 ),
                 icon: Icon(Icons.history, size: 18.w),
                 label: Text(
-                  'AI분석 히스토리',
+                  '분석 히스토리 이동하기',
                   style: TextStyle(
                       fontSize: 14.sp, fontWeight: FontWeight.bold),
                 ),
