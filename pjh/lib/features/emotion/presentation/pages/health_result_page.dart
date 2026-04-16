@@ -352,8 +352,8 @@ class _HealthResultPageState extends State<HealthResultPage> {
         child: Row(children: [
           // 시스템 공유
           SizedBox(
-            width: 44.w,
-            height: 44.w,
+            width: 48.w,
+            height: 48.w,
             child: OutlinedButton(
               onPressed: () {},
               style: OutlinedButton.styleFrom(
@@ -363,14 +363,14 @@ class _HealthResultPageState extends State<HealthResultPage> {
                 side: BorderSide(color: Colors.grey.shade300),
               ),
               child: Icon(Icons.share_outlined,
-                  size: 18.w, color: Colors.grey[700]),
+                  size: 20.w, color: Colors.grey[700]),
             ),
           ),
           SizedBox(width: 8.w),
           // 피드 공유
           SizedBox(
-            width: 44.w,
-            height: 44.w,
+            width: 48.w,
+            height: 48.w,
             child: OutlinedButton(
               onPressed: () {},
               style: OutlinedButton.styleFrom(
@@ -381,16 +381,16 @@ class _HealthResultPageState extends State<HealthResultPage> {
                     color: AppTheme.primaryColor.withValues(alpha: 0.5)),
               ),
               child: Icon(Icons.dynamic_feed_outlined,
-                  size: 18.w, color: AppTheme.primaryColor),
+                  size: 20.w, color: AppTheme.primaryColor),
             ),
           ),
           SizedBox(width: 8.w),
-          // 저장 완료
+          // AI 히스토리 이동 버튼 (자동 저장 완료)
           Expanded(
             child: SizedBox(
-              height: 44.w,
+              height: 48.w,
               child: ElevatedButton.icon(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => context.push('/ai-history'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,
@@ -398,9 +398,9 @@ class _HealthResultPageState extends State<HealthResultPage> {
                       borderRadius: BorderRadius.circular(12.r)),
                   elevation: 0,
                 ),
-                icon: Icon(Icons.check_circle_outline, size: 16.w),
+                icon: Icon(Icons.history, size: 18.w),
                 label: Text(
-                  '저장 완료',
+                  'AI분석 히스토리',
                   style: TextStyle(
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w600,

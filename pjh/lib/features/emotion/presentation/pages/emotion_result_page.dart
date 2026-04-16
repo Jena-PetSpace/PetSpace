@@ -84,6 +84,10 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     _loadPreviousAnalysis();
     _loadMultiPetData();
     _loadBreedAverage();
+    // 결과 페이지 진입 시 자동 저장
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _saveAnalysis();
+    });
   }
 
   Future<void> _loadPreviousAnalysis() async {
@@ -235,12 +239,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       appBar: _buildAppBar(dominantIcon, dominantName, emotionColor),
       body: BlocListener<EmotionAnalysisBloc, EmotionAnalysisState>(
         listener: (context, state) {
-          if (state is EmotionAnalysisSaved) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('분석 결과가 저장되었습니다.')),
-            );
-            context.pushReplacement('/emotion/calendar');
-          } else if (state is EmotionAnalysisError) {
+          // 자동 저장 완료 시 조용히 처리 (화면 전환 없음)
+          if (state is EmotionAnalysisError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
             );

@@ -15,88 +15,76 @@ extension _EmotionResultBottom on _EmotionResultPageState {
           ),
         ],
       ),
-      child: BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
-        builder: (context, state) {
-          final isLoading = state is EmotionAnalysisSaving;
-          return Row(
-            children: [
-              SizedBox(
-                height: 48.h,
-                width: 48.h,
-                child: OutlinedButton(
-                  onPressed: _shareResult,
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    side: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  child: Icon(Icons.share_outlined,
-                      size: 20.w, color: Colors.grey[700]),
+      child: Row(
+        children: [
+          // 시스템 공유
+          SizedBox(
+            height: 48.h,
+            width: 48.h,
+            child: OutlinedButton(
+              onPressed: _shareResult,
+              style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+              child: Icon(Icons.share_outlined,
+                  size: 20.w, color: Colors.grey[700]),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          // 피드에 공유 버튼
+          SizedBox(
+            height: 48.h,
+            width: 48.h,
+            child: OutlinedButton(
+              onPressed: () => _showShareToFeedSheet(context),
+              style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                side: BorderSide(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.5)),
+              ),
+              child: SvgPicture.asset(
+                'assets/svg/icon_feed.svg',
+                width: 22.w,
+                height: 22.w,
+                colorFilter: const ColorFilter.mode(
+                  AppTheme.primaryColor,
+                  BlendMode.srcIn,
                 ),
               ),
-              SizedBox(width: 8.w),
-              // 피드에 공유 버튼
-              SizedBox(
-                height: 48.h,
-                width: 48.h,
-                child: OutlinedButton(
-                  onPressed: () => _showShareToFeedSheet(context),
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    side: BorderSide(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.5)),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          // AI 히스토리 이동 버튼 (자동 저장 완료)
+          Expanded(
+            child: SizedBox(
+              height: 48.h,
+              child: ElevatedButton.icon(
+                onPressed: () => context.push('/ai-history'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
-                  child: SvgPicture.asset(
-                    'assets/svg/icon_feed.svg',
-                    width: 22.w,
-                    height: 22.w,
-                    colorFilter: const ColorFilter.mode(
-                      AppTheme.primaryColor,
-                      BlendMode.srcIn,
-                    ),
-                  ),
+                  elevation: 0,
+                ),
+                icon: Icon(Icons.history, size: 18.w),
+                label: Text(
+                  'AI분석 히스토리',
+                  style: TextStyle(
+                      fontSize: 14.sp, fontWeight: FontWeight.bold),
                 ),
               ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: SizedBox(
-                  height: 48.h,
-                  child: ElevatedButton.icon(
-                    onPressed: isLoading ? null : _saveAnalysis,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      elevation: 0,
-                    ),
-                    icon: isLoading
-                        ? SizedBox(
-                            width: 18.w,
-                            height: 18.w,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Icon(Icons.bookmark_add_outlined, size: 18.w),
-                    label: Text(
-                      isLoading ? '저장 중...' : '결과 저장',
-                      style: TextStyle(
-                          fontSize: 14.sp, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
     );
   }
