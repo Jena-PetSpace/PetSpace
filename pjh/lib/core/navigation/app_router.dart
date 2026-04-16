@@ -47,6 +47,8 @@ import '../../features/social/presentation/pages/channel_subscription_page.dart'
 import '../../features/pets/presentation/pages/public_pet_page.dart';
 import '../../features/emotion/presentation/pages/weekly_report_page.dart';
 import '../../features/emotion/presentation/pages/ai_history_page.dart';
+import '../../features/emotion/presentation/pages/emotion_loading_page.dart';
+import '../../features/emotion/presentation/widgets/emotion_loading_widget.dart';
 import '../../features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../features/health/presentation/pages/health_alert_settings_page.dart';
 import '../../features/emotion/presentation/pages/health_result_page.dart';
@@ -80,6 +82,26 @@ class AppRouter {
       initialLocation: '/home',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       routes: [
+        // ── ShellRoute 밖: 하단 네비바 없는 fullscreen 라우트 ──
+        GoRoute(
+          path: '/emotion/loading',
+          name: 'emotion-loading',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>? ?? {};
+            final imagePaths = (extra['imagePaths'] as List<String>?) ?? [];
+            final bloc = extra['bloc'] as EmotionAnalysisBloc?;
+            final event = extra['event'] as EmotionAnalysisEvent?;
+            if (bloc == null) {
+              return const Scaffold(
+                body: SizedBox.expand(child: EmotionLoadingWidget()),
+              );
+            }
+            return BlocProvider.value(
+              value: bloc,
+              child: EmotionLoadingPage(imagePaths: imagePaths, event: event),
+            );
+          },
+        ),
         GoRoute(path: '/channels', builder: (_, __) => const ChannelSubscriptionPage()),
         GoRoute(
           path: '/pet/public/:petId',
@@ -472,6 +494,28 @@ class AppRouter {
                   builder: (_, __) => const EmotionCalendarPage(),
                 ),
               ],
+            ),
+            GoRoute(
+              path: '/ai-history-page',
+              name: 'ai-history-page',
+              builder: (context, state) {
+                final authState = authBloc.state;
+                final userId = authState is AuthAuthenticated
+                    ? authState.user.uid
+                    : '';
+                return MultiBlocProvider(
+                  providers: [
+                    BlocProvider(
+                      create: (_) => sl<EmotionAnalysisBloc>()
+                        ..add(LoadAnalysisHistory(userId: userId)),
+                    ),
+                    BlocProvider(
+                      create: (_) => sl<PetBloc>()..add(LoadUserPets()),
+                    ),
+                  ],
+                  child: const AiHistoryPage(),
+                );
+              },
             ),
             GoRoute(
               path: '/ai-history',

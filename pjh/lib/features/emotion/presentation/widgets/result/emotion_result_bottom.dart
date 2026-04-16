@@ -66,7 +66,7 @@ extension _EmotionResultBottom on _EmotionResultPageState {
             child: SizedBox(
               height: 48.h,
               child: ElevatedButton.icon(
-                onPressed: () => context.push('/ai-history'),
+                onPressed: () => context.push('/ai-history-page'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,

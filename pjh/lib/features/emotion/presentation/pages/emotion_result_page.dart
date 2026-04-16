@@ -305,11 +305,11 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       backgroundColor: Colors.white,
       elevation: 0.5,
       leading: IconButton(
-        icon: const Icon(Icons.close, color: Colors.black87),
+        icon: const Icon(Icons.arrow_back, color: Colors.black87),
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
-        '종합 분석 결과',
+        '감정 분석 결과',
         style: TextStyle(
           fontSize: 16.sp,
           fontWeight: FontWeight.bold,

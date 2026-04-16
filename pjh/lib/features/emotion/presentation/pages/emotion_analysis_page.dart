@@ -1,24 +1,21 @@
-import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/pet_selection_dropdown.dart';
-import '../widgets/emotion_loading_widget.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_event.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../data/services/gemini_ai_service.dart';
 import 'analysis_guide_page.dart';
-import 'emotion_result_page.dart';
-import 'health_result_page.dart';
+import 'health_loading_page.dart';
 
 class EmotionAnalysisPage extends StatefulWidget {
   final String? initialPetId;
@@ -97,13 +94,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   bool _showAdditionalInput = false;
   final TextEditingController _additionalCtrl = TextEditingController();
 
-  // 건강분석 로딩 페이지 push 여부
-  bool _healthLoadingPushed = false;
-
-  // EmotionAnalysisBloc stream 구독 (initState에서 등록, dispose에서 취소)
-  StreamSubscription? _emotionSub;
-  // 감정분석 로딩 페이지가 현재 push되어 있는지 추적
-  bool _emotionLoadingPushed = false;
 
   @override
   void initState() {
@@ -113,52 +103,10 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       context.read<PetBloc>().add(LoadUserPets());
     }
     _checkFirstVisit();
-    // BlocListener를 initState에서 등록
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _emotionSub = context.read<EmotionAnalysisBloc>().stream.listen((state) {
-        if (!mounted) return;
-        if (state is EmotionAnalysisLoading) {
-          // 로딩 시작 → fullscreen 로딩 페이지 push (하단 네비바 가림)
-          if (!_emotionLoadingPushed) {
-            _emotionLoadingPushed = true;
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                fullscreenDialog: true,
-                builder: (_) => const Scaffold(
-                  body: SizedBox.expand(child: EmotionLoadingWidget()),
-                ),
-              ),
-            );
-          }
-        } else if (state is EmotionAnalysisSuccess) {
-          // 로딩 페이지 제거 후 결과 페이지로 교체
-          if (_emotionLoadingPushed) {
-            _emotionLoadingPushed = false;
-            Navigator.of(context).pop(); // 로딩 페이지 pop
-          }
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => EmotionResultPage(
-                analysis: state.analysis,
-                imagePaths: List.from(_imagePaths),
-              ),
-            ),
-          );
-        } else if (state is EmotionAnalysisError) {
-          // 로딩 페이지가 열려 있으면 닫기
-          if (_emotionLoadingPushed) {
-            _emotionLoadingPushed = false;
-            Navigator.of(context).pop();
-          }
-          _showErrorDialog(state.message);
-        }
-      });
-    });
   }
 
   @override
   void dispose() {
-    _emotionSub?.cancel();
     _additionalCtrl.dispose();
     _breedCustomCtrl.dispose();
     super.dispose();
@@ -433,7 +381,20 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       );
     }
 
-    return Scaffold(
+    return BlocListener<EmotionAnalysisBloc, EmotionAnalysisState>(
+      listener: (context, state) {
+        if (state is EmotionAnalysisError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('분석 실패: ${state.message}'),
+              backgroundColor: Colors.red.shade400,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         title: const Text('AI 분석'),
@@ -600,7 +561,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           );
         },
       ),
-    ); // Scaffold
+      ), // Scaffold
+    ); // BlocListener
   }
 
   // 사진 그리드 (선택된 사진들 + 빈 슬롯 힌트)
@@ -1241,15 +1203,20 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       return;
     }
 
-    // 감정분석
-    context.read<EmotionAnalysisBloc>().add(
-          AnalyzeEmotionRequested(
-            imagePaths: List.from(_imagePaths),
-            petId: _analyzeWithoutPet ? null : _selectedPet?.id,
-            petType: petType,
-            breed: breed,
-          ),
-        );
+    // 감정분석: GoRouter로 로딩 페이지 이동 (ShellRoute 밖 → 하단 네비바 없음)
+    // push 먼저 → 로딩 페이지에서 stream 구독 시작 후 이벤트 발송
+    final bloc = context.read<EmotionAnalysisBloc>();
+    final event = AnalyzeEmotionRequested(
+      imagePaths: List.from(_imagePaths),
+      petId: _analyzeWithoutPet ? null : _selectedPet?.id,
+      petType: petType,
+      breed: breed,
+    );
+    context.push('/emotion/loading', extra: {
+      'bloc': bloc,
+      'imagePaths': List<String>.from(_imagePaths),
+      'event': event,
+    });
   }
 
   Future<void> _startHealthAnalysis({
@@ -1263,48 +1230,26 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
 
-    // 로딩 페이지 push (fullscreen → 하단 네비바 가림)
-    _healthLoadingPushed = true;
-    Navigator.of(context).push(
+    final error = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => const Scaffold(
-          body: SizedBox.expand(child: EmotionLoadingWidget()),
+        builder: (_) => HealthLoadingPage(
+          imagePaths: List.from(_imagePaths),
+          selectedArea: _selectedArea,
+          userId: authState.user.uid,
+          petId: _selectedPet?.id,
+          petName: petName,
+          petType: petType,
+          breed: breed,
+          age: age,
+          gender: gender,
+          additionalContext: additionalContext,
         ),
       ),
     );
-    try {
-      final service = GeminiAIService();
-      final result = await service.analyzeHealth(
-        List.from(_imagePaths),
-        area: _selectedArea,
-        petName: petName,
-        petType: petType,
-        breed: breed,
-        age: age,
-        gender: gender,
-        additionalContext: additionalContext,
-        userId: authState.user.uid,
-        petId: _selectedPet?.id,
-      );
-      if (!mounted) return;
-      // 로딩 페이지 닫기 + 결과 페이지 이동
-      if (_healthLoadingPushed) {
-        _healthLoadingPushed = false;
-        Navigator.of(context).pop();
-      }
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => HealthResultPage(result: result),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      if (_healthLoadingPushed) {
-        _healthLoadingPushed = false;
-        Navigator.of(context).pop();
-      }
-      _showErrorDialog(e.toString());
+
+    // HealthLoadingPage가 에러 문자열을 pop result로 전달한 경우
+    if (error != null && mounted) {
+      _showErrorDialog(error);
     }
   }
 

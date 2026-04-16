@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer';
+import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/entities/post.dart';
@@ -51,7 +52,9 @@ class _HealthResultPageState extends State<HealthResultPage> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      builder: (sheetContext) => BlocListener<FeedBloc, FeedState>(
+      builder: (sheetContext) => BlocProvider(
+        create: (_) => di.sl<FeedBloc>(),
+        child: Builder(builder: (sheetContext) => BlocListener<FeedBloc, FeedState>(
         listener: (ctx, state) {
           if (state is FeedPostCreated) {
             Navigator.pop(sheetContext);
@@ -179,6 +182,8 @@ class _HealthResultPageState extends State<HealthResultPage> {
           ),
         ),
       ),
+      ),
+    ),
     );
   }
 
@@ -576,7 +581,7 @@ class _HealthResultPageState extends State<HealthResultPage> {
             child: SizedBox(
               height: 48.w,
               child: ElevatedButton.icon(
-                onPressed: () => context.push('/ai-history'),
+                onPressed: () => context.push('/ai-history-page'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,
