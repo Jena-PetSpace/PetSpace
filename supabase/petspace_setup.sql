@@ -1637,6 +1637,7 @@ CREATE INDEX IF NOT EXISTS idx_health_history_created_at ON health_history (crea
 -- RLS
 ALTER TABLE health_history ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "users can manage own health_history" ON health_history;
 CREATE POLICY "users can manage own health_history"
   ON health_history FOR ALL
   USING (auth.uid() = user_id)
