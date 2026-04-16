@@ -170,6 +170,7 @@ class AppTheme {
         foregroundColor: primaryTextColor,
         elevation: 0,
         scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.white,
         centerTitle: true,
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.white,

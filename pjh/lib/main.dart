@@ -275,13 +275,22 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
               }
             },
             child: BlocBuilder<ThemeCubit, ThemeMode>(
-              builder: (context, themeMode) => MaterialApp.router(
-                title: AppConstants.appName,
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.lightTheme,
-                darkTheme: AppTheme.darkTheme,
-                themeMode: themeMode,
-                routerConfig: AppRouter.createRouter(authBloc),
+              builder: (context, themeMode) => AnnotatedRegion<SystemUiOverlayStyle>(
+                value: const SystemUiOverlayStyle(
+                  statusBarColor: Colors.white,
+                  statusBarIconBrightness: Brightness.dark,
+                  statusBarBrightness: Brightness.light,
+                  systemNavigationBarColor: Colors.white,
+                  systemNavigationBarIconBrightness: Brightness.dark,
+                ),
+                child: MaterialApp.router(
+                  title: AppConstants.appName,
+                  debugShowCheckedModeBanner: false,
+                  theme: AppTheme.lightTheme,
+                  darkTheme: AppTheme.darkTheme,
+                  themeMode: themeMode,
+                  routerConfig: AppRouter.createRouter(authBloc),
+                ),
               ),
             ),
           ),
