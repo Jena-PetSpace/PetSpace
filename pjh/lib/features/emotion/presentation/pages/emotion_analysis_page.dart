@@ -408,7 +408,16 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       );
     }
 
-    return Scaffold(
+    return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
+      builder: (context, emotionState) {
+        // 로딩 중: AppBar 없이 전체화면 로딩
+        if (emotionState is EmotionAnalysisLoading || _healthLoading) {
+          return const Scaffold(
+            body: SizedBox.expand(child: EmotionLoadingWidget()),
+          );
+        }
+
+        return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         title: const Text('AI 분석'),
@@ -436,154 +445,148 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           ),
         ),
       ),
-      body: BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
-        builder: (context, emotionState) {
-          if (emotionState is EmotionAnalysisLoading || _healthLoading) {
-            return const SizedBox.expand(child: EmotionLoadingWidget());
+      body: BlocBuilder<PetBloc, PetState>(
+        builder: (context, petState) {
+          List<Pet> userPets = [];
+          if (petState is PetLoaded) {
+            userPets = petState.pets;
+            if (widget.initialPetId != null && _selectedPet == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _selectInitialPet(userPets);
+              });
+            }
           }
 
-          return BlocBuilder<PetBloc, PetState>(
-            builder: (context, petState) {
-              List<Pet> userPets = [];
-              if (petState is PetLoaded) {
-                userPets = petState.pets;
-                if (widget.initialPetId != null && _selectedPet == null) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _selectInitialPet(userPets);
-                  });
-                }
-              }
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(20.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 8.h),
 
-              return SingleChildScrollView(
-                padding: EdgeInsets.all(20.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // 반려동물 선택
+                _buildSectionCard(
+                  child: PetSelectionDropdown(
+                    pets: userPets,
+                    selectedPet: _selectedPet,
+                    onChanged: (Pet? pet) {
+                      setState(() {
+                        _selectedPet = pet;
+                        _analyzeWithoutPet = false;
+                      });
+                    },
+                    analyzeWithoutPet: _analyzeWithoutPet,
+                    onAnalyzeWithoutPetChanged: (bool value) {
+                      setState(() {
+                        _analyzeWithoutPet = value;
+                        if (value) {
+                          _selectedPet = null;
+                          _manualPetType = null;
+                          _manualBreed = null;
+                        }
+                      });
+                    },
+                  ),
+                ),
+
+                // 수동 종/품종 선택 (반려동물 미선택 시)
+                if (_analyzeWithoutPet) ...[
+                  SizedBox(height: 12.h),
+                  _buildSectionCard(child: _buildManualBreedSelector()),
+                ],
+
+                SizedBox(height: 16.h),
+
+                // 건강분석 탭일 때: 부위 칩 선택
+                if (_tabIndex == 1) ...[
+                  _buildSectionCard(child: _buildAreaChips()),
+                  SizedBox(height: 16.h),
+                ],
+
+                // 사진 섹션 헤더
+                Row(
                   children: [
-                    SizedBox(height: 8.h),
-
-                    // 반려동물 선택
-                    _buildSectionCard(
-                      child: PetSelectionDropdown(
-                        pets: userPets,
-                        selectedPet: _selectedPet,
-                        onChanged: (Pet? pet) {
-                          setState(() {
-                            _selectedPet = pet;
-                            _analyzeWithoutPet = false;
-                          });
-                        },
-                        analyzeWithoutPet: _analyzeWithoutPet,
-                        onAnalyzeWithoutPetChanged: (bool value) {
-                          setState(() {
-                            _analyzeWithoutPet = value;
-                            if (value) {
-                              _selectedPet = null;
-                              _manualPetType = null;
-                              _manualBreed = null;
-                            }
-                          });
-                        },
+                    Text(
+                      '사진 선택',
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTextColor,
                       ),
                     ),
-
-                    // 수동 종/품종 선택 (반려동물 미선택 시)
-                    if (_analyzeWithoutPet) ...[
-                      SizedBox(height: 12.h),
-                      _buildSectionCard(child: _buildManualBreedSelector()),
-                    ],
-
-                    SizedBox(height: 16.h),
-
-                    // 건강분석 탭일 때: 부위 칩 선택
-                    if (_tabIndex == 1) ...[
-                      _buildSectionCard(child: _buildAreaChips()),
-                      SizedBox(height: 16.h),
-                    ],
-
-                    // 사진 섹션 헤더
-                    Row(
-                      children: [
-                        Text(
-                          '사진 선택',
-                          style: TextStyle(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryTextColor,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                          decoration: BoxDecoration(
-                            color: _imagePaths.length >= _maxImages
-                                ? AppTheme.highlightColor
-                                : AppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: Text(
-                            '${_imagePaths.length} / $_maxImages',
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '여러 장일수록 더 정확해요',
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10.h),
-
-                    // 사진 그리드
-                    _buildImageGrid(),
-
-                    SizedBox(height: 16.h),
-
-                    // 추가 입력란 (감정/건강 공통)
-                    _buildSectionCard(child: _buildAdditionalInput()),
-
-                    SizedBox(height: 24.h),
-
-                    // 분석 시작 버튼
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52.h,
-                      child: ElevatedButton(
-                        onPressed: _canAnalyze ? _startAnalysis : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: Colors.grey.shade300,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14.r),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          _analyzeButtonText,
-                          style: TextStyle(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    SizedBox(width: 8.w),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: _imagePaths.length >= _maxImages
+                            ? AppTheme.highlightColor
+                            : AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Text(
+                        '${_imagePaths.length} / $_maxImages',
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                    SizedBox(height: 16.h),
+                    const Spacer(),
+                    Text(
+                      '여러 장일수록 더 정확해요',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: Colors.grey[500],
+                      ),
+                    ),
                   ],
                 ),
-              );
-            },
+                SizedBox(height: 10.h),
+
+                // 사진 그리드
+                _buildImageGrid(),
+
+                SizedBox(height: 16.h),
+
+                // 추가 입력란 (감정/건강 공통)
+                _buildSectionCard(child: _buildAdditionalInput()),
+
+                SizedBox(height: 24.h),
+
+                // 분석 시작 버튼
+                SizedBox(
+                  width: double.infinity,
+                  height: 52.h,
+                  child: ElevatedButton(
+                    onPressed: _canAnalyze ? _startAnalysis : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14.r),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      _analyzeButtonText,
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+              ],
+            ),
           );
         },
       ),
-    );
+    ); // Scaffold
+      }, // BlocBuilder<EmotionAnalysisBloc> builder
+    ); // BlocBuilder<EmotionAnalysisBloc>
   }
 
   // 사진 그리드 (선택된 사진들 + 빈 슬롯 힌트)
