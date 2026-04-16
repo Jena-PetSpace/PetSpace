@@ -14,7 +14,7 @@ enum HealthArea {
         HealthArea.skin: '피부·털',
         HealthArea.body: '체형(BCS)',
         HealthArea.posture: '자세·체형 대칭',
-        HealthArea.overall: '종합 전체',
+        HealthArea.overall: '종합(전체)',
       }[this]!;
 
   static HealthArea fromDisplayName(String name) => HealthArea.values

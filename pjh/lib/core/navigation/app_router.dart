@@ -46,6 +46,8 @@ import '../../features/home/presentation/pages/hospital_search_page.dart';
 import '../../features/social/presentation/pages/channel_subscription_page.dart';
 import '../../features/pets/presentation/pages/public_pet_page.dart';
 import '../../features/emotion/presentation/pages/weekly_report_page.dart';
+import '../../features/emotion/presentation/pages/ai_history_page.dart';
+import '../../features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../features/health/presentation/pages/health_alert_settings_page.dart';
 import '../../features/emotion/presentation/pages/health_result_page.dart';
 import '../../features/emotion/data/models/health_analysis_model.dart';
@@ -470,6 +472,28 @@ class AppRouter {
                   builder: (_, __) => const EmotionCalendarPage(),
                 ),
               ],
+            ),
+            GoRoute(
+              path: '/ai-history',
+              name: 'ai-history',
+              builder: (context, state) {
+                final authState = authBloc.state;
+                final userId = authState is AuthAuthenticated
+                    ? authState.user.uid
+                    : '';
+                return MultiBlocProvider(
+                  providers: [
+                    BlocProvider(
+                      create: (_) => sl<EmotionAnalysisBloc>()
+                        ..add(LoadAnalysisHistory(userId: userId)),
+                    ),
+                    BlocProvider(
+                      create: (_) => sl<PetBloc>()..add(LoadUserPets()),
+                    ),
+                  ],
+                  child: const AiHistoryPage(),
+                );
+              },
             ),
           ],
         ),

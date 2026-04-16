@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -99,6 +100,9 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   // 건강분석 로딩
   bool _healthLoading = false;
 
+  // EmotionAnalysisBloc stream 구독 (initState에서 등록, dispose에서 취소)
+  StreamSubscription? _emotionSub;
+
   @override
   void initState() {
     super.initState();
@@ -107,10 +111,29 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       context.read<PetBloc>().add(LoadUserPets());
     }
     _checkFirstVisit();
+    // BlocListener를 initState에서 등록 → build에서 로딩 Scaffold 반환해도 listener 유지
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _emotionSub = context.read<EmotionAnalysisBloc>().stream.listen((state) {
+        if (!mounted) return;
+        if (state is EmotionAnalysisSuccess) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => EmotionResultPage(
+                analysis: state.analysis,
+                imagePaths: List.from(_imagePaths),
+              ),
+            ),
+          );
+        } else if (state is EmotionAnalysisError) {
+          _showErrorDialog(state.message);
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
+    _emotionSub?.cancel();
     _additionalCtrl.dispose();
     _breedCustomCtrl.dispose();
     super.dispose();
@@ -378,14 +401,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 로딩 중 → AppBar/탭 없는 풀스크린 로딩
-    final emotionState = context.watch<EmotionAnalysisBloc>().state;
-    if (emotionState is EmotionAnalysisLoading || _healthLoading) {
-      return const Scaffold(
-        body: SizedBox.expand(child: EmotionLoadingWidget()),
-      );
-    }
-
     // 첫 방문 → 사용 팁 가이드
     if (_showFullGuide) {
       return Scaffold(
@@ -421,21 +436,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           ),
         ),
       ),
-      body: BlocConsumer<EmotionAnalysisBloc, EmotionAnalysisState>(
-        listener: (context, state) {
-          if (state is EmotionAnalysisSuccess) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => EmotionResultPage(
-                  analysis: state.analysis,
-                  imagePaths: List.from(_imagePaths),
-                ),
-              ),
-            );
-          } else if (state is EmotionAnalysisError) {
-            _showErrorDialog(state.message);
-          }
-        },
+      body: BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
         builder: (context, emotionState) {
           if (emotionState is EmotionAnalysisLoading || _healthLoading) {
             return const SizedBox.expand(child: EmotionLoadingWidget());
