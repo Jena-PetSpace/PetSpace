@@ -140,7 +140,7 @@ class PetSelectionDropdown extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '반려동물 없이 분석',
+                        '등록된 반려동물 없이 분석',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
