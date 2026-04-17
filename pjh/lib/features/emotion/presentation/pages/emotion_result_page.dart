@@ -30,11 +30,14 @@ part '../widgets/result/emotion_result_bottom.dart';
 class EmotionResultPage extends StatefulWidget {
   final EmotionAnalysis analysis;
   final List<String> imagePaths;
+  /// 히스토리에서 열렸을 때 true — 하단 버튼이 push 대신 pop으로 동작
+  final bool fromHistory;
 
   const EmotionResultPage({
     super.key,
     required this.analysis,
     this.imagePaths = const [],
+    this.fromHistory = false,
   });
 
   @override
@@ -81,9 +84,16 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
+    log('[ResultPage] imageUrl="${widget.analysis.imageUrl}" imagePaths=${widget.imagePaths.length}장 fromHistory=${widget.fromHistory}', name: 'EmotionResult');
     _loadPreviousAnalysis();
     _loadMultiPetData();
     _loadBreedAverage();
+    // 히스토리에서 열린 경우 재저장 방지
+    if (!widget.fromHistory) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _saveAnalysis();
+      });
+    }
   }
 
   Future<void> _loadPreviousAnalysis() async {
@@ -235,12 +245,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       appBar: _buildAppBar(dominantIcon, dominantName, emotionColor),
       body: BlocListener<EmotionAnalysisBloc, EmotionAnalysisState>(
         listener: (context, state) {
-          if (state is EmotionAnalysisSaved) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('분석 결과가 저장되었습니다.')),
-            );
-            context.pushReplacement('/emotion/calendar');
-          } else if (state is EmotionAnalysisError) {
+          // 자동 저장 완료 시 조용히 처리 (화면 전환 없음)
+          if (state is EmotionAnalysisError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
             );
@@ -285,8 +291,6 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                       _buildCommunityCard(),
                       // 12. 메모
                       _buildMemoCard(),
-                      // 13. 이론 출처
-                      _buildTheoryAttribution(),
                     ],
                   ),
                 ),
@@ -305,11 +309,11 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       backgroundColor: Colors.white,
       elevation: 0.5,
       leading: IconButton(
-        icon: const Icon(Icons.close, color: Colors.black87),
+        icon: const Icon(Icons.arrow_back, color: Colors.black87),
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
-        '종합 분석 결과',
+        '감정 분석 결과',
         style: TextStyle(
           fontSize: 16.sp,
           fontWeight: FontWeight.bold,
@@ -585,19 +589,71 @@ class _EmotionResultPageState extends State<EmotionResultPage>
   }
 
   // ── 이미지 썸네일 ──
+  // 로컬 파일(imagePaths) 우선, 없으면 Supabase imageUrl로 표시
   Widget _buildImageThumbnails() {
     final paths = widget.imagePaths;
-    if (paths.length == 1) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12.r),
-        child: Image.file(
-          File(paths.first),
+    final networkUrl = widget.analysis.imageUrl;
+
+    Widget fallback() => Container(
+          width: 88.w,
+          height: 88.w,
+          color: Colors.grey.shade200,
+          child: Icon(Icons.image_not_supported_outlined,
+              size: 32.w, color: Colors.grey.shade400),
+        );
+
+    Widget buildSingleImage() {
+      // 로컬 파일 우선
+      if (paths.isNotEmpty) {
+        final file = File(paths.first);
+        return Image.file(
+          file,
           width: 88.w,
           height: 88.w,
           fit: BoxFit.cover,
-        ),
+          errorBuilder: (_, __, ___) => fallback(),
+        );
+      }
+      // 로컬 파일 없으면 Supabase Storage URL로 표시
+      if (networkUrl.isEmpty) return fallback();
+      return Image.network(
+        networkUrl,
+        width: 88.w,
+        height: 88.w,
+        fit: BoxFit.cover,
+        loadingBuilder: (_, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            width: 88.w,
+            height: 88.w,
+            color: Colors.grey.shade100,
+            child: Center(
+              child: SizedBox(
+                width: 24.w,
+                height: 24.w,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  value: progress.expectedTotalBytes != null
+                      ? progress.cumulativeBytesLoaded /
+                          progress.expectedTotalBytes!
+                      : null,
+                ),
+              ),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => fallback(),
       );
     }
+
+    if (paths.length <= 1) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12.r),
+        child: buildSingleImage(),
+      );
+    }
+
+    // 여러 장인 경우 첫 번째 + 장수 배지
     return SizedBox(
       width: 88.w,
       height: 88.w,
@@ -610,6 +666,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
               width: 88.w,
               height: 88.w,
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => fallback(),
             ),
           ),
           Positioned(

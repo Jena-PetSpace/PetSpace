@@ -60,9 +60,9 @@ class SettingsBottomSheet extends StatelessWidget {
                     ),
                     _SettingsItem(
                       icon: Icons.bar_chart_outlined,
-                      label: '감정 히스토리',
+                      label: 'AI 분석 히스토리',
                       bgColor: const Color(0xFFEAF3DE),
-                      onTap: () { Navigator.pop(context); context.push('/emotion/calendar'); },
+                      onTap: () { Navigator.pop(context); context.push('/ai-history-page'); },
                     ),
                     _SettingsItem(
                       icon: Icons.card_giftcard_outlined,

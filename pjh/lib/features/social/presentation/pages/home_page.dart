@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -29,6 +31,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Timer? _badgeTimer;
   int _selectedCategory = 0;
+  final ValueNotifier<int> _questCheckNotifier = ValueNotifier(0);
+  String _lastLocation = '';
 
   @override
   void initState() {
@@ -39,8 +43,19 @@ class _HomePageState extends State<HomePage> {
         _badgeTimer = Timer.periodic(const Duration(seconds: 60), (_) {
           if (mounted) _refreshBadges();
         });
+        // GoRouter 변화 감지: 다른 페이지에서 /home으로 돌아올 때 퀘스트 재검증
+        GoRouter.of(context).routerDelegate.addListener(_onRouteChanged);
       }
     });
+  }
+
+  void _onRouteChanged() {
+    if (!mounted) return;
+    final location = GoRouterState.of(context).uri.path;
+    if (_lastLocation != '/home' && location == '/home') {
+      _questCheckNotifier.value++;
+    }
+    _lastLocation = location;
   }
 
   void _refreshAll() {
@@ -73,12 +88,20 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _badgeTimer?.cancel();
+    GoRouter.of(context).routerDelegate.removeListener(_onRouteChanged);
+    _questCheckNotifier.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       // AppBar 완전 제거 → 커스텀 헤더
       body: RefreshIndicator(
@@ -106,7 +129,7 @@ class _HomePageState extends State<HomePage> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.only(top: 16.h),
-                child: const HomeQuestCard(),
+                child: HomeQuestCard(checkNotifier: _questCheckNotifier),
               ),
             ),
 
@@ -132,7 +155,8 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-    );
+    ), // Scaffold
+    ); // AnnotatedRegion
   }
 
   Widget _buildCategoryContent() {

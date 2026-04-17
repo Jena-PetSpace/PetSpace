@@ -18,7 +18,7 @@ class MyMenuList extends StatelessWidget {
             const _MenuItem(emoji: '🐾', label: '반려동물 관리', route: '/pets'),
             const _MenuItem(emoji: '📝', label: '내 게시글', route: '/my/posts'),
             const _MenuItem(emoji: '🔖', label: '저장한 글', route: '/my/saved'),
-              const _MenuItem(emoji: '📊', label: '주간 감정 리포트', route: '/emotion/weekly-report'),
+              const _MenuItem(emoji: '🤖', label: 'AI 분석 히스토리', route: '/ai-history-page'),
           ]),
           SizedBox(height: 8.h),
           _buildGroup(context, label: '소통', items: [

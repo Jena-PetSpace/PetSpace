@@ -62,7 +62,6 @@ const _categories = [
   _Category(emoji: '💊', label: '동물약국', query: '동물약국'),
   _Category(emoji: '✂️', label: '애견미용', query: '애견미용'),
   _Category(emoji: '🐾', label: '펫호텔', query: '펫호텔 애견호텔'),
-  _Category(emoji: '🛒', label: '펫샵', query: '펫샵 반려동물용품'),
 ];
 
 enum _SheetSize { collapsed, half, full }

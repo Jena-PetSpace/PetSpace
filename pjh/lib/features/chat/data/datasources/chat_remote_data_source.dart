@@ -93,15 +93,8 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     int limit = 30,
     String? lastMessageId,
   }) async {
-    var query = supabaseClient
-        .from('chat_messages')
-        .select('''
-          *,
-          users:sender_id(id, display_name, photo_url)
-        ''')
-        .eq('room_id', roomId)
-        .order('created_at', ascending: false)
-        .limit(limit);
+    // 메시지만 먼저 조회 (FK join 없이 — RLS 단순화)
+    List<Map<String, dynamic>> messages;
 
     if (lastMessageId != null) {
       // 커서 기반 페이지네이션: 마지막 메시지 이전 메시지들
@@ -111,22 +104,43 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
           .eq('id', lastMessageId)
           .single();
 
-      query = supabaseClient
-          .from('chat_messages')
-          .select('''
-            *,
-            users:sender_id(id, display_name, photo_url)
-          ''')
-          .eq('room_id', roomId)
-          .lt('created_at', lastMsg['created_at'])
-          .order('created_at', ascending: false)
-          .limit(limit);
+      messages = ((await supabaseClient
+              .from('chat_messages')
+              .select('*')
+              .eq('room_id', roomId)
+              .lt('created_at', lastMsg['created_at'])
+              .order('created_at', ascending: false)
+              .limit(limit)) as List)
+          .cast<Map<String, dynamic>>();
+    } else {
+      messages = ((await supabaseClient
+              .from('chat_messages')
+              .select('*')
+              .eq('room_id', roomId)
+              .order('created_at', ascending: false)
+              .limit(limit)) as List)
+          .cast<Map<String, dynamic>>();
     }
 
-    final response = await query;
-    return (response as List)
-        .map((json) => ChatMessageModel.fromJson(json as Map<String, dynamic>))
-        .toList();
+    if (messages.isEmpty) return [];
+
+    // sender_id 목록으로 유저 정보 일괄 조회
+    final senderIds =
+        messages.map((m) => m['sender_id'] as String).toSet().toList();
+    final usersResponse = await supabaseClient
+        .from('users')
+        .select('id, display_name, photo_url')
+        .inFilter('id', senderIds);
+    final usersMap = {
+      for (final u in (usersResponse as List).cast<Map<String, dynamic>>())
+        u['id'] as String: u
+    };
+
+    return messages.map((json) {
+      final enriched = Map<String, dynamic>.from(json);
+      enriched['users'] = usersMap[json['sender_id'] as String];
+      return ChatMessageModel.fromJson(enriched);
+    }).toList();
   }
 
   @override

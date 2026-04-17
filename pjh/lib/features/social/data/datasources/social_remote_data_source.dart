@@ -145,11 +145,27 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     try {
       _logger.debug('Getting user: $userId', tag: 'SocialDataSource');
 
-      final response = await supabaseClient
-          .from('users')
-          .select('*')
-          .eq('id', userId)
-          .single();
+      final results = await Future.wait<dynamic>([
+        supabaseClient.from('users').select('*').eq('id', userId).single(),
+        supabaseClient
+            .from('follows')
+            .select('id')
+            .eq('following_id', userId),
+        supabaseClient
+            .from('follows')
+            .select('id')
+            .eq('follower_id', userId),
+        supabaseClient
+            .from('posts')
+            .select('id')
+            .eq('author_id', userId)
+            .isFilter('deleted_at', null),
+      ]);
+
+      final response = results[0] as Map<String, dynamic>;
+      final followersCount = (results[1] as List).length;
+      final followingCount = (results[2] as List).length;
+      final postsCount = (results[3] as List).length;
 
       final user = SocialUserModel(
         id: response['id'] ?? '',
@@ -158,6 +174,9 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         username: response['username'],
         profileImageUrl: response['photo_url'],
         bio: response['bio'],
+        followersCount: followersCount,
+        followingCount: followingCount,
+        postsCount: postsCount,
         createdAt: response['created_at'] != null
             ? DateTime.parse(response['created_at'])
             : DateTime.now(),

@@ -2,8 +2,10 @@ import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/utils/back_press_handler.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
@@ -77,9 +79,30 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  Future<void> _handleBackPress() async {
+    final hasContent = _titleController.text.isNotEmpty ||
+        _contentController.text.isNotEmpty;
+    if (hasContent) {
+      final shouldDiscard = await BackPressHandler.showDiscardDialog(
+        context,
+        title: '글쓰기 취소',
+        content: '작성 중인 내용이 있습니다.\n돌아가면 내용이 사라집니다.',
+      );
+      if (shouldDiscard && mounted && context.canPop()) context.pop();
+    } else {
+      if (mounted && context.canPop()) context.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _handleBackPress();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text('글쓰기',
             style: TextStyle(
@@ -197,6 +220,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
           ],
         ),
       ),
-    );
+      ),   // Scaffold
+    );     // PopScope
   }
 }

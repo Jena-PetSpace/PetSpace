@@ -72,15 +72,15 @@ class PostModel {
   Map<String, dynamic> toJson() {
     return {
       'author_id': authorId,
-      'pet_id': petId,
-      'image_url': imageUrl,
-      'emotion_analysis': emotionAnalysis,
-      'caption': caption,
-      'hashtags': hashtags,
+      if (petId != null) 'pet_id': petId,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (emotionAnalysis != null) 'emotion_analysis': emotionAnalysis,
+      if (caption != null) 'caption': caption,
+      if (hashtags.isNotEmpty) 'hashtags': hashtags,
       'likes_count': likesCount,
       'comments_count': commentsCount,
       'is_private': isPrivate,
-      'location': location,
+      if (location != null) 'location': location,
       // created_at, updated_at은 Supabase에서 자동 관리
     };
   }

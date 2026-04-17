@@ -80,7 +80,7 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
             padding: EdgeInsets.all(16.w),
             child: Row(
               children: [
-                if (widget.imagePaths.isNotEmpty)
+                if (widget.imagePaths.isNotEmpty || widget.analysis.imageUrl.isNotEmpty)
                   _buildImageThumbnails()
                 else
                   Container(
@@ -656,12 +656,15 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
                             children: [
                               Row(
                                 children: [
-                                  Text(
-                                    label,
-                                    style: TextStyle(
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.primaryTextColor,
+                                  Flexible(
+                                    child: Text(
+                                      label,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppTheme.primaryTextColor,
+                                      ),
                                     ),
                                   ),
                                   SizedBox(width: 8.w),
@@ -685,6 +688,7 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
                               SizedBox(height: 4.h),
                               Text(
                                 feature.state,
+                                softWrap: true,
                                 style: TextStyle(
                                   fontSize: 12.sp,
                                   color: Colors.grey[600],

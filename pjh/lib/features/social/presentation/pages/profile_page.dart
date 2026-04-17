@@ -34,6 +34,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isSendingMessage = false;
 
   @override
   void initState() {
@@ -257,12 +258,21 @@ class _ProfilePageState extends State<ProfilePage>
         ),
         SizedBox(width: 12.w),
         ElevatedButton(
-          onPressed: () => _sendMessage(user),
+          onPressed: _isSendingMessage ? null : () => _sendMessage(user),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white.withValues(alpha: 0.2),
             foregroundColor: Colors.white,
           ),
-          child: Icon(Icons.message, size: 24.w),
+          child: _isSendingMessage
+              ? SizedBox(
+                  width: 20.w,
+                  height: 20.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Icon(Icons.message, size: 24.w),
         ),
       ],
     );
@@ -443,7 +453,49 @@ class _ProfilePageState extends State<ProfilePage>
     context.push('/settings');
   }
 
-  void _sendMessage(SocialUser user) {
-    context.push('/chat?userId=${user.id}');
+  void _sendMessage(SocialUser user) async {
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null) return;
+
+    setState(() => _isSendingMessage = true);
+
+    try {
+      final supabase = Supabase.instance.client;
+
+      // 기존 1:1 채팅방 찾기
+      final existingRoomId = await supabase.rpc('find_direct_chat', params: {
+        'p_user1_id': currentUserId,
+        'p_user2_id': user.id,
+      });
+
+      String roomId;
+      if (existingRoomId != null) {
+        roomId = existingRoomId as String;
+      } else {
+        // 새 채팅방 생성
+        final roomRes = await supabase
+            .from('chat_rooms')
+            .insert({'type': 'direct', 'created_by': currentUserId})
+            .select()
+            .single();
+        roomId = roomRes['id'] as String;
+
+        // 참여자 추가
+        await supabase.from('chat_participants').insert([
+          {'room_id': roomId, 'user_id': currentUserId, 'role': 'admin'},
+          {'room_id': roomId, 'user_id': user.id, 'role': 'member'},
+        ]);
+      }
+
+      if (!mounted) return;
+      setState(() => _isSendingMessage = false);
+      context.push('/chat/$roomId?name=${Uri.encodeComponent(user.displayName)}');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSendingMessage = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('채팅방 생성에 실패했습니다.')),
+      );
+    }
   }
 }

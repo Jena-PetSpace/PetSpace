@@ -40,12 +40,21 @@ import '../../features/onboarding/presentation/pages/onboarding_pet_registration
 import '../../features/onboarding/presentation/pages/onboarding_tutorial_page.dart';
 import '../../features/onboarding/presentation/pages/splash_page.dart';
 import '../../features/profile/presentation/pages/privacy_policy_page.dart';
+import '../../features/my/presentation/pages/reward_store_page.dart';
 import '../../features/emotion/presentation/pages/emotion_calendar_page.dart';
 import '../../features/home/presentation/pages/hospital_search_page.dart';
 import '../../features/social/presentation/pages/channel_subscription_page.dart';
 import '../../features/pets/presentation/pages/public_pet_page.dart';
 import '../../features/emotion/presentation/pages/weekly_report_page.dart';
+import '../../features/emotion/presentation/pages/ai_history_page.dart';
+import '../../features/emotion/presentation/pages/emotion_loading_page.dart';
+import '../../features/emotion/presentation/pages/emotion_result_page.dart';
+import '../../features/emotion/domain/entities/emotion_analysis.dart';
+import '../../features/emotion/presentation/widgets/emotion_loading_widget.dart';
+import '../../features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../features/health/presentation/pages/health_alert_settings_page.dart';
+import '../../features/emotion/presentation/pages/health_result_page.dart';
+import '../../features/emotion/data/models/health_analysis_model.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
 import '../../features/auth/presentation/pages/kakao_consent_page.dart';
@@ -61,6 +70,7 @@ import '../../features/chat/presentation/pages/create_chat_page.dart';
 import '../../features/chat/presentation/pages/chat_room_settings_page.dart';
 import '../../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
+import '../../features/my/presentation/pages/my_settings_page.dart';
 import '../../features/profile/presentation/pages/notification_settings_page.dart';
 import '../../features/profile/presentation/pages/privacy_settings_page.dart';
 import '../../features/profile/presentation/pages/help_page.dart';
@@ -75,6 +85,48 @@ class AppRouter {
       initialLocation: '/splash',
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       routes: [
+        // ── ShellRoute 밖: 하단 네비바 없는 fullscreen 라우트 ──
+        GoRoute(
+          path: '/emotion/loading',
+          name: 'emotion-loading',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>? ?? {};
+            final imagePaths = (extra['imagePaths'] as List<String>?) ?? [];
+            final bloc = extra['bloc'] as EmotionAnalysisBloc?;
+            final event = extra['event'] as EmotionAnalysisEvent?;
+            if (bloc == null) {
+              return const Scaffold(
+                body: SizedBox.expand(child: EmotionLoadingWidget()),
+              );
+            }
+            return BlocProvider.value(
+              value: bloc,
+              child: EmotionLoadingPage(imagePaths: imagePaths, event: event),
+            );
+          },
+        ),
+        GoRoute(
+          path: '/emotion/result-direct',
+          name: 'emotion-result-direct',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>? ?? {};
+            final analysis = extra['analysis'] as EmotionAnalysis?;
+            final imagePaths = (extra['imagePaths'] as List<String>?) ?? [];
+            final bloc = extra['bloc'] as EmotionAnalysisBloc?;
+            if (analysis == null) return const SizedBox.shrink();
+            final page = EmotionResultPage(
+              analysis: analysis,
+              imagePaths: imagePaths,
+            );
+            if (bloc != null) {
+              return BlocProvider.value(value: bloc, child: page);
+            }
+            return BlocProvider(
+              create: (_) => sl<EmotionAnalysisBloc>(),
+              child: page,
+            );
+          },
+        ),
         GoRoute(path: '/channels', builder: (_, __) => const ChannelSubscriptionPage()),
         GoRoute(
           path: '/pet/public/:petId',
@@ -83,12 +135,12 @@ class AppRouter {
         GoRoute(path: '/emotion/weekly-report', builder: (_, __) => const WeeklyReportPage()),
         GoRoute(path: '/health/alert-settings', builder: (_, __) => const HealthAlertSettingsPage()),
         GoRoute(
-          path: '/emotion/calendar',
-          builder: (context, state) => const EmotionCalendarPage(),
-        ),
-        GoRoute(
           path: '/privacy',
           builder: (context, state) => const PrivacyPolicyPage(),
+        ),
+        GoRoute(
+          path: '/reward',
+          builder: (context, state) => const RewardStorePage(),
         ),
         GoRoute(
           path: '/splash',
@@ -188,8 +240,11 @@ class AppRouter {
           ),
         ),
         ShellRoute(
-          builder: (context, state, child) => AuthGuard(
-            child: MainNavigation(child: child),
+          builder: (context, state, child) => BlocProvider(
+            create: (_) => sl<PetBloc>()..add(LoadUserPets()),
+            child: AuthGuard(
+              child: MainNavigation(child: child),
+            ),
           ),
           routes: [
             GoRoute(
@@ -340,6 +395,11 @@ class AppRouter {
               builder: (context, state) => const SettingsPage(),
             ),
             GoRoute(
+              path: '/settings/my',
+              name: 'my-settings',
+              builder: (context, state) => const MySettingsPage(),
+            ),
+            GoRoute(
               path: '/settings/notification',
               name: 'notification-settings',
               builder: (context, state) => const NotificationSettingsPage(),
@@ -421,17 +481,22 @@ class AppRouter {
               builder: (_, __) => const HospitalSearchPage(),
             ),
             GoRoute(
+              path: '/health/result',
+              name: 'health-result',
+              builder: (context, state) {
+                final result = state.extra as HealthAnalysisModel;
+                return HealthResultPage(result: result);
+              },
+            ),
+            GoRoute(
               path: '/emotion',
               name: 'emotion',
               builder: (context, state) {
                 final petId = state.uri.queryParameters['petId'];
                 final petName = state.uri.queryParameters['petName'];
-                return BlocProvider(
-                  create: (context) => sl<PetBloc>()..add(LoadUserPets()),
-                  child: EmotionAnalysisPage(
-                    initialPetId: petId,
-                    initialPetName: petName,
-                  ),
+                return EmotionAnalysisPage(
+                  initialPetId: petId,
+                  initialPetName: petName,
                 );
               },
               routes: [
@@ -453,7 +518,32 @@ class AppRouter {
                     return EmotionHistoryPage(userId: userId);
                   },
                 ),
+                GoRoute(
+                  path: 'calendar',
+                  name: 'emotion-calendar',
+                  builder: (_, __) => const EmotionCalendarPage(),
+                ),
               ],
+            ),
+            GoRoute(
+              path: '/ai-history-page',
+              name: 'ai-history-page',
+              builder: (context, state) {
+                return BlocProvider(
+                  create: (_) => sl<EmotionAnalysisBloc>(),
+                  child: const AiHistoryPage(),
+                );
+              },
+            ),
+            GoRoute(
+              path: '/ai-history',
+              name: 'ai-history',
+              builder: (context, state) {
+                return BlocProvider(
+                  create: (_) => sl<EmotionAnalysisBloc>(),
+                  child: const AiHistoryPage(),
+                );
+              },
             ),
           ],
         ),

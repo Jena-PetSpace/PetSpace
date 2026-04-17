@@ -98,7 +98,9 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
         final user = state.user;
         return Scaffold(
           backgroundColor: AppTheme.backgroundColor,
-          body: Column(
+          body: SafeArea(
+            bottom: false,
+            child: Column(
             children: [
               // 헤더 + 뱃지 (스크롤 안 됨 - 고정)
               MyProfileHeader(
@@ -134,6 +136,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                 ),
               ),
             ],
+          ),
           ),
         );
       },

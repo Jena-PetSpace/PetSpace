@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../pets/domain/entities/pet.dart';
 
@@ -19,6 +20,41 @@ class PetSelectionDropdown extends StatelessWidget {
     required this.onAnalyzeWithoutPetChanged,
   });
 
+  Widget _buildPetAvatar(Pet pet) {
+    if (pet.avatarUrl != null && pet.avatarUrl!.isNotEmpty) {
+      return SizedBox(
+        width: 40,
+        height: 40,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: CachedNetworkImage(
+            imageUrl: pet.avatarUrl!,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => _buildEmojiAvatar(pet),
+            errorWidget: (_, __, ___) => _buildEmojiAvatar(pet),
+          ),
+        ),
+      );
+    }
+    return _buildEmojiAvatar(pet);
+  }
+
+  Widget _buildEmojiAvatar(Pet pet) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        pet.type == PetType.dog ? '🐕' : '🐱',
+        style: const TextStyle(fontSize: 20),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -35,16 +71,14 @@ class PetSelectionDropdown extends StatelessWidget {
               value: selectedPet,
               hint: Text(hint ?? '반려동물을 선택하세요'),
               isExpanded: true,
+              itemHeight: 60,
               onChanged: analyzeWithoutPet ? null : onChanged,
               items: pets.map((Pet pet) {
                 return DropdownMenuItem<Pet>(
                   value: pet,
                   child: Row(
                     children: [
-                      Text(
-                        pet.type == PetType.dog ? '🐕' : '🐱',
-                        style: const TextStyle(fontSize: 20),
-                      ),
+                      _buildPetAvatar(pet),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -106,7 +140,7 @@ class PetSelectionDropdown extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        '반려동물 없이 분석',
+                        '등록된 반려동물 없이 분석',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

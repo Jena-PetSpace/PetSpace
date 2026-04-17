@@ -256,7 +256,13 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS provider VARCHAR(20) DEFAULT 'email';
 
 -- Soft delete 컬럼 보강 (기존 테이블 대비)
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT FALSE;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS location TEXT;
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+
+-- image_url, emotion_analysis NOT NULL 제약 제거 (텍스트/이미지/감정분석 각각 선택적)
+ALTER TABLE posts ALTER COLUMN image_url DROP NOT NULL;
+ALTER TABLE posts ALTER COLUMN emotion_analysis DROP NOT NULL;
 
 COMMENT ON COLUMN users.provider IS '가입 방식 (email, google, kakao)';
 COMMENT ON COLUMN users.is_onboarding_completed IS '온보딩 프로세스 완료 여부';
@@ -1569,3 +1575,108 @@ VALUES
   ('achievement', 'ach_10_records',          '건강 기록 10개 달성',     '누적 기록',             200, 10),
   ('achievement', 'ach_level_5',             '레벨 5 달성',             '꾸준히 활동',           500, 1)
 ON CONFLICT (key) DO NOTHING;
+
+
+-- ================================================================
+-- PART 11: increment_user_points RPC
+-- 퀘스트 포인트 저장 시 race condition 없이 원자적으로 증가
+--
+-- 구조: user_points는 VIEW (point_transactions의 SUM)
+--       → INSERT는 point_transactions 테이블에 직접 수행
+--       → user_points VIEW가 자동으로 잔액 합산
+--
+-- 호출: supabase.rpc('increment_user_points', { p_user_id: uid, p_points: 30 })
+-- ================================================================
+
+CREATE OR REPLACE FUNCTION increment_user_points(
+  p_user_id    UUID,
+  p_points     INT,
+  p_type       TEXT DEFAULT 'quest',
+  p_description TEXT DEFAULT '퀘스트 완료'
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO point_transactions (user_id, amount, type, description)
+  VALUES (p_user_id, p_points, p_type, p_description);
+END;
+$$;
+
+-- ================================================================
+-- 건강 분석 히스토리 (AI 건강분석 결과 저장)
+-- 추가: 2026-04-16
+-- ================================================================
+
+CREATE TABLE IF NOT EXISTS health_history (
+  id                 BIGSERIAL PRIMARY KEY,
+  user_id            UUID REFERENCES auth.users NOT NULL,
+  pet_id             UUID,
+  pet_name           TEXT,
+  area               TEXT NOT NULL,
+  image_urls         TEXT[]   DEFAULT '{}',
+  overall_score      INT      NOT NULL,
+  status             TEXT     NOT NULL,          -- '양호' | '주의' | '위험' | '확인불가'
+  findings           JSONB    DEFAULT '[]',
+  risk_alert         BOOLEAN  DEFAULT FALSE,
+  risk_reason        TEXT,
+  recommendations    TEXT[]   DEFAULT '{}',
+  confidence         FLOAT    NOT NULL,
+  summary            TEXT     NOT NULL,
+  additional_context TEXT,
+  created_at         TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 인덱스
+CREATE INDEX IF NOT EXISTS idx_health_history_user_id   ON health_history (user_id);
+CREATE INDEX IF NOT EXISTS idx_health_history_pet_id    ON health_history (pet_id);
+CREATE INDEX IF NOT EXISTS idx_health_history_created_at ON health_history (created_at DESC);
+
+-- RLS
+ALTER TABLE health_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "users can manage own health_history" ON health_history;
+CREATE POLICY "users can manage own health_history"
+  ON health_history FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- ── get_latest_health_by_area RPC ────────────────────────────────────────────
+-- 부위별 최신 건강 분석 결과 조회 (AiHistoryPage 현황 탭용)
+-- p_user_id: 조회할 유저 UUID
+-- p_pet_id:  NULL이면 pet_id IS NULL인 미등록 분석만 조회,
+--            값이 있으면 해당 pet의 분석만 조회
+CREATE OR REPLACE FUNCTION get_latest_health_by_area(
+  p_user_id UUID,
+  p_pet_id  UUID DEFAULT NULL
+)
+RETURNS TABLE (
+  area          TEXT,
+  overall_score INT,
+  status        TEXT,
+  risk_alert    BOOLEAN,
+  created_at    TIMESTAMPTZ
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT DISTINCT ON (area)
+    area,
+    overall_score,
+    status,
+    risk_alert,
+    created_at
+  FROM health_history
+  WHERE user_id = p_user_id
+    AND (
+      p_pet_id IS NULL
+        AND pet_id IS NULL
+      OR
+      p_pet_id IS NOT NULL
+        AND pet_id = p_pet_id
+    )
+  ORDER BY area, created_at DESC;
+$$;
