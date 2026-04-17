@@ -233,15 +233,8 @@ class _AiHistoryPageState extends State<AiHistoryPage>
           border: Border.all(color: AppTheme.dividerColor),
         ),
         child: Row(children: [
-          Container(
-            width: 32.w,
-            height: 32.w,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.pets, size: 16.w, color: AppTheme.primaryColor),
-          ),
+          // 선택된 펫 아바타
+          _buildPetAvatar(_showUnregistered ? null : _selectedPet, size: 36.w),
           SizedBox(width: 10.w),
           Expanded(
             child: Column(
@@ -273,6 +266,42 @@ class _AiHistoryPageState extends State<AiHistoryPage>
     );
   }
 
+  Widget _buildPetAvatar(Pet? pet, {required double size}) {
+    if (pet?.avatarUrl != null && pet!.avatarUrl!.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          pet.avatarUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPetAvatarFallback(pet, size),
+        ),
+      );
+    }
+    return _buildPetAvatarFallback(pet, size);
+  }
+
+  Widget _buildPetAvatarFallback(Pet? pet, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: pet == null
+            ? Colors.grey.shade100
+            : AppTheme.primaryColor.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: pet == null
+            ? Icon(Icons.remove_circle_outline, color: Colors.grey, size: size * 0.5)
+            : Text(
+                pet.type == PetType.dog ? '🐶' : '🐱',
+                style: TextStyle(fontSize: size * 0.45),
+              ),
+      ),
+    );
+  }
+
   void _showPetPicker(List<Pet> pets) {
     showModalBottomSheet(
       context: context,
@@ -290,41 +319,44 @@ class _AiHistoryPageState extends State<AiHistoryPage>
             ),
           ),
           SizedBox(height: 12.h),
-          ...pets.map((pet) => ListTile(
-                leading: CircleAvatar(
-                  backgroundColor:
-                      AppTheme.primaryColor.withValues(alpha: 0.1),
-                  child: Text(
-                      pet.type == PetType.dog ? '🐶' : '🐱'),
-                ),
-                title: Text(pet.name,
-                    style: TextStyle(
-                        fontSize: 14.sp, fontWeight: FontWeight.w500)),
-                subtitle: Text(
-                    '${pet.typeDisplayName} · ${pet.displayAge}',
-                    style: TextStyle(fontSize: 11.sp)),
-                onTap: () {
-                  setState(() {
-                    _selectedPet = pet;
-                    _showUnregistered = false;
-                  });
-                  Navigator.pop(ctx);
-                  _loadDashboard();
-                },
-              )),
+          ...pets.map((pet) {
+            final isSelected = !_showUnregistered && _selectedPet?.id == pet.id;
+            return ListTile(
+              leading: _buildPetAvatar(pet, size: 40.w),
+              title: Text(pet.name,
+                  style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected ? AppTheme.primaryColor : AppTheme.primaryTextColor)),
+              subtitle: Text(
+                  '${pet.typeDisplayName} · ${pet.displayAge}',
+                  style: TextStyle(fontSize: 11.sp)),
+              trailing: isSelected
+                  ? Icon(Icons.check_circle, color: AppTheme.primaryColor, size: 20.w)
+                  : null,
+              onTap: () {
+                setState(() {
+                  _selectedPet = pet;
+                  _showUnregistered = false;
+                });
+                Navigator.pop(ctx);
+                _loadDashboard();
+              },
+            );
+          }),
           const Divider(),
           ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.grey.shade100,
-              child: Icon(Icons.remove_circle_outline,
-                  color: Colors.grey, size: 18.w),
-            ),
+            leading: _buildPetAvatarFallback(null, 40.w),
             title: Text('미등록 분석',
                 style: TextStyle(
-                    fontSize: 14.sp, fontWeight: FontWeight.w500)),
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: _showUnregistered ? AppTheme.primaryColor : AppTheme.primaryTextColor)),
             subtitle: Text('반려동물 없이 진행한 분석',
-                style:
-                    TextStyle(fontSize: 11.sp, color: Colors.grey)),
+                style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
+            trailing: _showUnregistered
+                ? Icon(Icons.check_circle, color: AppTheme.primaryColor, size: 20.w)
+                : null,
             onTap: () {
               setState(() {
                 _showUnregistered = true;
@@ -602,7 +634,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
         final history = state.history;
         if (history.isEmpty) return const SizedBox.shrink();
 
-        final recent = history.take(6).toList().reversed.toList();
+        final recent = history.take(7).toList().reversed.toList();
         final maxIdx = recent.length - 1;
 
         return Container(
@@ -627,7 +659,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                       fontWeight: FontWeight.w500)),
             ]),
             SizedBox(height: 4.h),
-            Text('최근 ${recent.length}회 분석',
+            Text('최근 ${recent.length}회 분석 기준 (오래된 순 →)',
                 style: TextStyle(
                     fontSize: 9.sp, color: AppTheme.secondaryTextColor)),
             SizedBox(height: 10.h),
@@ -659,7 +691,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                           ),
                           SizedBox(height: 3.h),
                           Text(
-                            '${e.value.analyzedAt.month}/${e.value.analyzedAt.day}',
+                            '${e.key + 1}회',
                             style: TextStyle(
                                 fontSize: 7.sp,
                                 color: AppTheme.secondaryTextColor),

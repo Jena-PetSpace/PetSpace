@@ -7,7 +7,6 @@ import '../../../../config/injection_container.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/domain/entities/user.dart';
-import 'settings_bottom_sheet.dart';
 
 class MyProfileHeader extends StatefulWidget {
   final User user;
@@ -67,7 +66,7 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
             children: [
               const Spacer(),
               InkWell(
-                onTap: () => SettingsBottomSheet.show(context),
+                onTap: () => context.push('/settings/my'),
                 borderRadius: BorderRadius.circular(17.r),
                 child: Container(
                   width: 34.w,

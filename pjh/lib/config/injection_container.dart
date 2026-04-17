@@ -175,8 +175,8 @@ Future<void> _initEmotion() async {
   sl.registerLazySingleton(() => GetEmotionStatistics(sl()));
   sl.registerLazySingleton(() => DeleteEmotionAnalysis(sl()));
 
-  // BLoC
-  sl.registerLazySingleton(
+  // BLoC - factory로 등록: 페이지마다 새 인스턴스 생성 (singleton 재사용 시 closed 오류 방지)
+  sl.registerFactory(
     () => EmotionAnalysisBloc(
       analyzeEmotion: sl(),
       saveEmotionAnalysis: sl(),
