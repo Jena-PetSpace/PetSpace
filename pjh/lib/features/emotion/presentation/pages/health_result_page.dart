@@ -17,7 +17,9 @@ import '../../domain/entities/health_analysis.dart';
 
 class HealthResultPage extends StatefulWidget {
   final HealthAnalysisModel result;
-  const HealthResultPage({super.key, required this.result});
+  /// 히스토리에서 열렸을 때 true — 저장 skip, 버튼이 pop으로 동작
+  final bool fromHistory;
+  const HealthResultPage({super.key, required this.result, this.fromHistory = false});
 
   @override
   State<HealthResultPage> createState() => _HealthResultPageState();
@@ -28,7 +30,9 @@ class _HealthResultPageState extends State<HealthResultPage> {
   @override
   void initState() {
     super.initState();
-    _saveResult();
+    if (!widget.fromHistory) {
+      _saveResult();
+    }
   }
 
   void _shareResult() {
@@ -210,9 +214,44 @@ class _HealthResultPageState extends State<HealthResultPage> {
 
   Future<void> _saveResult() async {
     try {
-      await Supabase.instance.client
-          .from('health_history')
-          .insert(widget.result.toSupabaseJson());
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id ?? '';
+
+      // 로컬 파일 경로를 Storage URL로 업로드
+      final uploadedUrls = <String>[];
+      for (final path in widget.result.imageUrls) {
+        if (path.startsWith('http')) {
+          uploadedUrls.add(path);
+          continue;
+        }
+        try {
+          final file = File(path);
+          if (!await file.exists()) continue;
+          final ext = path.contains('.') ? path.split('.').last.toLowerCase() : 'jpg';
+          final fileName = 'health_${DateTime.now().millisecondsSinceEpoch}_${uploadedUrls.length}.$ext';
+          final storagePath = 'health/$userId/$fileName';
+          await client.storage.from('images').uploadBinary(
+            storagePath,
+            await file.readAsBytes(),
+            fileOptions: FileOptions(
+              contentType: ext == 'png' ? 'image/png' : 'image/jpeg',
+              upsert: true,
+            ),
+          );
+          final url = client.storage.from('images').getPublicUrl(storagePath);
+          uploadedUrls.add(url);
+          log('건강분석 이미지 업로드 성공: $url', name: 'HealthResultPage');
+        } catch (e) {
+          log('건강분석 이미지 업로드 실패: $e', name: 'HealthResultPage');
+        }
+      }
+
+      // 업로드된 URL로 교체
+      final jsonData = widget.result.toSupabaseJson();
+      jsonData['image_urls'] = uploadedUrls;
+
+      await client.from('health_history').insert(jsonData);
+      log('건강분석 저장 완료 (이미지 ${uploadedUrls.length}장)', name: 'HealthResultPage');
     } catch (e) {
       log('건강분석 저장 실패: $e', name: 'HealthResultPage');
     }
@@ -581,7 +620,13 @@ class _HealthResultPageState extends State<HealthResultPage> {
             child: SizedBox(
               height: 48.w,
               child: ElevatedButton.icon(
-                onPressed: () => context.push('/ai-history-page'),
+                onPressed: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    context.go('/ai-history-page');
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,

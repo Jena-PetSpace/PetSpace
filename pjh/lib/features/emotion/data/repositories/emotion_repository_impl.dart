@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:dartz/dartz.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -56,8 +57,15 @@ class EmotionRepositoryImpl implements EmotionRepository {
       );
 
       // 대표 이미지(첫 번째)를 Supabase Storage에 업로드
-      final imageUrl =
+      final imageUrlResult =
           await uploadImage(processedImages.first, 'emotions/${user.id}');
+      final resolvedImageUrl = imageUrlResult.fold((l) {
+        log('[DEBUG] analyzeEmotion - upload FAILED: ${l.message}', name: 'EmotionRepo');
+        return '';
+      }, (r) {
+        log('[DEBUG] analyzeEmotion - upload SUCCESS: $r', name: 'EmotionRepo');
+        return r;
+      });
       final localImagePath = await imageService.saveImageToLocal(
         processedImages.first,
         'emotion_${DateTime.now().millisecondsSinceEpoch}.jpg',
@@ -69,7 +77,7 @@ class EmotionRepositoryImpl implements EmotionRepository {
         id: '',
         userId: user.id,
         petId: petId,
-        imageUrl: imageUrl.fold((l) => '', (r) => r),
+        imageUrl: resolvedImageUrl,
         localImagePath: localImagePath,
         emotions: emotionScores,
         confidence: confidence,
@@ -95,15 +103,23 @@ class EmotionRepositoryImpl implements EmotionRepository {
       final user = supabaseClient.auth.currentUser;
       String imageUrl = analysis.imageUrl;
 
+      log('[DEBUG] saveAnalysis - initial imageUrl="$imageUrl" localPath="${analysis.localImagePath}"', name: 'EmotionRepo');
+
       // imageUrl이 비어있고 localImagePath가 있으면 저장 시점에 재업로드
       if (imageUrl.isEmpty && analysis.localImagePath.isNotEmpty) {
         final localFile = File(analysis.localImagePath);
         if (localFile.existsSync()) {
+          log('[DEBUG] saveAnalysis - re-uploading from localPath', name: 'EmotionRepo');
           final uploadResult =
               await uploadImage(localFile, 'emotions/${user?.id ?? 'unknown'}');
           imageUrl = uploadResult.fold((_) => '', (url) => url);
+          log('[DEBUG] saveAnalysis - re-upload result imageUrl="$imageUrl"', name: 'EmotionRepo');
+        } else {
+          log('[DEBUG] saveAnalysis - localFile does NOT exist: ${analysis.localImagePath}', name: 'EmotionRepo');
         }
       }
+
+      log('[DEBUG] saveAnalysis - final imageUrl="$imageUrl"', name: 'EmotionRepo');
 
       final analysisModel = (analysis is EmotionAnalysisModel)
           ? analysis.copyWith(imageUrl: imageUrl)
@@ -112,8 +128,10 @@ class EmotionRepositoryImpl implements EmotionRepository {
       await supabaseClient
           .from('emotion_history')
           .insert(analysisModel.toMap());
+      log('[DEBUG] saveAnalysis - INSERT success', name: 'EmotionRepo');
       return const Right(null);
     } catch (e) {
+      log('[DEBUG] saveAnalysis - ERROR: $e', name: 'EmotionRepo');
       return Left(
           ServerFailure(message: '분석 결과 저장 중 오류가 발생했습니다: ${e.toString()}'));
     }
@@ -149,6 +167,11 @@ class EmotionRepositoryImpl implements EmotionRepository {
       final analyses = (response as List)
           .map((data) => EmotionAnalysisModel.fromJson(data))
           .toList();
+
+      // 🔍 임시 디버그 로그 - image_url 확인
+      for (final a in analyses.take(3)) {
+        log('[DEBUG] id=${a.id} imageUrl="${a.imageUrl}"', name: 'EmotionRepo');
+      }
 
       return Right(analyses);
     } catch (e) {
@@ -314,13 +337,16 @@ class EmotionRepositoryImpl implements EmotionRepository {
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final filePath = '$path/$fileName';
 
+      log('[DEBUG] uploadImage - uploading to bucket=images path=$filePath size=${imageFile.lengthSync()}bytes', name: 'EmotionRepo');
       await supabaseClient.storage.from('images').upload(filePath, imageFile);
 
       final publicUrl =
           supabaseClient.storage.from('images').getPublicUrl(filePath);
 
+      log('[DEBUG] uploadImage - SUCCESS url=$publicUrl', name: 'EmotionRepo');
       return Right(publicUrl);
     } catch (e) {
+      log('[DEBUG] uploadImage - FAILED: $e', name: 'EmotionRepo');
       return Left(
           ServerFailure(message: '이미지 업로드 중 오류가 발생했습니다: ${e.toString()}'));
     }

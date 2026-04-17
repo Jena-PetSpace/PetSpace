@@ -48,6 +48,8 @@ import '../../features/pets/presentation/pages/public_pet_page.dart';
 import '../../features/emotion/presentation/pages/weekly_report_page.dart';
 import '../../features/emotion/presentation/pages/ai_history_page.dart';
 import '../../features/emotion/presentation/pages/emotion_loading_page.dart';
+import '../../features/emotion/presentation/pages/emotion_result_page.dart';
+import '../../features/emotion/domain/entities/emotion_analysis.dart';
 import '../../features/emotion/presentation/widgets/emotion_loading_widget.dart';
 import '../../features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../features/health/presentation/pages/health_alert_settings_page.dart';
@@ -100,6 +102,28 @@ class AppRouter {
             return BlocProvider.value(
               value: bloc,
               child: EmotionLoadingPage(imagePaths: imagePaths, event: event),
+            );
+          },
+        ),
+        GoRoute(
+          path: '/emotion/result-direct',
+          name: 'emotion-result-direct',
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>? ?? {};
+            final analysis = extra['analysis'] as EmotionAnalysis?;
+            final imagePaths = (extra['imagePaths'] as List<String>?) ?? [];
+            final bloc = extra['bloc'] as EmotionAnalysisBloc?;
+            if (analysis == null) return const SizedBox.shrink();
+            final page = EmotionResultPage(
+              analysis: analysis,
+              imagePaths: imagePaths,
+            );
+            if (bloc != null) {
+              return BlocProvider.value(value: bloc, child: page);
+            }
+            return BlocProvider(
+              create: (_) => sl<EmotionAnalysisBloc>(),
+              child: page,
             );
           },
         ),
@@ -216,8 +240,11 @@ class AppRouter {
           ),
         ),
         ShellRoute(
-          builder: (context, state, child) => AuthGuard(
-            child: MainNavigation(child: child),
+          builder: (context, state, child) => BlocProvider(
+            create: (_) => sl<PetBloc>()..add(LoadUserPets()),
+            child: AuthGuard(
+              child: MainNavigation(child: child),
+            ),
           ),
           routes: [
             GoRoute(
@@ -467,12 +494,9 @@ class AppRouter {
               builder: (context, state) {
                 final petId = state.uri.queryParameters['petId'];
                 final petName = state.uri.queryParameters['petName'];
-                return BlocProvider(
-                  create: (context) => sl<PetBloc>()..add(LoadUserPets()),
-                  child: EmotionAnalysisPage(
-                    initialPetId: petId,
-                    initialPetName: petName,
-                  ),
+                return EmotionAnalysisPage(
+                  initialPetId: petId,
+                  initialPetName: petName,
                 );
               },
               routes: [
@@ -505,20 +529,8 @@ class AppRouter {
               path: '/ai-history-page',
               name: 'ai-history-page',
               builder: (context, state) {
-                final authState = authBloc.state;
-                final userId = authState is AuthAuthenticated
-                    ? authState.user.uid
-                    : '';
-                return MultiBlocProvider(
-                  providers: [
-                    BlocProvider(
-                      create: (_) => sl<EmotionAnalysisBloc>()
-                        ..add(LoadAnalysisHistory(userId: userId)),
-                    ),
-                    BlocProvider(
-                      create: (_) => sl<PetBloc>()..add(LoadUserPets()),
-                    ),
-                  ],
+                return BlocProvider(
+                  create: (_) => sl<EmotionAnalysisBloc>(),
                   child: const AiHistoryPage(),
                 );
               },
@@ -527,20 +539,8 @@ class AppRouter {
               path: '/ai-history',
               name: 'ai-history',
               builder: (context, state) {
-                final authState = authBloc.state;
-                final userId = authState is AuthAuthenticated
-                    ? authState.user.uid
-                    : '';
-                return MultiBlocProvider(
-                  providers: [
-                    BlocProvider(
-                      create: (_) => sl<EmotionAnalysisBloc>()
-                        ..add(LoadAnalysisHistory(userId: userId)),
-                    ),
-                    BlocProvider(
-                      create: (_) => sl<PetBloc>()..add(LoadUserPets()),
-                    ),
-                  ],
+                return BlocProvider(
+                  create: (_) => sl<EmotionAnalysisBloc>(),
                   child: const AiHistoryPage(),
                 );
               },

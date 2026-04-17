@@ -80,7 +80,7 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
             padding: EdgeInsets.all(16.w),
             child: Row(
               children: [
-                if (widget.imagePaths.isNotEmpty)
+                if (widget.imagePaths.isNotEmpty || widget.analysis.imageUrl.isNotEmpty)
                   _buildImageThumbnails()
                 else
                   Container(

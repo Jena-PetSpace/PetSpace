@@ -3,18 +3,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../bloc/emotion_analysis_bloc.dart';
-import '../widgets/pet_selection_dropdown.dart';
+import '../widgets/pet_inline_dropdown.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_event.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import 'analysis_guide_page.dart';
+import 'emotion_loading_page.dart';
 import 'health_loading_page.dart';
 
 class EmotionAnalysisPage extends StatefulWidget {
@@ -442,28 +442,26 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 SizedBox(height: 8.h),
 
                 // 반려동물 선택
-                _buildSectionCard(
-                  child: PetSelectionDropdown(
-                    pets: userPets,
-                    selectedPet: _selectedPet,
-                    onChanged: (Pet? pet) {
-                      setState(() {
-                        _selectedPet = pet;
-                        _analyzeWithoutPet = false;
-                      });
-                    },
-                    analyzeWithoutPet: _analyzeWithoutPet,
-                    onAnalyzeWithoutPetChanged: (bool value) {
-                      setState(() {
-                        _analyzeWithoutPet = value;
-                        if (value) {
-                          _selectedPet = null;
-                          _manualPetType = null;
-                          _manualBreed = null;
-                        }
-                      });
-                    },
-                  ),
+                PetInlineDropdown(
+                  pets: userPets,
+                  selectedPet: _selectedPet,
+                  showUnregistered: _analyzeWithoutPet,
+                  onPetSelected: (Pet? pet) {
+                    setState(() {
+                      _selectedPet = pet;
+                      _analyzeWithoutPet = false;
+                    });
+                  },
+                  onUnregisteredChanged: (bool value) {
+                    setState(() {
+                      _analyzeWithoutPet = value;
+                      if (value) {
+                        _selectedPet = null;
+                        _manualPetType = null;
+                        _manualBreed = null;
+                      }
+                    });
+                  },
                 ),
 
                 // 수동 종/품종 선택 (반려동물 미선택 시)
@@ -1203,8 +1201,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       return;
     }
 
-    // 감정분석: GoRouter로 로딩 페이지 이동 (ShellRoute 밖 → 하단 네비바 없음)
-    // push 먼저 → 로딩 페이지에서 stream 구독 시작 후 이벤트 발송
+    // 감정분석: Navigator.push(MaterialPageRoute)로 로딩 페이지 이동
+    // GoRouter와 분리하여 Navigator.pop()으로 호출 화면(/ai-history-page 등)으로 바로 복귀 가능
     final bloc = context.read<EmotionAnalysisBloc>();
     final event = AnalyzeEmotionRequested(
       imagePaths: List.from(_imagePaths),
@@ -1212,11 +1210,17 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       petType: petType,
       breed: breed,
     );
-    context.push('/emotion/loading', extra: {
-      'bloc': bloc,
-      'imagePaths': List<String>.from(_imagePaths),
-      'event': event,
-    });
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: bloc,
+          child: EmotionLoadingPage(
+            imagePaths: List<String>.from(_imagePaths),
+            event: event,
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _startHealthAnalysis({

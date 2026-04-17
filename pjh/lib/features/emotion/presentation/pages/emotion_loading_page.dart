@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../bloc/emotion_analysis_bloc.dart';
-import '../pages/emotion_result_page.dart';
 import '../widgets/emotion_loading_widget.dart';
+import 'emotion_result_page.dart';
 
 /// ShellRoute 밖에 위치 → 하단 네비바 완전히 없음
 /// EmotionAnalysisBloc stream을 구독해서 완료/에러 시 자동 전환
@@ -41,13 +41,15 @@ class _EmotionLoadingPageState extends State<EmotionLoadingPage> {
         if (!mounted || _navigated) return;
         if (state is EmotionAnalysisSuccess) {
           _navigated = true;
+          // MaterialPageRoute로 결과 페이지 열기
+          // → GoRouter 스택과 분리되므로 Navigator.pop()으로 히스토리로 돌아갈 수 있음
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (_) => BlocProvider.value(
                 value: bloc,
                 child: EmotionResultPage(
                   analysis: state.analysis,
-                  imagePaths: List.from(widget.imagePaths),
+                  imagePaths: List<String>.from(widget.imagePaths),
                 ),
               ),
             ),

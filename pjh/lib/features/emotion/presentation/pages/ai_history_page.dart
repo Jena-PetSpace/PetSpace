@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import '../../../../config/injection_container.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -9,9 +10,13 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
+import '../../data/models/health_analysis_model.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../../domain/entities/health_analysis.dart';
 import '../bloc/emotion_analysis_bloc.dart';
+import '../widgets/pet_inline_dropdown.dart';
+import 'emotion_result_page.dart';
+import 'health_result_page.dart';
 
 // ── 통합 히스토리 아이템 모델 ──────────────────────────────────
 class _HistoryItem {
@@ -22,6 +27,9 @@ class _HistoryItem {
   final String subtitle;
   final String badge;
   final String badgeType; // 'emot' | 'good' | 'warn' | 'bad'
+  final String? thumbnailUrl; // 대표 이미지 URL
+  final EmotionAnalysis? emotionData;
+  final HealthAnalysisModel? healthData;
 
   const _HistoryItem({
     required this.isEmotion,
@@ -31,6 +39,9 @@ class _HistoryItem {
     required this.subtitle,
     required this.badge,
     required this.badgeType,
+    this.thumbnailUrl,
+    this.emotionData,
+    this.healthData,
   });
 }
 
@@ -66,10 +77,12 @@ class _AiHistoryPageState extends State<AiHistoryPage>
 
   Pet? _selectedPet;
   bool _showUnregistered = false;
-  bool _dropdownExpanded = false; // 인라인 드롭다운 펼침 상태
 
   List<_AreaStatus> _areaStatuses = [];
   bool _dashboardLoading = false;
+
+  List<HealthAnalysisModel> _healthHistory = [];
+  bool _healthHistoryLoading = false;
 
   String _filterType = '전체';
 
@@ -81,7 +94,18 @@ class _AiHistoryPageState extends State<AiHistoryPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initSelectedPet();
       _loadDashboard();
+      _loadHealthHistory();
+      _loadEmotionHistory();
     });
+  }
+
+  void _loadEmotionHistory() {
+    final auth = context.read<AuthBloc>().state;
+    if (auth is AuthAuthenticated) {
+      context.read<EmotionAnalysisBloc>().add(
+        LoadAnalysisHistory(userId: auth.user.uid),
+      );
+    }
   }
 
   @override
@@ -132,6 +156,28 @@ class _AiHistoryPageState extends State<AiHistoryPage>
       log('Dashboard load error: $e', name: 'AiHistory');
     } finally {
       if (mounted) setState(() => _dashboardLoading = false);
+    }
+  }
+
+  Future<void> _loadHealthHistory() async {
+    setState(() => _healthHistoryLoading = true);
+    try {
+      final auth = context.read<AuthBloc>().state;
+      if (auth is! AuthAuthenticated) return;
+
+      final result = await Supabase.instance.client
+          .from('health_history')
+          .select()
+          .eq('user_id', auth.user.uid)
+          .order('created_at', ascending: false);
+
+      final rows = (result as List).cast<Map<String, dynamic>>();
+      final models = rows.map(HealthAnalysisModel.fromSupabaseRow).toList();
+      if (mounted) setState(() => _healthHistory = models);
+    } catch (e) {
+      log('Health history load error: $e', name: 'AiHistory');
+    } finally {
+      if (mounted) setState(() => _healthHistoryLoading = false);
     }
   }
 
@@ -205,214 +251,40 @@ class _AiHistoryPageState extends State<AiHistoryPage>
   // 현황 탭
   // ────────────────────────────────────────────────────────
   Widget _buildStatusTab() {
+    final petState = context.read<PetBloc>().state;
+    final pets = petState is PetLoaded ? petState.pets : <Pet>[];
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(14.w),
       child: Column(children: [
-        _buildPetDropdown(),
+        PetInlineDropdown(
+          pets: pets,
+          selectedPet: _selectedPet,
+          showUnregistered: _showUnregistered,
+          onPetSelected: (pet) {
+            setState(() {
+              _selectedPet = pet;
+              _showUnregistered = false;
+            });
+            _loadDashboard();
+            _loadHealthHistory();
+          },
+          onUnregisteredChanged: (val) {
+            setState(() {
+              _showUnregistered = val;
+              if (val) _selectedPet = null;
+            });
+            _loadDashboard();
+            _loadHealthHistory();
+          },
+        ),
         SizedBox(height: 10.h),
         _buildEmotionChart(),
         SizedBox(height: 10.h),
         _showUnregistered
             ? _buildUnregisteredGuide()
             : _buildHealthDashboard(),
-        SizedBox(height: 10.h),
-        _buildRiskBanner(),
       ]),
-    );
-  }
-
-  // ── 인라인 드롭다운 ────────────────────────────────────────
-  Widget _buildPetDropdown() {
-    final petState = context.read<PetBloc>().state;
-    final pets = petState is PetLoaded ? petState.pets : <Pet>[];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: _dropdownExpanded
-              ? AppTheme.primaryColor.withValues(alpha: 0.5)
-              : AppTheme.dividerColor,
-        ),
-        boxShadow: _dropdownExpanded
-            ? [BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                blurRadius: 8, offset: const Offset(0, 2))]
-            : [],
-      ),
-      child: Column(children: [
-        // ── 선택된 펫 헤더 (항상 보임) ──
-        InkWell(
-          onTap: () => setState(() => _dropdownExpanded = !_dropdownExpanded),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(12.r),
-            bottom: _dropdownExpanded ? Radius.zero : Radius.circular(12.r),
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-            child: Row(children: [
-              _buildPetAvatar(_showUnregistered ? null : _selectedPet, size: 36.w),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _showUnregistered
-                          ? '미등록 분석'
-                          : (_selectedPet?.name ?? '반려동물 선택'),
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryTextColor,
-                      ),
-                    ),
-                    if (!_showUnregistered && _selectedPet != null)
-                      Text(
-                        '${_selectedPet!.typeDisplayName} · ${_selectedPet!.displayAge}',
-                        style: TextStyle(
-                            fontSize: 10.sp,
-                            color: AppTheme.secondaryTextColor),
-                      ),
-                  ],
-                ),
-              ),
-              AnimatedRotation(
-                turns: _dropdownExpanded ? 0.5 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Icon(Icons.keyboard_arrow_down,
-                    color: AppTheme.secondaryTextColor, size: 20.w),
-              ),
-            ]),
-          ),
-        ),
-        // ── 펼쳐지는 옵션 목록 ──
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState: _dropdownExpanded
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          firstChild: const SizedBox.shrink(),
-          secondChild: Column(children: [
-            const Divider(height: 1, color: AppTheme.dividerColor),
-            ...pets.map((pet) {
-              final isSelected =
-                  !_showUnregistered && _selectedPet?.id == pet.id;
-              return _buildDropdownItem(
-                avatar: _buildPetAvatar(pet, size: 40.w),
-                title: pet.name,
-                subtitle: '${pet.typeDisplayName} · ${pet.displayAge}',
-                isSelected: isSelected,
-                onTap: () {
-                  setState(() {
-                    _selectedPet = pet;
-                    _showUnregistered = false;
-                    _dropdownExpanded = false;
-                  });
-                  _loadDashboard();
-                },
-              );
-            }),
-            const Divider(height: 1, color: AppTheme.dividerColor),
-            _buildDropdownItem(
-              avatar: _buildPetAvatarFallback(null, 40.w),
-              title: '미등록 분석',
-              subtitle: '반려동물 없이 진행한 분석',
-              isSelected: _showUnregistered,
-              onTap: () {
-                setState(() {
-                  _showUnregistered = true;
-                  _selectedPet = null;
-                  _dropdownExpanded = false;
-                });
-                _loadDashboard();
-              },
-            ),
-          ]),
-        ),
-      ]),
-    );
-  }
-
-  Widget _buildDropdownItem({
-    required Widget avatar,
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        color: isSelected
-            ? AppTheme.primaryColor.withValues(alpha: 0.04)
-            : Colors.transparent,
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-        child: Row(children: [
-          avatar,
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected
-                          ? AppTheme.primaryColor
-                          : AppTheme.primaryTextColor,
-                    )),
-                Text(subtitle,
-                    style: TextStyle(
-                        fontSize: 10.sp,
-                        color: AppTheme.secondaryTextColor)),
-              ],
-            ),
-          ),
-          if (isSelected)
-            Icon(Icons.check_circle,
-                color: AppTheme.primaryColor, size: 18.w),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildPetAvatar(Pet? pet, {required double size}) {
-    if (pet?.avatarUrl != null && pet!.avatarUrl!.isNotEmpty) {
-      return ClipOval(
-        child: Image.network(
-          pet.avatarUrl!,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildPetAvatarFallback(pet, size),
-        ),
-      );
-    }
-    return _buildPetAvatarFallback(pet, size);
-  }
-
-  Widget _buildPetAvatarFallback(Pet? pet, double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: pet == null
-            ? Colors.grey.shade100
-            : AppTheme.primaryColor.withValues(alpha: 0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: pet == null
-            ? Icon(Icons.remove_circle_outline,
-                color: Colors.grey, size: size * 0.5)
-            : Text(
-                pet.type == PetType.dog ? '🐶' : '🐱',
-                style: TextStyle(fontSize: size * 0.45),
-              ),
-      ),
     );
   }
 
@@ -621,54 +493,6 @@ class _AiHistoryPageState extends State<AiHistoryPage>
     }
   }
 
-  Widget _buildRiskBanner() {
-    final hasRisk = _areaStatuses.any((s) => s.riskAlert == true);
-    if (!hasRisk) return const SizedBox.shrink();
-
-    final riskAreas = _areaStatuses
-        .where((s) => s.riskAlert == true)
-        .map((s) => s.area.displayName)
-        .join(', ');
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 10.h),
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: AppTheme.highlightColor,
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: Row(children: [
-        Icon(Icons.warning_amber_rounded, color: Colors.white, size: 18.w),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: Text(
-            '$riskAreas → 수의사 상담 권장',
-            style: TextStyle(
-                fontSize: 11.sp,
-                color: Colors.white,
-                fontWeight: FontWeight.w500),
-          ),
-        ),
-        GestureDetector(
-          onTap: () => context.push('/hospital'),
-          child: Container(
-            padding:
-                EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(7.r),
-            ),
-            child: Text('병원찾기',
-                style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.highlightColor)),
-          ),
-        ),
-      ]),
-    );
-  }
-
   Widget _buildEmotionChart() {
     return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
       builder: (context, state) {
@@ -689,6 +513,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
             border: Border.all(color: AppTheme.dividerColor),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // ── 헤더 ──
             Row(children: [
               Text('최근 감정 현황',
                   style: TextStyle(
@@ -696,62 +521,111 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                       fontWeight: FontWeight.w700,
                       color: AppTheme.primaryTextColor)),
               const Spacer(),
-              Text(_dominantLabel(history),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Text(
+                  '${AppTheme.getEmotionEmoji(_dominantEmotion(history))} ${_dominantLabel(history)} 이 많았어요',
                   style: TextStyle(
-                      fontSize: 10.sp,
+                      fontSize: 9.5.sp,
                       color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w500)),
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
             ]),
             SizedBox(height: 4.h),
-            Text('최근 ${recent.length}회 분석 기준 (오래된 순 →)',
+            Text('최근 ${recent.length}회 기준 · 오래된 순 →',
                 style: TextStyle(
                     fontSize: 9.sp, color: AppTheme.secondaryTextColor)),
-            SizedBox(height: 10.h),
-            SizedBox(
-              height: 60.h,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: recent.asMap().entries.map((e) {
-                  final score = _positiveScore(e.value);
-                  final isNeg =
-                      _isNegative(e.value.emotions.dominantEmotion);
-                  final color = isNeg
-                      ? AppTheme.highlightColor
-                      : AppTheme.primaryColor;
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 2.w),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            height: 50.h * score,
-                            decoration: BoxDecoration(
-                              color: color.withValues(
-                                  alpha:
-                                      e.key == maxIdx ? 1.0 : 0.4),
-                              borderRadius: BorderRadius.circular(4.r),
+            SizedBox(height: 12.h),
+
+            // ── 이모지 타임라인 ──
+            Row(
+              children: recent.asMap().entries.map((e) {
+                final isLast = e.key == maxIdx;
+                final isNeg = _isNegative(e.value.emotions.dominantEmotion);
+                final emotion = e.value.emotions.dominantEmotion;
+                final score = _positiveScore(e.value);
+                final barColor = isNeg
+                    ? AppTheme.highlightColor
+                    : AppTheme.primaryColor;
+                final bgColor = isNeg
+                    ? AppTheme.highlightColor.withValues(alpha: isLast ? 0.15 : 0.07)
+                    : AppTheme.primaryColor.withValues(alpha: isLast ? 0.13 : 0.06);
+
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 2.5.w),
+                    child: Column(
+                      children: [
+                        // 이모지 버블
+                        Container(
+                          width: 34.w,
+                          height: 34.w,
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            shape: BoxShape.circle,
+                            border: isLast
+                                ? Border.all(
+                                    color: barColor.withValues(alpha: 0.6),
+                                    width: 1.5)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              AppTheme.getEmotionEmoji(emotion),
+                              style: TextStyle(fontSize: isLast ? 16.sp : 14.sp),
                             ),
                           ),
-                          SizedBox(height: 3.h),
-                          Text(
-                            '${e.key + 1}회',
-                            style: TextStyle(
-                                fontSize: 7.sp,
-                                color: AppTheme.secondaryTextColor),
+                        ),
+                        SizedBox(height: 4.h),
+                        // 점수 바
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(3.r),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 4.h,
+                            child: LinearProgressIndicator(
+                              value: score,
+                              backgroundColor: Colors.grey.shade100,
+                              color: barColor.withValues(
+                                  alpha: isLast ? 1.0 : 0.5),
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                        SizedBox(height: 3.h),
+                        // 회차
+                        Text(
+                          '${e.key + 1}회',
+                          style: TextStyle(
+                              fontSize: 7.sp,
+                              fontWeight: isLast
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: isLast
+                                  ? AppTheme.primaryTextColor
+                                  : AppTheme.secondaryTextColor),
+                        ),
+                      ],
                     ),
-                  );
-                }).toList(),
-              ),
+                  ),
+                );
+              }).toList(),
             ),
-            SizedBox(height: 8.h),
+
+            SizedBox(height: 10.h),
+            // ── 범례 ──
             Row(children: [
-              _chartLegend(AppTheme.primaryColor, '긍정 감정'),
-              SizedBox(width: 12.w),
-              _chartLegend(AppTheme.highlightColor, '부정 감정'),
+              _chartLegend(AppTheme.primaryColor, '긍정'),
+              SizedBox(width: 10.w),
+              _chartLegend(AppTheme.highlightColor, '부정'),
+              const Spacer(),
+              Text('바 길이 = 긍정 비율',
+                  style: TextStyle(
+                      fontSize: 8.5.sp, color: Colors.grey.shade400)),
             ]),
           ]),
         );
@@ -764,7 +638,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
           width: 8.w,
           height: 8.w,
           decoration: BoxDecoration(
-              color: c, borderRadius: BorderRadius.circular(2.r)),
+              color: c, shape: BoxShape.circle),
         ),
         SizedBox(width: 4.w),
         Text(label,
@@ -772,17 +646,18 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                 fontSize: 9.sp, color: AppTheme.secondaryTextColor)),
       ]);
 
-  String _dominantLabel(List<EmotionAnalysis> history) {
+  String _dominantEmotion(List<EmotionAnalysis> history) {
     final counts = <String, int>{};
     for (final a in history) {
       final d = a.emotions.dominantEmotion;
       counts[d] = (counts[d] ?? 0) + 1;
     }
     if (counts.isEmpty) return '';
-    final top = counts.entries
-        .reduce((a, b) => a.value > b.value ? a : b)
-        .key;
-    return AppTheme.getEmotionLabel(top);
+    return counts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+  }
+
+  String _dominantLabel(List<EmotionAnalysis> history) {
+    return AppTheme.getEmotionLabel(_dominantEmotion(history));
   }
 
   double _positiveScore(EmotionAnalysis a) {
@@ -804,24 +679,35 @@ class _AiHistoryPageState extends State<AiHistoryPage>
   Widget _buildReportTab() {
     return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
       builder: (context, state) {
-        final history = state is EmotionAnalysisHistoryLoaded
+        final emotionHistory = state is EmotionAnalysisHistoryLoaded
             ? state.history
             : <EmotionAnalysis>[];
-        final monthGroups = _groupByMonth(history);
 
-        if (monthGroups.isEmpty) {
+        final emotionMonths = _groupByMonth(emotionHistory);
+        final healthMonths = _groupHealthByMonth(_healthHistory);
+
+        // 두 맵의 키를 합쳐서 정렬
+        final allKeys = {
+          ...emotionMonths.keys,
+          ...healthMonths.keys,
+        }.toList()
+          ..sort((a, b) => b.compareTo(a));
+
+        if (allKeys.isEmpty) {
           return _buildEmptyState('분석 기록이 없어요');
         }
 
-        final entries = monthGroups.entries.toList();
         return ListView.builder(
           padding: EdgeInsets.all(14.w),
-          itemCount: entries.length,
+          itemCount: allKeys.length,
           itemBuilder: (_, i) {
             final isFirst = i == 0;
-            final month = entries[i].key;
-            final analyses = entries[i].value;
-            final dominant = _dominantLabelFromList(analyses);
+            final month = allKeys[i];
+            final analyses = emotionMonths[month] ?? [];
+            final healthItems = healthMonths[month] ?? [];
+            final dominant = analyses.isNotEmpty
+                ? _dominantLabelFromList(analyses)
+                : null;
 
             return Container(
               margin: EdgeInsets.only(bottom: 10.h),
@@ -863,28 +749,46 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                         ),
                       ],
                       const Spacer(),
-                      Text('${analyses.length}회 분석',
+                      Text('${analyses.length + healthItems.length}회 분석',
                           style: TextStyle(
                               fontSize: 9.sp,
                               color: AppTheme.secondaryTextColor)),
                     ]),
                     SizedBox(height: 10.h),
                     Row(children: [
-                      _reportStat('${analyses.length}', '감정분석',
-                          AppTheme.primaryColor),
+                      if (analyses.isNotEmpty)
+                        _reportStat('${analyses.length}', '감정분석',
+                            AppTheme.primaryColor),
+                      if (analyses.isNotEmpty && healthItems.isNotEmpty)
+                        SizedBox(width: 8.w),
+                      if (healthItems.isNotEmpty)
+                        _reportStat('${healthItems.length}', '건강분석',
+                            AppTheme.successColor),
                     ]),
-                    SizedBox(height: 8.h),
-                    Text('$dominant 감정이 많았어요',
-                        style: TextStyle(
-                            fontSize: 11.sp,
-                            color: AppTheme.primaryTextColor,
-                            height: 1.4)),
+                    if (dominant != null) ...[
+                      SizedBox(height: 8.h),
+                      Text('$dominant 감정이 많았어요',
+                          style: TextStyle(
+                              fontSize: 11.sp,
+                              color: AppTheme.primaryTextColor,
+                              height: 1.4)),
+                    ],
                   ]),
             );
           },
         );
       },
     );
+  }
+
+  Map<String, List<HealthAnalysisModel>> _groupHealthByMonth(
+      List<HealthAnalysisModel> list) {
+    final result = <String, List<HealthAnalysisModel>>{};
+    for (final a in list) {
+      final key = '${a.analyzedAt.year}년 ${a.analyzedAt.month}월';
+      result.putIfAbsent(key, () => []).add(a);
+    }
+    return result;
   }
 
   Widget _reportStat(String num, String label, Color color) => Expanded(
@@ -936,39 +840,39 @@ class _AiHistoryPageState extends State<AiHistoryPage>
   // ────────────────────────────────────────────────────────
   Widget _buildHistoryTab() {
     return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
+      buildWhen: (prev, curr) => curr is EmotionAnalysisHistoryLoaded || curr is EmotionAnalysisHistoryLoading,
       builder: (context, state) {
         final emotionHistory = state is EmotionAnalysisHistoryLoaded
             ? state.history
             : <EmotionAnalysis>[];
-        final items = _mergeHistory(emotionHistory);
+        final items = _mergeHistory(emotionHistory, _healthHistory);
         final filtered = _applyFilter(items);
         final monthGroups = _groupItemsByMonth(filtered);
 
         return Column(children: [
-          // 필터 칩
+          // 필터 칩 (줄에 꽉 차게 균등 분배)
           Container(
             color: Colors.white,
             padding:
                 EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: ['전체', '감정분석', '건강분석', '주의만'].map((f) {
-                  final isOn = _filterType == f;
-                  final isWarn = f == '주의만';
-                  return GestureDetector(
+            child: Row(
+              children: ['전체', '감정분석', '건강분석', '주의만'].map((f) {
+                final isOn = _filterType == f;
+                final isWarn = f == '주의만';
+                final isLast = f == '주의만';
+                return Expanded(
+                  child: GestureDetector(
                     onTap: () => setState(() => _filterType = f),
                     child: Container(
-                      margin: EdgeInsets.only(right: 7.w),
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 12.w, vertical: 6.h),
+                      margin: EdgeInsets.only(right: isLast ? 0 : 6.w),
+                      padding: EdgeInsets.symmetric(vertical: 7.h),
                       decoration: BoxDecoration(
                         color: isOn
                             ? (isWarn
                                 ? AppTheme.highlightColor
                                 : AppTheme.primaryColor)
                             : Colors.white,
-                        borderRadius: BorderRadius.circular(14.r),
+                        borderRadius: BorderRadius.circular(10.r),
                         border: Border.all(
                           color: isOn
                               ? (isWarn
@@ -979,6 +883,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                       ),
                       child: Text(
                         f,
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 11.sp,
                           fontWeight: isOn
@@ -990,59 +895,92 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                         ),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
           const Divider(height: 0.5, thickness: 0.5),
           Expanded(
-            child: filtered.isEmpty
-                ? _buildEmptyState('해당하는 기록이 없어요')
-                : ListView(
-                    padding: EdgeInsets.all(12.w),
-                    children: monthGroups.entries.expand((entry) => [
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: 6.h,
-                              top: entry.key ==
-                                      monthGroups.keys.first
-                                  ? 0
-                                  : 8.h,
-                            ),
-                            child: Text(entry.key,
-                                style: TextStyle(
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color:
-                                        AppTheme.secondaryTextColor)),
-                          ),
-                          ...entry.value
-                              .map((item) => _buildHistoryCard(item)),
-                        ]).toList(),
-                  ),
+            child: (_healthHistoryLoading && _healthHistory.isEmpty)
+                ? const Center(child: CircularProgressIndicator())
+                : filtered.isEmpty
+                    ? _buildEmptyState('해당하는 기록이 없어요')
+                    : ListView(
+                        padding: EdgeInsets.all(12.w),
+                        children: monthGroups.entries.expand((entry) => [
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: 6.h,
+                                  top: entry.key ==
+                                          monthGroups.keys.first
+                                      ? 0
+                                      : 8.h,
+                                ),
+                                child: Text(entry.key,
+                                    style: TextStyle(
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            AppTheme.secondaryTextColor)),
+                              ),
+                              ...entry.value
+                                  .map((item) => _buildHistoryCard(item)),
+                            ]).toList(),
+                      ),
           ),
         ]);
       },
     );
   }
 
-  List<_HistoryItem> _mergeHistory(List<EmotionAnalysis> emotions) {
-    return emotions.map((a) {
-      final label =
-          AppTheme.getEmotionLabel(a.emotions.dominantEmotion);
+  List<_HistoryItem> _mergeHistory(
+    List<EmotionAnalysis> emotions,
+    List<HealthAnalysisModel> healths,
+  ) {
+    final emotionItems = emotions.map((a) {
+      final label = AppTheme.getEmotionLabel(a.emotions.dominantEmotion);
+      final thumb = a.imageUrl.isNotEmpty ? a.imageUrl : null;
       return _HistoryItem(
         isEmotion: true,
         date: a.analyzedAt,
         petName: a.petName,
-        title:
-            '감정분석${a.petName != null ? " · ${a.petName}" : ""}',
-        subtitle:
-            '${a.analyzedAt.month}/${a.analyzedAt.day} · $label',
+        title: '감정분석${a.petName != null ? " · ${a.petName}" : ""}',
+        subtitle: '${a.analyzedAt.month}/${a.analyzedAt.day} · $label',
         badge: label,
         badgeType: 'emot',
+        thumbnailUrl: thumb,
+        emotionData: a,
       );
-    }).toList()
+    });
+
+    final healthItems = healths.map((h) {
+      String badgeType;
+      if (h.status == '양호') {
+        badgeType = 'good';
+      } else if (h.status == '주의') {
+        badgeType = 'warn';
+      } else if (h.status == '위험') {
+        badgeType = 'bad';
+      } else {
+        badgeType = 'good';
+      }
+      final thumb = h.imageUrls.isNotEmpty ? h.imageUrls.first : null;
+      return _HistoryItem(
+        isEmotion: false,
+        date: h.analyzedAt,
+        petName: h.petName,
+        title: '건강분석 · ${h.area.displayName}'
+            '${h.petName != null ? " · ${h.petName}" : ""}',
+        subtitle: '${h.analyzedAt.month}/${h.analyzedAt.day} · ${h.status}',
+        badge: h.status,
+        badgeType: badgeType,
+        thumbnailUrl: thumb,
+        healthData: h,
+      );
+    });
+
+    return [...emotionItems, ...healthItems]
       ..sort((a, b) => b.date.compareTo(a.date));
   }
 
@@ -1087,65 +1025,106 @@ class _AiHistoryPageState extends State<AiHistoryPage>
     final (bgColor, textColor) =
         colors[item.badgeType] ?? (Colors.grey.shade100, Colors.grey);
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 7.h),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppTheme.dividerColor),
+    return GestureDetector(
+      onTap: () {
+        if (item.isEmotion && item.emotionData != null) {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => BlocProvider(
+              create: (_) => sl<EmotionAnalysisBloc>(),
+              child: EmotionResultPage(
+                analysis: item.emotionData!,
+                fromHistory: true,
+              ),
+            ),
+          ));
+        } else if (!item.isEmotion && item.healthData != null) {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => HealthResultPage(result: item.healthData!, fromHistory: true),
+          ));
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 7.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppTheme.dividerColor),
+        ),
+        child: Row(children: [
+          // 썸네일
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.r),
+            child: SizedBox(
+              width: 44.w,
+              height: 44.w,
+              child: item.thumbnailUrl != null && item.thumbnailUrl!.isNotEmpty
+                  ? Image.network(
+                      item.thumbnailUrl!,
+                      width: 44.w,
+                      height: 44.w,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (_, child, progress) =>
+                          progress == null ? child : _thumbFallback(item),
+                      errorBuilder: (_, __, ___) => _thumbFallback(item),
+                    )
+                  : _thumbFallback(item),
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title,
+                      style: TextStyle(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.primaryTextColor)),
+                  Text(item.subtitle,
+                      style: TextStyle(
+                          fontSize: 9.sp,
+                          color: AppTheme.secondaryTextColor,
+                          height: 1.4)),
+                ]),
+          ),
+          SizedBox(width: 6.w),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Text(item.badge,
+                style: TextStyle(
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w600,
+                    color: textColor)),
+          ),
+          SizedBox(width: 4.w),
+          Icon(Icons.chevron_right,
+              size: 14.w, color: AppTheme.secondaryTextColor),
+        ]),
       ),
-      child: Row(children: [
-        Container(
-          width: 30.w,
-          height: 30.w,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8.r),
-            color: item.isEmotion
-                ? AppTheme.primaryColor.withValues(alpha: 0.08)
-                : AppTheme.successColor.withValues(alpha: 0.08),
-          ),
-          child: Icon(
-            item.isEmotion
-                ? Icons.psychology_outlined
-                : Icons.health_and_safety_outlined,
-            size: 16.w,
-            color: item.isEmotion
-                ? AppTheme.primaryColor
-                : AppTheme.successColor,
-          ),
+    );
+  }
+
+  Widget _thumbFallback(_HistoryItem item) {
+    return Container(
+      color: item.isEmotion
+          ? AppTheme.primaryColor.withValues(alpha: 0.08)
+          : AppTheme.successColor.withValues(alpha: 0.08),
+      child: Center(
+        child: Icon(
+          item.isEmotion
+              ? Icons.psychology_outlined
+              : Icons.health_and_safety_outlined,
+          size: 22.w,
+          color: item.isEmotion
+              ? AppTheme.primaryColor.withValues(alpha: 0.5)
+              : AppTheme.successColor.withValues(alpha: 0.5),
         ),
-        SizedBox(width: 10.w),
-        Expanded(
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.title,
-                    style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w500,
-                        color: AppTheme.primaryTextColor)),
-                Text(item.subtitle,
-                    style: TextStyle(
-                        fontSize: 9.sp,
-                        color: AppTheme.secondaryTextColor,
-                        height: 1.4)),
-              ]),
-        ),
-        Container(
-          padding:
-              EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          child: Text(item.badge,
-              style: TextStyle(
-                  fontSize: 9.sp,
-                  fontWeight: FontWeight.w600,
-                  color: textColor)),
-        ),
-      ]),
+      ),
     );
   }
 

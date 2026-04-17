@@ -66,7 +66,17 @@ extension _EmotionResultBottom on _EmotionResultPageState {
             child: SizedBox(
               height: 48.h,
               child: ElevatedButton.icon(
-                onPressed: () => context.push('/ai-history-page'),
+                onPressed: () {
+                  // fromHistory 여부와 관계없이 Navigator.pop()으로 뒤로 가기
+                  // - 히스토리에서 열린 경우: MaterialPageRoute pop → 히스토리 목록으로
+                  // - 분석 직후: MaterialPageRoute(loading→result) pop → /emotion/loading
+                  //   을 열었던 페이지(/ai-history-page 또는 /emotion)로 복귀
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    context.go('/ai-history-page');
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,

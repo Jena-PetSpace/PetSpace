@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:app_links/app_links.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart' as kakao;
@@ -142,10 +143,14 @@ class MeongNyangDiaryApp extends StatefulWidget {
 class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
+  late final AuthBloc _authBloc;
+  late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
+    _authBloc = di.sl<AuthBloc>()..add(AuthStarted());
+    _router = AppRouter.createRouter(_authBloc);
     _initDeepLinks();
   }
 
@@ -223,8 +228,6 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
 
   @override
   Widget build(BuildContext context) {
-    final authBloc = di.sl<AuthBloc>()..add(AuthStarted());
-
     return ScreenUtilInit(
       // 디자인 기준 사이즈 (iPhone 13/14 기준 - 390x844)
       designSize: const Size(390, 844),
@@ -233,8 +236,8 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
       builder: (context, child) {
         return MultiBlocProvider(
           providers: [
-            BlocProvider<AuthBloc>(
-              create: (_) => authBloc,
+            BlocProvider<AuthBloc>.value(
+              value: _authBloc,
             ),
             BlocProvider<EmotionAnalysisBloc>(
               create: (_) => di.sl<EmotionAnalysisBloc>(),
@@ -289,7 +292,7 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
                   theme: AppTheme.lightTheme,
                   darkTheme: AppTheme.darkTheme,
                   themeMode: themeMode,
-                  routerConfig: AppRouter.createRouter(authBloc),
+                  routerConfig: _router,
                 ),
               ),
             ),

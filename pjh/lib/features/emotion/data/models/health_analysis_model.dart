@@ -93,4 +93,41 @@ class HealthAnalysisModel extends HealthAnalysis {
         'summary': summary,
         'additional_context': additionalContext,
       };
+
+  factory HealthAnalysisModel.fromSupabaseRow(Map<String, dynamic> row) {
+    final areaName = row['area'] as String? ?? '';
+    final area = HealthArea.values.firstWhere(
+      (a) => a.displayName == areaName,
+      orElse: () => HealthArea.overall,
+    );
+
+    final findings = (row['findings'] as List? ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map((e) => HealthFindingModel.fromJson(e))
+        .toList();
+
+    final recs = List<String>.from(row['recommendations'] as List? ?? []);
+    final imageUrls = List<String>.from(row['image_urls'] as List? ?? []);
+
+    return HealthAnalysisModel(
+      id: row['id']?.toString() ?? '',
+      userId: row['user_id'] as String? ?? '',
+      petId: row['pet_id'] as String?,
+      petName: row['pet_name'] as String?,
+      area: area,
+      imageUrls: imageUrls,
+      overallScore: (row['overall_score'] as num?)?.toInt().clamp(0, 100) ?? 50,
+      status: row['status'] as String? ?? '확인불가',
+      findings: findings,
+      riskAlert: row['risk_alert'] as bool? ?? false,
+      riskReason: row['risk_reason'] as String?,
+      recommendations: recs,
+      confidence: (row['confidence'] as num?)?.toDouble().clamp(0.0, 1.0) ?? 0.5,
+      summary: row['summary'] as String? ?? '',
+      additionalContext: row['additional_context'] as String?,
+      analyzedAt: row['created_at'] != null
+          ? DateTime.parse(row['created_at'] as String)
+          : DateTime.now(),
+    );
+  }
 }
