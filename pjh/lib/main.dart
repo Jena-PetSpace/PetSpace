@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:app_links/app_links.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart' as kakao;
+import 'package:kakao_maps_flutter/kakao_maps_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -74,6 +75,7 @@ void main() async {
   if (ApiConfig.isKakaoLoginConfigured) {
     try {
       kakao.KakaoSdk.init(nativeAppKey: ApiConfig.kakaoAppKey);
+      await KakaoMapsFlutter.init(ApiConfig.kakaoAppKey);
     } catch (e) {
       log('⚠️ Kakao SDK init failed: $e', name: 'main.kakao');
     }
