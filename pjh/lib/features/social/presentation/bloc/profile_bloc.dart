@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -34,6 +35,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<FollowUserRequested>(_onFollowUserRequested);
     on<UnfollowUserRequested>(_onUnfollowUserRequested);
     on<RefreshProfileRequested>(_onRefreshProfileRequested);
+    on<UpdateCoverImageRequested>(_onUpdateCoverImageRequested);
   }
 
   Future<void> _onLoadUserProfileRequested(
@@ -150,6 +152,26 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         },
       );
     }
+  }
+
+  Future<void> _onUpdateCoverImageRequested(
+    UpdateCoverImageRequested event,
+    Emitter<ProfileState> emit,
+  ) async {
+    if (state is! ProfileLoaded) return;
+    final current = state as ProfileLoaded;
+
+    final result =
+        await _socialRepository.uploadCoverImage(event.userId, event.file);
+
+    result.fold(
+      (failure) => emit(current.copyWith(error: failure.message)),
+      (url) {
+        emit(current.copyWith(
+          user: current.user.copyWith(coverImageUrl: url),
+        ));
+      },
+    );
   }
 
   Future<void> _onRefreshProfileRequested(

@@ -894,6 +894,19 @@ class SocialRepositoryImpl implements SocialRepository {
     }
   }
 
+  // ─── Cover image ────────────────────────────────────────────────────────
+
+  @override
+  Future<Either<Failure, String>> uploadCoverImage(
+      String userId, File file) async {
+    try {
+      final url = await remoteDataSource.uploadCoverImage(userId, file);
+      return Right(url);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
   // ─── Block operations ───────────────────────────────────────────────────
 
   @override

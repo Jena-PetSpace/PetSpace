@@ -102,6 +102,10 @@ abstract class SocialRepository {
       {required String userId, int limit = 20});
   Future<Either<Failure, bool>> isPostSaved(String postId, String userId);
 
+  // Cover image
+  Future<Either<Failure, String>> uploadCoverImage(
+      String userId, File file);
+
   // Block operations
   Future<Either<Failure, void>> blockUser(String blockerId, String blockedId);
   Future<Either<Failure, void>> unblockUser(String blockerId, String blockedId);

@@ -172,7 +172,13 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final authorName = user?['display_name'] as String? ?? '알 수 없음';
     final photoUrl = user?['photo_url'] as String?;
     final content = _post!['caption'] as String? ?? '';
-    final imageUrl = _post!['image_url'] as String?;
+    // image_urls 배열 우선, 없으면 image_url 단일 필드 폴백
+    final rawUrls = _post!['image_urls'];
+    final List<String> imageUrls = rawUrls != null && (rawUrls as List).isNotEmpty
+        ? List<String>.from(rawUrls)
+        : (_post!['image_url'] as String?) != null
+            ? [_post!['image_url'] as String]
+            : [];
     final createdAt = _post!['created_at'] as String? ?? '';
     final likesCount = _post!['likes_count'] as int? ?? 0;
     final commentsCount = _post!['comments_count'] as int? ?? 0;
@@ -206,19 +212,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
               ])),
         ]),
-        if (imageUrl != null && imageUrl.isNotEmpty) ...[
+        if (imageUrls.isNotEmpty) ...[
           SizedBox(height: 12.h),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              placeholder: (_, __) =>
-                  Container(height: 200.h, color: AppTheme.subtleBackground),
-              errorWidget: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
+          _MultiImageCarousel(imageUrls: imageUrls),
         ],
         if (content.isNotEmpty) ...[
           SizedBox(height: 12.h),
@@ -329,5 +325,77 @@ class _PostDetailPageState extends State<PostDetailPage> {
     } catch (_) {
       return '';
     }
+  }
+}
+
+// ─── 멀티 이미지 캐러셀 ────────────────────────────────────────────────────────
+class _MultiImageCarousel extends StatefulWidget {
+  final List<String> imageUrls;
+  const _MultiImageCarousel({required this.imageUrls});
+
+  @override
+  State<_MultiImageCarousel> createState() => _MultiImageCarouselState();
+}
+
+class _MultiImageCarouselState extends State<_MultiImageCarousel> {
+  int _current = 0;
+  final _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final count = widget.imageUrls.length;
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12.r),
+          child: SizedBox(
+            height: 280.h,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: count,
+              onPageChanged: (i) => setState(() => _current = i),
+              itemBuilder: (context, i) => CachedNetworkImage(
+                imageUrl: widget.imageUrls[i],
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (_, __) =>
+                    Container(color: AppTheme.subtleBackground),
+                errorWidget: (_, __, ___) => Container(
+                  color: AppTheme.subtleBackground,
+                  child: Icon(Icons.broken_image,
+                      size: 48.w, color: AppTheme.hintColor),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (count > 1) ...[
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(count, (i) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: EdgeInsets.symmetric(horizontal: 3.w),
+                width: _current == i ? 16.w : 6.w,
+                height: 6.h,
+                decoration: BoxDecoration(
+                  color: _current == i
+                      ? AppTheme.primaryColor
+                      : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(3.r),
+                ),
+              );
+            }),
+          ),
+        ],
+      ],
+    );
   }
 }

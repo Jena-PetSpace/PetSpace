@@ -7,8 +7,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:go_router/go_router.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/domain/entities/post.dart';
 import '../../../social/presentation/pages/feed_page.dart';
 import '../widgets/community_post_card.dart';
+import '../widgets/post_type_picker_sheet.dart';
 import 'create_community_post_page.dart';
 
 class FeedHubPage extends StatefulWidget {
@@ -190,27 +192,33 @@ class _FeedHubPageState extends State<FeedHubPage>
           _buildCommunityTab(),
         ],
       ),
-      floatingActionButton: AnimatedBuilder(
-        animation: _tabController,
-        builder: (context, _) {
-          if (_tabController.index != 2) return const SizedBox.shrink();
-          return FloatingActionButton(
-            onPressed: () async {
-              final created = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                    builder: (_) => const CreateCommunityPostPage()),
-              );
-              if (created == true) {
-                final cat = _categories[_selectedCategory]['value'];
-                _loadCommunityPosts(category: cat);
-              }
-            },
-            backgroundColor: AppTheme.primaryColor,
-            child: const Icon(Icons.edit, color: Colors.white),
-          );
-        },
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _onFabPressed(context),
+        backgroundColor: AppTheme.primaryColor,
+        child: const Icon(Icons.edit, color: Colors.white),
       ),
     );
+  }
+
+  Future<void> _onFabPressed(BuildContext context) async {
+    final picked = await PostTypePickerSheet.show(
+      context,
+      current: PostType.image,
+    );
+    if (picked == null || !mounted) return;
+    if (picked == PostType.text) {
+      final created = await Navigator.of(this.context).push<bool>(
+        MaterialPageRoute(builder: (_) => const CreateCommunityPostPage()),
+      );
+      if (created == true && mounted) {
+        final cat = _categories[_selectedCategory]['value'];
+        _loadCommunityPosts(category: cat);
+        _tabController.animateTo(2);
+      }
+    } else {
+      if (!mounted) return;
+      this.context.push('/create-post');
+    }
   }
 
   Widget _buildFeedTab() {

@@ -48,6 +48,19 @@ class UnfollowUserRequested extends ProfileEvent {
   List<Object?> get props => [followerId, followingId];
 }
 
+class UpdateCoverImageRequested extends ProfileEvent {
+  final String userId;
+  final File file;
+
+  const UpdateCoverImageRequested({
+    required this.userId,
+    required this.file,
+  });
+
+  @override
+  List<Object?> get props => [userId, file];
+}
+
 class RefreshProfileRequested extends ProfileEvent {
   final String userId;
   final String? currentUserId;

@@ -10,6 +10,7 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/social_user.dart';
 import '../bloc/profile_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../widgets/profile_cover.dart';
 import '../widgets/profile_stats_card.dart';
 import '../widgets/user_posts_list.dart';
 
@@ -127,7 +128,7 @@ class _ProfilePageState extends State<ProfilePage>
           child: TabBarView(
             controller: _tabController,
             children: [
-              UserPostsList(userId: user.id),
+              UserPostsList(userId: user.id, isMyProfile: isOwnProfile),
               _buildFollowersList(),
               _buildFollowingList(),
             ],
@@ -139,75 +140,87 @@ class _ProfilePageState extends State<ProfilePage>
 
   Widget _buildProfileHeader(
       SocialUser user, bool isFollowing, bool isOwnProfile) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppTheme.primaryColor,
-            AppTheme.primaryColor.withValues(alpha: 0.85),
-          ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ProfileCover(
+          coverImageUrl: user.coverImageUrl,
+          canEdit: isOwnProfile,
+          onImagePicked: (file) {
+            final userId = widget.currentUserId ??
+                Supabase.instance.client.auth.currentUser?.id;
+            if (userId == null) return;
+            context.read<ProfileBloc>().add(UpdateCoverImageRequested(
+                  userId: userId,
+                  file: file,
+                ));
+          },
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircleAvatar(
-            radius: 40.r,
-            backgroundImage: user.profileImageUrl != null
-                ? CachedNetworkImageProvider(user.profileImageUrl!)
-                : null,
-            child: user.profileImageUrl == null
-                ? Text(
-                    user.displayName.isNotEmpty ? user.displayName[0] : '?',
-                    style: TextStyle(fontSize: 28.sp, color: Colors.white),
-                  )
-                : null,
-          ),
-          SizedBox(height: 10.h),
-          Text(
-            user.displayName,
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppTheme.primaryColor,
+                AppTheme.primaryColor.withValues(alpha: 0.85),
+              ],
             ),
           ),
-          if (user.username != null && user.username!.isNotEmpty) ...[
-            SizedBox(height: 2.h),
-            Text(
-              '@${user.username}',
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: Colors.white70,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 40.r,
+                backgroundImage: user.profileImageUrl != null
+                    ? CachedNetworkImageProvider(user.profileImageUrl!)
+                    : null,
+                child: user.profileImageUrl == null
+                    ? Text(
+                        user.displayName.isNotEmpty ? user.displayName[0] : '?',
+                        style: TextStyle(fontSize: 28.sp, color: Colors.white),
+                      )
+                    : null,
               ),
-            ),
-          ],
-          if (user.bio != null && user.bio!.isNotEmpty) ...[
-            SizedBox(height: 6.h),
-            Text(
-              user.bio!,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: Colors.white70,
+              SizedBox(height: 10.h),
+              Text(
+                user.displayName,
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-          SizedBox(height: 12.h),
-          ProfileStatsCard(
-            postsCount: user.postsCount,
-            followersCount: user.followersCount,
-            followingCount: user.followingCount,
+              if (user.username != null && user.username!.isNotEmpty) ...[
+                SizedBox(height: 2.h),
+                Text(
+                  '@${user.username}',
+                  style: TextStyle(fontSize: 12.sp, color: Colors.white70),
+                ),
+              ],
+              if (user.bio != null && user.bio!.isNotEmpty) ...[
+                SizedBox(height: 6.h),
+                Text(
+                  user.bio!,
+                  style: TextStyle(fontSize: 12.sp, color: Colors.white70),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              SizedBox(height: 12.h),
+              ProfileStatsCard(
+                postsCount: user.postsCount,
+                followersCount: user.followersCount,
+                followingCount: user.followingCount,
+              ),
+              SizedBox(height: 12.h),
+              _buildActionButtons(user, isFollowing, isOwnProfile),
+            ],
           ),
-          SizedBox(height: 12.h),
-          _buildActionButtons(user, isFollowing, isOwnProfile),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

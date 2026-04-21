@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -5,24 +6,24 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../shared/widgets/image_source_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/utils/back_press_handler.dart';
-
+import '../../../../core/utils/hashtag_utils.dart';
+import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/multi_image_picker.dart';
 import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../emotion/presentation/widgets/emotion_chart_widget.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/feed_bloc.dart';
-import '../../../../shared/themes/app_theme.dart';
-import '../../../../core/utils/hashtag_utils.dart';
+import '../utils/post_draft_storage.dart';
 
 class CreatePostPage extends StatefulWidget {
   final String? imageUrl;
   final EmotionAnalysis? emotionAnalysis;
   final String? petId;
   final String? petName;
-  final Post? editPost; // null이면 작성, non-null이면 수정 모드
+  final Post? editPost;
 
   const CreatePostPage({
     super.key,
@@ -37,36 +38,98 @@ class CreatePostPage extends StatefulWidget {
   State<CreatePostPage> createState() => _CreatePostPageState();
 }
 
-class _CreatePostPageState extends State<CreatePostPage> {
+class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObserver {
   final _contentController = TextEditingController();
   final _hashtagController = TextEditingController();
 
-  File? _selectedImage;
+  List<File> _selectedImages = [];
   bool get _isEditMode => widget.editPost != null;
   String? _imageUrl;
   final List<String> _hashtags = [];
   bool _isPublic = true;
   bool _showEmotionAnalysis = true;
+  Timer? _autosaveTimer;
 
   @override
   void initState() {
     super.initState();
-    // 수정 모드: 기존 내용으로 초기화
+    WidgetsBinding.instance.addObserver(this);
     if (widget.editPost != null) {
       _contentController.text = widget.editPost!.content ?? '';
       final tags = widget.editPost!.tags.map((h) => '#$h').join(' ');
       _hashtagController.text = tags;
     }
     _imageUrl = widget.imageUrl;
-
-    // 자동 해시태그 제안 (감정 분석 결과 기반)
     if (widget.emotionAnalysis != null) {
       _suggestHashtags(widget.emotionAnalysis!);
+    }
+    if (!_isEditMode) _loadDraft();
+    _startAutosave();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autosaveTimer?.cancel();
+    _contentController.dispose();
+    _hashtagController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _saveDraft();
+    }
+  }
+
+  void _startAutosave() {
+    _autosaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _saveDraft();
+    });
+  }
+
+  Future<void> _saveDraft() async {
+    if (_isEditMode) return;
+    final content = _contentController.text;
+    if (content.isEmpty && _hashtags.isEmpty) return;
+    await PostDraftStorage.save(content: content, hashtags: _hashtags);
+  }
+
+  Future<void> _loadDraft() async {
+    final draft = await PostDraftStorage.load();
+    if (draft == null || !mounted) return;
+    if (draft.content.isNotEmpty || draft.hashtags.isNotEmpty) {
+      final restore = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('임시저장 불러오기'),
+          content: const Text('이전에 작성 중이던 내용이 있습니다.\n불러오시겠습니까?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('무시'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('불러오기'),
+            ),
+          ],
+        ),
+      );
+      if (restore == true && mounted) {
+        setState(() {
+          _contentController.text = draft.content;
+          _hashtags
+            ..clear()
+            ..addAll(draft.hashtags);
+        });
+      }
     }
   }
 
   void _suggestHashtags(EmotionAnalysis analysis) {
-    // 가장 높은 감정 점수에 따라 해시태그 제안
     final Map<String, double> emotions = {
       '행복': analysis.emotions.happiness,
       '편안': analysis.emotions.calm,
@@ -77,10 +140,8 @@ class _CreatePostPageState extends State<CreatePostPage> {
       '슬픔': analysis.emotions.sadness,
       '불편': analysis.emotions.discomfort,
     };
-
     final topEmotion =
         emotions.entries.reduce((a, b) => a.value > b.value ? a : b);
-
     if (topEmotion.value > 0.3) {
       final hashtagMap = {
         '행복': ['행복한하루', '행복'],
@@ -92,30 +153,27 @@ class _CreatePostPageState extends State<CreatePostPage> {
         '슬픔': ['위로', '슬픔'],
         '불편': ['불편', '케어'],
       };
-
       final suggestions = hashtagMap[topEmotion.key] ?? [];
-      setState(() {
-        _hashtags.addAll(suggestions);
-      });
+      setState(() => _hashtags.addAll(suggestions));
     }
-
-    // 반려동물 이름 해시태그
     if (widget.petName != null && widget.petName!.isNotEmpty) {
-      setState(() {
-        _hashtags.add(widget.petName!);
-      });
+      setState(() => _hashtags.add(widget.petName!));
     }
   }
 
   Future<void> _handleBackPress() async {
-    final hasContent = _contentController.text.isNotEmpty || _selectedImage != null;
+    final hasContent =
+        _contentController.text.isNotEmpty || _selectedImages.isNotEmpty;
     if (hasContent) {
       final shouldDiscard = await BackPressHandler.showDiscardDialog(
         context,
         title: '게시글 작성 취소',
-        content: '작성 중인 게시글이 있습니다.\n돌아가면 내용이 사라집니다.',
+        content: '작성 중인 내용이 임시저장됩니다.\n계속하시겠습니까?',
       );
-      if (shouldDiscard && mounted && context.canPop()) context.pop();
+      if (shouldDiscard) {
+        await _saveDraft();
+        if (mounted && context.canPop()) context.pop();
+      }
     } else {
       if (mounted && context.canPop()) context.pop();
     }
@@ -130,119 +188,62 @@ class _CreatePostPageState extends State<CreatePostPage> {
         await _handleBackPress();
       },
       child: BlocListener<FeedBloc, FeedState>(
-      listener: (context, state) {
-        if (state is FeedError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('오류: ${state.message}')),
-          );
-        }
-      },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: Text(_isEditMode ? '게시글 수정' : '게시글 작성'),
-          centerTitle: true,
-          actions: [
-            TextButton(
-              onPressed: _isEditMode ? _updatePost : _createPost,
-              child: Text(
-                _isEditMode ? '수정완료' : '게시',
-                style: const TextStyle(
-                  color: AppTheme.primaryColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+        listener: (context, state) {
+          if (state is FeedPostCreated) {
+            PostDraftStorage.clear();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('게시글이 작성되었습니다!')),
+            );
+            if (context.canPop()) context.pop();
+          } else if (state is FeedError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('오류: ${state.message}')),
+            );
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            title: Text(_isEditMode ? '게시글 수정' : '게시글 작성'),
+            centerTitle: true,
+            actions: [
+              TextButton(
+                onPressed: _isEditMode ? _updatePost : _submit,
+                child: Text(
+                  _isEditMode ? '수정완료' : '게시',
+                  style: const TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 이미지 섹션
-                _buildImageSection(),
-                SizedBox(height: 16.h),
-
-                // 감정 분석 결과 섹션
-                if (widget.emotionAnalysis != null) _buildEmotionSection(),
-
-                SizedBox(height: 16.h),
-
-                // 내용 입력 섹션
-                _buildContentSection(),
-
-                SizedBox(height: 16.h),
-
-                // 해시태그 섹션
-                _buildHashtagSection(),
-
-                SizedBox(height: 16.h),
-
-                // 공개 설정 섹션
-                _buildPrivacySection(),
-              ],
+            ],
+          ),
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  MultiImagePicker(
+                    images: _selectedImages,
+                    onChanged: (imgs) => setState(() => _selectedImages = imgs),
+                  ),
+                  SizedBox(height: 16.h),
+                  if (widget.emotionAnalysis != null) _buildEmotionSection(),
+                  SizedBox(height: 16.h),
+                  _buildContentSection(),
+                  SizedBox(height: 16.h),
+                  _buildHashtagSection(),
+                  SizedBox(height: 16.h),
+                  _buildPrivacySection(),
+                ],
+              ),
             ),
           ),
         ),
-      ),    // Scaffold
-      ),    // BlocListener
-    );      // PopScope
-  }
-
-  Widget _buildImageSection() {
-    return GestureDetector(
-      onTap: _pickImage,
-      child: Container(
-        height: 300.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: _selectedImage != null
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(12.r),
-                child: Image.file(
-                  _selectedImage!,
-                  fit: BoxFit.cover,
-                ),
-              )
-            : _imageUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12.r),
-                    child: Image.network(
-                      _imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildImagePlaceholder();
-                      },
-                    ),
-                  )
-                : _buildImagePlaceholder(),
       ),
-    );
-  }
-
-  Widget _buildImagePlaceholder() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.add_photo_alternate, size: 60.w, color: Colors.grey[400]),
-        SizedBox(height: 12.h),
-        Text(
-          '사진 추가 또는 변경',
-          style: TextStyle(color: Colors.grey[600], fontSize: 16.sp),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          '터치하여 사진을 선택하세요',
-          style: TextStyle(color: Colors.grey[400], fontSize: 12.sp),
-        ),
-      ],
     );
   }
 
@@ -268,19 +269,14 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   Text(
                     'AI 감정 분석 결과',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
-                    ),
+                        fontWeight: FontWeight.bold, fontSize: 16.sp),
                   ),
                 ],
               ),
               Switch(
                 value: _showEmotionAnalysis,
-                onChanged: (value) {
-                  setState(() {
-                    _showEmotionAnalysis = value;
-                  });
-                },
+                onChanged: (value) =>
+                    setState(() => _showEmotionAnalysis = value),
                 activeThumbColor: AppTheme.primaryColor,
               ),
             ],
@@ -294,10 +290,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
             SizedBox(height: 8.h),
             Text(
               _getEmotionSummary(widget.emotionAnalysis!),
-              style: TextStyle(
-                color: Colors.grey[700],
-                fontSize: 14.sp,
-              ),
+              style: TextStyle(color: Colors.grey[700], fontSize: 14.sp),
             ),
           ],
         ],
@@ -316,11 +309,9 @@ class _CreatePostPageState extends State<CreatePostPage> {
       '슬픔': analysis.emotions.sadness,
       '불편': analysis.emotions.discomfort,
     };
-
     final topEmotion =
         emotions.entries.reduce((a, b) => a.value > b.value ? a : b);
     final percentage = (topEmotion.value * 100).toStringAsFixed(0);
-
     return '${widget.petName ?? "반려동물"}이(가) 지금 ${topEmotion.key} 상태입니다 ($percentage%)';
   }
 
@@ -328,21 +319,17 @@ class _CreatePostPageState extends State<CreatePostPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '내용',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16.sp,
-          ),
-        ),
+        Text('내용',
+            style:
+                TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
         SizedBox(height: 8.h),
         TextField(
           controller: _contentController,
           style: TextStyle(fontSize: 14.sp),
           decoration: InputDecoration(
-            hintText:
-                '반려동물과의 특별한 순간을 공유해보세요...\n\n감정 분석 결과와 함께 어떤 상황이었는지,\n어떤 기분이었는지 자유롭게 작성하세요!',
-            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14.sp),
+            hintText: '반려동물과의 특별한 순간을 공유해보세요...',
+            hintStyle:
+                TextStyle(color: Colors.grey[400], fontSize: 14.sp),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide(color: Colors.grey[300]!),
@@ -367,13 +354,9 @@ class _CreatePostPageState extends State<CreatePostPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '해시태그',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16.sp,
-          ),
-        ),
+        Text('해시태그',
+            style:
+                TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
         SizedBox(height: 8.h),
         Wrap(
           spacing: 8.w,
@@ -382,14 +365,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
             ..._hashtags.map(
               (tag) => Chip(
                 label: Text('#$tag', style: TextStyle(fontSize: 12.sp)),
-                onDeleted: () {
-                  setState(() {
-                    _hashtags.remove(tag);
-                  });
-                },
-                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                labelStyle:
-                    TextStyle(color: AppTheme.primaryColor, fontSize: 12.sp),
+                onDeleted: () => setState(() => _hashtags.remove(tag)),
+                backgroundColor:
+                    AppTheme.primaryColor.withValues(alpha: 0.1),
+                labelStyle: TextStyle(
+                    color: AppTheme.primaryColor, fontSize: 12.sp),
                 deleteIconColor: AppTheme.primaryColor,
               ),
             ),
@@ -415,23 +395,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '공개 설정',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16.sp,
-            ),
-          ),
+          Text('공개 설정',
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
           SizedBox(height: 12.h),
           RadioGroup<bool>(
             groupValue: _isPublic,
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _isPublic = value;
-                });
-              }
-            },
+            onChanged: (v) => setState(() => _isPublic = v ?? true),
             child: Column(
               children: [
                 RadioListTile<bool>(
@@ -458,84 +428,58 @@ class _CreatePostPageState extends State<CreatePostPage> {
     );
   }
 
-  Future<void> _pickImage() async {
-    final image = await ImageSourcePicker.pickSingle(
-      context,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-        _imageUrl = null; // 새 이미지 선택 시 기존 URL 제거
-      });
-    }
-  }
-
   void _showAddHashtagDialog() {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('해시태그 추가'),
-          content: TextField(
-            controller: _hashtagController,
-            decoration: const InputDecoration(
-              hintText: '해시태그 입력 (# 제외)',
-              prefixText: '#',
-            ),
-            autofocus: true,
-            onSubmitted: (value) {
-              _addHashtag(value);
-              Navigator.pop(context);
-            },
+      builder: (ctx) => AlertDialog(
+        title: const Text('해시태그 추가'),
+        content: TextField(
+          controller: _hashtagController,
+          decoration: const InputDecoration(
+            hintText: '해시태그 입력 (# 제외)',
+            prefixText: '#',
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('취소'),
-            ),
-            TextButton(
-              onPressed: () {
-                _addHashtag(_hashtagController.text);
-                Navigator.pop(context);
-              },
-              child: const Text('추가'),
-            ),
-          ],
-        );
-      },
+          autofocus: true,
+          onSubmitted: (value) {
+            _addHashtag(value);
+            Navigator.pop(ctx);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              _addHashtag(_hashtagController.text);
+              Navigator.pop(ctx);
+            },
+            child: const Text('추가'),
+          ),
+        ],
+      ),
     );
   }
 
   void _addHashtag(String tag) {
-    final trimmedTag = tag.trim().replaceAll('#', '');
-    if (trimmedTag.isNotEmpty && !_hashtags.contains(trimmedTag)) {
-      setState(() {
-        _hashtags.add(trimmedTag);
-      });
+    final trimmed = tag.trim().replaceAll('#', '');
+    if (trimmed.isNotEmpty && !_hashtags.contains(trimmed)) {
+      setState(() => _hashtags.add(trimmed));
     }
     _hashtagController.clear();
   }
 
-  void _createPost() async {
-    if (_contentController.text.trim().isEmpty &&
-        _selectedImage == null &&
-        _imageUrl == null) {
+  void _submit() {
+    final contentText = _contentController.text.trim();
+    if (contentText.isEmpty && _selectedImages.isEmpty && _imageUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('내용 또는 사진을 추가해주세요')),
       );
       return;
     }
 
-    // Supabase에서 현재 사용자 정보 가져오기
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-
+    final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('로그인이 필요합니다')),
@@ -543,79 +487,37 @@ class _CreatePostPageState extends State<CreatePostPage> {
       return;
     }
 
-    final userId = user.id;
-    final userName =
-        user.userMetadata?['display_name'] as String? ?? user.email ?? '사용자';
-
-    // 이미지 업로드 처리
-    String? uploadedImageUrl = _imageUrl;
-    if (_selectedImage != null) {
-      try {
-        // 로딩 표시
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지 업로드 중...')),
-        );
-
-        // Supabase Storage에 이미지 업로드 (사용자 ID 폴더 구조)
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final fileName = 'posts/$userId/temp/$timestamp.jpg';
-        await supabase.storage.from('images').upload(fileName, _selectedImage!);
-
-        // 업로드된 이미지의 공개 URL 가져오기
-        uploadedImageUrl =
-            supabase.storage.from('images').getPublicUrl(fileName);
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이미지 업로드 실패: $e')),
-        );
-        return;
-      }
-    }
-
-    // 본문에서 해시태그 자동 추출
-    final contentText = _contentController.text.trim();
+    final postId = const Uuid().v4();
     final extractedHashtags = HashtagUtils.extractHashtags(contentText);
-
-    // 수동 추가 해시태그와 자동 추출 해시태그 병합 (중복 제거)
     final allHashtags = {..._hashtags, ...extractedHashtags}.toList();
 
-    // Post 엔티티 생성
+    final existingUrls = _imageUrl != null ? [_imageUrl!] : <String>[];
+
     final post = Post(
-      id: const Uuid().v4(),
-      authorId: userId,
-      authorName: userName,
+      id: postId,
+      authorId: user.id,
+      authorName: user.userMetadata?['display_name'] as String? ??
+          user.email ??
+          '사용자',
       type: widget.emotionAnalysis != null
           ? PostType.emotionAnalysis
           : PostType.image,
       content: contentText,
-      imageUrls: uploadedImageUrl != null ? [uploadedImageUrl] : [],
-      emotionAnalysis: _showEmotionAnalysis ? widget.emotionAnalysis : null,
+      imageUrls: existingUrls,
+      emotionAnalysis:
+          _showEmotionAnalysis ? widget.emotionAnalysis : null,
       tags: allHashtags,
       createdAt: DateTime.now(),
       isPublic: _isPublic,
       isPrivate: !_isPublic,
     );
 
-    // BLoC로 게시글 생성 요청
-    if (!mounted) return;
     context.read<FeedBloc>().add(CreatePostRequested(
           post: post,
+          images: _selectedImages,
         ));
-
-    // 성공 메시지 표시 후 홈으로 이동
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('게시글이 작성되었습니다!')),
-    );
-
-    // 홈 화면으로 이동 (GoRouter 사용)
-    if (!mounted) return;
-    context.go('/home');
   }
 
-  // 게시글 수정
   Future<void> _updatePost() async {
     if (_contentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -628,7 +530,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
     final hashtags = HashtagUtils.extractHashtags(
       '${_contentController.text} ${_hashtagController.text}',
     );
-
     final updatedPost = widget.editPost!.copyWith(
       content: _contentController.text.trim(),
       tags: hashtags,
@@ -636,18 +537,10 @@ class _CreatePostPageState extends State<CreatePostPage> {
 
     if (!mounted) return;
     context.read<FeedBloc>().add(UpdatePostRequested(post: updatedPost));
-
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('게시글이 수정되었습니다!')),
     );
     if (!mounted) return;
     context.pop();
-  }
-
-  @override
-  void dispose() {
-    _contentController.dispose();
-    _hashtagController.dispose();
-    super.dispose();
   }
 }
