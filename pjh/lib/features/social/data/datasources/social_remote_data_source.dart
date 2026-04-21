@@ -23,6 +23,9 @@ abstract class SocialRemoteDataSource {
       String query, int limit, String? lastUserId);
 
   Future<Post> createPost(Post post, List<File> images);
+  Future<List<String>> uploadPostImages(String userId, String postId, List<File> files);
+  Future<void> deletePostImages(String userId, String postId);
+  Future<String> uploadCoverImage(String userId, File file);
   Future<Post> getPost(String postId);
   Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId);
   Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt, bool followingOnly = false});
@@ -173,6 +176,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         email: response['email'] ?? '',
         username: response['username'],
         profileImageUrl: response['photo_url'],
+        coverImageUrl: response['cover_image_url'],
         bio: response['bio'],
         followersCount: followersCount,
         followingCount: followingCount,
@@ -208,6 +212,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
             'display_name': userModel.displayName,
             'username': userModel.username,
             'photo_url': userModel.profileImageUrl,
+            if (userModel.coverImageUrl != null)
+              'cover_image_url': userModel.coverImageUrl,
             'bio': userModel.bio,
             'updated_at': DateTime.now().toIso8601String(),
           })
@@ -221,6 +227,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         email: response['email'] ?? '',
         username: response['username'],
         profileImageUrl: response['photo_url'],
+        coverImageUrl: response['cover_image_url'],
         bio: response['bio'],
         createdAt: response['created_at'] != null
             ? DateTime.parse(response['created_at'])
@@ -308,32 +315,117 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
   @override
   Future<Post> createPost(Post post, List<File> images) async {
+    String? insertedId;
     try {
       _logger.debug('Creating post: ${post.id}', tag: 'SocialDataSource');
 
-      // Post 엔티티를 PostModel로 변환
+      // Step 1: DB insert (image_urls 빈 배열로)
       final postModel = PostModel.fromEntity(post);
+      final insertData = postModel.toJson();
+      insertData['image_urls'] = <String>[];
+      insertData.remove('image_url');
 
-      // Supabase에 게시글 생성
+      final insertResponse = await supabaseClient
+          .from('posts')
+          .insert(insertData)
+          .select('id')
+          .single();
+
+      insertedId = insertResponse['id'] as String;
+      _logger.debug('Post row created: $insertedId', tag: 'SocialDataSource');
+
+      // Step 2: Storage 업로드
+      List<String> uploadedUrls = [];
+      if (images.isNotEmpty) {
+        uploadedUrls = await uploadPostImages(post.authorId, insertedId, images);
+      }
+
+      // Step 3: DB update (image_urls 채우기)
+      final updateData = <String, dynamic>{
+        'image_urls': uploadedUrls,
+        if (uploadedUrls.isNotEmpty) 'image_url': uploadedUrls.first,
+        'post_type': postModel.postType,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
       final response = await supabaseClient
           .from('posts')
-          .insert(postModel.toJson())
+          .update(updateData)
+          .eq('id', insertedId)
           .select('''
             *,
             users!posts_author_id_fkey(id, display_name, photo_url)
-          ''').single();
+          ''')
+          .single();
 
       _logger.debug('Post created successfully: ${response['id']}',
           tag: 'SocialDataSource');
-
-      // 응답을 PostModel로 변환 후 Entity로 변환
-      final createdPostModel = PostModel.fromJson(response);
-      return createdPostModel.toEntity();
+      return PostModel.fromJson(response).toEntity();
     } catch (e, stackTrace) {
       _logger.error('Failed to create post',
           error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      // 롤백: DB 소프트 삭제
+      if (insertedId != null) {
+        try {
+          await supabaseClient
+              .from('posts')
+              .update({'deleted_at': DateTime.now().toIso8601String()})
+              .eq('id', insertedId);
+        } catch (_) {}
+      }
       throw Exception('게시물 작성 중 오류가 발생했습니다: ${e.toString()}');
     }
+  }
+
+  @override
+  Future<List<String>> uploadPostImages(
+      String userId, String postId, List<File> files) async {
+    final urls = <String>[];
+    for (int i = 0; i < files.length; i++) {
+      final file = files[i];
+      final ext = file.path.split('.').last.toLowerCase();
+      final path = 'posts/$userId/$postId/$i.$ext';
+      await supabaseClient.storage
+          .from('images')
+          .upload(path, file, fileOptions: const FileOptions(upsert: true));
+      final url =
+          supabaseClient.storage.from('images').getPublicUrl(path);
+      urls.add(url);
+    }
+    _logger.debug('Uploaded ${urls.length} images for post $postId',
+        tag: 'SocialDataSource');
+    return urls;
+  }
+
+  @override
+  Future<void> deletePostImages(String userId, String postId) async {
+    try {
+      final list = await supabaseClient.storage
+          .from('images')
+          .list(path: 'posts/$userId/$postId');
+      if (list.isNotEmpty) {
+        final paths =
+            list.map((f) => 'posts/$userId/$postId/${f.name}').toList();
+        await supabaseClient.storage.from('images').remove(paths);
+      }
+      _logger.debug('Deleted images for post $postId', tag: 'SocialDataSource');
+    } catch (e, stackTrace) {
+      _logger.error('Failed to delete post images',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+    }
+  }
+
+  @override
+  Future<String> uploadCoverImage(String userId, File file) async {
+    final ext = file.path.split('.').last.toLowerCase();
+    final path = 'users/$userId/cover.$ext';
+    await supabaseClient.storage
+        .from('images')
+        .upload(path, file, fileOptions: const FileOptions(upsert: true));
+    final url = supabaseClient.storage.from('images').getPublicUrl(path);
+    final cacheBusted = '$url?t=${DateTime.now().millisecondsSinceEpoch}';
+    _logger.debug('Uploaded cover image for user $userId', tag: 'SocialDataSource');
+    return cacheBusted;
   }
 
   @override
