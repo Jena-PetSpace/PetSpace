@@ -171,7 +171,8 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   double _sheetHeight(BuildContext context) {
     final screenH = MediaQuery.of(context).size.height;
-    if (_showDetail) return screenH * 0.45;
+    // 디테일 뷰도 half 크기와 동일하게 유지 (갑자기 커지는 현상 방지)
+    if (_showDetail) return 56.h + (65.h * 3) - 6.h + 12.h;
     switch (_sheetSize) {
       case _SheetSize.collapsed:
         return 56.h;
@@ -558,8 +559,8 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
       );
       dev.log('[HS] registerMarkerStyles 완료', name: 'HospitalSearch');
     } catch (e, st) {
+      // 스타일 등록 실패해도 마커 추가는 진행 (네이티브 기본 스타일로 fallback)
       dev.log('[HS] registerMarkerStyles 실패: $e\n$st', name: 'HospitalSearch', error: e);
-      rethrow;
     }
   }
 
@@ -593,14 +594,14 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
       _showDetail = true;
       _sheetSize = _SheetSize.half;
     });
-    // setPadding이 카메라 계산에 반영되므로 latOffset 하드코딩 불필요
+    // setPadding이 시트 높이를 반영해 카메라 중심을 보이는 지도 영역 중앙으로 맞춤
     await _syncMapPaddingToSheet();
     if (_mapReady) {
       _suppressCameraMoveEvent = true;
       _mapController!.moveCamera(
         cameraUpdate: CameraUpdate(
           position: LatLng(latitude: place.lat, longitude: place.lng),
-          zoomLevel: 16,
+          zoomLevel: 15,
           type: -1,
         ),
       );
