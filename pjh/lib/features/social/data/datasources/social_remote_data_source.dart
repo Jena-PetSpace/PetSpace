@@ -325,6 +325,9 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       insertData['image_urls'] = <String>[];
       insertData.remove('image_url');
 
+      // 디버그: DB로 보내는 post_type 값 확인
+      _logger.debug('Insert payload post_type: ${insertData['post_type']}', tag: 'SocialDataSource');
+
       final insertResponse = await supabaseClient
           .from('posts')
           .insert(insertData)

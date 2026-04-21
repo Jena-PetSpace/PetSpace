@@ -166,7 +166,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
         final imageUrl = post['image_url'] as String?;
         final caption = post['caption'] as String? ?? '';
         return GestureDetector(
-          onTap: () => context.push('/feed/post/$postId'),
+          onTap: () => context.push('/post/$postId'),
           child: Stack(
             fit: StackFit.expand,
             children: [

@@ -33,7 +33,7 @@ class PostModel {
     this.petId,
     this.imageUrl,
     this.imageUrls = const [],
-    this.postType = 'text',
+    this.postType = 'photo',
     this.emotionAnalysis,
     this.caption,
     this.hashtags = const [],
@@ -69,7 +69,7 @@ class PostModel {
       petId: json['pet_id'] as String?,
       imageUrl: json['image_url'] as String?,
       imageUrls: imageUrls,
-      postType: json['post_type'] as String? ?? 'text',
+      postType: _ensureValidPostType(json['post_type'] as String?),
       emotionAnalysis: json['emotion_analysis'] as Map<String, dynamic>?,
       caption: json['caption'] as String?,
       hashtags: json['hashtags'] != null
@@ -95,7 +95,7 @@ class PostModel {
       if (imageUrls.isNotEmpty) 'image_url': imageUrls.first
       else if (imageUrl != null) 'image_url': imageUrl,
       'image_urls': imageUrls,
-      'post_type': postType,
+      'post_type': _ensureValidPostType(postType),
       if (emotionAnalysis != null) 'emotion_analysis': emotionAnalysis,
       if (caption != null) 'caption': caption,
       if (hashtags.isNotEmpty) 'hashtags': hashtags,
@@ -120,10 +120,15 @@ class PostModel {
 
     PostType type;
     switch (postType) {
+      case 'photo':
       case 'image':
         type = PostType.image;
+      case 'emotion':
       case 'emotion_analysis':
         type = PostType.emotionAnalysis;
+      case 'community':
+      case 'text':
+        type = PostType.text;
       case 'video':
         type = PostType.video;
       default:
@@ -156,26 +161,35 @@ class PostModel {
     );
   }
 
+  // DB CHECK 제약: photo / community / emotion 만 허용
+  static const _validPostTypes = {'photo', 'community', 'emotion'};
+
+  static String _ensureValidPostType(String? value) {
+    if (value != null && _validPostTypes.contains(value)) return value;
+    return 'photo';
+  }
+
+  static String _postTypeToString(PostType type) {
+    switch (type) {
+      case PostType.image:
+        return 'photo';
+      case PostType.emotionAnalysis:
+        return 'emotion';
+      case PostType.text:
+        return 'community';
+      case PostType.video:
+        return 'photo'; // 비디오 미지원 → 사진으로 폴백
+    }
+  }
+
   // Domain Entity -> Model
   factory PostModel.fromEntity(Post post) {
-    String postTypeStr;
-    switch (post.type) {
-      case PostType.image:
-        postTypeStr = 'image';
-      case PostType.emotionAnalysis:
-        postTypeStr = 'emotion_analysis';
-      case PostType.video:
-        postTypeStr = 'video';
-      case PostType.text:
-        postTypeStr = 'text';
-    }
-
     return PostModel(
       id: post.id,
       authorId: post.authorId,
       imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
       imageUrls: post.imageUrls,
-      postType: postTypeStr,
+      postType: _postTypeToString(post.type),
       emotionAnalysis: post.emotionAnalysis?.toJson(),
       caption: post.content,
       hashtags: post.tags,
