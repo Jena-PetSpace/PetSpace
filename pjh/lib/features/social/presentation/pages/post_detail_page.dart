@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -28,6 +30,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
   Map<String, dynamic>? _post;
   bool _postLoading = true;
 
+  bool _isLiked = false;
+  bool _isSaved = false;
+  int _likesCount = 0;
+  Timer? _likeDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -39,26 +46,132 @@ class _PostDetailPageState extends State<PostDetailPage> {
   void dispose() {
     _commentController.dispose();
     _scrollController.dispose();
+    _likeDebounce?.cancel();
     super.dispose();
   }
 
   Future<void> _loadPost() async {
     try {
-      final res = await Supabase.instance.client
+      final client = Supabase.instance.client;
+      final myId = client.auth.currentUser?.id ?? '';
+
+      final res = await client
           .from('posts')
           .select('*, users!posts_author_id_fkey(id, display_name, photo_url)')
           .eq('id', widget.postId)
           .maybeSingle();
+
+      bool liked = false;
+      bool saved = false;
+      if (myId.isNotEmpty && res != null) {
+        final likeRow = await client
+            .from('likes')
+            .select('id')
+            .eq('post_id', widget.postId)
+            .eq('user_id', myId)
+            .maybeSingle();
+        liked = likeRow != null;
+
+        final savedRow = await client
+            .from('saved_posts')
+            .select('id')
+            .eq('post_id', widget.postId)
+            .eq('user_id', myId)
+            .maybeSingle();
+        saved = savedRow != null;
+      }
+
       if (mounted) {
         setState(() {
           _post = res;
           _postLoading = false;
+          _isLiked = liked;
+          _isSaved = saved;
+          _likesCount = res?['likes_count'] as int? ?? 0;
         });
       }
     } catch (e) {
       dev.log('게시글 로드 실패: $e', name: 'PostDetailPage');
       if (mounted) setState(() => _postLoading = false);
     }
+  }
+
+  void _toggleLike() {
+    final myId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    if (myId.isEmpty) return;
+
+    HapticFeedback.lightImpact();
+    final wasLiked = _isLiked;
+    setState(() {
+      _isLiked = !wasLiked;
+      _likesCount += wasLiked ? -1 : 1;
+    });
+
+    _likeDebounce?.cancel();
+    _likeDebounce = Timer(const Duration(milliseconds: 300), () async {
+      try {
+        final client = Supabase.instance.client;
+        if (!wasLiked) {
+          await client.from('likes').upsert({
+            'post_id': widget.postId,
+            'user_id': myId,
+            'created_at': DateTime.now().toIso8601String(),
+          }, onConflict: 'user_id,post_id', ignoreDuplicates: true);
+          await client.rpc('increment_post_likes',
+              params: {'post_id': widget.postId});
+        } else {
+          final deleted = await client
+              .from('likes')
+              .delete()
+              .eq('post_id', widget.postId)
+              .eq('user_id', myId)
+              .select();
+          if (deleted.isNotEmpty) {
+            await client.rpc('decrement_post_likes',
+                params: {'post_id': widget.postId});
+          }
+        }
+      } catch (e) {
+        dev.log('좋아요 토글 실패: $e', name: 'PostDetailPage');
+        if (mounted) {
+          setState(() {
+            _isLiked = wasLiked;
+            _likesCount += wasLiked ? 1 : -1;
+          });
+        }
+      }
+    });
+  }
+
+  void _toggleSave() {
+    final myId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    if (myId.isEmpty) return;
+
+    HapticFeedback.lightImpact();
+    final wasSaved = _isSaved;
+    setState(() => _isSaved = !wasSaved);
+
+    Future(() async {
+      try {
+        final client = Supabase.instance.client;
+        if (!wasSaved) {
+          await client.from('saved_posts').upsert({
+            'post_id': widget.postId,
+            'user_id': myId,
+            'created_at': DateTime.now().toIso8601String(),
+          }, onConflict: 'user_id,post_id', ignoreDuplicates: true);
+        } else {
+          await client
+              .from('saved_posts')
+              .delete()
+              .eq('post_id', widget.postId)
+              .eq('user_id', myId);
+        }
+      } catch (e) {
+        dev.log('저장 토글 실패: $e', name: 'PostDetailPage');
+        if (mounted) setState(() => _isSaved = wasSaved);
+      }
+    });
   }
 
   void _onScroll() {
@@ -180,7 +293,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
             ? [_post!['image_url'] as String]
             : [];
     final createdAt = _post!['created_at'] as String? ?? '';
-    final likesCount = _post!['likes_count'] as int? ?? 0;
     final commentsCount = _post!['comments_count'] as int? ?? 0;
 
     return Container(
@@ -222,18 +334,36 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ],
         SizedBox(height: 12.h),
         Row(children: [
-          Icon(Icons.favorite, size: 16.w, color: AppTheme.highlightColor),
-          SizedBox(width: 4.w),
-          Text('$likesCount',
-              style: TextStyle(
-                  fontSize: 13.sp, color: AppTheme.secondaryTextColor)),
+          GestureDetector(
+            onTap: _toggleLike,
+            child: Row(children: [
+              Icon(
+                _isLiked ? Icons.favorite : Icons.favorite_border,
+                size: 20.w,
+                color: _isLiked ? AppTheme.highlightColor : AppTheme.secondaryTextColor,
+              ),
+              SizedBox(width: 4.w),
+              Text('$_likesCount',
+                  style: TextStyle(
+                      fontSize: 13.sp, color: AppTheme.secondaryTextColor)),
+            ]),
+          ),
           SizedBox(width: 12.w),
           Icon(Icons.chat_bubble_outline,
-              size: 16.w, color: AppTheme.secondaryTextColor),
+              size: 20.w, color: AppTheme.secondaryTextColor),
           SizedBox(width: 4.w),
           Text('$commentsCount',
               style: TextStyle(
                   fontSize: 13.sp, color: AppTheme.secondaryTextColor)),
+          const Spacer(),
+          GestureDetector(
+            onTap: _toggleSave,
+            child: Icon(
+              _isSaved ? Icons.bookmark : Icons.bookmark_border,
+              size: 20.w,
+              color: _isSaved ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+            ),
+          ),
         ]),
       ]),
     );

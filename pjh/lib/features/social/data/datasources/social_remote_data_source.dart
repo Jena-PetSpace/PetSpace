@@ -662,14 +662,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     try {
       _logger.debug('Liking post: $postId by $userId', tag: 'SocialDataSource');
 
-      // likes 테이블에 좋아요 추가
-      await supabaseClient.from('likes').insert({
+      await supabaseClient.from('likes').upsert({
         'post_id': postId,
         'user_id': userId,
         'created_at': DateTime.now().toIso8601String(),
-      });
+      }, onConflict: 'user_id,post_id', ignoreDuplicates: true);
 
-      // posts 테이블의 likes_count 증가
       await supabaseClient
           .rpc('increment_post_likes', params: {'post_id': postId});
 
@@ -688,16 +686,17 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _logger.debug('Unliking post: $postId by $userId',
           tag: 'SocialDataSource');
 
-      // likes 테이블에서 좋아요 제거
-      await supabaseClient
+      final deleted = await supabaseClient
           .from('likes')
           .delete()
           .eq('post_id', postId)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .select();
 
-      // posts 테이블의 likes_count 감소
-      await supabaseClient
-          .rpc('decrement_post_likes', params: {'post_id': postId});
+      if (deleted.isNotEmpty) {
+        await supabaseClient
+            .rpc('decrement_post_likes', params: {'post_id': postId});
+      }
 
       _logger.debug('Successfully unliked post: $postId',
           tag: 'SocialDataSource');
