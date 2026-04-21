@@ -855,9 +855,8 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
       MaterialPageRoute(
         builder: (context) => EmotionResultPage(
           analysis: analysis,
-          imagePaths: analysis.localImagePath.isNotEmpty
-              ? [analysis.localImagePath]
-              : [],
+          imagePaths: const [],
+          fromHistory: true,
         ),
       ),
     );

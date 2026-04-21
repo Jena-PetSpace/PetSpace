@@ -148,10 +148,8 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     _searchFocusNode.addListener(() {
       if (!mounted) return;
       if (_searchFocusNode.hasFocus) {
-        // 검색 포커스 시 시트를 full로 올려 지도를 가림
-        // (PlatformView 리사이즈로 인한 지도 블랙아웃 회피)
-        if (_sheetSize != _SheetSize.full) {
-          setState(() => _sheetSize = _SheetSize.full);
+        if (_sheetSize != _SheetSize.collapsed) {
+          setState(() => _sheetSize = _SheetSize.collapsed);
         }
       }
     });
