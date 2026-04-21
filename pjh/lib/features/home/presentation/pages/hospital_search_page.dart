@@ -765,6 +765,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
       },
       child: Scaffold(
         backgroundColor: AppTheme.backgroundColor,
+        resizeToAvoidBottomInset: false,
         body: SafeArea(
           child: Column(
             children: [
