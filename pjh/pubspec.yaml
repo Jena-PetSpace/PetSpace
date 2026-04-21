@@ -96,6 +96,8 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/icons/category/
+    - assets/icons/map/
     - assets/lottie/
     - assets/svg/
 

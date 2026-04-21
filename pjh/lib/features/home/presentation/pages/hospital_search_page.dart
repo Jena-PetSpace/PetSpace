@@ -69,19 +69,19 @@ class HospitalPlace {
 // ── 카테고리 ────────────────────────────────────────────────────────────────────
 
 class _Category {
-  final String emoji;
+  final String iconAsset;
   final String label;
   final String query;
   final bool isFavoriteTab;
-  const _Category({required this.emoji, required this.label, required this.query, this.isFavoriteTab = false});
+  const _Category({required this.iconAsset, required this.label, required this.query, this.isFavoriteTab = false});
 }
 
 const _categories = [
-  _Category(emoji: '⭐', label: '내 장소', query: '', isFavoriteTab: true),
-  _Category(emoji: '🏥', label: '동물병원', query: '동물병원'),
-  _Category(emoji: '💊', label: '동물약국', query: '동물약품 동물약국'),
-  _Category(emoji: '☕', label: '반려동물카페', query: '반려동물카페 펫카페'),
-  _Category(emoji: '✂️', label: '반려동물미용', query: '반려동물미용 애견미용'),
+  _Category(iconAsset: 'assets/icons/category/cat_my_place.png', label: '내 장소', query: '', isFavoriteTab: true),
+  _Category(iconAsset: 'assets/icons/category/cat_hospital.png', label: '동물병원', query: '동물병원'),
+  _Category(iconAsset: 'assets/icons/category/cat_pharmacy.png', label: '약국', query: '동물약품 동물약국'),
+  _Category(iconAsset: 'assets/icons/category/cat_cafe.png', label: '카페', query: '반려동물카페 펫카페'),
+  _Category(iconAsset: 'assets/icons/category/cat_grooming.png', label: '미용실', query: '반려동물미용 애견미용'),
 ];
 
 const _radii = [1000, 3000, 5000];
@@ -1275,7 +1275,8 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
                   ] : [],
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text(cat.emoji, style: TextStyle(fontSize: 16.sp)),
+                  Image.asset(cat.iconAsset, width: 18.w, height: 18.w,
+                    color: selected ? Colors.white : null),
                   SizedBox(width: 5.w),
                   Text(cat.label,
                     style: TextStyle(
