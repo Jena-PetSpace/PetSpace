@@ -171,15 +171,17 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   double _sheetHeight(BuildContext context) {
     final screenH = MediaQuery.of(context).size.height;
-    // 디테일 뷰도 half 크기와 동일하게 유지 (갑자기 커지는 현상 방지)
-    if (_showDetail) return 56.h + (65.h * 3) - 6.h + 12.h;
+    final topPad = MediaQuery.of(context).padding.top;
+    // 디테일: 버튼 2행이 잘리지 않을 최소 높이 보장 (화면 비율 기반)
+    if (_showDetail) return (screenH * 0.42).clamp(320.0, 420.0);
     switch (_sheetSize) {
       case _SheetSize.collapsed:
         return 56.h;
       case _SheetSize.half:
-        return 56.h + (65.h * 3) - 6.h + 12.h;
+        // 항목 3개 + 헤더: 화면 비율 기반 (작은/큰 기기 모두 대응)
+        return (screenH * 0.32).clamp(200.0, 280.0);
       case _SheetSize.full:
-        return screenH - 120.h - MediaQuery.of(context).padding.top;
+        return screenH - 120.h - topPad;
     }
   }
 
@@ -1031,139 +1033,143 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   Widget _buildDetailView(HospitalPlace place, {Key? key}) {
     final isFav = _isFavorite(place.id);
-    return Column(
+    return SingleChildScrollView(
       key: key,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(4.w, 6.h, 8.w, 0),
-          child: Row(children: [
-            GestureDetector(
-              onTap: _closeDetail,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                child: Row(children: [
-                  Icon(Icons.keyboard_arrow_down, size: 20.w, color: AppTheme.secondaryTextColor),
-                  SizedBox(width: 2.w),
-                  Text('목록으로', style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
-                ]),
-              ),
-            ),
-            const Spacer(),
-            GestureDetector(
-              onTap: () => _toggleFavorite(place),
-              child: Padding(
-                padding: EdgeInsets.all(8.w),
-                child: Icon(
-                  isFav ? Icons.bookmark : Icons.bookmark_border,
-                  size: 22.w,
-                  color: isFav ? AppTheme.primaryColor : Colors.grey[400],
-                ),
-              ),
-            ),
-          ]),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-              child: Text(place.name,
-                style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w800, color: AppTheme.primaryTextColor)),
-            ),
-            if (place.distanceM != null) ...[
-              SizedBox(width: 8.w),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(20.r),
-                ),
-                child: Text(_formatDistance(place.distanceM!),
-                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
-              ),
-            ],
-          ]),
-        ),
-        SizedBox(height: 5.h),
-        if (place.category.isNotEmpty)
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(6.r),
+            padding: EdgeInsets.fromLTRB(4.w, 6.h, 8.w, 0),
+            child: Row(children: [
+              GestureDetector(
+                onTap: _closeDetail,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                  child: Row(children: [
+                    Icon(Icons.keyboard_arrow_down, size: 20.w, color: AppTheme.secondaryTextColor),
+                    SizedBox(width: 2.w),
+                    Text('목록으로', style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
+                  ]),
+                ),
               ),
-              child: Text(place.category.split('>').last.trim(),
-                style: TextStyle(fontSize: 11.sp, color: AppTheme.primaryColor, fontWeight: FontWeight.w600)),
-            ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _toggleFavorite(place),
+                child: Padding(
+                  padding: EdgeInsets.all(8.w),
+                  child: Icon(
+                    isFav ? Icons.bookmark : Icons.bookmark_border,
+                    size: 22.w,
+                    color: isFav ? AppTheme.primaryColor : Colors.grey[400],
+                  ),
+                ),
+              ),
+            ]),
           ),
-        SizedBox(height: 10.h),
-        if (place.address.isNotEmpty)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.location_on_outlined, size: 15.w, color: AppTheme.secondaryTextColor),
-              SizedBox(width: 5.w),
-              Expanded(child: Text(place.address,
-                style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor, height: 1.4))),
+              Expanded(
+                child: Text(place.name,
+                  style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w800, color: AppTheme.primaryTextColor)),
+              ),
+              if (place.distanceM != null) ...[
+                SizedBox(width: 8.w),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(_formatDistance(place.distanceM!),
+                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
+                ),
+              ],
             ]),
           ),
-        if (place.phone.isNotEmpty) ...[
           SizedBox(height: 4.h),
+          if (place.category.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6.r),
+                ),
+                child: Text(place.category.split('>').last.trim(),
+                  style: TextStyle(fontSize: 11.sp, color: AppTheme.primaryColor, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          SizedBox(height: 8.h),
+          if (place.address.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.location_on_outlined, size: 15.w, color: AppTheme.secondaryTextColor),
+                SizedBox(width: 5.w),
+                Expanded(child: Text(place.address,
+                  style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor, height: 1.4))),
+              ]),
+            ),
+          if (place.phone.isNotEmpty) ...[
+            SizedBox(height: 3.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Row(children: [
+                Icon(Icons.phone_outlined, size: 15.w, color: AppTheme.secondaryTextColor),
+                SizedBox(width: 5.w),
+                Text(place.phone, style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
+              ]),
+            ),
+          ],
+          SizedBox(height: 12.h),
+          // 1행: 전화 + 길찾기
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Row(children: [
-              Icon(Icons.phone_outlined, size: 15.w, color: AppTheme.secondaryTextColor),
-              SizedBox(width: 5.w),
-              Text(place.phone, style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
+              Expanded(child: _buildActionButton(
+                icon: Icons.phone,
+                label: '전화',
+                color: place.phone.isNotEmpty ? AppTheme.successColor : Colors.grey[400]!,
+                onTap: place.phone.isNotEmpty
+                    ? () => _callPhone(place.phone)
+                    : () => _showSnack('전화번호 정보가 없습니다'),
+              )),
+              SizedBox(width: 10.w),
+              Expanded(child: _buildActionButton(
+                icon: Icons.near_me,
+                label: '길찾기',
+                color: const Color(0xFFE8A000),
+                onTap: () => _openKakaoMapDirections(place),
+              )),
             ]),
           ),
+          SizedBox(height: 8.h),
+          // 2행: 리뷰·상세 + 공유
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(children: [
+              Expanded(child: _buildActionButton(
+                icon: Icons.rate_review_outlined,
+                label: '리뷰·상세',
+                color: AppTheme.primaryColor,
+                onTap: () => _openKakaoMapDetail(place),
+              )),
+              SizedBox(width: 10.w),
+              Expanded(child: _buildActionButton(
+                icon: Icons.share_outlined,
+                label: '공유',
+                color: Colors.grey[600]!,
+                onTap: () => _sharePlace(place),
+              )),
+            ]),
+          ),
+          SizedBox(height: 16.h),
         ],
-        SizedBox(height: 14.h),
-        // 1행: 전화 + 길찾기
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Row(children: [
-            Expanded(child: _buildActionButton(
-              icon: Icons.phone,
-              label: '전화',
-              color: place.phone.isNotEmpty ? AppTheme.successColor : Colors.grey[400]!,
-              onTap: place.phone.isNotEmpty
-                  ? () => _callPhone(place.phone)
-                  : () => _showSnack('전화번호 정보가 없습니다'),
-            )),
-            SizedBox(width: 10.w),
-            Expanded(child: _buildActionButton(
-              icon: Icons.near_me,
-              label: '길찾기',
-              color: const Color(0xFFE8A000),
-              onTap: () => _openKakaoMapDirections(place),
-            )),
-          ]),
-        ),
-        SizedBox(height: 8.h),
-        // 2행: 리뷰·상세 + 공유
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Row(children: [
-            Expanded(child: _buildActionButton(
-              icon: Icons.rate_review_outlined,
-              label: '리뷰·상세',
-              color: AppTheme.primaryColor,
-              onTap: () => _openKakaoMapDetail(place),
-            )),
-            SizedBox(width: 10.w),
-            Expanded(child: _buildActionButton(
-              icon: Icons.share_outlined,
-              label: '공유',
-              color: Colors.grey[600]!,
-              onTap: () => _sharePlace(place),
-            )),
-          ]),
-        ),
-        const Spacer(),
-      ],
+      ),
     );
   }
 
