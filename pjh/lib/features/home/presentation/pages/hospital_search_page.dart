@@ -84,8 +84,8 @@ const _categories = [
 
 const _radii = [1000, 3000, 5000];
 const _radiiLabel = ['1km', '3km', '5km'];
-// 반경별 카카오맵 줌레벨 (카카오맵: 숫자 클수록 가까이, 13=약 1km, 11=약 3km, 10=약 5km)
-const _radiusZoomLevels = [13, 11, 10];
+// 반경별 카카오맵 줌레벨 (카카오맵: 숫자 클수록 가까이, 15=약 1km, 13=약 3km, 12=약 5km)
+const _radiusZoomLevels = [15, 13, 12];
 
 enum _SheetSize { collapsed, half, full }
 
@@ -179,6 +179,17 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         return 56.h + (65.h * 3) - 6.h + 12.h;
       case _SheetSize.full:
         return screenH - 120.h - MediaQuery.of(context).padding.top;
+    }
+  }
+
+  // 시트 상태에 맞게 지도 bottom padding 동기화 — 카메라 이동 기준점을 보이는 영역 중앙으로 맞춤
+  Future<void> _syncMapPaddingToSheet() async {
+    if (_mapController == null || !_mapReady) return;
+    final sheetPx = _sheetHeight(context).toInt();
+    try {
+      await _mapController!.setPadding(left: 0, top: 0, right: 0, bottom: sheetPx);
+    } catch (e) {
+      dev.log('[HS] setPadding 실패: $e', name: 'HospitalSearch');
     }
   }
 
@@ -329,7 +340,10 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
       _mapReady = true;
 
-      // 4) 카메라 이동
+      // 4) 시트 패딩 동기화 (카메라 이동 전에 적용)
+      await _syncMapPaddingToSheet();
+
+      // 5) 카메라 이동
       if (_position != null) {
         _suppressCameraMoveEvent = true;
         await controller.moveCamera(
@@ -342,7 +356,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         dev.log('[HS] moveCamera 완료: ${_position!.latitude}, zoom=${_radiusZoomLevels[_selectedRadiusIndex]}', name: 'HospitalSearch');
       }
 
-      // 5) 마커 표시
+      // 6) 마커 표시
       if (_places.isNotEmpty) {
         await _updateMarkers();
       } else {
@@ -579,14 +593,14 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
       _showDetail = true;
       _sheetSize = _SheetSize.half;
     });
+    // setPadding이 카메라 계산에 반영되므로 latOffset 하드코딩 불필요
+    await _syncMapPaddingToSheet();
     if (_mapReady) {
       _suppressCameraMoveEvent = true;
-      // 바텀시트(화면 45%)가 마커를 가리지 않도록 위도를 살짝 올림
-      const latOffset = 0.0015;
       _mapController!.moveCamera(
         cameraUpdate: CameraUpdate(
-          position: LatLng(latitude: place.lat - latOffset, longitude: place.lng),
-          zoomLevel: 15,
+          position: LatLng(latitude: place.lat, longitude: place.lng),
+          zoomLevel: 16,
           type: -1,
         ),
       );
@@ -639,6 +653,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
   void _closeDetail() {
     final prev = _selectedPlace;
     setState(() { _showDetail = false; _sheetSize = _SheetSize.half; });
+    _syncMapPaddingToSheet();
     if (_mapReady && prev != null) {
       _restoreDefaultMarker(prev);
     }
@@ -709,19 +724,25 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
   void _onSheetDrag(DragUpdateDetails details) {
     if (_showDetail) return;
     final delta = details.primaryDelta ?? 0;
+    bool changed = false;
     if (delta < -8) {
       if (_sheetSize == _SheetSize.collapsed) {
         setState(() => _sheetSize = _SheetSize.half);
+        changed = true;
       } else if (_sheetSize == _SheetSize.half) {
         setState(() => _sheetSize = _SheetSize.full);
+        changed = true;
       }
     } else if (delta > 8) {
       if (_sheetSize == _SheetSize.full) {
         setState(() => _sheetSize = _SheetSize.half);
+        changed = true;
       } else if (_sheetSize == _SheetSize.half) {
         setState(() => _sheetSize = _SheetSize.collapsed);
+        changed = true;
       }
     }
+    if (changed) _syncMapPaddingToSheet();
   }
 
   // ── 빌드 ────────────────────────────────────────────────────────────────────
