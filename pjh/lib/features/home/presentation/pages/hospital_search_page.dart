@@ -72,14 +72,16 @@ class _Category {
   final String emoji;
   final String label;
   final String query;
-  const _Category({required this.emoji, required this.label, required this.query});
+  final bool isFavoriteTab;
+  const _Category({required this.emoji, required this.label, required this.query, this.isFavoriteTab = false});
 }
 
 const _categories = [
+  _Category(emoji: '⭐', label: '내 장소', query: '', isFavoriteTab: true),
   _Category(emoji: '🏥', label: '동물병원', query: '동물병원'),
-  _Category(emoji: '💊', label: '동물약국', query: '동물약국'),
-  _Category(emoji: '✂️', label: '애견미용', query: '애견미용'),
-  _Category(emoji: '🐾', label: '펫호텔', query: '펫호텔 애견호텔'),
+  _Category(emoji: '💊', label: '동물약국', query: '동물약품 동물약국'),
+  _Category(emoji: '☕', label: '반려동물카페', query: '반려동물카페 펫카페'),
+  _Category(emoji: '✂️', label: '반려동물미용', query: '반려동물미용 애견미용'),
 ];
 
 const _radii = [1000, 3000, 5000];
@@ -373,6 +375,22 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   Future<void> _searchCategory(int index) async {
     _searchFocusNode.unfocus();
+    final cat = _categories[index];
+    if (cat.isFavoriteTab) {
+      setState(() {
+        _selectedCategory = index;
+        _selectedPlace = null;
+        _showDetail = false;
+        _showReSearchButton = false;
+        _places = _places.where((p) => _favoriteIds.contains(p.id)).toList();
+        if (_places.isEmpty) {
+          _sheetSize = _SheetSize.collapsed;
+        } else {
+          _sheetSize = _SheetSize.half;
+        }
+      });
+      return;
+    }
     setState(() {
       _selectedCategory = index;
       _searching = true;
@@ -381,7 +399,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
       _places = [];
       _showReSearchButton = false;
     });
-    await _fetchPlaces(_categories[index].query);
+    await _fetchPlaces(cat.query);
   }
 
   Future<void> _searchByKeyword(String keyword) async {
@@ -1231,34 +1249,46 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
   Widget _buildCategoryBar() {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 10.h),
-      child: Row(
-        children: List.generate(_categories.length, (i) {
-          final cat = _categories[i];
-          final selected = _selectedCategory == i;
-          return Expanded(
-            child: GestureDetector(
+      padding: EdgeInsets.fromLTRB(0, 0, 0, 10.h),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        child: Row(
+          children: List.generate(_categories.length, (i) {
+            final cat = _categories[i];
+            final selected = _selectedCategory == i;
+            return GestureDetector(
               onTap: () => _searchCategory(i),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                margin: EdgeInsets.symmetric(horizontal: 3.w),
-                padding: EdgeInsets.symmetric(vertical: 8.h),
+                margin: EdgeInsets.only(right: 8.w),
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
                 decoration: BoxDecoration(
-                  color: selected ? AppTheme.primaryColor : AppTheme.primaryColor.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12.r),
+                  color: selected ? AppTheme.primaryColor : Colors.white,
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(
+                    color: selected ? AppTheme.primaryColor : Colors.grey.shade300,
+                    width: 1.5,
+                  ),
+                  boxShadow: selected ? [
+                    BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2)),
+                  ] : [],
                 ),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(cat.emoji, style: TextStyle(fontSize: 18.sp)),
-                  SizedBox(height: 2.h),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(cat.emoji, style: TextStyle(fontSize: 16.sp)),
+                  SizedBox(width: 5.w),
                   Text(cat.label,
-                    style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.w600,
-                      color: selected ? Colors.white : AppTheme.primaryTextColor),
-                    textAlign: TextAlign.center),
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? Colors.white : AppTheme.primaryTextColor,
+                    ),
+                  ),
                 ]),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -1374,16 +1404,19 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
   // 카테고리 탭 선택 시 무관한 결과(예: 세무회계) 제거
   // 키워드 직접 검색(_searchByKeyword)은 _selectedCategory가 유지되므로 동일하게 적용됨
   bool _isValidCategoryForSelected(String category) {
+    // 0: 내 장소 (즐겨찾기) — 별도 처리, 여기선 항상 true
     const whitelist = <List<String>>[
-      ['동물병원', '의원'],           // 0: 동물병원
-      ['동물약국'],                    // 1: 동물약국
-      ['애견', '반려', '미용', '펫샵', '펫숍'],  // 2: 애견미용
-      ['펫호텔', '애견호텔', '반려동물호텔', '반려동물'],  // 3: 펫호텔
+      [],                                                          // 0: 내 장소 (필터 없음)
+      ['동물병원', '의원'],                                         // 1: 동물병원
+      ['동물약국', '동물약품', '약국'],                              // 2: 동물약국
+      ['카페', '펫카페', '반려동물카페', '애견카페'],                 // 3: 반려동물카페
+      ['미용', '애견미용', '반려동물미용', '펫샵', '펫숍', '그루밍'], // 4: 반려동물미용
     ];
     if (_selectedCategory < 0 || _selectedCategory >= whitelist.length) {
       return true;
     }
     final keywords = whitelist[_selectedCategory];
+    if (keywords.isEmpty) return true;
     return keywords.any((kw) => category.contains(kw));
   }
 
