@@ -1,12 +1,15 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:developer';
+import 'package:uuid/uuid.dart';
 import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -158,7 +161,7 @@ class _HealthResultPageState extends State<HealthResultPage> {
                       child: ElevatedButton(
                         onPressed: isPosting
                             ? null
-                            : () => _postToFeed(ctx, captionController.text.trim()),
+                            : () async => _postToFeed(ctx, captionController.text.trim()),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryColor,
                           foregroundColor: Colors.white,
@@ -191,25 +194,66 @@ class _HealthResultPageState extends State<HealthResultPage> {
     );
   }
 
-  void _postToFeed(BuildContext ctx, String caption) {
+  Future<void> _postToFeed(BuildContext ctx, String caption) async {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
 
+    final postId = const Uuid().v4();
     final r = widget.result;
+
+    // 이미지 소스 결정: 로컬 파일 우선, 없으면 URL 다운로드
+    List<File> imageFiles = [];
+
+    for (final path in r.imageUrls) {
+      if (!path.startsWith('http')) {
+        final f = File(path);
+        if (await f.exists()) {
+          imageFiles.add(f);
+          break; // 썸네일용 1장이면 충분
+        }
+      }
+    }
+
+    if (imageFiles.isEmpty) {
+      // 로컬 파일 없음 → Supabase URL에서 다운로드
+      final urlList = r.imageUrls.where((u) => u.startsWith('http')).toList();
+      if (urlList.isNotEmpty) {
+        try {
+          final response = await http.get(Uri.parse(urlList.first));
+          if (response.statusCode == 200) {
+            final tempDir = await getTemporaryDirectory();
+            final tempFile = File(
+              '${tempDir.path}/health_share_${DateTime.now().millisecondsSinceEpoch}.jpg',
+            );
+            await tempFile.writeAsBytes(response.bodyBytes);
+            imageFiles = [tempFile];
+          }
+        } catch (e) {
+          log('[HealthResult] 이미지 다운로드 실패: $e', name: 'HealthResultPage');
+        }
+      }
+    }
+
+    if (!ctx.mounted) return;
+
     final post = Post(
-      id: '',
+      id: postId,
       authorId: authState.user.uid,
       authorName: authState.user.displayName,
       authorProfileImage: authState.user.photoURL,
-      type: PostType.text,
+      type: PostType.image,
       content: caption.isEmpty
           ? '${r.area.displayName} 건강분석 ${r.overallScore}점 (${r.status})'
           : caption,
-      imageUrls: r.imageUrls.isNotEmpty ? [r.imageUrls.first] : [],
+      imageUrls: const [], // DataSource가 업로드 후 채움
       tags: const ['건강분석', 'AI분석', '펫스페이스'],
       createdAt: DateTime.now(),
     );
-    ctx.read<FeedBloc>().add(CreatePostRequested(post: post));
+
+    ctx.read<FeedBloc>().add(CreatePostRequested(
+      post: post,
+      images: imageFiles,
+    ));
   }
 
   Future<void> _saveResult() async {

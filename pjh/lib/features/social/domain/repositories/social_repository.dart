@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
@@ -14,7 +16,7 @@ abstract class SocialRepository {
   Future<Either<Failure, List<SocialUser>>> searchUsers(String query);
 
   // Post operations
-  Future<Either<Failure, Post>> createPost(Post post);
+  Future<Either<Failure, Post>> createPost(Post post, {List<File> images = const []});
   Future<Either<Failure, Post>> updatePost(Post post);
   Future<Either<Failure, void>> deletePost(String postId);
   Future<Either<Failure, List<Post>>> getFeed({

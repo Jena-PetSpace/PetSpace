@@ -1,13 +1,17 @@
+import 'dart:io';
+
+import 'package:dartz/dartz.dart';
+
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../entities/post.dart';
 import '../repositories/social_repository.dart';
-import 'package:dartz/dartz.dart';
 
 class CreatePostParams {
   final Post post;
+  final List<File> images;
 
-  const CreatePostParams({required this.post});
+  const CreatePostParams({required this.post, this.images = const []});
 }
 
 class CreatePost extends UseCase<Post, CreatePostParams> {
@@ -17,6 +21,7 @@ class CreatePost extends UseCase<Post, CreatePostParams> {
 
   @override
   Future<Either<Failure, Post>> call(CreatePostParams params) async {
-    return await repository.createPost(params.post);
+    return await repository.createPost(params.post, images: params.images);
+
   }
 }

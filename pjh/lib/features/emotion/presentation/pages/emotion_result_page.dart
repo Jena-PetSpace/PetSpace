@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../config/injection_container.dart';
@@ -17,7 +20,6 @@ import '../../data/services/emotion_insights_service.dart';
 import '../../data/services/emotion_diary_service.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/emotion_radar_chart.dart';
-import '../../../../core/services/image_upload_service.dart';
 import '../widgets/result/emotion_share_card.dart';
 
 part '../widgets/result/emotion_result_helpers.dart';
@@ -502,40 +504,52 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
 
-    // 1. 이미지 URL 결정: Supabase URL이 있으면 그대로, 없으면 로컬 파일 업로드
-    String? finalImageUrl;
+    // write-ahead 패턴: post_id를 클라이언트에서 미리 생성
+    final postId = const Uuid().v4();
 
-    if (widget.analysis.imageUrl.isNotEmpty) {
-      finalImageUrl = widget.analysis.imageUrl;
-    } else if (widget.imagePaths.isNotEmpty) {
+    // 이미지 소스 결정: 로컬 파일 우선, 없으면 Supabase URL에서 다운로드
+    List<File> imageFiles = [];
+
+    if (widget.imagePaths.isNotEmpty) {
+      // 케이스 A: 방금 분석한 로컬 파일
+      imageFiles = widget.imagePaths.map((p) => File(p)).toList();
+    } else if (widget.analysis.imageUrl.isNotEmpty) {
+      // 케이스 B: History에서 공유 — 원격 URL 다운로드 후 임시 파일로
       try {
-        final uploadService = sl<ImageUploadService>();
-        final result = await uploadService.uploadPostImage(
-          File(widget.imagePaths.first),
-        );
-        finalImageUrl = result['url'];
+        final response = await http.get(Uri.parse(widget.analysis.imageUrl));
+        if (response.statusCode == 200) {
+          final tempDir = await getTemporaryDirectory();
+          final tempFile = File(
+            '${tempDir.path}/emotion_share_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          );
+          await tempFile.writeAsBytes(response.bodyBytes);
+          imageFiles = [tempFile];
+        }
       } catch (e) {
-        // 업로드 실패해도 이미지 없이 게시 진행
-        finalImageUrl = null;
+        log('[ResultPage] 이미지 다운로드 실패: $e', name: 'EmotionResult');
+        // 실패해도 이미지 없이 게시 진행
       }
     }
 
     if (!ctx.mounted) return;
 
     final post = Post(
-      id: '',
+      id: postId,
       authorId: authState.user.uid,
       authorName: authState.user.displayName,
       authorProfileImage: authState.user.photoURL,
       type: PostType.emotionAnalysis,
       content: caption.isEmpty ? null : caption,
-      imageUrls: finalImageUrl != null ? [finalImageUrl] : [],
+      imageUrls: const [], // DataSource가 업로드 후 채움
       emotionAnalysis: widget.analysis,
       tags: tags,
       createdAt: DateTime.now(),
     );
 
-    ctx.read<FeedBloc>().add(CreatePostRequested(post: post));
+    ctx.read<FeedBloc>().add(CreatePostRequested(
+      post: post,
+      images: imageFiles,
+    ));
   }
 
   String _getEmotionNameForShare(String emotion) =>

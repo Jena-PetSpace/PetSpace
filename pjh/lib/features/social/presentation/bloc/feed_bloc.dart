@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -154,7 +155,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
     emit(FeedCreatingPost());
 
-    final result = await _createPost(CreatePostParams(post: event.post));
+    final result = await _createPost(CreatePostParams(post: event.post, images: event.images));
 
     result.fold(
       (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
