@@ -78,8 +78,8 @@ const _categories = [
 
 const _radii = [1000, 3000, 5000];
 const _radiiLabel = ['1km', '3km', '5km'];
-// 반경별 카카오맵 줌레벨: 1km=5, 3km=7, 5km=8
-const _radiusZoomLevels = [13, 11, 10]; // 1km/3km/5km 반경 (카카오맵: 높을수록 가까이)
+// 반경별 카카오맵 줌레벨 (카카오맵: 숫자 클수록 가까이, 13=약 1km, 11=약 3km, 10=약 5km)
+const _radiusZoomLevels = [13, 11, 10];
 
 enum _SheetSize { collapsed, half, full }
 
@@ -128,7 +128,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
   final FocusNode _searchFocusNode = FocusNode();
 
   static const String _myLocationMarkerId = 'my_location';
-  static const String _myLocationStyleId = 'my_location_style'; // 네이티브 onMapReady에서 자동 등록
+  static const String _myLocationStyleId = 'my_location_style';
   List<String> _currentMarkerIds = [];
 
   // ── 초기화 ──────────────────────────────────────────────────────────────────
@@ -249,8 +249,22 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
   // ── 지도 초기화 ──────────────────────────────────────────────────────────────
 
   Widget _buildMap() {
+    // _position이 아직 없으면 로딩 인디케이터 표시 (M-1-1: 서울시청 초기 노출 방지)
+    if (_position == null && _locationError == null) {
+      return Container(
+        color: Colors.grey[100],
+        child: const Center(
+          child: CircularProgressIndicator(color: AppTheme.primaryColor),
+        ),
+      );
+    }
+
+    final initialPos = _position != null
+        ? LatLng(latitude: _position!.latitude, longitude: _position!.longitude)
+        : const LatLng(latitude: _defaultLat, longitude: _defaultLng);
+
     return KakaoMap(
-      initialPosition: const LatLng(latitude: _defaultLat, longitude: _defaultLng),
+      initialPosition: initialPos,
       onMapCreated: (controller) {
         _mapController = controller;
 
@@ -287,9 +301,19 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     if (!mounted) return;
     dev.log('[HS] _onMapReady 시작', name: 'HospitalSearch');
 
+    // M-1-4: addMarker/addMarkers 전에 레이어 반드시 생성
+    try {
+      await controller.addMarkerLayer(
+        layerId: KakaoMapController.defaultLabelLayerId,
+      );
+      dev.log('[HS] addMarkerLayer 완료', name: 'HospitalSearch');
+    } catch (e) {
+      dev.log('[HS] addMarkerLayer 실패: $e', name: 'HospitalSearch');
+    }
+
     _mapReady = true;
 
-    // 2. 위치가 있으면 이동
+    // 위치가 있으면 이동
     if (_position != null) {
       _suppressCameraMoveEvent = true;
       try {
@@ -404,10 +428,16 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     if (_currentMarkerIds.isNotEmpty) {
       try {
         await _mapController!.removeMarkers(ids: _currentMarkerIds);
-      } catch (_) {}
+      } catch (e) {
+        dev.log('[HS] removeMarkers 실패: $e', name: 'HospitalSearch');
+      }
     }
     // 내 위치 마커도 별도 제거
-    try { await _mapController!.removeMarker(id: _myLocationMarkerId); } catch (_) {}
+    try {
+      await _mapController!.removeMarker(id: _myLocationMarkerId);
+    } catch (e) {
+      dev.log('[HS] removeMarker(my_location) 실패: $e', name: 'HospitalSearch');
+    }
 
     final newIds = _places.map((p) => p.id).toList();
     final markerOptions = _places.map((p) => MarkerOption(
@@ -433,7 +463,11 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   Future<void> _updateMyLocationMarker() async {
     if (_mapController == null || !_mapReady || _position == null) return;
-    try { await _mapController!.removeMarker(id: _myLocationMarkerId); } catch (_) {}
+    try {
+      await _mapController!.removeMarker(id: _myLocationMarkerId);
+    } catch (e) {
+      dev.log('[HS] removeMarker(my_location) 실패: $e', name: 'HospitalSearch');
+    }
     try {
       await _mapController!.addMarker(
         markerOption: MarkerOption(
@@ -459,18 +493,45 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     });
     if (_mapReady) {
       _suppressCameraMoveEvent = true;
+      // 바텀시트(화면 38%)가 마커를 가리지 않도록 위도를 살짝 올림
+      const latOffset = 0.0008;
       _mapController!.moveCamera(
         cameraUpdate: CameraUpdate(
-          position: LatLng(latitude: place.lat, longitude: place.lng),
-          zoomLevel: 13,
+          position: LatLng(latitude: place.lat - latOffset, longitude: place.lng),
+          zoomLevel: 15,
           type: -1,
         ),
       );
+      _highlightSelectedMarker(place);
     }
+  }
+
+  void _highlightSelectedMarker(HospitalPlace place) {
+    // 선택 마커만 rank를 높여 위로 올림 — 별도 스타일 없이 rank로 강조
+    final options = _places.map((p) => MarkerOption(
+      id: p.id,
+      latLng: LatLng(latitude: p.lat, longitude: p.lng),
+      text: p.name,
+      rank: p.id == place.id ? 500 : 0,
+    )).toList();
+    _mapController?.addMarkers(markerOptions: options).catchError((e) {
+      dev.log('[HS] highlightSelectedMarker 실패: $e', name: 'HospitalSearch');
+    });
   }
 
   void _closeDetail() {
     setState(() { _showDetail = false; _sheetSize = _SheetSize.half; });
+    // 선택 해제 시 마커 rank 원복
+    if (_mapReady && _places.isNotEmpty) {
+      final options = _places.map((p) => MarkerOption(
+        id: p.id,
+        latLng: LatLng(latitude: p.lat, longitude: p.lng),
+        text: p.name,
+      )).toList();
+      _mapController?.addMarkers(markerOptions: options).catchError((e) {
+        dev.log('[HS] restoreMarkers 실패: $e', name: 'HospitalSearch');
+      });
+    }
   }
 
   void _toggleFavorite(HospitalPlace place) {
