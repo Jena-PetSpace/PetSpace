@@ -35,7 +35,10 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
   @override
   void dispose() {
     _pageController.dispose();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     super.dispose();
   }
 

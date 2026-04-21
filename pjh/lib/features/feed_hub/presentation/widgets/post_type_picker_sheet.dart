@@ -5,18 +5,18 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../../social/domain/entities/post.dart';
 
 class PostTypePickerSheet extends StatelessWidget {
-  final PostType current;
+  final PostType? current;
   final bool hasEmotionAnalysis;
 
   const PostTypePickerSheet({
     super.key,
-    required this.current,
+    this.current,
     this.hasEmotionAnalysis = false,
   });
 
   static Future<PostType?> show(
     BuildContext context, {
-    required PostType current,
+    PostType? current,
     bool hasEmotionAnalysis = false,
   }) {
     return showModalBottomSheet<PostType>(

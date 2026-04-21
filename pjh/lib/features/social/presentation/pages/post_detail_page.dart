@@ -250,13 +250,31 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 
   Widget _buildEmptyComments() => Padding(
-        padding: EdgeInsets.symmetric(vertical: 40.h),
-        child: Column(children: [
-          Icon(Icons.chat_bubble_outline, size: 48.w, color: Colors.grey[300]),
-          SizedBox(height: 12.h),
-          Text('첫 번째 댓글을 작성해보세요!',
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey[500])),
-        ]),
+        padding: EdgeInsets.symmetric(vertical: 40.h, horizontal: 16.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.mode_comment_outlined,
+                size: 40.w, color: AppTheme.secondaryTextColor),
+            SizedBox(height: 12.h),
+            Text(
+              '아직 댓글이 없어요',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: AppTheme.secondaryTextColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              '첫 댓글을 작성해보세요',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: AppTheme.secondaryTextColor.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
       );
 
   Widget _buildCommentInput() => Container(

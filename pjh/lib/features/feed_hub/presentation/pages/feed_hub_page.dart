@@ -201,10 +201,7 @@ class _FeedHubPageState extends State<FeedHubPage>
   }
 
   Future<void> _onFabPressed(BuildContext context) async {
-    final picked = await PostTypePickerSheet.show(
-      context,
-      current: PostType.image,
-    );
+    final picked = await PostTypePickerSheet.show(context);
     if (picked == null || !mounted) return;
     if (picked == PostType.text) {
       final created = await Navigator.of(this.context).push<bool>(
