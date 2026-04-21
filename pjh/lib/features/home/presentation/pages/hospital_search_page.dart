@@ -138,8 +138,13 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     super.initState();
     _getLocation();
     _searchFocusNode.addListener(() {
-      if (_searchFocusNode.hasFocus && _sheetSize != _SheetSize.collapsed) {
-        setState(() => _sheetSize = _SheetSize.collapsed);
+      if (!mounted) return;
+      if (_searchFocusNode.hasFocus) {
+        // 검색 포커스 시 시트를 full로 올려 지도를 가림
+        // (PlatformView 리사이즈로 인한 지도 블랙아웃 회피)
+        if (_sheetSize != _SheetSize.full) {
+          setState(() => _sheetSize = _SheetSize.full);
+        }
       }
     });
   }
@@ -402,6 +407,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final documents = (data['documents'] as List<dynamic>? ?? [])
             .map((e) => HospitalPlace.fromJson(e as Map<String, dynamic>))
+            .where((p) => _isValidCategoryForSelected(p.category))
             .toList();
         setState(() {
           _places = documents;
@@ -440,11 +446,15 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     }
 
     final newIds = _places.map((p) => p.id).toList();
-    final markerOptions = _places.map((p) => MarkerOption(
-      id: p.id,
-      latLng: LatLng(latitude: p.lat, longitude: p.lng),
-      text: p.name,
-    )).toList();
+    final markerOptions = _places.asMap().entries.map((entry) {
+      final index = entry.key + 1;
+      final p = entry.value;
+      return MarkerOption(
+        id: p.id,
+        latLng: LatLng(latitude: p.lat, longitude: p.lng),
+        text: '$index',  // 리스트 번호와 매칭
+      );
+    }).toList();
 
     if (markerOptions.isNotEmpty) {
       try {
@@ -608,7 +618,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
                     Positioned.fill(child: _buildMap()),
                     _buildMapOverlayButtons(),
                     if (_searching) _buildSearchingIndicator(),
-                    if (_showReSearchButton) _buildReSearchButton(),
+                    if (_showReSearchButton && !_showDetail) _buildReSearchButton(),
                     _buildBottomSheet(),
                   ],
                 ),
@@ -1173,6 +1183,22 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
   }
 
   // ── 유틸 ─────────────────────────────────────────────────────────────────────
+
+  // 카테고리 탭 선택 시 무관한 결과(예: 세무회계) 제거
+  // 키워드 직접 검색(_searchByKeyword)은 _selectedCategory가 유지되므로 동일하게 적용됨
+  bool _isValidCategoryForSelected(String category) {
+    const whitelist = <List<String>>[
+      ['동물병원', '의원'],           // 0: 동물병원
+      ['동물약국'],                    // 1: 동물약국
+      ['애견', '반려', '미용', '펫샵', '펫숍'],  // 2: 애견미용
+      ['펫호텔', '애견호텔', '반려동물호텔', '반려동물'],  // 3: 펫호텔
+    ];
+    if (_selectedCategory < 0 || _selectedCategory >= whitelist.length) {
+      return true;
+    }
+    final keywords = whitelist[_selectedCategory];
+    return keywords.any((kw) => category.contains(kw));
+  }
 
   String _formatDistance(int meters) {
     if (meters >= 1000) return '${(meters / 1000).toStringAsFixed(1)}km';
