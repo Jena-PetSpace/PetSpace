@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:kakao_maps_flutter/kakao_maps_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/api_config.dart';
@@ -24,6 +25,7 @@ class HospitalPlace {
   final String category;
   final int? distanceM;
   final bool isFavorite;
+  final String placeUrl;
 
   const HospitalPlace({
     required this.id,
@@ -35,6 +37,7 @@ class HospitalPlace {
     required this.category,
     this.distanceM,
     this.isFavorite = false,
+    this.placeUrl = '',
   });
 
   factory HospitalPlace.fromJson(Map<String, dynamic> json) {
@@ -48,6 +51,7 @@ class HospitalPlace {
       lng: double.tryParse(json['x'] as String? ?? '0') ?? 0,
       category: json['category_name'] as String? ?? '',
       distanceM: int.tryParse(json['distance'] as String? ?? ''),
+      placeUrl: json['place_url'] as String? ?? '',
     );
   }
 
@@ -55,6 +59,7 @@ class HospitalPlace {
         id: id, name: name, address: address, phone: phone,
         lat: lat, lng: lng, category: category,
         distanceM: distanceM, isFavorite: isFavorite ?? this.isFavorite,
+        placeUrl: placeUrl,
       );
 
   LatLng get latLng => LatLng(latitude: lat, longitude: lng);
@@ -163,7 +168,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   double _sheetHeight(BuildContext context) {
     final screenH = MediaQuery.of(context).size.height;
-    if (_showDetail) return screenH * 0.38;
+    if (_showDetail) return screenH * 0.45;
     switch (_sheetSize) {
       case _SheetSize.collapsed:
         return 56.h;
@@ -314,6 +319,14 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
       dev.log('[HS] addMarkerLayer 완료', name: 'HospitalSearch');
     } catch (e) {
       dev.log('[HS] addMarkerLayer 실패: $e', name: 'HospitalSearch');
+    }
+
+    // 카카오 기본 POI(쇼핑/공시/지하철 등) 숨김 — 우리 마커 가독성 향상
+    try {
+      await controller.setPoiVisible(isVisible: false);
+      await controller.setPoiClickable(isClickable: false);
+    } catch (e) {
+      dev.log('[HS] setPoiVisible 실패: $e', name: 'HospitalSearch');
     }
 
     _mapReady = true;
@@ -495,7 +508,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   // ── 액션 ────────────────────────────────────────────────────────────────────
 
-  void _selectPlace(HospitalPlace place) {
+  Future<void> _selectPlace(HospitalPlace place) async {
     setState(() {
       _selectedPlace = place;
       _showDetail = true;
@@ -503,8 +516,8 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     });
     if (_mapReady) {
       _suppressCameraMoveEvent = true;
-      // 바텀시트(화면 38%)가 마커를 가리지 않도록 위도를 살짝 올림
-      const latOffset = 0.0008;
+      // 바텀시트(화면 45%)가 마커를 가리지 않도록 위도를 살짝 올림
+      const latOffset = 0.0015;
       _mapController!.moveCamera(
         cameraUpdate: CameraUpdate(
           position: LatLng(latitude: place.lat - latOffset, longitude: place.lng),
@@ -512,35 +525,54 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
           type: -1,
         ),
       );
-      _highlightSelectedMarker(place);
+      await _highlightSelectedMarker(place);
     }
   }
 
-  void _highlightSelectedMarker(HospitalPlace place) {
-    // 선택 마커만 rank를 높여 위로 올림 — 별도 스타일 없이 rank로 강조
-    final options = _places.map((p) => MarkerOption(
-      id: p.id,
-      latLng: LatLng(latitude: p.lat, longitude: p.lng),
-      text: p.name,
-      rank: p.id == place.id ? 500 : 0,
-    )).toList();
-    _mapController?.addMarkers(markerOptions: options).catchError((e) {
-      dev.log('[HS] highlightSelectedMarker 실패: $e', name: 'HospitalSearch');
-    });
+  Future<void> _highlightSelectedMarker(HospitalPlace place) async {
+    if (_mapController == null) return;
+    final index = _places.indexOf(place) + 1;
+    try {
+      await _mapController!.removeMarker(id: place.id);
+    } catch (e) {
+      dev.log('[HS] 선택 마커 제거 건너뜀: $e', name: 'HospitalSearch');
+    }
+    try {
+      await _mapController!.addMarker(
+        markerOption: MarkerOption(
+          id: place.id,
+          latLng: LatLng(latitude: place.lat, longitude: place.lng),
+          text: '📍$index',
+          rank: 800,
+        ),
+      );
+    } catch (e) {
+      dev.log('[HS] 선택 마커 강조 실패: $e', name: 'HospitalSearch');
+    }
+  }
+
+  Future<void> _restoreDefaultMarker(HospitalPlace place) async {
+    if (_mapController == null) return;
+    final index = _places.indexOf(place) + 1;
+    try { await _mapController!.removeMarker(id: place.id); } catch (_) {}
+    try {
+      await _mapController!.addMarker(
+        markerOption: MarkerOption(
+          id: place.id,
+          latLng: LatLng(latitude: place.lat, longitude: place.lng),
+          text: '$index',
+        ),
+      );
+    } catch (e) {
+      dev.log('[HS] 기본 마커 복원 실패: $e', name: 'HospitalSearch');
+    }
   }
 
   void _closeDetail() {
+    final prev = _selectedPlace;
     setState(() { _showDetail = false; _sheetSize = _SheetSize.half; });
-    // 선택 해제 시 마커 rank 원복
-    if (_mapReady && _places.isNotEmpty) {
-      final options = _places.map((p) => MarkerOption(
-        id: p.id,
-        latLng: LatLng(latitude: p.lat, longitude: p.lng),
-        text: p.name,
-      )).toList();
-      _mapController?.addMarkers(markerOptions: options).catchError((e) {
-        dev.log('[HS] restoreMarkers 실패: $e', name: 'HospitalSearch');
-      });
+    if (_mapReady && prev != null) {
+      _restoreDefaultMarker(prev);
     }
   }
 
@@ -562,13 +594,48 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  Future<void> _openInKakaoMap(HospitalPlace place) async {
-    final appUri = Uri.parse('kakaomap://look?p=${place.lat},${place.lng}');
-    if (await canLaunchUrl(appUri)) { await launchUrl(appUri); return; }
-    final webUri = Uri.parse(
-      'https://map.kakao.com/link/map/${Uri.encodeComponent(place.name)},${place.lat},${place.lng}',
+  // ── 외부 링크 액션 ────────────────────────────────────────────────────────────
+
+  /// 카카오맵 장소 상세페이지 (리뷰/사진/영업시간/메뉴)
+  Future<void> _openKakaoMapDetail(HospitalPlace place) async {
+    final url = place.placeUrl.isNotEmpty
+        ? place.placeUrl.replaceFirst(RegExp(r'^http://'), 'https://')
+        : 'https://map.kakao.com/link/search/${Uri.encodeComponent(place.name)}';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      _showSnack('카카오맵을 열 수 없습니다');
+    }
+  }
+
+  /// 카카오맵 길찾기 (현재위치 → 병원)
+  Future<void> _openKakaoMapDirections(HospitalPlace place) async {
+    final uri = Uri.parse(
+      'https://map.kakao.com/link/to/'
+      '${Uri.encodeComponent(place.name)},${place.lat},${place.lng}',
     );
-    if (await canLaunchUrl(webUri)) await launchUrl(webUri, mode: LaunchMode.externalApplication);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      _showSnack('길찾기를 열 수 없습니다');
+    }
+  }
+
+  /// 공유 (병원명 + 주소 + 카카오맵 링크)
+  Future<void> _sharePlace(HospitalPlace place) async {
+    final url = place.placeUrl.isNotEmpty
+        ? place.placeUrl.replaceFirst(RegExp(r'^http://'), 'https://')
+        : 'https://map.kakao.com/link/search/${Uri.encodeComponent(place.name)}';
+    final text = '${place.name}\n${place.address}\n$url';
+    await Share.share(text, subject: place.name);
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
   }
 
   void _onSheetDrag(DragUpdateDetails details) {
@@ -964,19 +1031,44 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
           ),
         ],
         SizedBox(height: 14.h),
+        // 1행: 전화 + 길찾기
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Row(children: [
-            if (place.phone.isNotEmpty) ...[
-              Expanded(child: _buildActionButton(
-                icon: Icons.phone, label: '전화 연결',
-                color: AppTheme.successColor, onTap: () => _callPhone(place.phone),
-              )),
-              SizedBox(width: 10.w),
-            ],
             Expanded(child: _buildActionButton(
-              icon: Icons.near_me_outlined, label: '카카오맵',
-              color: const Color(0xFFE8A000), onTap: () => _openInKakaoMap(place),
+              icon: Icons.phone,
+              label: '전화',
+              color: place.phone.isNotEmpty ? AppTheme.successColor : Colors.grey[400]!,
+              onTap: place.phone.isNotEmpty
+                  ? () => _callPhone(place.phone)
+                  : () => _showSnack('전화번호 정보가 없습니다'),
+            )),
+            SizedBox(width: 10.w),
+            Expanded(child: _buildActionButton(
+              icon: Icons.near_me,
+              label: '길찾기',
+              color: const Color(0xFFE8A000),
+              onTap: () => _openKakaoMapDirections(place),
+            )),
+          ]),
+        ),
+        SizedBox(height: 8.h),
+        // 2행: 리뷰·상세 + 공유
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Row(children: [
+            Expanded(child: _buildActionButton(
+              icon: Icons.rate_review_outlined,
+              label: '리뷰·상세',
+              color: AppTheme.primaryColor,
+              onTap: () => _openKakaoMapDetail(place),
+            )),
+            SizedBox(width: 10.w),
+            Expanded(child: _buildActionButton(
+              icon: Icons.share_outlined,
+              label: '공유',
+              color: Colors.grey[600]!,
+              onTap: () => _sharePlace(place),
             )),
           ]),
         ),
