@@ -1195,8 +1195,20 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
   Widget _buildSearchBar() {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.fromLTRB(12.w, 6.h, 12.w, 4.h),
-      child: TextField(
+      padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 6.h),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TextField(
         controller: _searchController,
         focusNode: _searchFocusNode,
         textInputAction: TextInputAction.search,
@@ -1213,14 +1225,22 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
               : null,
           contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
           filled: true,
-          fillColor: AppTheme.primaryColor.withValues(alpha: 0.05),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16.r),
+            borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+          ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(16.r),
             borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
           ),
         ),
         onChanged: (_) => setState(() {}),
+        ),
       ),
     );
   }
