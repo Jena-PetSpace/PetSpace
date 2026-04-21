@@ -763,13 +763,18 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       final commentModel = CommentModel.fromEntity(comment);
 
       // Supabase에 댓글 생성
-      final response = await supabaseClient.from('comments').insert({
+      final insertData = <String, dynamic>{
         'id': commentModel.id,
         'post_id': commentModel.postId,
         'author_id': commentModel.authorId,
         'content': commentModel.content,
         'created_at': commentModel.createdAt.toIso8601String(),
-      }).select('''
+      };
+      if (commentModel.parentCommentId != null) {
+        insertData['parent_comment_id'] = commentModel.parentCommentId;
+      }
+
+      final response = await supabaseClient.from('comments').insert(insertData).select('''
             *,
             users!comments_author_id_fkey(id, display_name, photo_url)
           ''').single();
@@ -825,10 +830,9 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       var queryBuilder = supabaseClient.from('comments').select('''
             *,
             users!comments_author_id_fkey(id, display_name, photo_url)
-          ''').eq('post_id', postId);
+          ''').eq('post_id', postId).isFilter('parent_comment_id', null);
 
       if (lastCommentId != null) {
-        // 페이지네이션 구현
         final lastComment = await supabaseClient
             .from('comments')
             .select('created_at')
@@ -844,13 +848,28 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _logger.debug('Fetched ${response.length} comments',
           tag: 'SocialDataSource');
 
-      final comments = (response as List)
-          .map((json) => CommentModel.fromJson({
-                ...json,
-                'author_name': json['users']['display_name'],
-                'author_profile_image': json['users']['photo_url'],
-              }).toEntity())
-          .toList();
+      // 각 top-level 댓글의 대댓글 로드
+      final comments = await Future.wait((response as List).map((json) async {
+        final commentId = json['id'] as String;
+        final repliesRes = await supabaseClient.from('comments').select('''
+              *,
+              users!comments_author_id_fkey(id, display_name, photo_url)
+            ''').eq('parent_comment_id', commentId)
+            .order('created_at', ascending: true);
+
+        final replies = (repliesRes as List).map((r) => CommentModel.fromJson({
+              ...r,
+              'author_name': r['users']['display_name'],
+              'author_profile_image': r['users']['photo_url'],
+            }).toEntity()).toList();
+
+        return CommentModel.fromJson({
+          ...json,
+          'author_name': json['users']['display_name'],
+          'author_profile_image': json['users']['photo_url'],
+          'replies': const [],
+        }).toEntity().copyWith(replies: replies);
+      }));
 
       return comments;
     } catch (e, stackTrace) {

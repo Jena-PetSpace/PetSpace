@@ -42,6 +42,7 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     on<LoadComments>(_onLoadComments);
     on<LoadMoreComments>(_onLoadMoreComments);
     on<CreateCommentRequested>(_onCreateCommentRequested);
+    on<CreateReplyRequested>(_onCreateReplyRequested);
     on<DeleteCommentRequested>(_onDeleteCommentRequested);
     on<UpdateCommentRequested>(_onUpdateCommentRequested);
     on<LikeCommentRequested>(_onLikeCommentRequested);
@@ -164,6 +165,45 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
             postId: event.postId,
             commentPreview: event.content,
           );
+        }
+      },
+    );
+  }
+
+  Future<void> _onCreateReplyRequested(
+    CreateReplyRequested event,
+    Emitter<CommentState> emit,
+  ) async {
+    final reply = Comment(
+      id: const Uuid().v4(),
+      postId: event.postId,
+      authorId: _currentUserId,
+      authorName: '',
+      content: event.content,
+      createdAt: DateTime.now(),
+      parentCommentId: event.parentCommentId,
+    );
+
+    final result = await _createComment(CreateCommentParams(comment: reply));
+
+    result.fold(
+      (failure) {
+        if (state is CommentLoaded) {
+          emit((state as CommentLoaded).copyWith(error: failure.message));
+        }
+      },
+      (newReply) {
+        if (state is CommentLoaded) {
+          final currentState = state as CommentLoaded;
+          final updatedComments = currentState.comments.map((comment) {
+            if (comment.id == event.parentCommentId) {
+              return comment.copyWith(
+                replies: [...comment.replies, newReply],
+              );
+            }
+            return comment;
+          }).toList();
+          emit(currentState.copyWith(comments: updatedComments));
         }
       },
     );

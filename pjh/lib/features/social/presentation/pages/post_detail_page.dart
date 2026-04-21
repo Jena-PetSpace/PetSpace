@@ -35,6 +35,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
   int _likesCount = 0;
   Timer? _likeDebounce;
 
+  // 답글 상태
+  String? _replyToCommentId;
+  String? _replyToAuthorName;
+
   @override
   void initState() {
     super.initState();
@@ -188,12 +192,44 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final authState = context.read<AuthBloc>().state;
     final senderName =
         authState is AuthAuthenticated ? authState.user.displayName : '사용자';
-    context.read<CommentBloc>().add(CreateCommentRequested(
-          postId: widget.postId,
-          content: content,
-          postAuthorId: _post?['author_id'] as String?,
-          senderName: senderName,
-        ));
+
+    if (_replyToCommentId != null) {
+      context.read<CommentBloc>().add(CreateReplyRequested(
+            postId: widget.postId,
+            parentCommentId: _replyToCommentId!,
+            content: content,
+            postAuthorId: _post?['author_id'] as String?,
+            senderName: senderName,
+          ));
+      setState(() {
+        _replyToCommentId = null;
+        _replyToAuthorName = null;
+      });
+    } else {
+      context.read<CommentBloc>().add(CreateCommentRequested(
+            postId: widget.postId,
+            content: content,
+            postAuthorId: _post?['author_id'] as String?,
+            senderName: senderName,
+          ));
+    }
+    _commentController.clear();
+    FocusScope.of(context).unfocus();
+  }
+
+  void _showReplyInput(String commentId, String authorName) {
+    setState(() {
+      _replyToCommentId = commentId;
+      _replyToAuthorName = authorName;
+    });
+    _commentController.clear();
+  }
+
+  void _cancelReply() {
+    setState(() {
+      _replyToCommentId = null;
+      _replyToAuthorName = null;
+    });
     _commentController.clear();
     FocusScope.of(context).unfocus();
   }
@@ -259,6 +295,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
                               ? () => context.read<CommentBloc>().add(
                                   DeleteCommentRequested(commentId: comment.id))
                               : null,
+                          onReply: () => _showReplyInput(
+                              comment.id, comment.authorName),
                         );
                       },
                       childCount: state.comments.length + 1,
@@ -423,40 +461,73 @@ class _PostDetailPageState extends State<PostDetailPage> {
             top: 8.h,
             bottom: MediaQuery.of(context).viewInsets.bottom + 8.h),
         child: SafeArea(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Expanded(
-              child: TextField(
-                controller: _commentController,
-                style: TextStyle(fontSize: 14.sp),
-                decoration: InputDecoration(
-                  hintText: '댓글을 입력하세요...',
-                  hintStyle:
-                      TextStyle(fontSize: 14.sp, color: AppTheme.hintColor),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24.r),
-                      borderSide:
-                          const BorderSide(color: AppTheme.dividerColor)),
-                  enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24.r),
-                      borderSide:
-                          const BorderSide(color: AppTheme.dividerColor)),
-                  focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24.r),
-                      borderSide:
-                          const BorderSide(color: AppTheme.primaryColor)),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_replyToAuthorName != null)
+                Container(
+                  margin: EdgeInsets.only(bottom: 6.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: AppTheme.subtleBackground,
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.reply, size: 14.w, color: AppTheme.primaryColor),
+                    SizedBox(width: 6.w),
+                    Expanded(
+                      child: Text(
+                        '${_replyToAuthorName!}에게 답글',
+                        style: TextStyle(
+                            fontSize: 12.sp, color: AppTheme.primaryColor),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _cancelReply,
+                      child: Icon(Icons.close,
+                          size: 16.w, color: AppTheme.secondaryTextColor),
+                    ),
+                  ]),
                 ),
-                maxLines: null,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _submitComment(),
-              ),
-            ),
-            IconButton(
-                onPressed: _submitComment,
-                icon: Icon(Icons.send_rounded, size: 24.w),
-                color: AppTheme.primaryColor),
-          ]),
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Expanded(
+                  child: TextField(
+                    controller: _commentController,
+                    style: TextStyle(fontSize: 14.sp),
+                    decoration: InputDecoration(
+                      hintText: _replyToAuthorName != null
+                          ? '답글을 입력하세요...'
+                          : '댓글을 입력하세요...',
+                      hintStyle: TextStyle(
+                          fontSize: 14.sp, color: AppTheme.hintColor),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24.r),
+                          borderSide:
+                              const BorderSide(color: AppTheme.dividerColor)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24.r),
+                          borderSide:
+                              const BorderSide(color: AppTheme.dividerColor)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24.r),
+                          borderSide:
+                              const BorderSide(color: AppTheme.primaryColor)),
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16.w, vertical: 10.h),
+                    ),
+                    maxLines: null,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _submitComment(),
+                  ),
+                ),
+                IconButton(
+                    onPressed: _submitComment,
+                    icon: Icon(Icons.send_rounded, size: 24.w),
+                    color: AppTheme.primaryColor),
+              ]),
+            ],
+          ),
         ),
       );
 
