@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -134,6 +135,8 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   static const String _myLocationMarkerId = 'my_location';
   static const String _myLocationStyleId = 'my_location_style';
+  static const String _placeStyleId = 'place_style';
+  static const String _selectedPlaceStyleId = 'selected_place_style';
   List<String> _currentMarkerIds = [];
 
   // ── 초기화 ──────────────────────────────────────────────────────────────────
@@ -311,30 +314,24 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     if (!mounted) return;
     dev.log('[HS] _onMapReady 시작', name: 'HospitalSearch');
 
-    // M-1-4: addMarker/addMarkers 전에 레이어 반드시 생성
     try {
+      // 1) 마커 레이어 생성
       await controller.addMarkerLayer(
         layerId: KakaoMapController.defaultLabelLayerId,
       );
       dev.log('[HS] addMarkerLayer 완료', name: 'HospitalSearch');
-    } catch (e) {
-      dev.log('[HS] addMarkerLayer 실패: $e', name: 'HospitalSearch');
-    }
 
-    // 카카오 기본 POI(쇼핑/공시/지하철 등) 숨김 — 우리 마커 가독성 향상
-    try {
-      await controller.setPoiVisible(isVisible: false);
+      // 2) POI 클릭만 차단 (시각은 유지 — 지도 맥락 보존)
       await controller.setPoiClickable(isClickable: false);
-    } catch (e) {
-      dev.log('[HS] setPoiVisible 실패: $e', name: 'HospitalSearch');
-    }
 
-    _mapReady = true;
+      // 3) 마커 스타일 등록 (번호 텍스트 렌더링 활성화)
+      await _registerMarkerStyles(controller);
 
-    // 위치가 있으면 이동
-    if (_position != null) {
-      _suppressCameraMoveEvent = true;
-      try {
+      _mapReady = true;
+
+      // 4) 카메라 이동
+      if (_position != null) {
+        _suppressCameraMoveEvent = true;
         await controller.moveCamera(
           cameraUpdate: CameraUpdate(
             position: LatLng(latitude: _position!.latitude, longitude: _position!.longitude),
@@ -343,14 +340,17 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
           ),
         );
         dev.log('[HS] moveCamera 완료: ${_position!.latitude}, zoom=${_radiusZoomLevels[_selectedRadiusIndex]}', name: 'HospitalSearch');
-      } catch (e) {
-        dev.log('[HS] moveCamera 실패: $e', name: 'HospitalSearch');
       }
-    }
 
-    // 3. 검색 결과 있으면 마커 표시
-    if (_places.isNotEmpty) {
-      await _updateMarkers();
+      // 5) 마커 표시
+      if (_places.isNotEmpty) {
+        await _updateMarkers();
+      } else {
+        await _updateMyLocationMarker();
+      }
+    } catch (e, st) {
+      dev.log('[HS] _onMapReady 실패: $e\n$st', name: 'HospitalSearch', error: e);
+      _mapReady = true;
     }
   }
 
@@ -465,7 +465,9 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
       return MarkerOption(
         id: p.id,
         latLng: LatLng(latitude: p.lat, longitude: p.lng),
-        text: '$index',  // 리스트 번호와 매칭
+        styleId: _placeStyleId,
+        text: '$index',
+        rank: 100,
       );
     }).toList();
 
@@ -482,6 +484,69 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     }
 
     await _updateMyLocationMarker();
+  }
+
+  Future<void> _registerMarkerStyles(KakaoMapController controller) async {
+    try {
+      final myLocBytes = (await rootBundle.load('assets/icons/map/my_location_dot.png'))
+          .buffer.asUint8List();
+      final placeBytes = (await rootBundle.load('assets/icons/map/place_marker.png'))
+          .buffer.asUint8List();
+
+      await controller.registerMarkerStyles(
+        styles: [
+          // 내 위치
+          MarkerStyle(
+            styleId: _myLocationStyleId,
+            perLevels: [
+              MarkerPerLevelStyle.fromBytes(
+                bytes: myLocBytes,
+                textStyle: const MarkerTextStyle(
+                  fontSize: 16,
+                  fontColorArgb: 0xFF3478F6,
+                  strokeThickness: 2,
+                  strokeColorArgb: 0xFFFFFFFF,
+                ),
+              ),
+            ],
+          ),
+          // 병원 기본 마커 (번호 텍스트 렌더링용)
+          MarkerStyle(
+            styleId: _placeStyleId,
+            perLevels: [
+              MarkerPerLevelStyle.fromBytes(
+                bytes: placeBytes,
+                textStyle: const MarkerTextStyle(
+                  fontSize: 28,
+                  fontColorArgb: 0xFFFFFFFF,
+                  strokeThickness: 3,
+                  strokeColorArgb: 0xFF1E3A5F,
+                ),
+              ),
+            ],
+          ),
+          // 병원 선택 마커 (빨간 테두리 강조)
+          MarkerStyle(
+            styleId: _selectedPlaceStyleId,
+            perLevels: [
+              MarkerPerLevelStyle.fromBytes(
+                bytes: placeBytes,
+                textStyle: const MarkerTextStyle(
+                  fontSize: 34,
+                  fontColorArgb: 0xFFFFFFFF,
+                  strokeThickness: 4,
+                  strokeColorArgb: 0xFFFF4C2C,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+      dev.log('[HS] registerMarkerStyles 완료', name: 'HospitalSearch');
+    } catch (e, st) {
+      dev.log('[HS] registerMarkerStyles 실패: $e\n$st', name: 'HospitalSearch', error: e);
+      rethrow;
+    }
   }
 
   Future<void> _updateMyLocationMarker() async {
@@ -542,7 +607,8 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         markerOption: MarkerOption(
           id: place.id,
           latLng: LatLng(latitude: place.lat, longitude: place.lng),
-          text: '📍$index',
+          styleId: _selectedPlaceStyleId,
+          text: '$index',
           rank: 800,
         ),
       );
@@ -560,7 +626,9 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         markerOption: MarkerOption(
           id: place.id,
           latLng: LatLng(latitude: place.lat, longitude: place.lng),
+          styleId: _placeStyleId,
           text: '$index',
+          rank: 100,
         ),
       );
     } catch (e) {
