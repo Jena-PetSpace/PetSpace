@@ -43,6 +43,7 @@ class _PostCardState extends State<PostCard> {
   Timer? _likeDebounce;
   Timer? _commentDebounce;
   bool _isSaved = false;
+  bool _showHeart = false;
 
   Post get post => widget.post;
 
@@ -149,13 +150,17 @@ class _PostCardState extends State<PostCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  post.authorName,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
+                Row(children: [
+                  Text(
+                    post.authorName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
+                    ),
                   ),
-                ),
+                  SizedBox(width: 6.w),
+                  _buildTypeBadge(),
+                ]),
                 Text(
                   _formatDateTime(post.createdAt),
                   style: TextStyle(
@@ -275,36 +280,54 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
+  void _onDoubleTapImage() {
+    if (!post.isLikedByCurrentUser) {
+      widget.onLike();
+    }
+    setState(() => _showHeart = true);
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() => _showHeart = false);
+    });
+  }
+
   Widget _buildImages() {
     if (post.imageUrls.length == 1) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 8.h),
         child: GestureDetector(
           onTap: () => _openViewer(context, 0),
-          child: CachedNetworkImage(
-            imageUrl: post.imageUrls.first,
-            width: double.infinity,
-            height: 300.h,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              height: 300.h,
-              color: Colors.grey[200],
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              height: 300.h,
-              color: Colors.grey[200],
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error, color: Colors.red, size: 24.w),
-                  SizedBox(height: 8.h),
-                  Text('이미지 로드 실패',
-                      style:
-                          TextStyle(color: Colors.grey[600], fontSize: 14.sp)),
-                ],
+          onDoubleTap: _onDoubleTapImage,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CachedNetworkImage(
+                imageUrl: post.imageUrls.first,
+                width: double.infinity,
+                height: 300.h,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  height: 300.h,
+                  color: Colors.grey[200],
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: 300.h,
+                  color: Colors.grey[200],
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error, color: Colors.red, size: 24.w),
+                      SizedBox(height: 8.h),
+                      Text('이미지 로드 실패',
+                          style: TextStyle(
+                              color: Colors.grey[600], fontSize: 14.sp)),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              if (_showHeart)
+                _DoubleTapHeart(size: 80.w),
+            ],
           ),
         ),
       );
@@ -317,32 +340,41 @@ class _PostCardState extends State<PostCard> {
         children: [
           SizedBox(
             height: 300.h,
-            child: PageView.builder(
-              itemCount: post.imageUrls.length,
-              onPageChanged: (index) {
-                setState(() => _currentImageIndex = index);
-              },
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () => _openViewer(context, index),
-                  child: CachedNetworkImage(
-                    imageUrl: post.imageUrls[index],
-                    width: double.infinity,
-                    height: 300.h,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      height: 300.h,
-                      color: Colors.grey[200],
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      height: 300.h,
-                      color: Colors.grey[200],
-                      child: Icon(Icons.error, color: Colors.red, size: 24.w),
-                    ),
-                  ),
-                );
-              },
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PageView.builder(
+                  itemCount: post.imageUrls.length,
+                  onPageChanged: (index) {
+                    setState(() => _currentImageIndex = index);
+                  },
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () => _openViewer(context, index),
+                      onDoubleTap: _onDoubleTapImage,
+                      child: CachedNetworkImage(
+                        imageUrl: post.imageUrls[index],
+                        width: double.infinity,
+                        height: 300.h,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          height: 300.h,
+                          color: Colors.grey[200],
+                          child:
+                              const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          height: 300.h,
+                          color: Colors.grey[200],
+                          child: Icon(Icons.error,
+                              color: Colors.red, size: 24.w),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                if (_showHeart) _DoubleTapHeart(size: 80.w),
+              ],
             ),
           ),
           SizedBox(height: 8.h),
@@ -365,6 +397,40 @@ class _PostCardState extends State<PostCard> {
         ],
       ),
     );
+  }
+
+  Widget _buildTypeBadge() {
+    switch (post.type) {
+      case PostType.emotionAnalysis:
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4.r),
+          ),
+          child: Text('감정분석',
+              style: TextStyle(
+                  fontSize: 10.sp,
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w600)),
+        );
+      case PostType.text:
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+          decoration: BoxDecoration(
+            color: Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4.r),
+          ),
+          child: Text('커뮤니티',
+              style: TextStyle(
+                  fontSize: 10.sp,
+                  color: Colors.orange[700],
+                  fontWeight: FontWeight.w600)),
+        );
+      case PostType.image:
+      case PostType.video:
+        return const SizedBox.shrink();
+    }
   }
 
   void _openViewer(BuildContext context, int initialIndex) {
@@ -793,5 +859,60 @@ class _PostCardState extends State<PostCard> {
       case 'sleepiness': return Icons.bedtime; // 하위 호환
       default:           return Icons.help_outline;
     }
+  }
+}
+
+// ─── 더블탭 하트 애니메이션 ─────────────────────────────────────────────────────
+class _DoubleTapHeart extends StatefulWidget {
+  final double size;
+  const _DoubleTapHeart({required this.size});
+
+  @override
+  State<_DoubleTapHeart> createState() => _DoubleTapHeartState();
+}
+
+class _DoubleTapHeartState extends State<_DoubleTapHeart>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _scale = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.3), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 30),
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _opacity = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 40),
+    ]).animate(_controller);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, __) => Opacity(
+        opacity: _opacity.value,
+        child: Transform.scale(
+          scale: _scale.value,
+          child: Icon(Icons.favorite, color: Colors.white, size: widget.size),
+        ),
+      ),
+    );
   }
 }
