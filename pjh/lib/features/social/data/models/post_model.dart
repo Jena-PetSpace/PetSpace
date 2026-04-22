@@ -29,6 +29,10 @@ class PostModel {
   final String? authorName;
   final String? authorPhotoUrl;
 
+  // 배치 조회로 계산된 현재 유저 상태 (DB 컬럼 아님)
+  final bool isLikedByCurrentUser;
+  final bool isSavedByCurrentUser;
+
   const PostModel({
     required this.id,
     required this.authorId,
@@ -49,6 +53,8 @@ class PostModel {
     this.locationLng,
     this.authorName,
     this.authorPhotoUrl,
+    this.isLikedByCurrentUser = false,
+    this.isSavedByCurrentUser = false,
   });
 
   // Supabase JSON -> Model
@@ -164,6 +170,8 @@ class PostModel {
       updatedAt: updatedAt,
       likesCount: likesCount,
       commentsCount: commentsCount,
+      isLikedByCurrentUser: isLikedByCurrentUser,
+      isSavedByCurrentUser: isSavedByCurrentUser,
       isPrivate: isPrivate,
       location: location,
       locationLat: locationLat,
@@ -213,6 +221,8 @@ class PostModel {
       locationLng: post.locationLng,
       authorName: post.authorName,
       authorPhotoUrl: post.authorProfileImage,
+      isLikedByCurrentUser: post.isLikedByCurrentUser,
+      isSavedByCurrentUser: post.isSavedByCurrentUser,
     );
   }
 
@@ -236,6 +246,8 @@ class PostModel {
     double? locationLng,
     String? authorName,
     String? authorPhotoUrl,
+    bool? isLikedByCurrentUser,
+    bool? isSavedByCurrentUser,
   }) {
     return PostModel(
       id: id ?? this.id,
@@ -257,6 +269,8 @@ class PostModel {
       locationLng: locationLng ?? this.locationLng,
       authorName: authorName ?? this.authorName,
       authorPhotoUrl: authorPhotoUrl ?? this.authorPhotoUrl,
+      isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
+      isSavedByCurrentUser: isSavedByCurrentUser ?? this.isSavedByCurrentUser,
     );
   }
 }

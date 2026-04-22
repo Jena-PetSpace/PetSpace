@@ -22,6 +22,7 @@ class Post extends Equatable {
   final int commentsCount;
   final int sharesCount;
   final bool isLikedByCurrentUser;
+  final bool isSavedByCurrentUser;
   final bool isPublic;
   final bool isPrivate;
   final String? location;
@@ -47,6 +48,7 @@ class Post extends Equatable {
     this.commentsCount = 0,
     this.sharesCount = 0,
     this.isLikedByCurrentUser = false,
+    this.isSavedByCurrentUser = false,
     this.isPublic = true,
     this.isPrivate = false,
     this.location,
@@ -71,6 +73,7 @@ class Post extends Equatable {
     int? commentsCount,
     int? sharesCount,
     bool? isLikedByCurrentUser,
+    bool? isSavedByCurrentUser,
     bool? isPublic,
     bool? isPrivate,
     String? location,
@@ -94,6 +97,7 @@ class Post extends Equatable {
       commentsCount: commentsCount ?? this.commentsCount,
       sharesCount: sharesCount ?? this.sharesCount,
       isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
+      isSavedByCurrentUser: isSavedByCurrentUser ?? this.isSavedByCurrentUser,
       isPublic: isPublic ?? this.isPublic,
       isPrivate: isPrivate ?? this.isPrivate,
       location: location ?? this.location,
@@ -120,6 +124,7 @@ class Post extends Equatable {
         commentsCount,
         sharesCount,
         isLikedByCurrentUser,
+        isSavedByCurrentUser,
         isPublic,
         isPrivate,
         location,

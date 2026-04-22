@@ -50,21 +50,14 @@ class _PostCardState extends State<PostCard> {
   @override
   void initState() {
     super.initState();
-    _checkSaved();
+    _isSaved = widget.post.isSavedByCurrentUser;
   }
 
-  Future<void> _checkSaved() async {
-    if (widget.currentUserId.isEmpty) return;
-    try {
-      final res = await Supabase.instance.client
-          .from('saved_posts')
-          .select('post_id')
-          .eq('post_id', post.id)
-          .eq('user_id', widget.currentUserId)
-          .maybeSingle();
-      if (mounted) setState(() => _isSaved = res != null);
-    } catch (e) {
-      dev.log('북마크 확인 실패: $e', name: 'PostCard');
+  @override
+  void didUpdateWidget(PostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.isSavedByCurrentUser != widget.post.isSavedByCurrentUser) {
+      setState(() => _isSaved = widget.post.isSavedByCurrentUser);
     }
   }
 
