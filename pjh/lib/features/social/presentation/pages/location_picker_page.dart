@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -78,11 +77,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
   List<_Place> _places = [];
   bool _searching = false;
-  String? _error;
   _Place? _selected;
   List<String> _markerIds = [];
 
-  bool _showList = false;
+  final DraggableScrollableController _sheetCtrl = DraggableScrollableController();
 
   @override
   void initState() {
@@ -97,8 +95,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _searchCtrl.dispose();
     _searchFocus.dispose();
     _debounce?.cancel();
+    _sheetCtrl.dispose();
     super.dispose();
   }
+
+  // ── 위치 ──────────────────────────────────────────────────────────────────────
 
   Future<void> _getLocation() async {
     try {
@@ -114,7 +115,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       }
       final pos = await Geolocator.getLastKnownPosition() ??
           await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(accuracy: LocationAccuracy.low, timeLimit: Duration(seconds: 8)),
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.low,
+              timeLimit: Duration(seconds: 8),
+            ),
           );
       if (mounted) setState(() { _position = pos; _locLoading = false; });
     } catch (e) {
@@ -123,7 +127,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
   }
 
+  // ── 지도 초기화 ────────────────────────────────────────────────────────────────
+
   Future<void> _onMapReady(KakaoMapController ctrl) async {
+    if (!mounted) return;
+    dev.log('[LP] _onMapReady 시작', name: 'LocationPicker');
     try {
       await ctrl.addMarkerLayer(layerId: KakaoMapController.defaultLabelLayerId);
       await ctrl.setPoiClickable(isClickable: false);
@@ -133,74 +141,94 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         _suppressCam = true;
         await ctrl.moveCamera(cameraUpdate: CameraUpdate(
           position: LatLng(latitude: _position!.latitude, longitude: _position!.longitude),
-          zoomLevel: 15, type: -1,
+          zoomLevel: 15,
+          type: -1,
         ));
-        await _addMyLocMarker();
       }
-    } catch (e) {
-      dev.log('_onMapReady 오류: $e', name: 'LocationPicker');
+      await _addMyLocMarker();
+    } catch (e, st) {
+      dev.log('[LP] _onMapReady 실패: $e\n$st', name: 'LocationPicker', error: e);
       _mapReady = true;
     }
   }
 
   Future<void> _registerStyles(KakaoMapController ctrl) async {
     try {
-      Uint8List myBytes, placeBytes;
-      try {
-        myBytes = (await rootBundle.load('assets/icons/map/my_location_dot.png')).buffer.asUint8List();
-        placeBytes = (await rootBundle.load('assets/icons/map/place_marker.png')).buffer.asUint8List();
-      } catch (_) {
-        return;
-      }
+      final myBytes = (await rootBundle.load('assets/icons/map/my_location_dot.png'))
+          .buffer.asUint8List();
+      final placeBytes = (await rootBundle.load('assets/icons/map/place_marker.png'))
+          .buffer.asUint8List();
       await ctrl.registerMarkerStyles(styles: [
-        MarkerStyle(styleId: _myLocStyleId, perLevels: [
-          MarkerPerLevelStyle.fromBytes(bytes: myBytes, textStyle: const MarkerTextStyle(
-            fontSize: 16, fontColorArgb: 0xFF3478F6, strokeThickness: 2, strokeColorArgb: 0xFFFFFFFF,
-          )),
-        ]),
-        MarkerStyle(styleId: _placeStyleId, perLevels: [
-          MarkerPerLevelStyle.fromBytes(bytes: placeBytes, textStyle: const MarkerTextStyle(
-            fontSize: 28, fontColorArgb: 0xFFFFFFFF, strokeThickness: 3, strokeColorArgb: 0xFF1E3A5F,
-          )),
-        ]),
-        MarkerStyle(styleId: _selStyleId, perLevels: [
-          MarkerPerLevelStyle.fromBytes(bytes: placeBytes, textStyle: const MarkerTextStyle(
-            fontSize: 34, fontColorArgb: 0xFFFFFFFF, strokeThickness: 4, strokeColorArgb: 0xFFFF4C2C,
-          )),
-        ]),
+        MarkerStyle(
+          styleId: _myLocStyleId,
+          perLevels: [MarkerPerLevelStyle.fromBytes(
+            bytes: myBytes,
+            textStyle: const MarkerTextStyle(
+              fontSize: 16, fontColorArgb: 0xFF3478F6,
+              strokeThickness: 2, strokeColorArgb: 0xFFFFFFFF,
+            ),
+          )],
+        ),
+        MarkerStyle(
+          styleId: _placeStyleId,
+          perLevels: [MarkerPerLevelStyle.fromBytes(
+            bytes: placeBytes,
+            textStyle: const MarkerTextStyle(
+              fontSize: 28, fontColorArgb: 0xFFFFFFFF,
+              strokeThickness: 3, strokeColorArgb: 0xFF1E3A5F,
+            ),
+          )],
+        ),
+        MarkerStyle(
+          styleId: _selStyleId,
+          perLevels: [MarkerPerLevelStyle.fromBytes(
+            bytes: placeBytes,
+            textStyle: const MarkerTextStyle(
+              fontSize: 34, fontColorArgb: 0xFFFFFFFF,
+              strokeThickness: 4, strokeColorArgb: 0xFFFF4C2C,
+            ),
+          )],
+        ),
       ]);
+      dev.log('[LP] registerMarkerStyles 완료', name: 'LocationPicker');
     } catch (e) {
-      dev.log('registerStyles 오류: $e', name: 'LocationPicker');
+      dev.log('[LP] registerStyles 실패: $e', name: 'LocationPicker');
     }
   }
 
+  // ── 마커 ──────────────────────────────────────────────────────────────────────
+
   Future<void> _addMyLocMarker() async {
     if (_mapCtrl == null || !_mapReady || _position == null) return;
-    try {
-      await _mapCtrl!.removeMarker(id: _myLocMarkerId);
-    } catch (_) {}
+    try { await _mapCtrl!.removeMarker(id: _myLocMarkerId); } catch (_) {}
     try {
       await _mapCtrl!.addMarker(markerOption: MarkerOption(
         id: _myLocMarkerId,
         latLng: LatLng(latitude: _position!.latitude, longitude: _position!.longitude),
-        styleId: _myLocStyleId, text: '내 위치', rank: 999,
+        styleId: _myLocStyleId,
+        text: '내 위치',
+        rank: 999,
       ));
     } catch (e) {
-      dev.log('내위치마커 오류: $e', name: 'LocationPicker');
+      dev.log('[LP] 내위치마커 오류: $e', name: 'LocationPicker');
     }
   }
 
   Future<void> _updateMarkers() async {
     if (_mapCtrl == null || !_mapReady) return;
     if (_markerIds.isNotEmpty) {
-      try { await _mapCtrl!.removeMarkers(ids: _markerIds); } catch (_) {}
+      try { await _mapCtrl!.removeMarkers(ids: _markerIds); } catch (e) {
+        dev.log('[LP] removeMarkers 실패: $e', name: 'LocationPicker');
+      }
     }
     try { await _mapCtrl!.removeMarker(id: _myLocMarkerId); } catch (_) {}
 
     final opts = _places.asMap().entries.map((e) => MarkerOption(
-      id: e.value.id, latLng: e.value.latLng,
+      id: e.value.id,
+      latLng: e.value.latLng,
       styleId: _selected?.id == e.value.id ? _selStyleId : _placeStyleId,
-      text: '${e.key + 1}', rank: 100,
+      text: '${e.key + 1}',
+      rank: 100,
     )).toList();
 
     if (opts.isNotEmpty) {
@@ -208,7 +236,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         await _mapCtrl!.addMarkers(markerOptions: opts);
         _markerIds = _places.map((p) => p.id).toList();
       } catch (e) {
-        dev.log('addMarkers 오류: $e', name: 'LocationPicker');
+        dev.log('[LP] addMarkers 실패: $e', name: 'LocationPicker');
         _markerIds = [];
       }
     } else {
@@ -217,17 +245,19 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     await _addMyLocMarker();
   }
 
+  // ── 검색 ──────────────────────────────────────────────────────────────────────
+
   void _onSearchChanged(String q) {
     _debounce?.cancel();
     if (q.trim().isEmpty) {
-      setState(() { _places = []; _error = null; _selected = null; });
+      setState(() { _places = []; _selected = null; });
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 500), () => _search(q.trim()));
   }
 
   Future<void> _search(String query) async {
-    setState(() { _searching = true; _error = null; _selected = null; _showList = true; });
+    setState(() { _searching = true; _selected = null; });
     try {
       final lat = _position?.latitude ?? _defaultLat;
       final lng = _position?.longitude ?? _defaultLng;
@@ -236,7 +266,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         '?query=${Uri.encodeComponent(query)}'
         '&x=$lng&y=$lat&sort=distance&size=15',
       );
-      final res = await http.get(uri, headers: {'Authorization': 'KakaoAK ${ApiConfig.kakaoRestApiKey}'})
+      final res = await http
+          .get(uri, headers: {'Authorization': 'KakaoAK ${ApiConfig.kakaoRestApiKey}'})
           .timeout(const Duration(seconds: 10));
       if (!mounted) return;
       if (res.statusCode == 200) {
@@ -255,16 +286,29 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         if (places.isNotEmpty && _mapReady) {
           _suppressCam = true;
           await _mapCtrl?.moveCamera(cameraUpdate: CameraUpdate(
-            position: places.first.latLng, zoomLevel: 14, type: -1,
+            position: places.first.latLng,
+            zoomLevel: 14,
+            type: -1,
           ));
         }
+        // 결과 있으면 시트 올리기
+        if (places.isNotEmpty) {
+          try {
+            await _sheetCtrl.animateTo(
+              0.35,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          } catch (_) {}
+        }
       } else {
-        setState(() { _error = '검색 실패 (${res.statusCode})'; _searching = false; });
+        setState(() => _searching = false);
       }
     } on TimeoutException {
-      if (mounted) setState(() { _error = '요청 시간 초과'; _searching = false; });
+      if (mounted) setState(() => _searching = false);
     } catch (e) {
-      if (mounted) setState(() { _error = '검색 오류'; _searching = false; });
+      dev.log('[LP] 검색 오류: $e', name: 'LocationPicker');
+      if (mounted) setState(() => _searching = false);
     }
   }
 
@@ -274,165 +318,286 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     if (_mapReady) {
       _suppressCam = true;
       await _mapCtrl?.moveCamera(cameraUpdate: CameraUpdate(
-        position: place.latLng, zoomLevel: 16, type: -1,
+        position: place.latLng,
+        zoomLevel: 16,
+        type: -1,
       ));
     }
   }
 
-  void _confirm(_Place place) {
+  void _confirm() {
+    if (_selected == null) return;
     Navigator.of(context).pop(LocationPickResult(
-      name: place.name,
-      address: place.address,
-      lat: place.lat,
-      lng: place.lng,
+      name: _selected!.name,
+      address: _selected!.address,
+      lat: _selected!.lat,
+      lng: _selected!.lng,
     ));
   }
+
+  // ── 빌드 ──────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text('위치 추가', style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700)),
+        title: Text(
+          '위치 추가',
+          style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(56.h),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 10.h),
-            child: TextField(
-              controller: _searchCtrl,
-              focusNode: _searchFocus,
-              onChanged: _onSearchChanged,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (v) { if (v.trim().isNotEmpty) _search(v.trim()); },
-              decoration: InputDecoration(
-                hintText: '장소명 또는 주소 검색...',
-                hintStyle: TextStyle(fontSize: 14.sp, color: AppTheme.hintColor),
-                prefixIcon: const Icon(Icons.search, color: AppTheme.hintColor, size: 20),
-                suffixIcon: _searching
-                    ? Padding(
-                        padding: EdgeInsets.all(12.w),
-                        child: SizedBox(
-                          width: 16.w, height: 16.w,
-                          child: const CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor),
-                        ),
-                      )
-                    : _searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18, color: AppTheme.hintColor),
-                            onPressed: () {
-                              _searchCtrl.clear();
-                              setState(() { _places = []; _error = null; _selected = null; _showList = false; });
-                            },
-                          )
-                        : null,
-                filled: true,
-                fillColor: AppTheme.subtleBackground,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24.r), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24.r), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24.r),
-                  borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
-                ),
+        actions: [
+          TextButton(
+            onPressed: _selected != null ? _confirm : null,
+            child: Text(
+              '완료',
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w700,
+                color: _selected != null ? AppTheme.primaryColor : Colors.grey[400],
               ),
             ),
           ),
-        ),
+        ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // 지도
-          _locLoading
-              ? Container(color: Colors.grey[100], child: const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)))
-              : KakaoMap(
-                  initialPosition: _position != null
-                      ? LatLng(latitude: _position!.latitude, longitude: _position!.longitude)
-                      : const LatLng(latitude: _defaultLat, longitude: _defaultLng),
-                  onMapCreated: (ctrl) {
-                    _mapCtrl = ctrl;
-                    _labelSub = ctrl.onLabelClickedStream.listen((e) {
-                      final place = _places.firstWhere(
-                        (p) => p.id == e.labelId,
-                        orElse: () => const _Place(id: '', name: '', address: '', lat: 0, lng: 0),
-                      );
-                      if (place.id.isNotEmpty && mounted) _selectPlace(place);
-                    });
-                    _camSub = ctrl.onCameraMoveEndStream.listen((e) {
-                      if (!mounted) return;
-                      if (_suppressCam) { _suppressCam = false; return; }
-                    });
-                    Future.delayed(const Duration(milliseconds: 400), () {
-                      if (mounted) _onMapReady(ctrl);
-                    });
-                  },
-                ),
-          // 내 위치 버튼
-          Positioned(
-            right: 12.w,
-            bottom: _showList ? 280.h : 20.h,
-            child: FloatingActionButton.small(
-              heroTag: 'loc_btn',
-              backgroundColor: Colors.white,
-              elevation: 2,
-              onPressed: () async {
-                if (_position == null) { await _getLocation(); return; }
-                if (!_mapReady) return;
-                _suppressCam = true;
-                await _mapCtrl?.moveCamera(cameraUpdate: CameraUpdate(
-                  position: LatLng(latitude: _position!.latitude, longitude: _position!.longitude),
-                  zoomLevel: 15, type: -1,
-                ));
-              },
-              child: const Icon(Icons.my_location_rounded, color: AppTheme.primaryColor, size: 20),
+          _buildSearchBar(),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+          Expanded(
+            child: Stack(
+              children: [
+                Positioned.fill(child: _buildMap()),
+                _buildMyLocationButton(),
+                _buildSheet(),
+              ],
             ),
           ),
-          // 결과 목록 바텀시트
-          if (_showList)
-            Positioned(
-              left: 0, right: 0, bottom: 0,
-              child: _buildResultSheet(),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildResultSheet() {
-    return Container(
-      height: 270.h,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, -2))],
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 8.h),
+      child: TextField(
+        controller: _searchCtrl,
+        focusNode: _searchFocus,
+        onChanged: _onSearchChanged,
+        textInputAction: TextInputAction.search,
+        onSubmitted: (v) { if (v.trim().isNotEmpty) _search(v.trim()); },
+        decoration: InputDecoration(
+          hintText: '장소명 또는 주소 검색',
+          hintStyle: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor),
+          prefixIcon: Icon(Icons.search, size: 20.w, color: AppTheme.secondaryTextColor),
+          suffixIcon: _searching
+              ? Padding(
+                  padding: EdgeInsets.all(12.w),
+                  child: SizedBox(
+                    width: 16.w, height: 16.w,
+                    child: const CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor),
+                  ),
+                )
+              : _searchCtrl.text.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.clear, size: 18.w, color: AppTheme.secondaryTextColor),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        setState(() { _places = []; _selected = null; });
+                      },
+                    )
+                  : null,
+          filled: true,
+          fillColor: AppTheme.subtleBackground,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24.r),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24.r),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24.r),
+            borderSide: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+          ),
+        ),
       ),
-      child: Column(
-        children: [
-          SizedBox(height: 8.h),
-          Container(width: 36.w, height: 4.h, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2.r))),
-          SizedBox(height: 8.h),
-          if (_error != null)
-            Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Text(_error!, style: TextStyle(fontSize: 13.sp, color: AppTheme.errorColor)),
-            )
-          else if (!_searching && _places.isEmpty)
-            Padding(
-              padding: EdgeInsets.all(24.w),
-              child: Text('검색 결과가 없습니다.', style: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
-            )
-          else
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: _places.length,
-                itemBuilder: (_, i) => _buildTile(_places[i], i + 1),
+    );
+  }
+
+  Widget _buildMap() {
+    if (_locLoading) {
+      return Container(
+        color: Colors.grey[100],
+        child: const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+      );
+    }
+    final initialPos = _position != null
+        ? LatLng(latitude: _position!.latitude, longitude: _position!.longitude)
+        : const LatLng(latitude: _defaultLat, longitude: _defaultLng);
+
+    return KakaoMap(
+      initialPosition: initialPos,
+      onMapCreated: (ctrl) {
+        _mapCtrl = ctrl;
+
+        _labelSub = ctrl.onLabelClickedStream.listen((e) {
+          final place = _places.firstWhere(
+            (p) => p.id == e.labelId,
+            orElse: () => const _Place(id: '', name: '', address: '', lat: 0, lng: 0),
+          );
+          if (place.id.isNotEmpty && mounted) _selectPlace(place);
+        });
+
+        _camSub = ctrl.onCameraMoveEndStream.listen((e) {
+          if (!mounted) return;
+          if (_suppressCam) { _suppressCam = false; return; }
+        });
+
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) _onMapReady(ctrl);
+        });
+      },
+    );
+  }
+
+  Widget _buildMyLocationButton() {
+    return Positioned(
+      right: 12.w,
+      bottom: 300.h,
+      child: GestureDetector(
+        onTap: () async {
+          if (_position == null) { await _getLocation(); return; }
+          if (!_mapReady) return;
+          _suppressCam = true;
+          await _mapCtrl?.moveCamera(cameraUpdate: CameraUpdate(
+            position: LatLng(latitude: _position!.latitude, longitude: _position!.longitude),
+            zoomLevel: 15,
+            type: -1,
+          ));
+        },
+        child: Container(
+          width: 44.w, height: 44.w,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )],
+          ),
+          child: Icon(Icons.my_location_rounded, size: 22.w, color: AppTheme.primaryColor),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSheet() {
+    return DraggableScrollableSheet(
+      controller: _sheetCtrl,
+      initialChildSize: 0.35,
+      minChildSize: 0.12,
+      maxChildSize: 0.85,
+      snap: true,
+      snapSizes: const [0.12, 0.35, 0.85],
+      builder: (context, scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+            boxShadow: [BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 12,
+              offset: const Offset(0, -3),
+            )],
+          ),
+          child: Column(
+            children: [
+              // 핸들
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 10.h),
+                child: Container(
+                  width: 36.w, height: 4.h,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
               ),
+              // 헤더
+              Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 8.h),
+                child: Row(
+                  children: [
+                    Icon(Icons.place_outlined, size: 16.w, color: AppTheme.primaryColor),
+                    SizedBox(width: 6.w),
+                    Text(
+                      _places.isEmpty
+                          ? '장소를 검색하세요'
+                          : '검색 결과 ${_places.length}개',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+              // 목록
+              Expanded(
+                child: _places.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.separated(
+                        controller: scrollController,
+                        padding: EdgeInsets.only(top: 4.h, bottom: 16.h),
+                        itemCount: _places.length,
+                        separatorBuilder: (_, __) => const Divider(
+                          height: 1, thickness: 1,
+                          color: Color(0xFFF5F5F5),
+                          indent: 56,
+                        ),
+                        itemBuilder: (_, i) => _buildTile(_places[i], i + 1),
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState() {
+    if (_searching) return const SizedBox.shrink();
+    if (_searchCtrl.text.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search, size: 40.w, color: Colors.grey[300]),
+            SizedBox(height: 10.h),
+            Text(
+              '위치를 검색해 추가하세요',
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
             ),
-        ],
+          ],
+        ),
+      );
+    }
+    return Center(
+      child: Text(
+        '검색 결과가 없습니다',
+        style: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor),
       ),
     );
   }
@@ -442,10 +607,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     return InkWell(
       onTap: () => _selectPlace(place),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-        decoration: isSelected
-            ? BoxDecoration(color: AppTheme.primaryColor.withValues(alpha: 0.06))
-            : null,
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.05) : null,
         child: Row(
           children: [
             Container(
@@ -454,11 +617,14 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 color: isSelected ? AppTheme.primaryColor : AppTheme.subtleBackground,
                 shape: BoxShape.circle,
               ),
-              child: Center(
-                child: Text('$num', style: TextStyle(
-                  fontSize: 12.sp, fontWeight: FontWeight.w700,
+              alignment: Alignment.center,
+              child: Text(
+                '$num',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
                   color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
-                )),
+                ),
               ),
             ),
             SizedBox(width: 12.w),
@@ -466,25 +632,30 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(place.name, style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
-                  if (place.address.isNotEmpty)
-                    Text(place.address, style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
+                  Text(
+                    place.name,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryTextColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (place.address.isNotEmpty) ...[
+                    SizedBox(height: 2.h),
+                    Text(
+                      place.address,
+                      style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ),
             ),
             if (isSelected)
-              TextButton(
-                onPressed: () => _confirm(place),
-                style: TextButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-                ),
-                child: Text('선택', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700)),
-              ),
+              Icon(Icons.check_circle, size: 20.w, color: AppTheme.primaryColor),
           ],
         ),
       ),
