@@ -1,15 +1,22 @@
+import 'dart:convert';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:http/http.dart' as http;
 
+import '../../../../config/api_config.dart';
 import '../../../../shared/themes/app_theme.dart';
 
 class LocationResult {
   final String name;
+  final String address;
   final double lat;
   final double lng;
 
   const LocationResult({
     required this.name,
+    required this.address,
     required this.lat,
     required this.lng,
   });
@@ -39,42 +46,85 @@ class LocationPickerSheet extends StatefulWidget {
 class _LocationPickerSheetState extends State<LocationPickerSheet> {
   final _searchController = TextEditingController();
   final List<_PlaceItem> _results = [];
-  // ignore: prefer_final_fields
   bool _searching = false;
-
-  // 자주 쓰는 장소 프리셋
-  static const _presets = [
-    _PlaceItem('집', 37.5665, 126.9780),
-    _PlaceItem('회사', 37.5700, 126.9836),
-    _PlaceItem('동네 공원', 37.5740, 126.9768),
-    _PlaceItem('카페', 37.5563, 126.9723),
-    _PlaceItem('동물병원', 37.5621, 126.9842),
-  ];
+  String? _error;
+  Timer? _debounce;
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _onSearchChanged(String query) {
+    _debounce?.cancel();
     if (query.trim().isEmpty) {
-      setState(() => _results.clear());
+      setState(() {
+        _results.clear();
+        _error = null;
+      });
       return;
     }
-    // 실제 구현 시 Places API 호출 — 현재는 프리셋 필터로 대체
-    final filtered = _presets
-        .where((p) => p.name.contains(query))
-        .toList();
-    setState(() => _results
-      ..clear()
-      ..addAll(filtered));
+    _debounce = Timer(const Duration(milliseconds: 500), () => _search(query.trim()));
+  }
+
+  Future<void> _search(String query) async {
+    setState(() {
+      _searching = true;
+      _error = null;
+    });
+    try {
+      final uri = Uri.parse('https://dapi.kakao.com/v2/local/search/keyword.json')
+          .replace(queryParameters: {'query': query, 'size': '15'});
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'KakaoAK ${ApiConfig.kakaoRestApiKey}'},
+      ).timeout(const Duration(seconds: 10));
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final documents = data['documents'] as List<dynamic>;
+        final items = documents.map((d) {
+          return _PlaceItem(
+            name: d['place_name'] as String,
+            address: (d['road_address_name'] as String?)?.isNotEmpty == true
+                ? d['road_address_name'] as String
+                : d['address_name'] as String? ?? '',
+            lat: double.tryParse(d['y'] as String? ?? '') ?? 0.0,
+            lng: double.tryParse(d['x'] as String? ?? '') ?? 0.0,
+          );
+        }).toList();
+        setState(() {
+          _results
+            ..clear()
+            ..addAll(items);
+          _searching = false;
+        });
+      } else {
+        setState(() {
+          _error = '검색에 실패했습니다 (${response.statusCode})';
+          _searching = false;
+        });
+      }
+    } on TimeoutException {
+      if (mounted) setState(() { _error = '요청 시간이 초과되었습니다.'; _searching = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = '검색 중 오류가 발생했습니다.'; _searching = false; });
+    }
   }
 
   void _select(_PlaceItem place) {
     Navigator.pop(
       context,
-      LocationResult(name: place.name, lat: place.lat, lng: place.lng),
+      LocationResult(
+        name: place.name,
+        address: place.address,
+        lat: place.lat,
+        lng: place.lng,
+      ),
     );
   }
 
@@ -87,7 +137,6 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
       ),
       child: Column(
         children: [
-          // 핸들
           Container(
             margin: EdgeInsets.symmetric(vertical: 12.h),
             width: 36.w,
@@ -101,8 +150,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
             padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Text(
               '위치 추가',
-              style: TextStyle(
-                  fontSize: 16.sp, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700),
             ),
           ),
           SizedBox(height: 12.h),
@@ -113,22 +161,29 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
               autofocus: true,
               onChanged: _onSearchChanged,
               decoration: InputDecoration(
-                hintText: '장소 검색...',
-                hintStyle:
-                    TextStyle(fontSize: 14.sp, color: AppTheme.hintColor),
+                hintText: '장소명 또는 주소 검색...',
+                hintStyle: TextStyle(fontSize: 14.sp, color: AppTheme.hintColor),
                 prefixIcon: const Icon(Icons.search, color: AppTheme.hintColor),
+                suffixIcon: _searching
+                    ? Padding(
+                        padding: EdgeInsets.all(12.w),
+                        child: SizedBox(
+                          width: 16.w,
+                          height: 16.w,
+                          child: const CircularProgressIndicator(
+                              strokeWidth: 2, color: AppTheme.primaryColor),
+                        ),
+                      )
+                    : null,
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
-                    borderSide:
-                        const BorderSide(color: AppTheme.dividerColor)),
+                    borderSide: const BorderSide(color: AppTheme.dividerColor)),
                 enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
-                    borderSide:
-                        const BorderSide(color: AppTheme.dividerColor)),
+                    borderSide: const BorderSide(color: AppTheme.dividerColor)),
                 focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12.r),
-                    borderSide:
-                        const BorderSide(color: AppTheme.primaryColor)),
+                    borderSide: const BorderSide(color: AppTheme.primaryColor)),
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
               ),
@@ -136,32 +191,54 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
           ),
           SizedBox(height: 8.h),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              children: [
-                if (_searching)
-                  const Center(
-                      child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: CircularProgressIndicator())),
-                if (!_searching && _results.isNotEmpty)
-                  ..._results.map((p) => _buildTile(p)),
-                if (!_searching && _results.isEmpty) ...[
-                  Padding(
-                    padding: EdgeInsets.only(top: 8.h, bottom: 4.h),
-                    child: Text('자주 쓰는 장소',
-                        style: TextStyle(
-                            fontSize: 12.sp,
-                            color: AppTheme.secondaryTextColor,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                  ..._presets.map((p) => _buildTile(p)),
-                ],
-              ],
-            ),
+            child: _buildBody(),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.w),
+          child: Text(_error!,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14.sp, color: AppTheme.errorColor)),
+        ),
+      );
+    }
+
+    final query = _searchController.text.trim();
+
+    if (query.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search, size: 48.w, color: AppTheme.hintColor),
+            SizedBox(height: 12.h),
+            Text('장소를 검색해주세요',
+                style: TextStyle(
+                    fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
+          ],
+        ),
+      );
+    }
+
+    if (!_searching && _results.isEmpty) {
+      return Center(
+        child: Text('검색 결과가 없습니다.',
+            style: TextStyle(
+                fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      itemCount: _results.length,
+      itemBuilder: (_, i) => _buildTile(_results[i]),
     );
   }
 
@@ -175,13 +252,11 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
           color: AppTheme.primaryColor.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
-        child: Icon(Icons.location_on,
-            size: 18.w, color: AppTheme.primaryColor),
+        child: Icon(Icons.location_on, size: 18.w, color: AppTheme.primaryColor),
       ),
       title: Text(place.name,
           style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500)),
-      subtitle: Text(
-          '${place.lat.toStringAsFixed(4)}, ${place.lng.toStringAsFixed(4)}',
+      subtitle: Text(place.address,
           style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor)),
       onTap: () => _select(place),
     );
@@ -190,8 +265,14 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
 
 class _PlaceItem {
   final String name;
+  final String address;
   final double lat;
   final double lng;
 
-  const _PlaceItem(this.name, this.lat, this.lng);
+  const _PlaceItem({
+    required this.name,
+    required this.address,
+    required this.lat,
+    required this.lng,
+  });
 }
