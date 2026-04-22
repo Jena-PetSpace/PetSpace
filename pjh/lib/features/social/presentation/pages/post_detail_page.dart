@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../config/injection_container.dart' as di;
@@ -380,6 +381,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
           SizedBox(height: 12.h),
           Text(content, style: TextStyle(fontSize: 14.sp, height: 1.6))
         ],
+        // 감정 분석 컨텍스트 카드 (emotion 타입 게시물)
+        _buildEmotionContextCard(),
         SizedBox(height: 12.h),
         Row(children: [
           GestureDetector(
@@ -415,6 +418,110 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ]),
       ]),
     );
+  }
+
+  Widget _buildEmotionContextCard() {
+    final rawEmotion = _post?['emotion_analysis'];
+    final petId = _post?['pet_id'] as String?;
+    if (rawEmotion == null || petId == null) return const SizedBox.shrink();
+
+    final emotion = rawEmotion is Map<String, dynamic> ? rawEmotion : <String, dynamic>{};
+    final numEntries = emotion.entries
+        .where((e) => e.value is num)
+        .toList()
+      ..sort((a, b) => (b.value as num).compareTo(a.value as num));
+    if (numEntries.isEmpty) return const SizedBox.shrink();
+
+    final dominant = numEntries.first;
+    final percent = ((dominant.value as num) * 100).toInt();
+    final emoji = AppTheme.getEmotionEmoji(dominant.key);
+    final label = AppTheme.getEmotionLabel(dominant.key);
+    final petName = _post?['pet_name'] as String? ?? '우리 아이';
+
+    const cardColor = Color(0xFF7B4FE5);
+
+    return Container(
+      margin: EdgeInsets.only(top: 12.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: cardColor.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: cardColor.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Text('🧠', style: TextStyle(fontSize: 14.sp)),
+            SizedBox(width: 6.w),
+            Text('이 사진의 AI 감정분석',
+                style: TextStyle(fontSize: 12.sp,
+                    fontWeight: FontWeight.w600, color: cardColor)),
+          ]),
+          SizedBox(height: 8.h),
+          Row(children: [
+            Text(emoji, style: TextStyle(fontSize: 28.sp)),
+            SizedBox(width: 8.w),
+            Text('$label $percent%',
+                style: TextStyle(fontSize: 17.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryTextColor)),
+          ]),
+          SizedBox(height: 6.h),
+          FutureBuilder<String?>(
+            future: _getComparisonInsight(petId, dominant.key, dominant.value as num),
+            builder: (ctx, snap) {
+              if (!snap.hasData || snap.data == null) return const SizedBox.shrink();
+              return Padding(
+                padding: EdgeInsets.only(bottom: 6.h),
+                child: Text(snap.data!,
+                    style: TextStyle(fontSize: 12.sp,
+                        color: AppTheme.secondaryTextColor)),
+              );
+            },
+          ),
+          GestureDetector(
+            onTap: () => context.push('/emotion-timeline', extra: {
+              'petId': petId,
+              'petName': petName,
+            }),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text('전체 추이 보기',
+                  style: TextStyle(fontSize: 12.sp,
+                      fontWeight: FontWeight.w600, color: cardColor)),
+              Icon(Icons.chevron_right, size: 14.w, color: cardColor),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<String?> _getComparisonInsight(
+      String petId, String emotion, num value) async {
+    try {
+      final response = await Supabase.instance.client.rpc(
+        'get_emotion_timeline',
+        params: {'p_pet_id': petId, 'p_days': 7},
+      );
+      final entries = response as List;
+      if (entries.isEmpty) return null;
+
+      final avgKey = '${emotion}_avg';
+      final avgs = entries
+          .map((e) => (e[avgKey] as num?)?.toDouble() ?? 0.0)
+          .where((v) => v > 0)
+          .toList();
+      if (avgs.isEmpty) return null;
+
+      final avg = avgs.reduce((a, b) => a + b) / avgs.length;
+      final diff = ((value.toDouble() - avg) * 100).round();
+      if (diff.abs() < 5) return '지난 7일 평균과 비슷해요';
+      if (diff > 0) return '지난 7일 평균보다 $diff% 높아요';
+      return '지난 7일 평균보다 ${diff.abs()}% 낮아요';
+    } catch (_) {
+      return null;
+    }
   }
 
   Widget _buildCommentHeader(CommentState state) {
