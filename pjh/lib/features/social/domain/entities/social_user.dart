@@ -13,6 +13,7 @@ class SocialUser extends Equatable {
   final int postsCount;
   final int followersCount;
   final int followingCount;
+  final String? coverImageUrl;
 
   const SocialUser({
     required this.id,
@@ -27,6 +28,7 @@ class SocialUser extends Equatable {
     this.postsCount = 0,
     this.followersCount = 0,
     this.followingCount = 0,
+    this.coverImageUrl,
   });
 
   SocialUser copyWith({
@@ -42,6 +44,7 @@ class SocialUser extends Equatable {
     int? postsCount,
     int? followersCount,
     int? followingCount,
+    String? coverImageUrl,
   }) {
     return SocialUser(
       id: id ?? this.id,
@@ -56,6 +59,7 @@ class SocialUser extends Equatable {
       postsCount: postsCount ?? this.postsCount,
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
     );
   }
 
@@ -73,5 +77,6 @@ class SocialUser extends Equatable {
         postsCount,
         followersCount,
         followingCount,
+        coverImageUrl,
       ];
 }

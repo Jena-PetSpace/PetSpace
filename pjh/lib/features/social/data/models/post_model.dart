@@ -8,7 +8,10 @@ class PostModel {
   final String id;
   final String authorId;
   final String? petId;
-  final String? imageUrl; // Supabase: image_url (단일 URL)
+  /// 레거시 단일 URL (하위 호환 읽기 전용)
+  final String? imageUrl;
+  final List<String> imageUrls;
+  final String postType;
   final Map<String, dynamic>?
       emotionAnalysis; // Supabase: emotion_analysis (JSONB)
   final String? caption;
@@ -29,6 +32,8 @@ class PostModel {
     required this.authorId,
     this.petId,
     this.imageUrl,
+    this.imageUrls = const [],
+    this.postType = 'photo',
     this.emotionAnalysis,
     this.caption,
     this.hashtags = const [],
@@ -47,11 +52,24 @@ class PostModel {
     // users 테이블 JOIN 데이터 처리
     final userData = json['users'] as Map<String, dynamic>?;
 
+    // image_urls 우선, 없으면 image_url 레거시 폴백
+    final rawImageUrls = json['image_urls'];
+    List<String> imageUrls;
+    if (rawImageUrls != null && (rawImageUrls as List).isNotEmpty) {
+      imageUrls = List<String>.from(rawImageUrls);
+    } else if (json['image_url'] != null) {
+      imageUrls = [json['image_url'] as String];
+    } else {
+      imageUrls = [];
+    }
+
     return PostModel(
       id: json['id'] as String,
       authorId: json['author_id'] as String,
       petId: json['pet_id'] as String?,
       imageUrl: json['image_url'] as String?,
+      imageUrls: imageUrls,
+      postType: _ensureValidPostType(json['post_type'] as String?),
       emotionAnalysis: json['emotion_analysis'] as Map<String, dynamic>?,
       caption: json['caption'] as String?,
       hashtags: json['hashtags'] != null
@@ -73,7 +91,11 @@ class PostModel {
     return {
       'author_id': authorId,
       if (petId != null) 'pet_id': petId,
-      if (imageUrl != null) 'image_url': imageUrl,
+      // 하위 호환: image_url에 첫 번째 URL 기록
+      if (imageUrls.isNotEmpty) 'image_url': imageUrls.first
+      else if (imageUrl != null) 'image_url': imageUrl,
+      'image_urls': imageUrls,
+      'post_type': _ensureValidPostType(postType),
       if (emotionAnalysis != null) 'emotion_analysis': emotionAnalysis,
       if (caption != null) 'caption': caption,
       if (hashtags.isNotEmpty) 'hashtags': hashtags,
@@ -92,16 +114,32 @@ class PostModel {
       try {
         analysis = EmotionAnalysis.fromJson(emotionAnalysis!);
       } catch (e) {
-        // 감정 분석 데이터 파싱 실패 시 null
         analysis = null;
       }
     }
 
-    PostType type = PostType.text;
-    if (analysis != null) {
-      type = PostType.emotionAnalysis;
-    } else if (imageUrl != null) {
-      type = PostType.image;
+    PostType type;
+    switch (postType) {
+      case 'photo':
+      case 'image':
+        type = PostType.image;
+      case 'emotion':
+      case 'emotion_analysis':
+        type = PostType.emotionAnalysis;
+      case 'community':
+      case 'text':
+        type = PostType.text;
+      case 'video':
+        type = PostType.video;
+      default:
+        // 레거시: postType 없을 때 내용으로 추론
+        if (analysis != null) {
+          type = PostType.emotionAnalysis;
+        } else if (imageUrls.isNotEmpty) {
+          type = PostType.image;
+        } else {
+          type = PostType.text;
+        }
     }
 
     return Post(
@@ -111,7 +149,7 @@ class PostModel {
       authorProfileImage: authorPhotoUrl,
       type: type,
       content: caption,
-      imageUrls: imageUrl != null ? [imageUrl!] : [],
+      imageUrls: imageUrls,
       emotionAnalysis: analysis,
       tags: hashtags,
       createdAt: createdAt,
@@ -123,12 +161,35 @@ class PostModel {
     );
   }
 
+  // DB CHECK 제약: photo / community / emotion 만 허용
+  static const _validPostTypes = {'photo', 'community', 'emotion'};
+
+  static String _ensureValidPostType(String? value) {
+    if (value != null && _validPostTypes.contains(value)) return value;
+    return 'photo';
+  }
+
+  static String _postTypeToString(PostType type) {
+    switch (type) {
+      case PostType.image:
+        return 'photo';
+      case PostType.emotionAnalysis:
+        return 'emotion';
+      case PostType.text:
+        return 'community';
+      case PostType.video:
+        return 'photo'; // 비디오 미지원 → 사진으로 폴백
+    }
+  }
+
   // Domain Entity -> Model
   factory PostModel.fromEntity(Post post) {
     return PostModel(
       id: post.id,
       authorId: post.authorId,
       imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
+      imageUrls: post.imageUrls,
+      postType: _postTypeToString(post.type),
       emotionAnalysis: post.emotionAnalysis?.toJson(),
       caption: post.content,
       hashtags: post.tags,
@@ -148,6 +209,8 @@ class PostModel {
     String? authorId,
     String? petId,
     String? imageUrl,
+    List<String>? imageUrls,
+    String? postType,
     Map<String, dynamic>? emotionAnalysis,
     String? caption,
     List<String>? hashtags,
@@ -165,6 +228,8 @@ class PostModel {
       authorId: authorId ?? this.authorId,
       petId: petId ?? this.petId,
       imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
+      postType: postType ?? this.postType,
       emotionAnalysis: emotionAnalysis ?? this.emotionAnalysis,
       caption: caption ?? this.caption,
       hashtags: hashtags ?? this.hashtags,

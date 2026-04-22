@@ -8,6 +8,7 @@ class SocialUserModel {
   final String email;
   final String? username;
   final String? profileImageUrl;
+  final String? coverImageUrl;
   final String? bio;
   final int followersCount;
   final int followingCount;
@@ -22,6 +23,7 @@ class SocialUserModel {
     required this.email,
     this.username,
     this.profileImageUrl,
+    this.coverImageUrl,
     this.bio,
     this.followersCount = 0,
     this.followingCount = 0,
@@ -34,21 +36,26 @@ class SocialUserModel {
   factory SocialUserModel.fromJson(Map<String, dynamic> json) {
     return SocialUserModel(
       id: json['id'] ?? '',
-      displayName: json['displayName'] ?? '',
+      displayName: json['display_name'] ?? json['displayName'] ?? '',
       email: json['email'] ?? '',
       username: json['username'],
-      profileImageUrl: json['profileImageUrl'],
+      profileImageUrl: json['photo_url'] ?? json['profileImageUrl'],
+      coverImageUrl: json['cover_image_url'],
       bio: json['bio'],
       followersCount: json['followersCount'] ?? 0,
       followingCount: json['followingCount'] ?? 0,
       postsCount: json['postsCount'] ?? 0,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
-      updatedAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
-      isPrivate: json['isPrivate'] ?? false,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : json['createdAt'] != null
+              ? DateTime.parse(json['createdAt'])
+              : DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : json['createdAt'] != null
+              ? DateTime.parse(json['createdAt'])
+              : DateTime.now(),
+      isPrivate: json['is_private'] ?? json['isPrivate'] ?? false,
     );
   }
 
@@ -58,6 +65,7 @@ class SocialUserModel {
       'email': email,
       'username': username,
       'profileImageUrl': profileImageUrl,
+      'cover_image_url': coverImageUrl,
       'bio': bio,
       'followersCount': followersCount,
       'followingCount': followingCount,
@@ -75,6 +83,7 @@ class SocialUserModel {
       email: email,
       username: username,
       profileImageUrl: profileImageUrl,
+      coverImageUrl: coverImageUrl,
       bio: bio,
       followersCount: followersCount,
       followingCount: followingCount,
@@ -92,6 +101,7 @@ class SocialUserModel {
       email: user.email,
       username: user.username,
       profileImageUrl: user.profileImageUrl,
+      coverImageUrl: user.coverImageUrl,
       bio: user.bio,
       followersCount: user.followersCount,
       followingCount: user.followingCount,
@@ -108,6 +118,7 @@ class SocialUserModel {
     String? email,
     String? username,
     String? profileImageUrl,
+    String? coverImageUrl,
     String? bio,
     int? followersCount,
     int? followingCount,
@@ -122,6 +133,7 @@ class SocialUserModel {
       email: email ?? this.email,
       username: username ?? this.username,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
       bio: bio ?? this.bio,
       followersCount: followersCount ?? this.followersCount,
       followingCount: followingCount ?? this.followingCount,

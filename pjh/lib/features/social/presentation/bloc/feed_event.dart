@@ -44,11 +44,12 @@ class LoadMorePostsRequested extends FeedEvent {
 
 class CreatePostRequested extends FeedEvent {
   final Post post;
+  final List<File> images;
 
-  const CreatePostRequested({required this.post});
+  const CreatePostRequested({required this.post, this.images = const []});
 
   @override
-  List<Object?> get props => [post];
+  List<Object?> get props => [post, images];
 }
 
 class LikePostRequested extends FeedEvent {

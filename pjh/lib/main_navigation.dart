@@ -181,24 +181,24 @@ class _MainNavigationState extends State<MainNavigation> {
                     child: GestureDetector(
                       onTap: () => _onTabTapped(index),
                       child: Container(
-                        width: 56.w,
-                        height: 56.w,
+                        width: 60.w,
+                        height: 60.w,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(18.r),
+                          shape: BoxShape.circle,
                           gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [AppTheme.primaryColor, AppTheme.accentColor],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFF046DA7), Color(0xFF1B426B)],
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                              color: AppTheme.primaryColor.withValues(alpha: 0.35),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        child: Icon(Icons.psychology, color: Colors.white, size: 28.w),
+                        child: Icon(Icons.pets, color: Colors.white, size: 28.w),
                       ),
                     ),
                   );

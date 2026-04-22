@@ -71,8 +71,8 @@ dependencies:
   permission_handler: ^11.3.1
 
   cupertino_icons: ^1.0.8
-  flutter_map: ^8.2.2
-  latlong2: ^0.9.1
+  kakao_maps_flutter:
+    path: ./packages/kakao_maps_flutter
 
 dev_dependencies:
   flutter_test:
@@ -91,6 +91,8 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/icons/category/
+    - assets/icons/map/
     - assets/lottie/
     - assets/svg/
 

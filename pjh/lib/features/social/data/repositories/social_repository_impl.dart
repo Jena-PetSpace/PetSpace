@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
@@ -68,13 +70,13 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
-  Future<Either<Failure, Post>> createPost(Post post) async {
+  Future<Either<Failure, Post>> createPost(Post post, {List<File> images = const []}) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
-      final createdPost = await remoteDataSource.createPost(post, []);
+      final createdPost = await remoteDataSource.createPost(post, images);
       return Right(createdPost);
     } catch (e) {
       return Left(

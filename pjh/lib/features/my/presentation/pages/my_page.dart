@@ -163,21 +163,64 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
       itemBuilder: (context, i) {
         final post = posts[i];
         final postId = post['id'] as String;
-        final imageUrl = post['image_url'] as String?;
         final caption = post['caption'] as String? ?? '';
+        final postType = post['post_type'] as String? ?? '';
+        final isEmotion = postType == 'emotion';
+        final isMulti = postType == 'photo';
+
+        // image_urls 배열 우선, 없으면 image_url 단일 필드 폴백
+        final rawUrls = post['image_urls'];
+        String? thumbUrl;
+        int imageCount = 0;
+        if (rawUrls != null && (rawUrls as List).isNotEmpty) {
+          thumbUrl = rawUrls.first as String?;
+          imageCount = rawUrls.length;
+        } else {
+          thumbUrl = post['image_url'] as String?;
+          imageCount = thumbUrl != null ? 1 : 0;
+        }
+
         return GestureDetector(
-          onTap: () => context.push('/feed/post/$postId'),
+          onTap: () => context.push('/post/$postId'),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              imageUrl != null && imageUrl.isNotEmpty
+              thumbUrl != null && thumbUrl.isNotEmpty
                   ? CachedNetworkImage(
-                      imageUrl: imageUrl,
+                      imageUrl: thumbUrl,
                       fit: BoxFit.cover,
                       errorWidget: (_, __, ___) =>
                           _buildColorBlock(postId, caption),
                     )
                   : _buildColorBlock(postId, caption),
+              // 감정분석 배지
+              if (isEmotion)
+                Positioned(
+                  left: 4,
+                  bottom: 4,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(4.r),
+                    ),
+                    child: Text(
+                      '감정분석',
+                      style: TextStyle(
+                        fontSize: 9.sp,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              // 다중 이미지 표시
+              if (isMulti && imageCount > 1)
+                Positioned(
+                  right: 4,
+                  top: 4,
+                  child: Icon(Icons.copy, size: 14.w, color: Colors.white),
+                ),
             ],
           ),
         );
