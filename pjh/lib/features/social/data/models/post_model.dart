@@ -22,6 +22,8 @@ class PostModel {
   final DateTime updatedAt;
   final bool isPrivate;
   final String? location;
+  final double? locationLat;
+  final double? locationLng;
 
   // JOIN으로 가져온 사용자 정보
   final String? authorName;
@@ -43,6 +45,8 @@ class PostModel {
     required this.updatedAt,
     this.isPrivate = false,
     this.location,
+    this.locationLat,
+    this.locationLng,
     this.authorName,
     this.authorPhotoUrl,
   });
@@ -81,6 +85,8 @@ class PostModel {
       updatedAt: DateTime.parse(json['updated_at'] as String),
       isPrivate: json['is_private'] as bool? ?? false,
       location: json['location'] as String?,
+      locationLat: (json['location_lat'] as num?)?.toDouble(),
+      locationLng: (json['location_lng'] as num?)?.toDouble(),
       authorName: userData?['display_name'] as String?,
       authorPhotoUrl: userData?['photo_url'] as String?,
     );
@@ -103,6 +109,8 @@ class PostModel {
       'comments_count': commentsCount,
       'is_private': isPrivate,
       if (location != null) 'location': location,
+      if (locationLat != null) 'location_lat': locationLat,
+      if (locationLng != null) 'location_lng': locationLng,
       // created_at, updated_at은 Supabase에서 자동 관리
     };
   }
@@ -158,6 +166,8 @@ class PostModel {
       commentsCount: commentsCount,
       isPrivate: isPrivate,
       location: location,
+      locationLat: locationLat,
+      locationLng: locationLng,
     );
   }
 
@@ -199,6 +209,8 @@ class PostModel {
       updatedAt: post.updatedAt ?? post.createdAt,
       isPrivate: post.isPrivate,
       location: post.location,
+      locationLat: post.locationLat,
+      locationLng: post.locationLng,
       authorName: post.authorName,
       authorPhotoUrl: post.authorProfileImage,
     );
@@ -220,6 +232,8 @@ class PostModel {
     DateTime? updatedAt,
     bool? isPrivate,
     String? location,
+    double? locationLat,
+    double? locationLng,
     String? authorName,
     String? authorPhotoUrl,
   }) {
@@ -239,6 +253,8 @@ class PostModel {
       updatedAt: updatedAt ?? this.updatedAt,
       isPrivate: isPrivate ?? this.isPrivate,
       location: location ?? this.location,
+      locationLat: locationLat ?? this.locationLat,
+      locationLng: locationLng ?? this.locationLng,
       authorName: authorName ?? this.authorName,
       authorPhotoUrl: authorPhotoUrl ?? this.authorPhotoUrl,
     );

@@ -25,6 +25,8 @@ class Post extends Equatable {
   final bool isPublic;
   final bool isPrivate;
   final String? location;
+  final double? locationLat;
+  final double? locationLng;
 
   const Post({
     required this.id,
@@ -48,6 +50,8 @@ class Post extends Equatable {
     this.isPublic = true,
     this.isPrivate = false,
     this.location,
+    this.locationLat,
+    this.locationLng,
   });
 
   Post copyWith({
@@ -70,6 +74,8 @@ class Post extends Equatable {
     bool? isPublic,
     bool? isPrivate,
     String? location,
+    double? locationLat,
+    double? locationLng,
   }) {
     return Post(
       id: id ?? this.id,
@@ -91,6 +97,8 @@ class Post extends Equatable {
       isPublic: isPublic ?? this.isPublic,
       isPrivate: isPrivate ?? this.isPrivate,
       location: location ?? this.location,
+      locationLat: locationLat ?? this.locationLat,
+      locationLng: locationLng ?? this.locationLng,
     );
   }
 
@@ -115,5 +123,7 @@ class Post extends Equatable {
         isPublic,
         isPrivate,
         location,
+        locationLat,
+        locationLng,
       ];
 }

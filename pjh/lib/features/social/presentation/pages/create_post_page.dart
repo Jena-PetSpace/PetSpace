@@ -17,6 +17,7 @@ import '../../../emotion/presentation/widgets/emotion_chart_widget.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/feed_bloc.dart';
 import '../utils/post_draft_storage.dart';
+import '../widgets/location_picker_sheet.dart';
 
 class CreatePostPage extends StatefulWidget {
   final String? imageUrl;
@@ -49,6 +50,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
   bool _isPublic = true;
   bool _showEmotionAnalysis = true;
   Timer? _autosaveTimer;
+  LocationResult? _location;
 
   @override
   void initState() {
@@ -238,6 +240,8 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
                   _buildHashtagSection(),
                   SizedBox(height: 16.h),
                   _buildPrivacySection(),
+                  SizedBox(height: 16.h),
+                  _buildLocationSection(),
                 ],
               ),
             ),
@@ -428,6 +432,51 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
     );
   }
 
+  Widget _buildLocationSection() {
+    return GestureDetector(
+      onTap: () async {
+        final result = await LocationPickerSheet.show(context);
+        if (result != null && mounted) {
+          setState(() => _location = result);
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _location != null ? Icons.location_on : Icons.add_location_alt_outlined,
+              size: 20.w,
+              color: _location != null ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Text(
+                _location != null ? _location!.name : '위치 추가',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: _location != null
+                      ? AppTheme.primaryTextColor
+                      : AppTheme.secondaryTextColor,
+                ),
+              ),
+            ),
+            if (_location != null)
+              GestureDetector(
+                onTap: () => setState(() => _location = null),
+                child: Icon(Icons.close, size: 18.w, color: Colors.grey[400]),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showAddHashtagDialog() {
     showDialog(
       context: context,
@@ -510,6 +559,9 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       createdAt: DateTime.now(),
       isPublic: _isPublic,
       isPrivate: !_isPublic,
+      location: _location?.name,
+      locationLat: _location?.lat,
+      locationLng: _location?.lng,
     );
 
     context.read<FeedBloc>().add(CreatePostRequested(
