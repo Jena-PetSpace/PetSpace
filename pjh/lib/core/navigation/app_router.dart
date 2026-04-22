@@ -70,6 +70,8 @@ import '../../features/chat/presentation/pages/create_chat_page.dart';
 import '../../features/chat/presentation/pages/chat_room_settings_page.dart';
 import '../../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
+import '../../features/social/presentation/pages/hashtag_page.dart';
+import '../../features/social/presentation/pages/location_posts_page.dart';
 import '../../features/my/presentation/pages/my_settings_page.dart';
 import '../../features/profile/presentation/pages/notification_settings_page.dart';
 import '../../features/profile/presentation/pages/privacy_settings_page.dart';
@@ -474,6 +476,25 @@ class AppRouter {
                 roomId: state.pathParameters['roomId']!,
                 roomName: state.uri.queryParameters['name'],
               ),
+            ),
+            GoRoute(
+              path: '/hashtag/:tag',
+              name: 'hashtag',
+              builder: (context, state) => HashtagPage(
+                hashtag: state.pathParameters['tag']!,
+              ),
+            ),
+            GoRoute(
+              path: '/location',
+              name: 'location-posts',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return LocationPostsPage(
+                  lat: (extra['lat'] as num?)?.toDouble() ?? 0.0,
+                  lng: (extra['lng'] as num?)?.toDouble() ?? 0.0,
+                  locationName: extra['locationName'] as String?,
+                );
+              },
             ),
             GoRoute(
               path: '/hospital',

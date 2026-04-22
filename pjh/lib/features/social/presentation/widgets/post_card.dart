@@ -12,6 +12,7 @@ import '../../domain/entities/post.dart';
 import '../../../emotion/presentation/widgets/emotion_chart.dart';
 import '../../../../core/utils/hashtag_utils.dart';
 import 'likes_bottom_sheet.dart';
+import 'collection_picker_sheet.dart';
 
 class PostCard extends StatefulWidget {
   final Post post;
@@ -612,13 +613,20 @@ class _PostCardState extends State<PostCard> {
             ),
           ),
           const Spacer(),
-          // 북마크 버튼
+          // 북마크 버튼 (단탭=저장토글, 롱프레스=컬렉션 선택)
           SizedBox(
             width: 44.w,
             height: 44.w,
-            child: InkWell(
+            child: GestureDetector(
               onTap: _toggleSave,
-              borderRadius: BorderRadius.circular(22.r),
+              onLongPress: () {
+                if (widget.currentUserId.isEmpty) return;
+                CollectionPickerSheet.show(
+                  context,
+                  postId: post.id,
+                  userId: widget.currentUserId,
+                );
+              },
               child: Icon(
                 _isSaved
                     ? Icons.bookmark_rounded
@@ -629,18 +637,32 @@ class _PostCardState extends State<PostCard> {
             ),
           ),
           if (post.location != null)
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16.w, color: Colors.grey),
-                SizedBox(width: 4.w),
-                Text(
-                  post.location!,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.grey,
+            GestureDetector(
+              onTap: (post.locationLat != null && post.locationLng != null)
+                  ? () => context.push('/location', extra: {
+                        'lat': post.locationLat,
+                        'lng': post.locationLng,
+                        'locationName': post.location,
+                      })
+                  : null,
+              child: Row(
+                children: [
+                  Icon(Icons.location_on, size: 16.w,
+                      color: (post.locationLat != null && post.locationLng != null)
+                          ? AppTheme.primaryColor
+                          : Colors.grey),
+                  SizedBox(width: 4.w),
+                  Text(
+                    post.location!,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: (post.locationLat != null && post.locationLng != null)
+                          ? AppTheme.primaryColor
+                          : Colors.grey,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
         ],
       ),
