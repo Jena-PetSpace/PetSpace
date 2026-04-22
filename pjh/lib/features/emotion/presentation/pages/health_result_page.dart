@@ -7,7 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+import '../widgets/result/emotion_share_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../config/injection_container.dart' as di;
@@ -38,13 +38,18 @@ class _HealthResultPageState extends State<HealthResultPage> {
     }
   }
 
-  void _shareResult() {
-    final r = widget.result;
-    final text = '[PetSpace 건강분석]\n'
-        '${r.area.displayName} · ${r.status} (${r.overallScore}점)\n'
-        '${r.summary}\n\n'
-        'AI 참고용 분석입니다. 정확한 진단은 수의사에게 받으세요.';
-    Share.share(text);
+  Future<void> _shareResult() async {
+    try {
+      await HealthShareHelper.shareAsCard(
+        context,
+        analysis: widget.result,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('공유 중 오류가 발생했습니다: $e')),
+      );
+    }
   }
 
   void _showShareToFeedSheet() {
