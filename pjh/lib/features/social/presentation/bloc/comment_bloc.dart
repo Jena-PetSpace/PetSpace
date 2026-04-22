@@ -321,11 +321,8 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     _commentSub = _realtimeService.commentStream.listen((data) {
       if (data['postId'] != postId) return;
       final event = data['event'] as String?;
-      if (event == 'insert') {
-        // 새 댓글 → 목록 새로고침
-        add(LoadComments(postId: postId));
-      } else if (event == 'delete') {
-        // 댓글 삭제 → 목록 새로고침
+      // delete 이벤트만 새로고침 (insert는 낙관적 업데이트로 이미 처리됨)
+      if (event == 'delete') {
         add(LoadComments(postId: postId));
       }
     });

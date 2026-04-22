@@ -245,6 +245,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         currentUserId: Supabase.instance.client.auth.currentUser?.id ?? '',
       )..add(LoadComments(postId: widget.postId)),
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: Text('게시글',
               style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
@@ -468,8 +469,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
             left: 16.w,
             right: 8.w,
             top: 8.h,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 8.h),
-        child: SafeArea(
+            bottom: 8.h),
+        child: SafeArea(top: false,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

@@ -30,7 +30,6 @@ class _FeedHubPageState extends State<FeedHubPage>
 
   _FeedMode _mode = _FeedMode.photo;
 
-  // Q&A 탭 상태
   int _selectedQnaCategory = 0;
   List<Map<String, dynamic>> _communityPosts = [];
   bool _communityLoading = true;
@@ -49,10 +48,8 @@ class _FeedHubPageState extends State<FeedHubPage>
     _photoTabController = TabController(length: 2, vsync: this);
     _qnaTabController = TabController(length: 5, vsync: this);
 
-    // initialTab: 0,1 → 사진모드 / 2+ → Q&A모드
     if (widget.initialTab >= 2) {
       _mode = _FeedMode.qna;
-      // initialCategory 매핑
       if (widget.initialCategory != null) {
         for (int i = 0; i < _qnaCategories.length; i++) {
           if (_qnaCategories[i]['value'] == widget.initialCategory) {
@@ -62,15 +59,13 @@ class _FeedHubPageState extends State<FeedHubPage>
           }
         }
       }
-      _loadCommunityPosts(
-          category: _qnaCategories[_selectedQnaCategory]['value']);
+      _loadCommunityPosts(category: _qnaCategories[_selectedQnaCategory]['value']);
     }
 
     _qnaTabController.addListener(() {
       if (!_qnaTabController.indexIsChanging) {
         setState(() => _selectedQnaCategory = _qnaTabController.index);
-        _loadCommunityPosts(
-            category: _qnaCategories[_qnaTabController.index]['value']);
+        _loadCommunityPosts(category: _qnaCategories[_qnaTabController.index]['value']);
       }
     });
   }
@@ -96,8 +91,7 @@ class _FeedHubPageState extends State<FeedHubPage>
         query = query.contains('hashtags', [category]);
       }
 
-      final response =
-          await query.order('created_at', ascending: false).limit(30);
+      final response = await query.order('created_at', ascending: false).limit(30);
       setState(() {
         _communityPosts = List<Map<String, dynamic>>.from(response);
         _communityLoading = false;
@@ -112,123 +106,130 @@ class _FeedHubPageState extends State<FeedHubPage>
     if (_mode == mode) return;
     setState(() => _mode = mode);
     if (mode == _FeedMode.qna && _communityPosts.isEmpty) {
-      _loadCommunityPosts(
-          category: _qnaCategories[_selectedQnaCategory]['value']);
+      _loadCommunityPosts(category: _qnaCategories[_selectedQnaCategory]['value']);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '피드',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryTextColor,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_rounded),
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => DraggableScrollableSheet(
-                initialChildSize: 0.7,
-                builder: (ctx, ctrl) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  child: const ChannelSubscriptionPage(),
-                ),
-              ),
+      backgroundColor: AppTheme.subtleBackground,
+      appBar: _buildAppBar(),
+      body: Column(
+        children: [
+          // 세그먼트 + 탭바 헤더
+          _buildHeader(),
+          // 본문
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: _mode == _FeedMode.photo
+                  ? _buildPhotoBody()
+                  : _buildQnaBody(),
             ),
-            tooltip: '채널 구독',
-          ),
-          IconButton(
-            icon: SvgPicture.asset(
-              'assets/svg/icon_search.svg',
-              width: 24,
-              height: 24,
-              colorFilter:
-                  const ColorFilter.mode(Colors.black87, BlendMode.srcIn),
-            ),
-            onPressed: () => context.push('/search'),
-            tooltip: '검색',
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(_mode == _FeedMode.photo ? 100.h : 116.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 상단 세그먼트: 📷 사진 | 💬 Q&A
-              Padding(
-                padding:
-                    EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.subtleBackground,
-                    borderRadius: BorderRadius.circular(30.r),
-                  ),
-                  padding: EdgeInsets.all(3.w),
-                  child: Row(
-                    children: [
-                      _buildSegmentButton(
-                        label: '📷  사진',
-                        active: _mode == _FeedMode.photo,
-                        onTap: () => _switchMode(_FeedMode.photo),
-                      ),
-                      _buildSegmentButton(
-                        label: '💬  Q&A',
-                        active: _mode == _FeedMode.qna,
-                        onTap: () => _switchMode(_FeedMode.qna),
-                      ),
-                    ],
-                  ),
+      ),
+      floatingActionButton: _buildFab(),
+    );
+  }
+
+  AppBar _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      title: Text(
+        '피드',
+        style: TextStyle(
+          fontSize: 18.sp,
+          fontWeight: FontWeight.bold,
+          color: AppTheme.primaryTextColor,
+        ),
+      ),
+      centerTitle: true,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.tune_rounded, color: AppTheme.primaryTextColor),
+          onPressed: () => showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              builder: (ctx, ctrl) => Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
+                child: const ChannelSubscriptionPage(),
               ),
-              // 모드별 탭바
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                switchInCurve: Curves.easeIn,
-                switchOutCurve: Curves.easeOut,
-                child: _mode == _FeedMode.photo
-                    ? _buildPhotoTabBar()
-                    : _buildQnaTabBar(),
-              ),
-            ],
+            ),
           ),
+          tooltip: '채널 구독',
         ),
-      ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        switchInCurve: Curves.easeIn,
-        switchOutCurve: Curves.easeOut,
-        child: _mode == _FeedMode.photo
-            ? _buildPhotoBody()
-            : _buildQnaBody(),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _onFabPressed(context),
-        backgroundColor: _mode == _FeedMode.photo
-            ? AppTheme.primaryColor
-            : Colors.amber[700],
-        child: Icon(
-          _mode == _FeedMode.photo ? Icons.camera_alt_rounded : Icons.edit_rounded,
-          color: Colors.white,
+        IconButton(
+          icon: SvgPicture.asset(
+            'assets/svg/icon_search.svg',
+            width: 22,
+            height: 22,
+            colorFilter: const ColorFilter.mode(AppTheme.primaryTextColor, BlendMode.srcIn),
+          ),
+          onPressed: () => context.push('/search'),
+          tooltip: '검색',
         ),
+        SizedBox(width: 4.w),
+      ],
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      color: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 세그먼트
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+            child: Container(
+              height: 40.h,
+              decoration: BoxDecoration(
+                color: AppTheme.subtleBackground,
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              padding: EdgeInsets.all(3.w),
+              child: Row(
+                children: [
+                  _segmentBtn(
+                    icon: Icons.photo_camera_rounded,
+                    label: '사진',
+                    active: _mode == _FeedMode.photo,
+                    onTap: () => _switchMode(_FeedMode.photo),
+                  ),
+                  _segmentBtn(
+                    icon: Icons.forum_rounded,
+                    label: 'Q&A',
+                    active: _mode == _FeedMode.qna,
+                    onTap: () => _switchMode(_FeedMode.qna),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // 탭바
+          if (_mode == _FeedMode.photo)
+            _buildPhotoTabBar()
+          else
+            _buildQnaTabBar(),
+          const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
+        ],
       ),
     );
   }
 
-  Widget _buildSegmentButton({
+  Widget _segmentBtn({
+    required IconData icon,
     required String label,
     required bool active,
     required VoidCallback onTap,
@@ -237,29 +238,38 @@ class _FeedHubPageState extends State<FeedHubPage>
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(vertical: 9.h),
+          duration: const Duration(milliseconds: 180),
           decoration: BoxDecoration(
             color: active ? AppTheme.primaryColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(26.r),
+            borderRadius: BorderRadius.circular(17.r),
             boxShadow: active
                 ? [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                      blurRadius: 8,
+                      color: AppTheme.primaryColor.withValues(alpha: 0.25),
+                      blurRadius: 6,
                       offset: const Offset(0, 2),
-                    ),
+                    )
                   ]
                 : null,
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-              color: active ? Colors.white : AppTheme.secondaryTextColor,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 15.w,
+                color: active ? Colors.white : AppTheme.secondaryTextColor,
+              ),
+              SizedBox(width: 5.w),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: active ? Colors.white : AppTheme.secondaryTextColor,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -268,64 +278,52 @@ class _FeedHubPageState extends State<FeedHubPage>
 
   Widget _buildPhotoTabBar() {
     return SizedBox(
-      key: const ValueKey('photo-tabbar'),
-      height: 44.h,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        child: TabBar(
-          controller: _photoTabController,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: AppTheme.secondaryTextColor,
-          labelStyle:
-              TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
-          unselectedLabelStyle:
-              TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
-          indicatorColor: AppTheme.primaryColor,
-          indicatorWeight: 2.5,
-          dividerColor: Colors.transparent,
-          tabs: const [
-            Tab(text: '추천'),
-            Tab(text: '팔로잉'),
-          ],
-        ),
+      height: 42.h,
+      child: TabBar(
+        controller: _photoTabController,
+        labelColor: AppTheme.primaryColor,
+        unselectedLabelColor: AppTheme.secondaryTextColor,
+        labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
+        indicatorColor: AppTheme.primaryColor,
+        indicatorWeight: 2.5,
+        indicatorSize: TabBarIndicatorSize.label,
+        dividerColor: Colors.transparent,
+        tabs: const [Tab(text: '추천'), Tab(text: '팔로잉')],
       ),
     );
   }
 
   Widget _buildQnaTabBar() {
     return SizedBox(
-      key: const ValueKey('qna-tabbar'),
-      height: 44.h,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        child: TabBar(
-          controller: _qnaTabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: AppTheme.secondaryTextColor,
-          labelStyle:
-              TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
-          unselectedLabelStyle:
-              TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
-          indicatorColor: AppTheme.primaryColor,
-          indicatorWeight: 2.5,
-          dividerColor: Colors.transparent,
-          tabs: const [
-            Tab(text: '전체'),
-            Tab(text: '건강'),
-            Tab(text: '훈련'),
-            Tab(text: '먹거리'),
-            Tab(text: '생활'),
-          ],
-        ),
+      height: 42.h,
+      child: TabBar(
+        controller: _qnaTabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        labelColor: AppTheme.primaryColor,
+        unselectedLabelColor: AppTheme.secondaryTextColor,
+        labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
+        indicatorColor: AppTheme.primaryColor,
+        indicatorWeight: 2.5,
+        indicatorSize: TabBarIndicatorSize.label,
+        dividerColor: Colors.transparent,
+        tabs: const [
+          Tab(text: '전체'),
+          Tab(text: '건강'),
+          Tab(text: '훈련'),
+          Tab(text: '먹거리'),
+          Tab(text: '생활'),
+        ],
       ),
     );
   }
 
   Widget _buildPhotoBody() {
     return TabBarView(
-      key: const ValueKey('photo-body'),
+      key: const ValueKey('photo'),
       controller: _photoTabController,
       children: const [
         FeedPage(),
@@ -336,53 +334,40 @@ class _FeedHubPageState extends State<FeedHubPage>
 
   Widget _buildQnaBody() {
     return KeyedSubtree(
-      key: const ValueKey('qna-body'),
-      child: Column(
-        children: [
-          // 게시글 리스트
-          Expanded(
-            child: _communityLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _communityPosts.isEmpty
-                    ? _buildEmpty()
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          final cat = _qnaCategories[_selectedQnaCategory]['value'];
-                          await _loadCommunityPosts(category: cat);
-                        },
-                        child: ListView.builder(
-                          padding: EdgeInsets.all(16.w),
-                          itemCount: _communityPosts.length,
-                          itemBuilder: (context, index) {
-                            final post = _communityPosts[index];
-                            final user =
-                                post['users'] as Map<String, dynamic>?;
-                            final hashtags =
-                                List<String>.from(post['hashtags'] ?? []);
-                            final displayName =
-                                user?['display_name'] as String? ?? '익명';
-                            return GestureDetector(
-                              onTap: () =>
-                                  context.push('/post/${post['id']}'),
-                              child: CommunityPostCard(
-                                authorName: displayName,
-                                category: _categoryFromHashtags(hashtags),
-                                title: '',
-                                content: post['caption'] as String? ?? '',
-                                likes: post['likes_count'] as int? ?? 0,
-                                comments:
-                                    post['comments_count'] as int? ?? 0,
-                                timeAgo: _timeAgo(
-                                    post['created_at'] as String? ?? ''),
-                                isAdmin: displayName == '관리자',
-                              ),
-                            );
-                          },
+      key: const ValueKey('qna'),
+      child: _communityLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _communityPosts.isEmpty
+              ? _buildEmpty()
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    final cat = _qnaCategories[_selectedQnaCategory]['value'];
+                    await _loadCommunityPosts(category: cat);
+                  },
+                  child: ListView.builder(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    itemCount: _communityPosts.length,
+                    itemBuilder: (context, index) {
+                      final post = _communityPosts[index];
+                      final user = post['users'] as Map<String, dynamic>?;
+                      final hashtags = List<String>.from(post['hashtags'] ?? []);
+                      final displayName = user?['display_name'] as String? ?? '익명';
+                      return GestureDetector(
+                        onTap: () => context.push('/post/${post['id']}'),
+                        child: CommunityPostCard(
+                          authorName: displayName,
+                          category: _categoryFromHashtags(hashtags),
+                          title: '',
+                          content: post['caption'] as String? ?? '',
+                          likes: post['likes_count'] as int? ?? 0,
+                          comments: post['comments_count'] as int? ?? 0,
+                          timeAgo: _timeAgo(post['created_at'] as String? ?? ''),
+                          isAdmin: displayName == '관리자',
                         ),
-                      ),
-          ),
-        ],
-      ),
+                      );
+                    },
+                  ),
+                ),
     );
   }
 
@@ -391,14 +376,28 @@ class _FeedHubPageState extends State<FeedHubPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.forum_outlined, size: 64.w, color: Colors.grey[300]),
+          Icon(Icons.forum_outlined, size: 56.w, color: Colors.grey[300]),
           SizedBox(height: 16.h),
           Text('게시글이 없습니다',
-              style: TextStyle(fontSize: 16.sp, color: Colors.grey[500])),
-          SizedBox(height: 8.h),
+              style: TextStyle(fontSize: 15.sp, color: Colors.grey[500])),
+          SizedBox(height: 6.h),
           Text('첫 번째 글을 작성해보세요',
               style: TextStyle(fontSize: 13.sp, color: Colors.grey[400])),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFab() {
+    final isPhoto = _mode == _FeedMode.photo;
+    return FloatingActionButton(
+      onPressed: () => _onFabPressed(context),
+      backgroundColor: isPhoto ? AppTheme.primaryColor : Colors.amber[700],
+      elevation: 3,
+      child: Icon(
+        isPhoto ? Icons.camera_alt_rounded : Icons.edit_rounded,
+        color: Colors.white,
+        size: 24.w,
       ),
     );
   }
