@@ -1,0 +1,36 @@
+appId: com.petspace.app
+name: "03. 탭 네비게이션 전체 스모크"
+---
+- launchApp
+- waitForAnimationToEnd
+
+# 홈 탭 확인
+- tapOn: "홈"
+- waitForAnimationToEnd
+- takeScreenshot: "03_tab_home"
+
+# 건강관리 탭
+- tapOn: "건강관리"
+- waitForAnimationToEnd
+- takeScreenshot: "03_tab_health"
+
+# AI분석 탭 (중앙 원형 버튼 — Semantics label 사용)
+- tapOn:
+    point: "50%, 97%"
+- waitForAnimationToEnd
+- takeScreenshot: "03_tab_ai"
+
+# 피드 탭
+- tapOn: "피드"
+- waitForAnimationToEnd
+- takeScreenshot: "03_tab_feed"
+
+# MY 탭
+- tapOn: "MY"
+- waitForAnimationToEnd
+- takeScreenshot: "03_tab_my"
+
+# 홈으로 복귀
+- tapOn: "홈"
+- waitForAnimationToEnd
+- takeScreenshot: "03_tab_home_return"

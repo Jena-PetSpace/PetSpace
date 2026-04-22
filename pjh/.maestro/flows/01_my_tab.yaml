@@ -1,0 +1,35 @@
+appId: com.petspace.app
+name: "01. MY 탭 검증"
+---
+- launchApp
+
+# MY 탭 진입
+- tapOn: "MY"
+- waitForAnimationToEnd
+- takeScreenshot: "01_my_main"
+
+# 프로필 헤더 통계 요소 확인
+- assertVisible: "게시글"
+- assertVisible: "팔로워"
+- assertVisible: "팔로잉"
+
+# 프로필 편집 버튼 확인
+- assertVisible: "프로필 편집"
+
+# 내 게시글 메뉴 확인
+- assertVisible: "내 게시글"
+
+# 저장한 글 메뉴 확인
+- assertVisible: "저장한 글"
+
+# 팔로워 수 탭 → 팔로워 목록 페이지
+- tapOn: "팔로워"
+- waitForAnimationToEnd
+- takeScreenshot: "01_followers"
+- back
+
+# 설정 메뉴 진입
+- tapOn: "설정"
+- waitForAnimationToEnd
+- takeScreenshot: "01_settings_page"
+- back

@@ -1,0 +1,42 @@
+appId: com.petspace.app
+name: "02. 피드 탭 검증"
+---
+- launchApp
+
+# 피드 탭 진입
+- tapOn: "피드"
+- waitForAnimationToEnd
+- takeScreenshot: "02_feed_main"
+
+# 사진/Q&A 세그먼트 확인
+- assertVisible: "사진"
+- assertVisible: "Q&A"
+
+# 추천/팔로잉 탭 확인 (사진 모드 기본)
+- assertVisible: "추천"
+- assertVisible: "팔로잉"
+
+# 팔로잉 탭 전환
+- tapOn: "팔로잉"
+- waitForAnimationToEnd
+- takeScreenshot: "02_feed_following"
+
+# Q&A 모드 전환
+- tapOn: "Q&A"
+- waitForAnimationToEnd
+- takeScreenshot: "02_feed_qna"
+
+# Q&A 카테고리 탭 확인
+- assertVisible: "전체"
+- assertVisible: "건강"
+- assertVisible: "훈련"
+
+# 전체 탭 확인
+- tapOn: "전체"
+- waitForAnimationToEnd
+- takeScreenshot: "02_feed_qna_all"
+
+# 다시 사진 모드로
+- tapOn: "사진"
+- waitForAnimationToEnd
+- takeScreenshot: "02_feed_photo_restored"
