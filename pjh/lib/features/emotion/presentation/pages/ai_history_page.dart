@@ -127,6 +127,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
       final auth = context.read<AuthBloc>().state;
       if (auth is! AuthAuthenticated) return;
 
+      // TODO(arch): Supabase 직접 호출 → EmotionRepository.getLatestHealthByArea()로 이전 필요 (Clean Architecture 위반)
       final result = await Supabase.instance.client.rpc(
         'get_latest_health_by_area',
         params: {

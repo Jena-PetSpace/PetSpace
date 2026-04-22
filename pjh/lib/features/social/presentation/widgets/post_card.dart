@@ -151,6 +151,8 @@ class _PostCardState extends State<PostCard> {
               children: [
                 Text(
                   post.authorName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14.sp,
@@ -158,6 +160,8 @@ class _PostCardState extends State<PostCard> {
                 ),
                 Text(
                   _formatDateTime(post.createdAt),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Theme.of(context).textTheme.bodySmall?.color,
                     fontSize: 12.sp,

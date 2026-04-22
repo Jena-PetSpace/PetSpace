@@ -78,6 +78,8 @@
 		<string>동영상 촬영 시 오디오 녹음이 필요합니다.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>갤러리에서 반려동물 사진을 선택하여 감정 분석을 수행합니다.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>분석 결과 카드와 반려동물 사진을 갤러리에 저장합니다.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>
