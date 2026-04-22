@@ -181,7 +181,7 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
       authorName: '',
       content: event.content,
       createdAt: DateTime.now(),
-      parentCommentId: event.parentCommentId,
+      parentId: event.parentId,
     );
 
     final result = await _createComment(CreateCommentParams(comment: reply));
@@ -196,7 +196,7 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
         if (state is CommentLoaded) {
           final currentState = state as CommentLoaded;
           final updatedComments = currentState.comments.map((comment) {
-            if (comment.id == event.parentCommentId) {
+            if (comment.id == event.parentId) {
               return comment.copyWith(
                 replies: [...comment.replies, newReply],
               );

@@ -770,8 +770,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         'content': commentModel.content,
         'created_at': commentModel.createdAt.toIso8601String(),
       };
-      if (commentModel.parentCommentId != null) {
-        insertData['parent_comment_id'] = commentModel.parentCommentId;
+      if (commentModel.parentId != null) {
+        insertData['parent_id'] = commentModel.parentId;
       }
 
       final response = await supabaseClient.from('comments').insert(insertData).select('''
@@ -830,7 +830,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       var queryBuilder = supabaseClient.from('comments').select('''
             *,
             users!comments_author_id_fkey(id, display_name, photo_url)
-          ''').eq('post_id', postId).isFilter('parent_comment_id', null);
+          ''').eq('post_id', postId).isFilter('parent_id', null);
 
       if (lastCommentId != null) {
         final lastComment = await supabaseClient
@@ -854,7 +854,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         final repliesRes = await supabaseClient.from('comments').select('''
               *,
               users!comments_author_id_fkey(id, display_name, photo_url)
-            ''').eq('parent_comment_id', commentId)
+            ''').eq('parent_id', commentId)
             .order('created_at', ascending: true);
 
         final replies = (repliesRes as List).map((r) => CommentModel.fromJson({

@@ -196,7 +196,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     if (_replyToCommentId != null) {
       context.read<CommentBloc>().add(CreateReplyRequested(
             postId: widget.postId,
-            parentCommentId: _replyToCommentId!,
+            parentId: _replyToCommentId!,
             content: content,
             postAuthorId: _post?['author_id'] as String?,
             senderName: senderName,
@@ -267,12 +267,21 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   SliverToBoxAdapter(child: _buildCommentHeader(state)),
                   if (state is CommentLoaded && state.comments.isEmpty)
                     SliverToBoxAdapter(child: _buildEmptyComments()),
-                  if (state is CommentLoading)
-                    const SliverToBoxAdapter(
+                  if (state is CommentLoading || state is CommentInitial)
+                    SliverToBoxAdapter(
                         child: Center(
                             child: Padding(
-                                padding: EdgeInsets.all(24),
-                                child: CircularProgressIndicator()))),
+                                padding: EdgeInsets.all(24.h),
+                                child: const CircularProgressIndicator()))),
+                  if (state is CommentError)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.h),
+                        child: const Text('댓글을 불러오지 못했습니다',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppTheme.errorColor)),
+                      ),
+                    ),
                   if (state is CommentLoaded)
                     SliverList(
                         delegate: SliverChildBuilderDelegate(

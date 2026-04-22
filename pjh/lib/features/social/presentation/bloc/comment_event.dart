@@ -79,19 +79,19 @@ class LikeCommentRequested extends CommentEvent {
 
 class CreateReplyRequested extends CommentEvent {
   final String postId;
-  final String parentCommentId;
+  final String parentId;
   final String content;
   final String? postAuthorId;
   final String? senderName;
 
   const CreateReplyRequested({
     required this.postId,
-    required this.parentCommentId,
+    required this.parentId,
     required this.content,
     this.postAuthorId,
     this.senderName,
   });
 
   @override
-  List<Object?> get props => [postId, parentCommentId, content];
+  List<Object?> get props => [postId, parentId, content];
 }
