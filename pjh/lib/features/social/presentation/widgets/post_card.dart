@@ -40,6 +40,9 @@ class PostCard extends StatefulWidget {
   State<PostCard> createState() => _PostCardState();
 }
 
+// 앱 세션 내 스트릭 캐시 (N+1 쿼리 방지)
+final Map<String, int> _streakCache = {};
+
 class _PostCardState extends State<PostCard> {
   int _currentImageIndex = 0;
   Timer? _likeDebounce;
@@ -174,7 +177,9 @@ class _PostCardState extends State<PostCard> {
                               fontSize: 14.sp,
                             ),
                           ),
-                          SizedBox(width: 6.w),
+                          SizedBox(width: 4.w),
+                          _buildStreakBadge(post.authorId),
+                          SizedBox(width: 4.w),
                           _buildTypeBadge(),
                         ]),
                         Text(
@@ -419,6 +424,54 @@ class _PostCardState extends State<PostCard> {
         ],
       ),
     );
+  }
+
+  Widget _buildStreakBadge(String authorId) {
+    return FutureBuilder<int>(
+      future: _fetchStreak(authorId),
+      builder: (ctx, snap) {
+        final streak = snap.data ?? 0;
+        if (streak < 3) return const SizedBox.shrink();
+
+        final String emoji;
+        final Color color;
+        if (streak >= 30) {
+          emoji = '⭐';
+          color = Colors.amber;
+        } else if (streak >= 7) {
+          emoji = '🔥';
+          color = Colors.orange;
+        } else {
+          emoji = '🔥';
+          color = Colors.deepOrange;
+        }
+
+        return Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(emoji, style: TextStyle(fontSize: 11.sp)),
+          Text(
+            '$streak',
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+
+  Future<int> _fetchStreak(String authorId) async {
+    if (_streakCache.containsKey(authorId)) return _streakCache[authorId]!;
+    try {
+      final res = await Supabase.instance.client
+          .rpc('get_user_streak', params: {'p_user_id': authorId});
+      final streak = (res as int?) ?? 0;
+      _streakCache[authorId] = streak;
+      return streak;
+    } catch (_) {
+      return 0;
+    }
   }
 
   Widget _buildTypeBadge() {

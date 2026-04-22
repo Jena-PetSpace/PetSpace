@@ -579,6 +579,15 @@ class AppRouter {
                 );
               },
             ),
+            // 공유 딥링크: https://petspace.app/share/emotion/:id
+            GoRoute(
+              path: '/share/emotion/:analysisId',
+              name: 'share-emotion',
+              builder: (context, state) {
+                final id = state.pathParameters['analysisId']!;
+                return EmotionResultLoaderPage(analysisId: id);
+              },
+            ),
           ],
         ),
       ],
