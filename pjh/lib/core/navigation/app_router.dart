@@ -47,6 +47,7 @@ import '../../features/social/presentation/pages/channel_subscription_page.dart'
 import '../../features/pets/presentation/pages/public_pet_page.dart';
 import '../../features/emotion/presentation/pages/weekly_report_page.dart';
 import '../../features/emotion/presentation/pages/ai_history_page.dart';
+import '../../features/emotion/presentation/pages/emotion_timeline_page.dart';
 import '../../features/emotion/presentation/pages/emotion_loading_page.dart';
 import '../../features/emotion/presentation/pages/emotion_result_page.dart';
 import '../../features/emotion/domain/entities/emotion_analysis.dart';
@@ -563,6 +564,18 @@ class AppRouter {
                 return BlocProvider(
                   create: (_) => sl<EmotionAnalysisBloc>(),
                   child: const AiHistoryPage(),
+                );
+              },
+            ),
+            GoRoute(
+              path: '/emotion-timeline',
+              name: 'emotion-timeline',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return EmotionTimelinePage(
+                  petId: extra['petId'] as String? ?? '',
+                  petName: extra['petName'] as String? ?? '반려동물',
+                  petAvatarUrl: extra['petAvatarUrl'] as String?,
                 );
               },
             ),
