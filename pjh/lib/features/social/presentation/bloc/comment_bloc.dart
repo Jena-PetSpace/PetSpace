@@ -25,7 +25,6 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
 
   static const int _commentsPerPage = 20;
   String? _lastCommentId;
-  String? _currentPostId;
 
   CommentBloc({
     required GetComments getComments,
@@ -42,6 +41,7 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     on<LoadComments>(_onLoadComments);
     on<LoadMoreComments>(_onLoadMoreComments);
     on<CreateCommentRequested>(_onCreateCommentRequested);
+    on<CreateReplyRequested>(_onCreateReplyRequested);
     on<DeleteCommentRequested>(_onDeleteCommentRequested);
     on<UpdateCommentRequested>(_onUpdateCommentRequested);
     on<LikeCommentRequested>(_onLikeCommentRequested);
@@ -52,7 +52,6 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     Emitter<CommentState> emit,
   ) async {
     emit(CommentLoading());
-    _currentPostId = event.postId;
     // 이 postId의 댓글 Realtime 구독 시작
     _subscribeToRealtime(event.postId);
     _lastCommentId = null;
@@ -120,12 +119,16 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     CreateCommentRequested event,
     Emitter<CommentState> emit,
   ) async {
-    // Create a Comment entity
+    // 기존 댓글 목록 보존 (실패 시 복원용)
+    final prevComments = state is CommentLoaded
+        ? List<Comment>.from((state as CommentLoaded).comments)
+        : <Comment>[];
+
     final comment = Comment(
       id: const Uuid().v4(),
       postId: event.postId,
       authorId: _currentUserId,
-      authorName: '', // Will be populated by backend
+      authorName: event.senderName ?? '',
       content: event.content,
       createdAt: DateTime.now(),
     );
@@ -136,23 +139,15 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
 
     result.fold(
       (failure) {
-        if (state is CommentLoaded) {
-          emit((state as CommentLoaded).copyWith(error: failure.message));
-        } else {
-          emit(CommentError(failure.message));
-        }
+        // 실패 시 스낵바 + 기존 목록 복원
+        emit(CommentError(failure.message));
+        emit(CommentLoaded(comments: prevComments));
       },
       (newComment) {
-        if (state is CommentLoaded) {
-          final currentState = state as CommentLoaded;
-          emit(currentState.copyWith(
-            comments: [newComment, ...currentState.comments],
-          ));
-        } else {
-          if (_currentPostId != null) {
-            add(LoadComments(postId: _currentPostId!));
-          }
-        }
+        // 성공: 새 댓글을 목록 맨 앞에 추가
+        emit(CommentLoaded(
+          comments: [newComment, ...prevComments],
+        ));
         // 게시글 작성자에게 댓글 알림 발송 (자기 자신 제외)
         if (event.postAuthorId != null &&
             event.postAuthorId!.isNotEmpty &&
@@ -164,6 +159,45 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
             postId: event.postId,
             commentPreview: event.content,
           );
+        }
+      },
+    );
+  }
+
+  Future<void> _onCreateReplyRequested(
+    CreateReplyRequested event,
+    Emitter<CommentState> emit,
+  ) async {
+    final reply = Comment(
+      id: const Uuid().v4(),
+      postId: event.postId,
+      authorId: _currentUserId,
+      authorName: '',
+      content: event.content,
+      createdAt: DateTime.now(),
+      parentId: event.parentId,
+    );
+
+    final result = await _createComment(CreateCommentParams(comment: reply));
+
+    result.fold(
+      (failure) {
+        if (state is CommentLoaded) {
+          emit((state as CommentLoaded).copyWith(error: failure.message));
+        }
+      },
+      (newReply) {
+        if (state is CommentLoaded) {
+          final currentState = state as CommentLoaded;
+          final updatedComments = currentState.comments.map((comment) {
+            if (comment.id == event.parentId) {
+              return comment.copyWith(
+                replies: [...comment.replies, newReply],
+              );
+            }
+            return comment;
+          }).toList();
+          emit(currentState.copyWith(comments: updatedComments));
         }
       },
     );
@@ -281,11 +315,8 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     _commentSub = _realtimeService.commentStream.listen((data) {
       if (data['postId'] != postId) return;
       final event = data['event'] as String?;
-      if (event == 'insert') {
-        // 새 댓글 → 목록 새로고침
-        add(LoadComments(postId: postId));
-      } else if (event == 'delete') {
-        // 댓글 삭제 → 목록 새로고침
+      // delete 이벤트만 새로고침 (insert는 낙관적 업데이트로 이미 처리됨)
+      if (event == 'delete') {
         add(LoadComments(postId: postId));
       }
     });

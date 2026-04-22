@@ -22,10 +22,16 @@ class PostModel {
   final DateTime updatedAt;
   final bool isPrivate;
   final String? location;
+  final double? locationLat;
+  final double? locationLng;
 
   // JOIN으로 가져온 사용자 정보
   final String? authorName;
   final String? authorPhotoUrl;
+
+  // 배치 조회로 계산된 현재 유저 상태 (DB 컬럼 아님)
+  final bool isLikedByCurrentUser;
+  final bool isSavedByCurrentUser;
 
   const PostModel({
     required this.id,
@@ -43,8 +49,12 @@ class PostModel {
     required this.updatedAt,
     this.isPrivate = false,
     this.location,
+    this.locationLat,
+    this.locationLng,
     this.authorName,
     this.authorPhotoUrl,
+    this.isLikedByCurrentUser = false,
+    this.isSavedByCurrentUser = false,
   });
 
   // Supabase JSON -> Model
@@ -81,6 +91,8 @@ class PostModel {
       updatedAt: DateTime.parse(json['updated_at'] as String),
       isPrivate: json['is_private'] as bool? ?? false,
       location: json['location'] as String?,
+      locationLat: (json['location_lat'] as num?)?.toDouble(),
+      locationLng: (json['location_lng'] as num?)?.toDouble(),
       authorName: userData?['display_name'] as String?,
       authorPhotoUrl: userData?['photo_url'] as String?,
     );
@@ -103,6 +115,8 @@ class PostModel {
       'comments_count': commentsCount,
       'is_private': isPrivate,
       if (location != null) 'location': location,
+      if (locationLat != null) 'location_lat': locationLat,
+      if (locationLng != null) 'location_lng': locationLng,
       // created_at, updated_at은 Supabase에서 자동 관리
     };
   }
@@ -156,8 +170,12 @@ class PostModel {
       updatedAt: updatedAt,
       likesCount: likesCount,
       commentsCount: commentsCount,
+      isLikedByCurrentUser: isLikedByCurrentUser,
+      isSavedByCurrentUser: isSavedByCurrentUser,
       isPrivate: isPrivate,
       location: location,
+      locationLat: locationLat,
+      locationLng: locationLng,
     );
   }
 
@@ -199,8 +217,12 @@ class PostModel {
       updatedAt: post.updatedAt ?? post.createdAt,
       isPrivate: post.isPrivate,
       location: post.location,
+      locationLat: post.locationLat,
+      locationLng: post.locationLng,
       authorName: post.authorName,
       authorPhotoUrl: post.authorProfileImage,
+      isLikedByCurrentUser: post.isLikedByCurrentUser,
+      isSavedByCurrentUser: post.isSavedByCurrentUser,
     );
   }
 
@@ -220,8 +242,12 @@ class PostModel {
     DateTime? updatedAt,
     bool? isPrivate,
     String? location,
+    double? locationLat,
+    double? locationLng,
     String? authorName,
     String? authorPhotoUrl,
+    bool? isLikedByCurrentUser,
+    bool? isSavedByCurrentUser,
   }) {
     return PostModel(
       id: id ?? this.id,
@@ -239,8 +265,12 @@ class PostModel {
       updatedAt: updatedAt ?? this.updatedAt,
       isPrivate: isPrivate ?? this.isPrivate,
       location: location ?? this.location,
+      locationLat: locationLat ?? this.locationLat,
+      locationLng: locationLng ?? this.locationLng,
       authorName: authorName ?? this.authorName,
       authorPhotoUrl: authorPhotoUrl ?? this.authorPhotoUrl,
+      isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
+      isSavedByCurrentUser: isSavedByCurrentUser ?? this.isSavedByCurrentUser,
     );
   }
 }

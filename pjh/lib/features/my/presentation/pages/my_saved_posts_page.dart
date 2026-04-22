@@ -186,19 +186,30 @@ class _SavedPostCard extends StatelessWidget {
 
           // 이미지
           if (imageUrl != null)
-            ClipRRect(
-              child: Image.network(
-                imageUrl,
-                width: double.infinity,
-                height: 200.h,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 200.h,
-                  color: Colors.grey[100],
-                  child: Icon(Icons.broken_image,
-                      size: 48.w, color: Colors.grey[300]),
+            Stack(
+              children: [
+                ClipRRect(
+                  child: Image.network(
+                    imageUrl,
+                    width: double.infinity,
+                    height: 200.h,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 200.h,
+                      color: Colors.grey[100],
+                      child: Icon(Icons.broken_image,
+                          size: 48.w, color: Colors.grey[300]),
+                    ),
+                  ),
                 ),
-              ),
+                if ((post.imageUrls as List?)?.length != null &&
+                    (post.imageUrls as List).length > 1)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Icon(Icons.copy, size: 18.w, color: Colors.white),
+                  ),
+              ],
             ),
 
           // 캡션

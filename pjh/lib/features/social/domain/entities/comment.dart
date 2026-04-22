@@ -11,7 +11,7 @@ class Comment extends Equatable {
   final DateTime? updatedAt;
   final int likesCount;
   final bool isLikedByCurrentUser;
-  final String? parentCommentId;
+  final String? parentId;
   final List<Comment> replies;
 
   const Comment({
@@ -25,7 +25,7 @@ class Comment extends Equatable {
     this.updatedAt,
     this.likesCount = 0,
     this.isLikedByCurrentUser = false,
-    this.parentCommentId,
+    this.parentId,
     this.replies = const [],
   });
 
@@ -40,7 +40,7 @@ class Comment extends Equatable {
     DateTime? updatedAt,
     int? likesCount,
     bool? isLikedByCurrentUser,
-    String? parentCommentId,
+    String? parentId,
     List<Comment>? replies,
   }) {
     return Comment(
@@ -54,7 +54,7 @@ class Comment extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       likesCount: likesCount ?? this.likesCount,
       isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
-      parentCommentId: parentCommentId ?? this.parentCommentId,
+      parentId: parentId ?? this.parentId,
       replies: replies ?? this.replies,
     );
   }
@@ -71,7 +71,7 @@ class Comment extends Equatable {
         updatedAt,
         likesCount,
         isLikedByCurrentUser,
-        parentCommentId,
+        parentId,
         replies,
       ];
 }

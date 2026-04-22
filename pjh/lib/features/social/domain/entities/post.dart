@@ -22,9 +22,12 @@ class Post extends Equatable {
   final int commentsCount;
   final int sharesCount;
   final bool isLikedByCurrentUser;
+  final bool isSavedByCurrentUser;
   final bool isPublic;
   final bool isPrivate;
   final String? location;
+  final double? locationLat;
+  final double? locationLng;
 
   const Post({
     required this.id,
@@ -45,9 +48,12 @@ class Post extends Equatable {
     this.commentsCount = 0,
     this.sharesCount = 0,
     this.isLikedByCurrentUser = false,
+    this.isSavedByCurrentUser = false,
     this.isPublic = true,
     this.isPrivate = false,
     this.location,
+    this.locationLat,
+    this.locationLng,
   });
 
   Post copyWith({
@@ -67,9 +73,12 @@ class Post extends Equatable {
     int? commentsCount,
     int? sharesCount,
     bool? isLikedByCurrentUser,
+    bool? isSavedByCurrentUser,
     bool? isPublic,
     bool? isPrivate,
     String? location,
+    double? locationLat,
+    double? locationLng,
   }) {
     return Post(
       id: id ?? this.id,
@@ -88,9 +97,12 @@ class Post extends Equatable {
       commentsCount: commentsCount ?? this.commentsCount,
       sharesCount: sharesCount ?? this.sharesCount,
       isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
+      isSavedByCurrentUser: isSavedByCurrentUser ?? this.isSavedByCurrentUser,
       isPublic: isPublic ?? this.isPublic,
       isPrivate: isPrivate ?? this.isPrivate,
       location: location ?? this.location,
+      locationLat: locationLat ?? this.locationLat,
+      locationLng: locationLng ?? this.locationLng,
     );
   }
 
@@ -112,8 +124,11 @@ class Post extends Equatable {
         commentsCount,
         sharesCount,
         isLikedByCurrentUser,
+        isSavedByCurrentUser,
         isPublic,
         isPrivate,
         location,
+        locationLat,
+        locationLng,
       ];
 }

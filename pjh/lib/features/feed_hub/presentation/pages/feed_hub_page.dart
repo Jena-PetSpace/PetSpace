@@ -11,6 +11,8 @@ import '../../../social/presentation/pages/feed_page.dart';
 import '../widgets/community_post_card.dart';
 import 'create_community_post_page.dart';
 
+enum _FeedMode { photo, qna }
+
 class FeedHubPage extends StatefulWidget {
   final int initialTab;
   final String? initialCategory;
@@ -21,18 +23,19 @@ class FeedHubPage extends StatefulWidget {
 }
 
 class _FeedHubPageState extends State<FeedHubPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+    with TickerProviderStateMixin {
+  late TabController _photoTabController;
+  late TabController _qnaTabController;
   final _supabase = Supabase.instance.client;
 
-  // 커뮤니티 탭 상태
-  int _selectedCategory = 0;
+  _FeedMode _mode = _FeedMode.photo;
+
+  int _selectedQnaCategory = 0;
   List<Map<String, dynamic>> _communityPosts = [];
   bool _communityLoading = true;
 
-  static const _categories = [
+  static const List<Map<String, String?>> _qnaCategories = [
     {'label': '전체', 'value': null},
-    {'label': 'Q&A', 'value': 'qa'},
     {'label': '건강', 'value': 'health'},
     {'label': '훈련', 'value': 'training'},
     {'label': '먹거리', 'value': 'food'},
@@ -42,36 +45,35 @@ class _FeedHubPageState extends State<FeedHubPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-      length: 3,
-      vsync: this,
-      initialIndex: widget.initialTab,
-    );
-    _tabController.addListener(() {
-      if (_tabController.index == 2 && _communityPosts.isEmpty) {
-        _loadCommunityPosts();
-      }
-    });
+    _photoTabController = TabController(length: 2, vsync: this);
+    _qnaTabController = TabController(length: 5, vsync: this);
 
-    // initialCategory가 있으면 해당 카테고리를 선택
-    if (widget.initialCategory != null) {
-      for (int i = 0; i < _categories.length; i++) {
-        if (_categories[i]['value'] == widget.initialCategory) {
-          _selectedCategory = i;
-          break;
+    if (widget.initialTab >= 2) {
+      _mode = _FeedMode.qna;
+      if (widget.initialCategory != null) {
+        for (int i = 0; i < _qnaCategories.length; i++) {
+          if (_qnaCategories[i]['value'] == widget.initialCategory) {
+            _selectedQnaCategory = i;
+            _qnaTabController.index = i;
+            break;
+          }
         }
       }
+      _loadCommunityPosts(category: _qnaCategories[_selectedQnaCategory]['value']);
     }
 
-    if (widget.initialTab == 2) {
-      final cat = _categories[_selectedCategory]['value'];
-      _loadCommunityPosts(category: cat);
-    }
+    _qnaTabController.addListener(() {
+      if (!_qnaTabController.indexIsChanging) {
+        setState(() => _selectedQnaCategory = _qnaTabController.index);
+        _loadCommunityPosts(category: _qnaCategories[_qnaTabController.index]['value']);
+      }
+    });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _photoTabController.dispose();
+    _qnaTabController.dispose();
     super.dispose();
   }
 
@@ -83,17 +85,13 @@ class _FeedHubPageState extends State<FeedHubPage>
           .select(
               'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
           .isFilter('deleted_at', null)
-          // 매거진 태그가 있는 글은 커뮤니티 탭에서 항상 제외
           .not('hashtags', 'cs', '{"magazine"}');
 
       if (category != null) {
-        // 특정 카테고리: 해당 태그가 반드시 포함된 글만
         query = query.contains('hashtags', [category]);
       }
-      // 전체: 매거진 제외된 모든 글 표시 (community 태그 강제 안함)
 
-      final response =
-          await query.order('created_at', ascending: false).limit(30);
+      final response = await query.order('created_at', ascending: false).limit(30);
       setState(() {
         _communityPosts = List<Map<String, dynamic>>.from(response);
         _communityLoading = false;
@@ -104,210 +102,272 @@ class _FeedHubPageState extends State<FeedHubPage>
     }
   }
 
+  void _switchMode(_FeedMode mode) {
+    if (_mode == mode) return;
+    setState(() => _mode = mode);
+    if (mode == _FeedMode.qna && _communityPosts.isEmpty) {
+      _loadCommunityPosts(category: _qnaCategories[_selectedQnaCategory]['value']);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '피드',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryTextColor,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_rounded),
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => DraggableScrollableSheet(
-                initialChildSize: 0.7,
-                builder: (ctx, ctrl) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  child: const ChannelSubscriptionPage(),
-                ),
-              ),
+      backgroundColor: AppTheme.subtleBackground,
+      appBar: _buildAppBar(),
+      body: Column(
+        children: [
+          // 세그먼트 + 탭바 헤더
+          _buildHeader(),
+          // 본문
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: _mode == _FeedMode.photo
+                  ? _buildPhotoBody()
+                  : _buildQnaBody(),
             ),
-            tooltip: '채널 구독',
-          ),
-          IconButton(
-            icon: SvgPicture.asset('assets/svg/icon_search.svg', width: 24, height: 24, colorFilter: const ColorFilter.mode(Colors.black87, BlendMode.srcIn)),
-            onPressed: () => context.push('/search'),
-            tooltip: '검색',
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(68.h),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 9.h),
+      ),
+      floatingActionButton: _buildFab(),
+    );
+  }
+
+  AppBar _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      title: Text(
+        '피드',
+        style: TextStyle(
+          fontSize: 18.sp,
+          fontWeight: FontWeight.bold,
+          color: AppTheme.primaryTextColor,
+        ),
+      ),
+      centerTitle: true,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.tune_rounded, color: AppTheme.primaryTextColor),
+          onPressed: () => showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              builder: (ctx, ctrl) => Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: const ChannelSubscriptionPage(),
+              ),
+            ),
+          ),
+          tooltip: '채널 구독',
+        ),
+        IconButton(
+          icon: SvgPicture.asset(
+            'assets/svg/icon_search.svg',
+            width: 22,
+            height: 22,
+            colorFilter: const ColorFilter.mode(AppTheme.primaryTextColor, BlendMode.srcIn),
+          ),
+          onPressed: () => context.push('/search'),
+          tooltip: '검색',
+        ),
+        SizedBox(width: 4.w),
+      ],
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      color: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 세그먼트
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
             child: Container(
+              height: 40.h,
               decoration: BoxDecoration(
                 color: AppTheme.subtleBackground,
-                borderRadius: BorderRadius.circular(30.r),
+                borderRadius: BorderRadius.circular(20.r),
               ),
               padding: EdgeInsets.all(3.w),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: Colors.white,
-                unselectedLabelColor: AppTheme.secondaryTextColor,
-                labelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700),
-                unselectedLabelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w500),
-                indicator: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(26.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: '추천'),
-                  Tab(text: '팔로잉'),
-                  Tab(text: '커뮤니티'),
+              child: Row(
+                children: [
+                  _segmentBtn(
+                    icon: Icons.photo_camera_rounded,
+                    label: '사진',
+                    active: _mode == _FeedMode.photo,
+                    onTap: () => _switchMode(_FeedMode.photo),
+                  ),
+                  _segmentBtn(
+                    icon: Icons.forum_rounded,
+                    label: 'Q&A',
+                    active: _mode == _FeedMode.qna,
+                    onTap: () => _switchMode(_FeedMode.qna),
+                  ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildFeedTab(),
-          _buildFollowingTab(),
-          _buildCommunityTab(),
+          // 탭바
+          if (_mode == _FeedMode.photo)
+            _buildPhotoTabBar()
+          else
+            _buildQnaTabBar(),
+          const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
         ],
-      ),
-      floatingActionButton: AnimatedBuilder(
-        animation: _tabController,
-        builder: (context, _) {
-          if (_tabController.index != 2) return const SizedBox.shrink();
-          return FloatingActionButton(
-            onPressed: () async {
-              final created = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                    builder: (_) => const CreateCommunityPostPage()),
-              );
-              if (created == true) {
-                final cat = _categories[_selectedCategory]['value'];
-                _loadCommunityPosts(category: cat);
-              }
-            },
-            backgroundColor: AppTheme.primaryColor,
-            child: const Icon(Icons.edit, color: Colors.white),
-          );
-        },
       ),
     );
   }
 
-  Widget _buildFeedTab() {
-    return const FeedPage();
-  }
-
-  Widget _buildFollowingTab() {
-    return const FeedPage(followingOnly: true);
-  }
-
-  Widget _buildCommunityTab() {
-    return Column(
-      children: [
-        // 카테고리 버튼
-        Container(
-          height: 48.h,
-          padding: EdgeInsets.symmetric(vertical: 8.h),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            itemCount: _categories.length,
-            separatorBuilder: (_, __) => SizedBox(width: 8.w),
-            itemBuilder: (context, index) {
-              final isSelected = _selectedCategory == index;
-              return GestureDetector(
-                onTap: () {
-                  setState(() => _selectedCategory = index);
-                  final cat = _categories[index]['value'];
-                  _loadCommunityPosts(category: cat);
-                },
-                child: Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppTheme.primaryColor : Colors.white,
-                    borderRadius: BorderRadius.circular(20.r),
-                    border: isSelected
-                        ? null
-                        : Border.all(color: AppTheme.dividerColor),
-                  ),
-                  child: Text(
-                    _categories[index]['label'] as String,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color: isSelected
-                          ? Colors.white
-                          : AppTheme.secondaryTextColor,
-                    ),
-                  ),
+  Widget _segmentBtn({
+    required IconData icon,
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            color: active ? AppTheme.primaryColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(17.r),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 15.w,
+                color: active ? Colors.white : AppTheme.secondaryTextColor,
+              ),
+              SizedBox(width: 5.w),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: active ? Colors.white : AppTheme.secondaryTextColor,
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
 
-        // 게시글 리스트
-        Expanded(
-          child: _communityLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _communityPosts.isEmpty
-                  ? _buildEmpty()
-                  : RefreshIndicator(
-                      onRefresh: () async {
-                        final cat = _categories[_selectedCategory]['value'];
-                        await _loadCommunityPosts(category: cat);
-                      },
-                      child: ListView.builder(
-                        padding: EdgeInsets.all(16.w),
-                        itemCount: _communityPosts.length,
-                        itemBuilder: (context, index) {
-                          final post = _communityPosts[index];
-                          final user = post['users'] as Map<String, dynamic>?;
-                          final hashtags =
-                              List<String>.from(post['hashtags'] ?? []);
-                          final displayName =
-                              user?['display_name'] as String? ?? '익명';
-                          return GestureDetector(
-                            onTap: () => context.push('/post/${post['id']}'),
-                            child: CommunityPostCard(
-                              authorName: displayName,
-                              category: _categoryFromHashtags(hashtags),
-                              title: '',
-                              content: post['caption'] as String? ?? '',
-                              likes: post['likes_count'] as int? ?? 0,
-                              comments: post['comments_count'] as int? ?? 0,
-                              timeAgo:
-                                  _timeAgo(post['created_at'] as String? ?? ''),
-                              isAdmin: displayName == '관리자',
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-        ),
+  Widget _buildPhotoTabBar() {
+    return SizedBox(
+      height: 42.h,
+      child: TabBar(
+        controller: _photoTabController,
+        labelColor: AppTheme.primaryColor,
+        unselectedLabelColor: AppTheme.secondaryTextColor,
+        labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
+        indicatorColor: AppTheme.primaryColor,
+        indicatorWeight: 2.5,
+        indicatorSize: TabBarIndicatorSize.label,
+        dividerColor: Colors.transparent,
+        tabs: const [Tab(text: '추천'), Tab(text: '팔로잉')],
+      ),
+    );
+  }
+
+  Widget _buildQnaTabBar() {
+    return SizedBox(
+      height: 42.h,
+      child: TabBar(
+        controller: _qnaTabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        labelColor: AppTheme.primaryColor,
+        unselectedLabelColor: AppTheme.secondaryTextColor,
+        labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
+        indicatorColor: AppTheme.primaryColor,
+        indicatorWeight: 2.5,
+        indicatorSize: TabBarIndicatorSize.label,
+        dividerColor: Colors.transparent,
+        tabs: const [
+          Tab(text: '전체'),
+          Tab(text: '건강'),
+          Tab(text: '훈련'),
+          Tab(text: '먹거리'),
+          Tab(text: '생활'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoBody() {
+    return TabBarView(
+      key: const ValueKey('photo'),
+      controller: _photoTabController,
+      children: const [
+        FeedPage(),
+        FeedPage(followingOnly: true),
       ],
+    );
+  }
+
+  Widget _buildQnaBody() {
+    return KeyedSubtree(
+      key: const ValueKey('qna'),
+      child: _communityLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _communityPosts.isEmpty
+              ? _buildEmpty()
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    final cat = _qnaCategories[_selectedQnaCategory]['value'];
+                    await _loadCommunityPosts(category: cat);
+                  },
+                  child: ListView.builder(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    itemCount: _communityPosts.length,
+                    itemBuilder: (context, index) {
+                      final post = _communityPosts[index];
+                      final user = post['users'] as Map<String, dynamic>?;
+                      final hashtags = List<String>.from(post['hashtags'] ?? []);
+                      final displayName = user?['display_name'] as String? ?? '익명';
+                      return GestureDetector(
+                        onTap: () => context.push('/post/${post['id']}'),
+                        child: CommunityPostCard(
+                          authorName: displayName,
+                          category: _categoryFromHashtags(hashtags),
+                          title: '',
+                          content: post['caption'] as String? ?? '',
+                          likes: post['likes_count'] as int? ?? 0,
+                          comments: post['comments_count'] as int? ?? 0,
+                          timeAgo: _timeAgo(post['created_at'] as String? ?? ''),
+                          isAdmin: displayName == '관리자',
+                        ),
+                      );
+                    },
+                  ),
+                ),
     );
   }
 
@@ -316,16 +376,44 @@ class _FeedHubPageState extends State<FeedHubPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.forum_outlined, size: 64.w, color: Colors.grey[300]),
+          Icon(Icons.forum_outlined, size: 56.w, color: Colors.grey[300]),
           SizedBox(height: 16.h),
           Text('게시글이 없습니다',
-              style: TextStyle(fontSize: 16.sp, color: Colors.grey[500])),
-          SizedBox(height: 8.h),
+              style: TextStyle(fontSize: 15.sp, color: Colors.grey[500])),
+          SizedBox(height: 6.h),
           Text('첫 번째 글을 작성해보세요',
               style: TextStyle(fontSize: 13.sp, color: Colors.grey[400])),
         ],
       ),
     );
+  }
+
+  Widget _buildFab() {
+    final isPhoto = _mode == _FeedMode.photo;
+    return FloatingActionButton(
+      onPressed: () => _onFabPressed(context),
+      backgroundColor: isPhoto ? AppTheme.primaryColor : Colors.amber[700],
+      elevation: 3,
+      child: Icon(
+        isPhoto ? Icons.camera_alt_rounded : Icons.edit_rounded,
+        color: Colors.white,
+        size: 24.w,
+      ),
+    );
+  }
+
+  Future<void> _onFabPressed(BuildContext context) async {
+    if (_mode == _FeedMode.photo) {
+      context.push('/create-post');
+    } else {
+      final created = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => const CreateCommunityPostPage()),
+      );
+      if (created == true && mounted) {
+        final cat = _qnaCategories[_selectedQnaCategory]['value'];
+        _loadCommunityPosts(category: cat);
+      }
+    }
   }
 
   String _categoryFromHashtags(List<String> hashtags) {

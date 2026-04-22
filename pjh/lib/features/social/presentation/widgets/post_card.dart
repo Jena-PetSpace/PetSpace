@@ -3,6 +3,7 @@ import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
@@ -43,27 +44,21 @@ class _PostCardState extends State<PostCard> {
   Timer? _likeDebounce;
   Timer? _commentDebounce;
   bool _isSaved = false;
+  bool _showHeart = false;
 
   Post get post => widget.post;
 
   @override
   void initState() {
     super.initState();
-    _checkSaved();
+    _isSaved = widget.post.isSavedByCurrentUser;
   }
 
-  Future<void> _checkSaved() async {
-    if (widget.currentUserId.isEmpty) return;
-    try {
-      final res = await Supabase.instance.client
-          .from('saved_posts')
-          .select('post_id')
-          .eq('post_id', post.id)
-          .eq('user_id', widget.currentUserId)
-          .maybeSingle();
-      if (mounted) setState(() => _isSaved = res != null);
-    } catch (e) {
-      dev.log('북마크 확인 실패: $e', name: 'PostCard');
+  @override
+  void didUpdateWidget(PostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.isSavedByCurrentUser != widget.post.isSavedByCurrentUser) {
+      setState(() => _isSaved = widget.post.isSavedByCurrentUser);
     }
   }
 
@@ -112,13 +107,25 @@ class _PostCardState extends State<PostCard> {
   Widget build(BuildContext context) {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context),
-          if (post.content != null) _buildContent(),
+          // 캡션 탭 → 게시글 상세
+          if (post.content != null && post.content!.isNotEmpty)
+            InkWell(
+              onTap: () => context.push('/post/${post.id}'),
+              child: _buildContent(),
+            ),
+          // 이미지: 기존 탭/더블탭 동작 유지
           if (post.imageUrls.isNotEmpty) _buildImages(),
-          if (post.emotionAnalysis != null) _buildEmotionAnalysis(),
+          // 감정분석 카드 탭 → 게시글 상세
+          if (post.emotionAnalysis != null)
+            InkWell(
+              onTap: () => context.push('/post/${post.id}'),
+              child: _buildEmotionAnalysis(),
+            ),
           _buildActions(),
         ],
       ),
@@ -130,44 +137,63 @@ class _PostCardState extends State<PostCard> {
       padding: EdgeInsets.all(16.w),
       child: Row(
         children: [
-          Semantics(
-            label: '${post.authorName} 프로필 사진',
-            image: true,
-            child: CircleAvatar(
-              radius: 20.r,
-              backgroundImage: post.authorProfileImage != null
-                  ? CachedNetworkImageProvider(post.authorProfileImage!)
-                  : null,
-              child: post.authorProfileImage == null
-                  ? Text(post.authorName.isNotEmpty ? post.authorName[0] : '?',
-                      style: TextStyle(fontSize: 14.sp))
-                  : null,
-            ),
-          ),
-          SizedBox(width: 12.w),
+          // 프로필 영역(아바타+이름+시간) 전체를 하나의 InkWell로 묶어 프로필 이동
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  post.authorName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
+            child: InkWell(
+              onTap: () => context.push('/profile/${post.authorId}'),
+              borderRadius: BorderRadius.circular(8.r),
+              child: Row(
+                children: [
+                  Semantics(
+                    label: '${post.authorName} 프로필 사진',
+                    image: true,
+                    child: CircleAvatar(
+                      radius: 20.r,
+                      backgroundImage: post.authorProfileImage != null
+                          ? CachedNetworkImageProvider(post.authorProfileImage!)
+                          : null,
+                      child: post.authorProfileImage == null
+                          ? Text(
+                              post.authorName.isNotEmpty ? post.authorName[0] : '?',
+                              style: TextStyle(fontSize: 14.sp))
+                          : null,
+                    ),
                   ),
-                ),
-                Text(
-                  _formatDateTime(post.createdAt),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                    fontSize: 12.sp,
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(children: [
+                          Flexible(
+                            child: Text(
+                              post.authorName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 6.w),
+                          _buildTypeBadge(),
+                        ]),
+                        Text(
+                          _formatDateTime(post.createdAt),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                            fontSize: 12.sp,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           IconButton(
@@ -223,6 +249,7 @@ class _PostCardState extends State<PostCard> {
             final hashtag = segment['hashtag'] as String;
             return WidgetSpan(
               child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () {
                   if (widget.onHashtagTap != null) {
                     widget.onHashtagTap!(hashtag);
@@ -250,6 +277,7 @@ class _PostCardState extends State<PostCard> {
 
   Widget _buildHashtagChip(String tag) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         if (widget.onHashtagTap != null) {
           widget.onHashtagTap!(tag);
@@ -279,94 +307,157 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
+  void _onDoubleTapImage() {
+    if (!post.isLikedByCurrentUser) {
+      widget.onLike();
+    }
+    setState(() => _showHeart = true);
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() => _showHeart = false);
+    });
+  }
+
   Widget _buildImages() {
     if (post.imageUrls.length == 1) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 8.h),
         child: GestureDetector(
           onTap: () => _openViewer(context, 0),
-          child: CachedNetworkImage(
-            imageUrl: post.imageUrls.first,
-            width: double.infinity,
-            height: 300.h,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              height: 300.h,
-              color: Colors.grey[200],
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              height: 300.h,
-              color: Colors.grey[200],
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error, color: Colors.red, size: 24.w),
-                  SizedBox(height: 8.h),
-                  Text('이미지 로드 실패',
-                      style:
-                          TextStyle(color: Colors.grey[600], fontSize: 14.sp)),
-                ],
+          onDoubleTap: _onDoubleTapImage,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CachedNetworkImage(
+                imageUrl: post.imageUrls.first,
+                width: double.infinity,
+                height: 300.h,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  height: 300.h,
+                  color: Colors.grey[200],
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: 300.h,
+                  color: Colors.grey[200],
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error, color: Colors.red, size: 24.w),
+                      SizedBox(height: 8.h),
+                      Text('이미지 로드 실패',
+                          style: TextStyle(
+                              color: Colors.grey[600], fontSize: 14.sp)),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              if (_showHeart)
+                _DoubleTapHeart(size: 80.w),
+            ],
           ),
         ),
       );
     }
 
     // Multi-image: PageView with dots indicator + 탭으로 전체화면 뷰어
-    return Column(
-      children: [
-        SizedBox(
-          height: 300.h,
-          child: PageView.builder(
-            itemCount: post.imageUrls.length,
-            onPageChanged: (index) {
-              setState(() => _currentImageIndex = index);
-            },
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () => _openViewer(context, index),
-                child: CachedNetworkImage(
-                  imageUrl: post.imageUrls[index],
-                  width: double.infinity,
-                  height: 300.h,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    height: 300.h,
-                    color: Colors.grey[200],
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 300.h,
-                    color: Colors.grey[200],
-                    child: Icon(Icons.error, color: Colors.red, size: 24.w),
-                  ),
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 300.h,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PageView.builder(
+                  itemCount: post.imageUrls.length,
+                  onPageChanged: (index) {
+                    setState(() => _currentImageIndex = index);
+                  },
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () => _openViewer(context, index),
+                      onDoubleTap: _onDoubleTapImage,
+                      child: CachedNetworkImage(
+                        imageUrl: post.imageUrls[index],
+                        width: double.infinity,
+                        height: 300.h,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          height: 300.h,
+                          color: Colors.grey[200],
+                          child:
+                              const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          height: 300.h,
+                          color: Colors.grey[200],
+                          child: Icon(Icons.error,
+                              color: Colors.red, size: 24.w),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                if (_showHeart) _DoubleTapHeart(size: 80.w),
+              ],
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(post.imageUrls.length, (index) {
+              return Container(
+                width: _currentImageIndex == index ? 8.w : 6.w,
+                height: _currentImageIndex == index ? 8.w : 6.w,
+                margin: EdgeInsets.symmetric(horizontal: 3.w),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _currentImageIndex == index
+                      ? AppTheme.primaryColor
+                      : Colors.grey[300],
                 ),
               );
-            },
+            }),
           ),
-        ),
-        SizedBox(height: 8.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(post.imageUrls.length, (index) {
-            return Container(
-              width: _currentImageIndex == index ? 8.w : 6.w,
-              height: _currentImageIndex == index ? 8.w : 6.w,
-              margin: EdgeInsets.symmetric(horizontal: 3.w),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _currentImageIndex == index
-                    ? AppTheme.primaryColor
-                    : Colors.grey[300],
-              ),
-            );
-          }),
-        ),
-        SizedBox(height: 4.h),
-      ],
+        ],
+      ),
     );
+  }
+
+  Widget _buildTypeBadge() {
+    switch (post.type) {
+      case PostType.emotionAnalysis:
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4.r),
+          ),
+          child: Text('감정분석',
+              style: TextStyle(
+                  fontSize: 10.sp,
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.w600)),
+        );
+      case PostType.text:
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+          decoration: BoxDecoration(
+            color: Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(4.r),
+          ),
+          child: Text('커뮤니티',
+              style: TextStyle(
+                  fontSize: 10.sp,
+                  color: Colors.orange[700],
+                  fontWeight: FontWeight.w600)),
+        );
+      case PostType.image:
+      case PostType.video:
+        return const SizedBox.shrink();
+    }
   }
 
   void _openViewer(BuildContext context, int initialIndex) {
@@ -795,5 +886,60 @@ class _PostCardState extends State<PostCard> {
       case 'sleepiness': return Icons.bedtime; // 하위 호환
       default:           return Icons.help_outline;
     }
+  }
+}
+
+// ─── 더블탭 하트 애니메이션 ─────────────────────────────────────────────────────
+class _DoubleTapHeart extends StatefulWidget {
+  final double size;
+  const _DoubleTapHeart({required this.size});
+
+  @override
+  State<_DoubleTapHeart> createState() => _DoubleTapHeartState();
+}
+
+class _DoubleTapHeartState extends State<_DoubleTapHeart>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _scale = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.3), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 30),
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _opacity = TweenSequence([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 40),
+    ]).animate(_controller);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, __) => Opacity(
+        opacity: _opacity.value,
+        child: Transform.scale(
+          scale: _scale.value,
+          child: Icon(Icons.favorite, color: Colors.white, size: widget.size),
+        ),
+      ),
+    );
   }
 }

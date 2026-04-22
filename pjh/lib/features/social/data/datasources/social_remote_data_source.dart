@@ -478,9 +478,33 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       final response =
           await query.order('created_at', ascending: false).limit(limit);
 
-      final posts = (response as List)
-          .map((json) => PostModel.fromJson(json).toEntity())
+      final rawPosts = (response as List)
+          .map((json) => PostModel.fromJson(json))
           .toList();
+
+      if (rawPosts.isEmpty) return [];
+
+      final postIds = rawPosts.map((p) => p.id).toList();
+
+      // 배치 좋아요/저장 상태 조회
+      final likedRes = await supabaseClient
+          .from('likes')
+          .select('post_id')
+          .eq('user_id', userId)
+          .inFilter('post_id', postIds);
+      final savedRes = await supabaseClient
+          .from('saved_posts')
+          .select('post_id')
+          .eq('user_id', userId)
+          .inFilter('post_id', postIds);
+
+      final likedSet = {for (final r in likedRes as List) r['post_id'] as String};
+      final savedSet = {for (final r in savedRes as List) r['post_id'] as String};
+
+      final posts = rawPosts.map((m) => m.copyWith(
+        isLikedByCurrentUser: likedSet.contains(m.id),
+        isSavedByCurrentUser: savedSet.contains(m.id),
+      ).toEntity()).toList();
 
       _logger.debug('Found ${posts.length} posts for user',
           tag: 'SocialDataSource');
@@ -554,12 +578,36 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       final response =
           await query.order('created_at', ascending: false).limit(limit);
-      _logger.debug('Fetched ${response.length} feed posts',
+      _logger.debug('Fetched ${(response as List).length} feed posts',
           tag: 'SocialDataSource');
 
-      return (response as List)
-          .map((json) => PostModel.fromJson(json).toEntity())
+      final rawPosts = (response as List)
+          .map((json) => PostModel.fromJson(json))
           .toList();
+
+      if (rawPosts.isEmpty) return [];
+
+      final postIds = rawPosts.map((p) => p.id).toList();
+
+      // 배치 좋아요/저장 상태 조회
+      final likedRes = await supabaseClient
+          .from('likes')
+          .select('post_id')
+          .eq('user_id', userId)
+          .inFilter('post_id', postIds);
+      final savedRes = await supabaseClient
+          .from('saved_posts')
+          .select('post_id')
+          .eq('user_id', userId)
+          .inFilter('post_id', postIds);
+
+      final likedSet = {for (final r in likedRes as List) r['post_id'] as String};
+      final savedSet = {for (final r in savedRes as List) r['post_id'] as String};
+
+      return rawPosts.map((m) => m.copyWith(
+        isLikedByCurrentUser: likedSet.contains(m.id),
+        isSavedByCurrentUser: savedSet.contains(m.id),
+      ).toEntity()).toList();
     } catch (e, stackTrace) {
       _logger.error('Failed to fetch feed posts',
           error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
@@ -662,14 +710,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     try {
       _logger.debug('Liking post: $postId by $userId', tag: 'SocialDataSource');
 
-      // likes 테이블에 좋아요 추가
-      await supabaseClient.from('likes').insert({
+      await supabaseClient.from('likes').upsert({
         'post_id': postId,
         'user_id': userId,
         'created_at': DateTime.now().toIso8601String(),
-      });
+      }, onConflict: 'user_id,post_id', ignoreDuplicates: true);
 
-      // posts 테이블의 likes_count 증가
       await supabaseClient
           .rpc('increment_post_likes', params: {'post_id': postId});
 
@@ -688,16 +734,17 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _logger.debug('Unliking post: $postId by $userId',
           tag: 'SocialDataSource');
 
-      // likes 테이블에서 좋아요 제거
-      await supabaseClient
+      final deleted = await supabaseClient
           .from('likes')
           .delete()
           .eq('post_id', postId)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .select();
 
-      // posts 테이블의 likes_count 감소
-      await supabaseClient
-          .rpc('decrement_post_likes', params: {'post_id': postId});
+      if (deleted.isNotEmpty) {
+        await supabaseClient
+            .rpc('decrement_post_likes', params: {'post_id': postId});
+      }
 
       _logger.debug('Successfully unliked post: $postId',
           tag: 'SocialDataSource');
@@ -764,13 +811,18 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       final commentModel = CommentModel.fromEntity(comment);
 
       // Supabase에 댓글 생성
-      final response = await supabaseClient.from('comments').insert({
+      final insertData = <String, dynamic>{
         'id': commentModel.id,
         'post_id': commentModel.postId,
         'author_id': commentModel.authorId,
         'content': commentModel.content,
         'created_at': commentModel.createdAt.toIso8601String(),
-      }).select('''
+      };
+      if (commentModel.parentId != null) {
+        insertData['parent_id'] = commentModel.parentId;
+      }
+
+      final response = await supabaseClient.from('comments').insert(insertData).select('''
             *,
             users!comments_author_id_fkey(id, display_name, photo_url)
           ''').single();
@@ -826,10 +878,9 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       var queryBuilder = supabaseClient.from('comments').select('''
             *,
             users!comments_author_id_fkey(id, display_name, photo_url)
-          ''').eq('post_id', postId);
+          ''').eq('post_id', postId).isFilter('parent_id', null);
 
       if (lastCommentId != null) {
-        // 페이지네이션 구현
         final lastComment = await supabaseClient
             .from('comments')
             .select('created_at')
@@ -845,13 +896,28 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _logger.debug('Fetched ${response.length} comments',
           tag: 'SocialDataSource');
 
-      final comments = (response as List)
-          .map((json) => CommentModel.fromJson({
-                ...json,
-                'author_name': json['users']['display_name'],
-                'author_profile_image': json['users']['photo_url'],
-              }).toEntity())
-          .toList();
+      // 각 top-level 댓글의 대댓글 로드
+      final comments = await Future.wait((response as List).map((json) async {
+        final commentId = json['id'] as String;
+        final repliesRes = await supabaseClient.from('comments').select('''
+              *,
+              users!comments_author_id_fkey(id, display_name, photo_url)
+            ''').eq('parent_id', commentId)
+            .order('created_at', ascending: true);
+
+        final replies = (repliesRes as List).map((r) => CommentModel.fromJson({
+              ...r,
+              'author_name': r['users']['display_name'],
+              'author_profile_image': r['users']['photo_url'],
+            }).toEntity()).toList();
+
+        return CommentModel.fromJson({
+          ...json,
+          'author_name': json['users']['display_name'],
+          'author_profile_image': json['users']['photo_url'],
+          'replies': const [],
+        }).toEntity().copyWith(replies: replies);
+      }));
 
       return comments;
     } catch (e, stackTrace) {
