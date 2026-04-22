@@ -3,6 +3,7 @@ import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
@@ -106,13 +107,25 @@ class _PostCardState extends State<PostCard> {
   Widget build(BuildContext context) {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context),
-          if (post.content != null) _buildContent(),
+          // 캡션 탭 → 게시글 상세
+          if (post.content != null && post.content!.isNotEmpty)
+            InkWell(
+              onTap: () => context.push('/post/${post.id}'),
+              child: _buildContent(),
+            ),
+          // 이미지: 기존 탭/더블탭 동작 유지
           if (post.imageUrls.isNotEmpty) _buildImages(),
-          if (post.emotionAnalysis != null) _buildEmotionAnalysis(),
+          // 감정분석 카드 탭 → 게시글 상세
+          if (post.emotionAnalysis != null)
+            InkWell(
+              onTap: () => context.push('/post/${post.id}'),
+              child: _buildEmotionAnalysis(),
+            ),
           _buildActions(),
         ],
       ),
@@ -124,44 +137,57 @@ class _PostCardState extends State<PostCard> {
       padding: EdgeInsets.all(16.w),
       child: Row(
         children: [
-          Semantics(
-            label: '${post.authorName} 프로필 사진',
-            image: true,
-            child: CircleAvatar(
-              radius: 20.r,
-              backgroundImage: post.authorProfileImage != null
-                  ? CachedNetworkImageProvider(post.authorProfileImage!)
-                  : null,
-              child: post.authorProfileImage == null
-                  ? Text(post.authorName.isNotEmpty ? post.authorName[0] : '?',
-                      style: TextStyle(fontSize: 14.sp))
-                  : null,
-            ),
-          ),
-          SizedBox(width: 12.w),
+          // 프로필 영역(아바타+이름+시간) 전체를 하나의 InkWell로 묶어 프로필 이동
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Text(
-                    post.authorName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14.sp,
+            child: InkWell(
+              onTap: () => context.push('/profile/${post.authorId}'),
+              borderRadius: BorderRadius.circular(8.r),
+              child: Row(
+                children: [
+                  Semantics(
+                    label: '${post.authorName} 프로필 사진',
+                    image: true,
+                    child: CircleAvatar(
+                      radius: 20.r,
+                      backgroundImage: post.authorProfileImage != null
+                          ? CachedNetworkImageProvider(post.authorProfileImage!)
+                          : null,
+                      child: post.authorProfileImage == null
+                          ? Text(
+                              post.authorName.isNotEmpty ? post.authorName[0] : '?',
+                              style: TextStyle(fontSize: 14.sp))
+                          : null,
                     ),
                   ),
-                  SizedBox(width: 6.w),
-                  _buildTypeBadge(),
-                ]),
-                Text(
-                  _formatDateTime(post.createdAt),
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                    fontSize: 12.sp,
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(children: [
+                          Text(
+                            post.authorName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                          SizedBox(width: 6.w),
+                          _buildTypeBadge(),
+                        ]),
+                        Text(
+                          _formatDateTime(post.createdAt),
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                            fontSize: 12.sp,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           IconButton(
@@ -217,6 +243,7 @@ class _PostCardState extends State<PostCard> {
             final hashtag = segment['hashtag'] as String;
             return WidgetSpan(
               child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () {
                   if (widget.onHashtagTap != null) {
                     widget.onHashtagTap!(hashtag);
@@ -244,6 +271,7 @@ class _PostCardState extends State<PostCard> {
 
   Widget _buildHashtagChip(String tag) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         if (widget.onHashtagTap != null) {
           widget.onHashtagTap!(tag);
