@@ -16,9 +16,12 @@ import 'package:meong_nyang_diary/features/social/domain/usecases/unsave_post.da
 import 'package:meong_nyang_diary/features/social/domain/usecases/get_saved_posts.dart';
 import 'package:meong_nyang_diary/features/social/presentation/bloc/feed_bloc.dart';
 import 'package:meong_nyang_diary/core/services/realtime_service.dart';
+import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
 
 // Mocks
 class MockGetFeed extends Mock implements GetFeed {}
+
+class MockSocialRepository extends Mock implements SocialRepository {}
 
 class MockCreatePost extends Mock implements CreatePost {}
 
@@ -84,6 +87,7 @@ FeedBloc _buildBloc({
     savePost: savePost ?? MockSavePost(),
     unsavePost: unsavePost ?? MockUnsavePost(),
     getSavedPosts: getSavedPosts ?? MockGetSavedPosts(),
+    socialRepository: MockSocialRepository(),
     realtimeService: realtimeService ?? MockRealtimeService(),
   );
 }

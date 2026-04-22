@@ -12,15 +12,18 @@ import '../widgets/edit_post_bottom_sheet.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../../shared/widgets/network_error_widget.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
+import '../widgets/trending_hashtags_section.dart';
 
 class FeedPage extends StatefulWidget {
   final String? userId;
   final bool followingOnly;
+  final bool recommended;
 
   const FeedPage({
     super.key,
     this.userId,
     this.followingOnly = false,
+    this.recommended = false,
   });
 
   @override
@@ -43,8 +46,16 @@ class _FeedPageState extends State<FeedPage> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    context.read<FeedBloc>().add(LoadFeedRequested(
-        userId: _effectiveUserId, followingOnly: widget.followingOnly));
+    if (widget.recommended) {
+      final uid = _effectiveUserId;
+      if (uid != null) {
+        context.read<FeedBloc>().add(
+            LoadRecommendedPostsRequested(userId: uid));
+      }
+    } else {
+      context.read<FeedBloc>().add(LoadFeedRequested(
+          userId: _effectiveUserId, followingOnly: widget.followingOnly));
+    }
   }
 
   @override
@@ -100,6 +111,17 @@ class _FeedPageState extends State<FeedPage> {
       builder: (context, state) {
         if (state is FeedLoading) {
           return const FeedShimmerLoading();
+        } else if (state is FeedRecommendedLoaded) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              final uid = _effectiveUserId;
+              if (uid != null) {
+                context.read<FeedBloc>().add(
+                    LoadRecommendedPostsRequested(userId: uid));
+              }
+            },
+            child: _buildRecommendedList(state),
+          );
         } else if (state is FeedLoaded) {
           return RefreshIndicator(
             onRefresh: () async {
@@ -116,6 +138,30 @@ class _FeedPageState extends State<FeedPage> {
         }
 
         return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildRecommendedList(FeedRecommendedLoaded state) {
+    if (state.posts.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0) + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) return const TrendingHashtagsSection();
+        final postIndex = index - 1;
+        if (postIndex >= state.posts.length) {
+          return Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        final post = state.posts[postIndex];
+        return _buildPostCard(post);
       },
     );
   }
@@ -138,56 +184,49 @@ class _FeedPageState extends State<FeedPage> {
         }
 
         final post = state.posts[index];
-        return PostCard(
-          post: post,
-          currentUserId: widget.userId ?? '',
-          onLike: () {
-            if (post.isLikedByCurrentUser) {
-              context.read<FeedBloc>().add(UnlikePostRequested(
-                    postId: post.id,
-                    userId: widget.userId ?? '',
-                  ));
-            } else {
-              context.read<FeedBloc>().add(LikePostRequested(
-                    postId: post.id,
-                    userId: widget.userId ?? '',
-                  ));
-            }
-          },
-          onComment: () {
-            // Navigate to comments page
-            context.push('/post/${post.id}');
-          },
-          onShare: () {
-            // Handle share
-            _sharePost(post);
-          },
-          onEdit: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => EditPostBottomSheet(
-                post: post,
-                onSave: (updatedPost) {
-                  context.read<FeedBloc>().add(
-                        UpdatePostRequested(post: updatedPost),
-                      );
-                },
-              ),
-            );
-          },
-          onDelete: () {
-            context.read<FeedBloc>().add(
-                  DeletePostRequested(postId: post.id),
-                );
-          },
-          onHashtagTap: (hashtag) {
-            // Navigate to search page with hashtag
-            context.push('/search?q=%23$hashtag');
-          },
+        return _buildPostCard(post);
+      },
+    );
+  }
+
+  Widget _buildPostCard(post) {
+    return PostCard(
+      post: post,
+      currentUserId: widget.userId ?? '',
+      onLike: () {
+        if (post.isLikedByCurrentUser) {
+          context.read<FeedBloc>().add(UnlikePostRequested(
+                postId: post.id,
+                userId: widget.userId ?? '',
+              ));
+        } else {
+          context.read<FeedBloc>().add(LikePostRequested(
+                postId: post.id,
+                userId: widget.userId ?? '',
+              ));
+        }
+      },
+      onComment: () => context.push('/post/${post.id}'),
+      onShare: () => _sharePost(post),
+      onEdit: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => EditPostBottomSheet(
+            post: post,
+            onSave: (updatedPost) {
+              context.read<FeedBloc>().add(
+                    UpdatePostRequested(post: updatedPost),
+                  );
+            },
+          ),
         );
       },
+      onDelete: () {
+        context.read<FeedBloc>().add(DeletePostRequested(postId: post.id));
+      },
+      onHashtagTap: (hashtag) => context.push('/hashtag/$hashtag'),
     );
   }
 

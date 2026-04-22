@@ -17,6 +17,7 @@ import '../../../../core/services/push_notification_service.dart';
 import '../../domain/usecases/unsave_post.dart';
 import '../../domain/usecases/get_saved_posts.dart';
 import '../../domain/usecases/update_post.dart';
+import '../../domain/repositories/social_repository.dart';
 
 part 'feed_event.dart';
 part 'feed_state.dart';
@@ -31,6 +32,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   final SavePost _savePost;
   final UnsavePost _unsavePost;
   final GetSavedPosts _getSavedPosts;
+  final SocialRepository _socialRepository;
   final RealtimeService _realtimeService;
   final PushNotificationService _pushService = PushNotificationService();
   StreamSubscription<Map<String, dynamic>>? _likeSub;
@@ -46,6 +48,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     required SavePost savePost,
     required UnsavePost unsavePost,
     required GetSavedPosts getSavedPosts,
+    required SocialRepository socialRepository,
     RealtimeService? realtimeService,
   })  : _getFeed = getFeed,
         _createPost = createPost,
@@ -56,11 +59,13 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
         _savePost = savePost,
         _unsavePost = unsavePost,
         _getSavedPosts = getSavedPosts,
+        _socialRepository = socialRepository,
         _realtimeService = realtimeService ?? RealtimeService(),
         super(FeedInitial()) {
     on<LoadFeedRequested>(_onLoadFeedRequested);
     on<RefreshFeedRequested>(_onRefreshFeedRequested);
     on<LoadMorePostsRequested>(_onLoadMorePostsRequested);
+    on<LoadRecommendedPostsRequested>(_onLoadRecommendedPostsRequested);
     on<CreatePostRequested>(_onCreatePostRequested);
     on<UpdatePostRequested>(_onUpdatePostRequested);
     on<DeletePostRequested>(_onDeletePostRequested);
@@ -351,6 +356,39 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     result.fold(
       (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (_) => emit(FeedPostUnsaved(event.postId)),
+    );
+  }
+
+  Future<void> _onLoadRecommendedPostsRequested(
+    LoadRecommendedPostsRequested event,
+    Emitter<FeedState> emit,
+  ) async {
+    if (event.offset == 0) {
+      emit(FeedLoading());
+    } else if (state is FeedRecommendedLoaded) {
+      final current = state as FeedRecommendedLoaded;
+      if (current.hasReachedMax) return;
+      emit(current.copyWith(isLoadingMore: true));
+    }
+
+    final result = await _socialRepository.getRecommendedPosts(
+      userId: event.userId,
+      limit: event.limit,
+      offset: event.offset,
+    );
+
+    result.fold(
+      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (posts) {
+        final existing = state is FeedRecommendedLoaded && event.offset > 0
+            ? (state as FeedRecommendedLoaded).posts
+            : <Post>[];
+        emit(FeedRecommendedLoaded(
+          posts: [...existing, ...posts],
+          hasReachedMax: posts.length < event.limit,
+          isLoadingMore: false,
+        ));
+      },
     );
   }
 

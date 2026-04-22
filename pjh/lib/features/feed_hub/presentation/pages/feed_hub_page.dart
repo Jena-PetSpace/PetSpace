@@ -326,7 +326,7 @@ class _FeedHubPageState extends State<FeedHubPage>
       key: const ValueKey('photo'),
       controller: _photoTabController,
       children: const [
-        FeedPage(),
+        FeedPage(recommended: true),
         FeedPage(followingOnly: true),
       ],
     );
