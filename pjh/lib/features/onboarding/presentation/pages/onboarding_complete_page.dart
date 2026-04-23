@@ -110,11 +110,11 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
                     width: 40.w,
                     height: 40.w,
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: AppTheme.successColor,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withValues(alpha: 0.3),
+                          color: AppTheme.successColor.withValues(alpha: 0.3),
                           blurRadius: 8.r,
                           spreadRadius: 2.r,
                         ),
@@ -194,21 +194,21 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
               Icons.camera_alt,
               '감정 분석',
               '반려동물의 감정을 AI로 분석해보세요',
-              Colors.blue,
+              AppTheme.accentColor,
             ),
             SizedBox(height: 16.h),
             _buildFeatureItem(
               Icons.timeline,
               '건강 및 일상 기록',
               '건강관리와 소중한 순간들을 기록하세요',
-              Colors.green,
+              AppTheme.subColor,
             ),
             SizedBox(height: 16.h),
             _buildFeatureItem(
               Icons.people,
               '커뮤니티 참여',
               '다른 반려인들과 소통하고 공유하세요',
-              Colors.orange,
+              AppTheme.highlightColor,
             ),
           ],
         ),

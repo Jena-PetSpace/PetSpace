@@ -490,11 +490,27 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         // 지도가 준비된 경우에만 마커 업데이트
         if (_mapReady) await _updateMarkers();
       } else {
+        // API 오류 (401/403/5xx) — 사용자 안내
         setState(() => _searching = false);
+        dev.log('검색 API 실패: ${response.statusCode}', name: 'HospitalSearch');
+        if (mounted) {
+          final message = response.statusCode == 401 || response.statusCode == 403
+              ? '카카오 지도 API 인증이 필요합니다. 관리자에게 문의해주세요.'
+              : '장소 검색에 실패했습니다. 잠시 후 다시 시도해주세요.';
+          _showSnack(message);
+        }
+      }
+    } on TimeoutException {
+      if (mounted) {
+        setState(() => _searching = false);
+        _showSnack('검색 시간이 초과되었습니다. 네트워크를 확인해주세요.');
       }
     } catch (e) {
       dev.log('검색 오류: $e', name: 'HospitalSearch');
-      if (mounted) setState(() => _searching = false);
+      if (mounted) {
+        setState(() => _searching = false);
+        _showSnack('검색 중 오류가 발생했습니다.');
+      }
     }
   }
 
