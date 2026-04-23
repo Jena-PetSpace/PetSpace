@@ -301,6 +301,7 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
                   theme: AppTheme.lightTheme,
                   darkTheme: AppTheme.darkTheme,
                   themeMode: themeMode,
+                  scrollBehavior: const _BouncingScrollBehavior(),
                   routerConfig: _router,
                 ),
               ),
@@ -308,6 +309,24 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
           ),
         );
       },
+    );
+  }
+}
+
+/// 전역 스크롤 동작 — iOS/macOS는 Bouncing(Cupertino), Android는 기본(Material) 유지
+class _BouncingScrollBehavior extends MaterialScrollBehavior {
+  const _BouncingScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    final platform = Theme.of(context).platform;
+    if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
+      return const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      );
+    }
+    return const ClampingScrollPhysics(
+      parent: AlwaysScrollableScrollPhysics(),
     );
   }
 }
