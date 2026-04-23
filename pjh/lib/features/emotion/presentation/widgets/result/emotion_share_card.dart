@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../../shared/themes/app_theme.dart';
 import '../../../domain/entities/emotion_analysis.dart';
+import '../../../domain/entities/health_analysis.dart';
 
 /// 감정 결과를 이미지 카드로 생성하여 SNS 공유
 class EmotionShareHelper {
@@ -247,6 +248,177 @@ class EmotionShareCard extends StatelessWidget {
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 건강분석 공유 카드
+// ─────────────────────────────────────────────────────────────
+
+class HealthShareHelper {
+  static final GlobalKey _shareKey = GlobalKey();
+
+  static Future<void> shareAsCard(
+    BuildContext context, {
+    required HealthAnalysis analysis,
+  }) async {
+    final overlay = OverlayEntry(
+      builder: (_) => Positioned(
+        left: -1000,
+        top: 0,
+        child: RepaintBoundary(
+          key: _shareKey,
+          child: HealthShareCard(analysis: analysis),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlay);
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    try {
+      final boundary =
+          _shareKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final bytes = byteData!.buffer.asUint8List();
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/petspace_health_result.png');
+      await file.writeAsBytes(bytes);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '#펫스페이스 #반려동물건강분석 #AI건강체크\n우리 아이 건강 상태를 AI로 확인했어요! 🐾',
+        subject: '반려동물 AI 건강 분석 결과',
+      );
+    } finally {
+      overlay.remove();
+    }
+  }
+}
+
+class HealthShareCard extends StatelessWidget {
+  final HealthAnalysis analysis;
+
+  const HealthShareCard({super.key, required this.analysis});
+
+  @override
+  Widget build(BuildContext context) {
+    final score = analysis.overallScore;
+    final status = analysis.status;
+    final areaName = analysis.area.displayName;
+    final petName = analysis.petName ?? '반려동물';
+
+    Color statusColor;
+    String statusEmoji;
+    switch (status) {
+      case '양호':
+        statusColor = AppTheme.successColor;
+        statusEmoji = '✅';
+        break;
+      case '주의':
+        statusColor = Colors.orange;
+        statusEmoji = '⚠️';
+        break;
+      case '위험':
+        statusColor = Colors.red;
+        statusEmoji = '🚨';
+        break;
+      default:
+        statusColor = AppTheme.secondaryTextColor;
+        statusEmoji = '❓';
+    }
+
+    return SizedBox(
+      width: 320,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppTheme.primaryColor, statusColor],
+          ),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 헤더
+            Row(children: [
+              Container(
+                width: 28, height: 28,
+                decoration: const BoxDecoration(
+                  color: AppTheme.highlightColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.pets, size: 16, color: Colors.white),
+              ),
+              const SizedBox(width: 8),
+              const Text('PetSpace',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
+                      color: Colors.white)),
+            ]),
+            const SizedBox(height: 20),
+
+            Text('$petName의 건강 분석',
+                style: TextStyle(fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.75))),
+            const SizedBox(height: 4),
+            Text(areaName,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
+                    color: Colors.white)),
+            const SizedBox(height: 16),
+
+            // 점수 + 상태
+            Row(children: [
+              Text(statusEmoji, style: const TextStyle(fontSize: 40)),
+              const SizedBox(width: 12),
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(status,
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800,
+                        color: Colors.white)),
+                Text('$score점',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.85))),
+              ]),
+            ]),
+            const SizedBox(height: 16),
+
+            // 요약
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                analysis.summary.length > 80
+                    ? '${analysis.summary.substring(0, 80)}...'
+                    : analysis.summary,
+                style: TextStyle(fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.9), height: 1.5),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // 날짜 + watermark
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text(
+                '${analysis.analyzedAt.year}.${analysis.analyzedAt.month.toString().padLeft(2, '0')}.${analysis.analyzedAt.day.toString().padLeft(2, '0')}',
+                style: TextStyle(fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.6)),
+              ),
+              Text('petspace.app',
+                  style: TextStyle(fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.6))),
+            ]),
           ],
         ),
       ),

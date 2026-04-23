@@ -1,8 +1,13 @@
 -- ================================================================
--- PetSpace 전체 데이터베이스 설정 (통�� SQL)
--- 최종 수정: 2026-03-30
--- 포함: 테이블 17개, 인덱스, RLS, 트리거, 함수, 스토리지,
+-- PetSpace 전체 데이터베이스 설정 (통합 SQL)
+-- 최종 수정: 2026-04-22 (M-F3: 추천 알고리즘, 북마크 컬렉션, 해시태그/위치 RPC)
+-- 포함: 테이블 18개 (+bookmark_collections), 인덱스, RLS, 트리거, 함수, 스토리지,
 --       Realtime, 채팅, Soft Delete, search_path 보안 수정
+-- M-F2 변경: comments.parent_id, posts.location_lat/lng,
+--            comment_likes 트리거, 기존 RPC 0-op 전환
+-- M-F3 변경: bookmark_collections 테이블, saved_posts.collection_id,
+--            get_recommended_posts RPC (rule-based 추천),
+--            get_posts_by_hashtag RPC, get_posts_by_location RPC
 -- ================================================================
 --
 -- 이 파일 하나만 Supabase SQL Editor에서 실행하면
@@ -66,7 +71,7 @@ CREATE TABLE IF NOT EXISTS posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     pet_id UUID REFERENCES pets(id) ON DELETE SET NULL, -- 반려동물 삭제 시 포스트 유지
-    image_url TEXT,          -- NULL 허용: 감정분석 공유 시 이미지 없을 수 있음
+    image_url TEXT,          -- NULL 허용: 감정 분석 공유 시 이미지 없을 수 있음
     emotion_analysis JSONB,  -- NULL 허용: 일반 커뮤니티 포스트 지원
     caption TEXT,
     hashtags TEXT[],
@@ -88,11 +93,12 @@ CREATE TABLE IF NOT EXISTS emotion_history (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. Comments (soft delete 포함)
+-- 5. Comments (soft delete 포함, 대댓글 1 depth 지원)
 CREATE TABLE IF NOT EXISTS comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    parent_id UUID REFERENCES comments(id) ON DELETE CASCADE, -- 대댓글 (NULL = 최상위)
     content TEXT NOT NULL,
     likes_count INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -204,6 +210,21 @@ CREATE TABLE IF NOT EXISTS saved_posts (
     UNIQUE(post_id, user_id)
 );
 
+-- 14-B. Bookmark Collections (M-F3: 북마크 컬렉션)
+CREATE TABLE IF NOT EXISTS bookmark_collections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    emoji TEXT DEFAULT '📁',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- saved_posts에 collection_id 추가 (M-F3)
+ALTER TABLE saved_posts
+  ADD COLUMN IF NOT EXISTS collection_id UUID
+  REFERENCES bookmark_collections(id) ON DELETE SET NULL;
+
 -- 15. Chat Rooms
 CREATE TABLE IF NOT EXISTS chat_rooms (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -258,7 +279,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS provider VARCHAR(20) DEFAULT 'email';
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_private BOOLEAN DEFAULT FALSE;
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS location_lat DOUBLE PRECISION; -- M-F2: 카카오 로컬 검색 좌표
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS location_lng DOUBLE PRECISION; -- M-F2: 카카오 로컬 검색 좌표
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES comments(id) ON DELETE CASCADE; -- M-F2: 대댓글 1 depth
 
 -- image_url, emotion_analysis NOT NULL 제약 제거 (텍스트/이미지/감정분석 각각 선택적)
 ALTER TABLE posts ALTER COLUMN image_url DROP NOT NULL;
@@ -298,6 +322,7 @@ CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_author_id ON comments(author_id);
 CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_comments_deleted_at ON comments(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id); -- M-F2: 대댓글 조회
 
 -- Follows
 CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);
@@ -345,6 +370,10 @@ CREATE INDEX IF NOT EXISTS idx_health_records_record_date ON health_records(reco
 CREATE INDEX IF NOT EXISTS idx_saved_posts_user_id ON saved_posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_saved_posts_post_id ON saved_posts(post_id);
 CREATE INDEX IF NOT EXISTS idx_saved_posts_created_at ON saved_posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_saved_posts_collection_id ON saved_posts(collection_id); -- M-F3
+
+-- Bookmark Collections (M-F3)
+CREATE INDEX IF NOT EXISTS idx_bookmark_collections_user_id ON bookmark_collections(user_id);
 
 -- Chat Rooms
 CREATE INDEX IF NOT EXISTS idx_chat_rooms_created_by ON chat_rooms(created_by);
@@ -431,12 +460,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 게시물 좋아요 RPC
+-- ⚠️ 실제 카운트 증가는 PART 5의 트리거(likes_count_increment/decrement)가 담당.
+-- 이 RPC는 과거 앱 코드와의 호환성을 위한 0-op (아무 동작 없음).
+-- 앱 코드에서 rpc 호출 제거 후 DROP FUNCTION 가능.
 CREATE OR REPLACE FUNCTION increment_post_likes(post_id UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-    UPDATE posts SET likes_count = likes_count + 1 WHERE id = post_id;
+    -- 0-op: 트리거가 담당
+    RETURN;
 END;
 $$;
 
@@ -445,17 +478,37 @@ RETURNS void LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-    UPDATE posts SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = post_id;
+    -- 0-op: 트리거가 담당
+    RETURN;
 END;
 $$;
 
--- 댓글 좋아요 RPC
+-- 게시물 댓글 카운트 RPC (0-op → 트리거 comments_count_increment/decrement가 담당)
+CREATE OR REPLACE FUNCTION increment_post_comments(post_id UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION decrement_post_comments(post_id UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN;
+END;
+$$;
+
+-- 댓글 좋아요 RPC (0-op → 트리거 comment_likes_count_increment/decrement가 담당)
 CREATE OR REPLACE FUNCTION increment_comment_likes(comment_id UUID)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-    UPDATE comments SET likes_count = likes_count + 1 WHERE id = comment_id;
+    RETURN;
 END;
 $$;
 
@@ -464,9 +517,30 @@ RETURNS void LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-    UPDATE comments SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = comment_id;
+    RETURN;
 END;
 $$;
+
+-- M-F2: comment_likes 트리거용 카운트 함수
+CREATE OR REPLACE FUNCTION increment_comment_likes_count()
+RETURNS TRIGGER
+SET search_path = public
+AS $$
+BEGIN
+    UPDATE comments SET likes_count = likes_count + 1 WHERE id = NEW.comment_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION decrement_comment_likes_count()
+RETURNS TRIGGER
+SET search_path = public
+AS $$
+BEGIN
+    UPDATE comments SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = OLD.comment_id;
+    RETURN OLD;
+END;
+$$ LANGUAGE 'plpgsql';
 
 -- 회원가입 시 자동 프로필 생성
 -- Supabase 설정: Authentication > Email > "Confirm email" = OFF
@@ -621,7 +695,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 전체 안읽은 메시지 수 조회 (뱃지용)
+-- 전체 읽지않은 메시지 수 조회 (뱃지용)
 CREATE OR REPLACE FUNCTION get_total_unread_count(p_user_id UUID)
 RETURNS INTEGER
 LANGUAGE plpgsql
@@ -646,7 +720,7 @@ BEGIN
 END;
 $$;
 
--- 채팅방별 안읽은 메시지 수 조회
+-- 채팅방별 읽지않은 메시지 수 조회
 CREATE OR REPLACE FUNCTION get_room_unread_count(p_room_id UUID, p_user_id UUID)
 RETURNS INTEGER
 LANGUAGE plpgsql
@@ -884,9 +958,23 @@ DROP TRIGGER IF EXISTS comments_count_decrement ON comments;
 CREATE TRIGGER comments_count_decrement AFTER DELETE ON comments
     FOR EACH ROW EXECUTE FUNCTION decrement_comments_count();
 
+-- M-F2: 댓글 좋아요 카운터 트리거
+DROP TRIGGER IF EXISTS comment_likes_count_increment ON comment_likes;
+CREATE TRIGGER comment_likes_count_increment AFTER INSERT ON comment_likes
+    FOR EACH ROW EXECUTE FUNCTION increment_comment_likes_count();
+
+DROP TRIGGER IF EXISTS comment_likes_count_decrement ON comment_likes;
+CREATE TRIGGER comment_likes_count_decrement AFTER DELETE ON comment_likes
+    FOR EACH ROW EXECUTE FUNCTION decrement_comment_likes_count();
+
 -- health_records updated_at 트리거
 DROP TRIGGER IF EXISTS update_health_records_updated_at ON health_records;
 CREATE TRIGGER update_health_records_updated_at BEFORE UPDATE ON health_records
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- bookmark_collections updated_at 트리거 (M-F3)
+DROP TRIGGER IF EXISTS update_bookmark_collections_updated_at ON bookmark_collections;
+CREATE TRIGGER update_bookmark_collections_updated_at BEFORE UPDATE ON bookmark_collections
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- 회원가입 트리거 (Confirm email OFF이므로 INSERT 시 항상 실행)
@@ -927,6 +1015,7 @@ ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_blocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE health_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE saved_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bookmark_collections ENABLE ROW LEVEL SECURITY; -- M-F3
 ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
@@ -1043,7 +1132,7 @@ DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
 CREATE POLICY "Users can update own notifications" ON notifications
     FOR UPDATE USING (auth.uid() = user_id);
 
--- [RLS 보강] Notifications DELETE: 본인 알림만 삭제 ��능
+-- [RLS 보강] Notifications DELETE: 본인 알림만 삭제 가능
 DROP POLICY IF EXISTS "Users can delete own notifications" ON notifications;
 CREATE POLICY "Users can delete own notifications" ON notifications
     FOR DELETE USING (auth.uid() = user_id);
@@ -1110,6 +1199,11 @@ DROP POLICY IF EXISTS "Users can manage own saved posts" ON saved_posts;
 CREATE POLICY "Users can manage own saved posts" ON saved_posts
     FOR ALL USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
+
+-- Bookmark Collections (M-F3: 북마크 컬렉션)
+DROP POLICY IF EXISTS "users manage own collections" ON bookmark_collections;
+CREATE POLICY "users manage own collections" ON bookmark_collections
+    FOR ALL USING (auth.uid() = user_id);
 
 -- Chat Rooms
 DROP POLICY IF EXISTS "Users can view rooms they participate in" ON chat_rooms;
@@ -1394,16 +1488,16 @@ DO $$
 BEGIN
     RAISE NOTICE '';
     RAISE NOTICE '================================================';
-    RAISE NOTICE '  PetSpace 데이터베이스 ��정 완료!';
+    RAISE NOTICE '  PetSpace 데이터베이스 설정 완료!';
     RAISE NOTICE '================================================';
     RAISE NOTICE '';
-    RAISE NOTICE '테이블 17개, 인덱스, RLS, 트리거, 함수, 스토리지, Realtime ���정 완료';
+    RAISE NOTICE '테이블 17개, 인덱스, RLS, 트리거, 함수, 스토리지, Realtime 설정 완료';
     RAISE NOTICE '  1-14: users, pets, posts, emotion_history, comments, follows,';
     RAISE NOTICE '        likes, notifications, user_devices, comment_likes,';
     RAISE NOTICE '        reports, user_blocks, health_records, saved_posts';
     RAISE NOTICE '  15-17: chat_rooms, chat_participants, chat_messages';
     RAISE NOTICE '  + soft delete (posts, comments)';
-    RAISE NOTICE '  + search_path 보안 수�� (모든 함수)';
+    RAISE NOTICE '  + search_path 보안 수정 (모든 함수)';
     RAISE NOTICE '  + confirm_kakao_user_by_email RPC (카카오 로그인)';
     RAISE NOTICE '  + get_popular_hashtags / get_trending_hashtags RPC';
     RAISE NOTICE '  + RLS 보강: users DELETE, notifications DELETE';
@@ -1529,6 +1623,7 @@ ALTER TABLE user_purchases       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE store_items          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE donation_campaigns   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_badges          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quests               ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "users read own points"   ON point_transactions;
 DROP POLICY IF EXISTS "users insert own points" ON point_transactions;
@@ -1557,6 +1652,11 @@ DROP POLICY IF EXISTS "users manage own badges" ON user_badges;
 CREATE POLICY "users manage own badges" ON user_badges
   FOR ALL USING (auth.uid() = user_id);
 
+-- 퀘스트 정의는 모든 인증 유저가 읽기만 가능 (쓰기는 관리자만)
+DROP POLICY IF EXISTS "anyone read quests" ON quests;
+CREATE POLICY "anyone read quests" ON quests
+  FOR SELECT USING (true);
+
 
 -- ================================================================
 -- PART 10-D: 퀘스트 초기 데이터
@@ -1582,7 +1682,7 @@ ON CONFLICT (key) DO NOTHING;
 -- 퀘스트 포인트 저장 시 race condition 없이 원자적으로 증가
 --
 -- 구조: user_points는 VIEW (point_transactions의 SUM)
---       → INSERT는 point_transactions 테이블에 직접 수행
+--       → INSERT는 point_transactions 테이블에 직접 삽입
 --       → user_points VIEW가 자동으로 잔액 합산
 --
 -- 호출: supabase.rpc('increment_user_points', { p_user_id: uid, p_points: 30 })
@@ -1643,8 +1743,8 @@ CREATE POLICY "users can manage own health_history"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
--- ── get_latest_health_by_area RPC ────────────────────────────────────────────
--- 부위별 최신 건강 분석 결과 조회 (AiHistoryPage 현황 탭용)
+-- ── get_latest_health_by_area RPC ──────────────────────────────────────────
+-- 부위별 최신 건강 분석 결과 조회 (AiHistoryPage 현황 탭 이용)
 -- p_user_id: 조회할 유저 UUID
 -- p_pet_id:  NULL이면 pet_id IS NULL인 미등록 분석만 조회,
 --            값이 있으면 해당 pet의 분석만 조회
@@ -1679,4 +1779,204 @@ AS $$
         AND pet_id = p_pet_id
     )
   ORDER BY area, created_at DESC;
+$$;
+
+
+-- ================================================================
+-- PART 12: M-F3 발견성 RPC (추천 알고리즘 + 해시태그/위치 검색)
+-- 추가: 2026-04-22
+-- ================================================================
+
+-- ── get_recommended_posts ────────────────────────────────────────
+-- 추천 알고리즘 rule-based 점수
+-- - 같은 견종 매칭: +40
+-- - 작성자 주간 활동성 (3+ 게시물): +20
+-- - 내가 좋아요한 유저의 다른 게시물: +15
+-- - 최신 글 (3일 이내): +10
+-- 팔로우/차단 관계는 제외
+CREATE OR REPLACE FUNCTION get_recommended_posts(
+  p_user_id UUID,
+  p_limit INTEGER DEFAULT 20,
+  p_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE (
+  id UUID,
+  author_id UUID,
+  author_name VARCHAR,
+  author_photo TEXT,
+  pet_id UUID,
+  pet_name VARCHAR,
+  pet_type VARCHAR,
+  pet_breed VARCHAR,
+  image_url TEXT,
+  emotion_analysis JSONB,
+  caption TEXT,
+  hashtags TEXT[],
+  location TEXT,
+  location_lat DOUBLE PRECISION,
+  location_lng DOUBLE PRECISION,
+  likes_count INTEGER,
+  comments_count INTEGER,
+  created_at TIMESTAMPTZ,
+  is_liked BOOLEAN,
+  recommendation_score INTEGER
+) LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_breeds TEXT[];
+BEGIN
+  SELECT ARRAY_AGG(DISTINCT breed) INTO v_user_breeds
+  FROM pets WHERE user_id = p_user_id AND breed IS NOT NULL;
+
+  RETURN QUERY
+  SELECT
+    p.id, p.author_id,
+    u.display_name AS author_name,
+    u.photo_url AS author_photo,
+    p.pet_id, pet.name AS pet_name, pet.type AS pet_type, pet.breed AS pet_breed,
+    p.image_url, p.emotion_analysis, p.caption, p.hashtags,
+    p.location, p.location_lat, p.location_lng,
+    p.likes_count, p.comments_count, p.created_at,
+    EXISTS(SELECT 1 FROM likes l WHERE l.post_id = p.id AND l.user_id = p_user_id) AS is_liked,
+    (
+      CASE WHEN pet.breed IS NOT NULL AND pet.breed = ANY(v_user_breeds) THEN 40 ELSE 0 END
+      +
+      CASE WHEN (
+        SELECT COUNT(*) FROM posts p2
+        WHERE p2.author_id = p.author_id
+          AND p2.created_at >= NOW() - INTERVAL '7 days'
+          AND p2.deleted_at IS NULL
+      ) >= 3 THEN 20 ELSE 0 END
+      +
+      CASE WHEN EXISTS(
+        SELECT 1 FROM likes l
+        JOIN posts p3 ON l.post_id = p3.id
+        WHERE l.user_id = p_user_id AND p3.author_id = p.author_id
+      ) THEN 15 ELSE 0 END
+      +
+      CASE WHEN p.created_at >= NOW() - INTERVAL '3 days' THEN 10 ELSE 0 END
+    )::INTEGER AS recommendation_score
+  FROM posts p
+  LEFT JOIN users u ON p.author_id = u.id
+  LEFT JOIN pets pet ON p.pet_id = pet.id
+  WHERE
+    p.deleted_at IS NULL
+    AND p.is_private = FALSE
+    AND p.author_id != p_user_id
+    AND NOT EXISTS(
+      SELECT 1 FROM follows f
+      WHERE f.follower_id = p_user_id AND f.following_id = p.author_id
+    )
+    AND NOT EXISTS(
+      SELECT 1 FROM user_blocks ub
+      WHERE (ub.blocker_id = p_user_id AND ub.blocked_id = p.author_id)
+         OR (ub.blocker_id = p.author_id AND ub.blocked_id = p_user_id)
+    )
+  ORDER BY recommendation_score DESC, p.created_at DESC
+  LIMIT p_limit OFFSET p_offset;
+END;
+$$;
+
+-- ── get_posts_by_hashtag ─────────────────────────────────────────
+-- 특정 해시태그의 게시물 조회. sort = 'popular' | 'recent'
+CREATE OR REPLACE FUNCTION get_posts_by_hashtag(
+  p_hashtag TEXT,
+  p_user_id UUID DEFAULT NULL,
+  p_sort TEXT DEFAULT 'popular',
+  p_limit INTEGER DEFAULT 20,
+  p_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE (
+  id UUID,
+  author_id UUID,
+  author_name VARCHAR,
+  author_photo TEXT,
+  pet_id UUID,
+  image_url TEXT,
+  caption TEXT,
+  hashtags TEXT[],
+  likes_count INTEGER,
+  comments_count INTEGER,
+  created_at TIMESTAMPTZ,
+  is_liked BOOLEAN
+) LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    p.id, p.author_id,
+    u.display_name AS author_name,
+    u.photo_url AS author_photo,
+    p.pet_id, p.image_url, p.caption, p.hashtags,
+    p.likes_count, p.comments_count, p.created_at,
+    EXISTS(SELECT 1 FROM likes l WHERE l.post_id = p.id AND l.user_id = p_user_id) AS is_liked
+  FROM posts p
+  LEFT JOIN users u ON p.author_id = u.id
+  WHERE
+    p.deleted_at IS NULL
+    AND p.is_private = FALSE
+    AND p.hashtags && ARRAY[p_hashtag]
+  ORDER BY
+    CASE WHEN p_sort = 'popular' THEN p.likes_count ELSE 0 END DESC,
+    p.created_at DESC
+  LIMIT p_limit OFFSET p_offset;
+END;
+$$;
+
+-- ── get_posts_by_location ────────────────────────────────────────
+-- 반경 내 게시물 (Bounding box 방식, PostGIS 없이)
+CREATE OR REPLACE FUNCTION get_posts_by_location(
+  p_lat DOUBLE PRECISION,
+  p_lng DOUBLE PRECISION,
+  p_radius_m INTEGER DEFAULT 50,
+  p_user_id UUID DEFAULT NULL,
+  p_limit INTEGER DEFAULT 20,
+  p_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE (
+  id UUID,
+  author_id UUID,
+  author_name VARCHAR,
+  author_photo TEXT,
+  pet_id UUID,
+  image_url TEXT,
+  caption TEXT,
+  location TEXT,
+  likes_count INTEGER,
+  comments_count INTEGER,
+  created_at TIMESTAMPTZ,
+  is_liked BOOLEAN
+) LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_lat_delta DOUBLE PRECISION;
+  v_lng_delta DOUBLE PRECISION;
+BEGIN
+  -- 위도 1도 ≈ 111km. 경도 1도는 cos(lat) * 111km
+  v_lat_delta := p_radius_m / 111000.0;
+  v_lng_delta := p_radius_m / (111000.0 * COS(RADIANS(p_lat)));
+
+  RETURN QUERY
+  SELECT
+    p.id, p.author_id,
+    u.display_name AS author_name,
+    u.photo_url AS author_photo,
+    p.pet_id, p.image_url, p.caption, p.location,
+    p.likes_count, p.comments_count, p.created_at,
+    EXISTS(SELECT 1 FROM likes l WHERE l.post_id = p.id AND l.user_id = p_user_id) AS is_liked
+  FROM posts p
+  LEFT JOIN users u ON p.author_id = u.id
+  WHERE
+    p.deleted_at IS NULL
+    AND p.is_private = FALSE
+    AND p.location_lat IS NOT NULL
+    AND p.location_lng IS NOT NULL
+    AND p.location_lat BETWEEN (p_lat - v_lat_delta) AND (p_lat + v_lat_delta)
+    AND p.location_lng BETWEEN (p_lng - v_lng_delta) AND (p_lng + v_lng_delta)
+  ORDER BY p.created_at DESC
+  LIMIT p_limit OFFSET p_offset;
+END;
 $$;

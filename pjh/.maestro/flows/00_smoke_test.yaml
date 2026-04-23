@@ -1,0 +1,8 @@
+appId: com.petspace.app
+name: "00. Smoke Test"
+---
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: "00_app_launched"

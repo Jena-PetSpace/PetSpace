@@ -36,6 +36,8 @@ class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isSendingMessage = false;
+  String? _selectedPetId;
+  List<Map<String, dynamic>> _pets = [];
 
   @override
   void initState() {
@@ -45,6 +47,22 @@ class _ProfilePageState extends State<ProfilePage>
           userId: widget.userId,
           currentUserId: widget.currentUserId,
         ));
+    _loadPets();
+  }
+
+  Future<void> _loadPets() async {
+    try {
+      final rows = await Supabase.instance.client
+          .from('pets')
+          .select('id, name, profile_image_url, species')
+          .eq('owner_id', widget.userId)
+          .order('created_at', ascending: true);
+      if (mounted) {
+        setState(() {
+          _pets = List<Map<String, dynamic>>.from(rows);
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -111,6 +129,8 @@ class _ProfilePageState extends State<ProfilePage>
       children: [
         // 프로필 헤더
         _buildProfileHeader(user, state.isFollowing, isOwnProfile),
+        // 펫 스위처 칩 행
+        if (_pets.isNotEmpty) _buildPetSwitcher(),
         // 탭바
         TabBar(
           controller: _tabController,
@@ -128,13 +148,133 @@ class _ProfilePageState extends State<ProfilePage>
           child: TabBarView(
             controller: _tabController,
             children: [
-              UserPostsList(userId: user.id, isMyProfile: isOwnProfile),
+              UserPostsList(
+                  userId: user.id,
+                  isMyProfile: isOwnProfile,
+                  petId: _selectedPetId),
               _buildFollowersList(),
               _buildFollowingList(),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPetSwitcher() {
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      child: Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 36.h,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                itemCount: _pets.length + 1,
+                separatorBuilder: (_, __) => SizedBox(width: 8.w),
+                itemBuilder: (context, index) {
+                  final isAll = index == 0;
+                  final selected = isAll
+                      ? _selectedPetId == null
+                      : _pets[index - 1]['id'] == _selectedPetId;
+
+                  final label = isAll ? '전체' : (_pets[index - 1]['name'] as String? ?? '');
+                  final imageUrl = isAll
+                      ? null
+                      : _pets[index - 1]['profile_image_url'] as String?;
+                  final petId = isAll ? null : _pets[index - 1]['id'] as String?;
+                  final petName = isAll ? null : _pets[index - 1]['name'] as String?;
+
+                  return GestureDetector(
+                    onTap: () => setState(() {
+                      _selectedPetId = isAll ? null : petId;
+                    }),
+                    onLongPress: isAll || petId == null ? null : () {
+                      context.push('/emotion-timeline', extra: {
+                        'petId': petId,
+                        'petName': petName ?? label,
+                        'petAvatarUrl': imageUrl,
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: EdgeInsets.symmetric(horizontal: 12.w),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppTheme.primaryColor
+                            : AppTheme.subtleBackground,
+                        borderRadius: BorderRadius.circular(18.r),
+                        border: Border.all(
+                          color: selected
+                              ? AppTheme.primaryColor
+                              : AppTheme.dividerColor,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!isAll && imageUrl != null) ...[
+                            CircleAvatar(
+                              radius: 10.r,
+                              backgroundImage: CachedNetworkImageProvider(imageUrl),
+                            ),
+                            SizedBox(width: 6.w),
+                          ] else if (!isAll) ...[
+                            Text(
+                              _pets[index - 1]['species'] == 'cat' ? '🐱' : '🐶',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            SizedBox(width: 4.w),
+                          ],
+                          Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                              color: selected ? Colors.white : AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          // 선택된 펫의 AI 타임라인 바로가기
+          if (_selectedPetId != null)
+            Padding(
+              padding: EdgeInsets.only(right: 8.w),
+              child: GestureDetector(
+                onTap: () {
+                  final pet = _pets.firstWhere(
+                      (p) => p['id'] == _selectedPetId,
+                      orElse: () => {});
+                  if (pet.isEmpty) return;
+                  context.push('/emotion-timeline', extra: {
+                    'petId': _selectedPetId!,
+                    'petName': pet['name'] as String? ?? '',
+                    'petAvatarUrl': pet['profile_image_url'] as String?,
+                  });
+                },
+                child: Container(
+                  width: 32.w,
+                  height: 32.w,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.analytics_outlined,
+                      size: 18.w, color: AppTheme.primaryColor),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 

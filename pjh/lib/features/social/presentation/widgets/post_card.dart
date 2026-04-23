@@ -12,6 +12,7 @@ import '../../domain/entities/post.dart';
 import '../../../emotion/presentation/widgets/emotion_chart.dart';
 import '../../../../core/utils/hashtag_utils.dart';
 import 'likes_bottom_sheet.dart';
+import 'collection_picker_sheet.dart';
 
 class PostCard extends StatefulWidget {
   final Post post;
@@ -38,6 +39,9 @@ class PostCard extends StatefulWidget {
   @override
   State<PostCard> createState() => _PostCardState();
 }
+
+// 앱 세션 내 스트릭 캐시 (N+1 쿼리 방지)
+final Map<String, int> _streakCache = {};
 
 class _PostCardState extends State<PostCard> {
   int _currentImageIndex = 0;
@@ -177,7 +181,9 @@ class _PostCardState extends State<PostCard> {
                               ),
                             ),
                           ),
-                          SizedBox(width: 6.w),
+                          SizedBox(width: 4.w),
+                          _buildStreakBadge(post.authorId),
+                          SizedBox(width: 4.w),
                           _buildTypeBadge(),
                         ]),
                         Text(
@@ -426,6 +432,54 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
+  Widget _buildStreakBadge(String authorId) {
+    return FutureBuilder<int>(
+      future: _fetchStreak(authorId),
+      builder: (ctx, snap) {
+        final streak = snap.data ?? 0;
+        if (streak < 3) return const SizedBox.shrink();
+
+        final String emoji;
+        final Color color;
+        if (streak >= 30) {
+          emoji = '⭐';
+          color = Colors.amber;
+        } else if (streak >= 7) {
+          emoji = '🔥';
+          color = Colors.orange;
+        } else {
+          emoji = '🔥';
+          color = Colors.deepOrange;
+        }
+
+        return Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(emoji, style: TextStyle(fontSize: 11.sp)),
+          Text(
+            '$streak',
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ]);
+      },
+    );
+  }
+
+  Future<int> _fetchStreak(String authorId) async {
+    if (_streakCache.containsKey(authorId)) return _streakCache[authorId]!;
+    try {
+      final res = await Supabase.instance.client
+          .rpc('get_user_streak', params: {'p_user_id': authorId});
+      final streak = (res as int?) ?? 0;
+      _streakCache[authorId] = streak;
+      return streak;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Widget _buildTypeBadge() {
     switch (post.type) {
       case PostType.emotionAnalysis:
@@ -618,13 +672,20 @@ class _PostCardState extends State<PostCard> {
             ),
           ),
           const Spacer(),
-          // 북마크 버튼
+          // 북마크 버튼 (단탭=저장토글, 롱프레스=컬렉션 선택)
           SizedBox(
             width: 44.w,
             height: 44.w,
-            child: InkWell(
+            child: GestureDetector(
               onTap: _toggleSave,
-              borderRadius: BorderRadius.circular(22.r),
+              onLongPress: () {
+                if (widget.currentUserId.isEmpty) return;
+                CollectionPickerSheet.show(
+                  context,
+                  postId: post.id,
+                  userId: widget.currentUserId,
+                );
+              },
               child: Icon(
                 _isSaved
                     ? Icons.bookmark_rounded
@@ -635,18 +696,32 @@ class _PostCardState extends State<PostCard> {
             ),
           ),
           if (post.location != null)
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16.w, color: Colors.grey),
-                SizedBox(width: 4.w),
-                Text(
-                  post.location!,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.grey,
+            GestureDetector(
+              onTap: (post.locationLat != null && post.locationLng != null)
+                  ? () => context.push('/location', extra: {
+                        'lat': post.locationLat,
+                        'lng': post.locationLng,
+                        'locationName': post.location,
+                      })
+                  : null,
+              child: Row(
+                children: [
+                  Icon(Icons.location_on, size: 16.w,
+                      color: (post.locationLat != null && post.locationLng != null)
+                          ? AppTheme.primaryColor
+                          : Colors.grey),
+                  SizedBox(width: 4.w),
+                  Text(
+                    post.location!,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: (post.locationLat != null && post.locationLng != null)
+                          ? AppTheme.primaryColor
+                          : Colors.grey,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
         ],
       ),

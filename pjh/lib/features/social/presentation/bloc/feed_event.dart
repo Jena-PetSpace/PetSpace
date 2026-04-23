@@ -122,6 +122,21 @@ class LoadSavedPostsRequested extends FeedEvent {
   List<Object?> get props => [userId];
 }
 
+class LoadRecommendedPostsRequested extends FeedEvent {
+  final String userId;
+  final int limit;
+  final int offset;
+
+  const LoadRecommendedPostsRequested({
+    required this.userId,
+    this.limit = 20,
+    this.offset = 0,
+  });
+
+  @override
+  List<Object?> get props => [userId, limit, offset];
+}
+
 class SubscribeToFeedRealtime extends FeedEvent {
   final String userId;
   const SubscribeToFeedRealtime({required this.userId});

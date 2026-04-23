@@ -5,6 +5,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/error_messages.dart';
 import '../../../../core/network/network_info.dart';
+import '../../domain/entities/bookmark_collection.dart';
 import '../../domain/entities/comment.dart';
 import '../../domain/entities/follow.dart';
 import '../../domain/entities/notification.dart';
@@ -960,6 +961,147 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(response != null);
     } catch (e) {
       return const Right(false);
+    }
+  }
+
+  // ─── Discovery operations (M-F3) ────────────────────────────────────────
+
+  @override
+  Future<Either<Failure, List<Post>>> getRecommendedPosts({
+    required String userId,
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final posts = await remoteDataSource.getRecommendedPosts(userId, limit: limit, offset: offset);
+      return Right(posts);
+    } catch (e) {
+      return Left(ServerFailure(message: '추천 게시물 조회 실패: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Post>>> getPostsByHashtag({
+    required String hashtag,
+    String? userId,
+    String sort = 'popular',
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final posts = await remoteDataSource.getPostsByHashtag(
+        hashtag: hashtag,
+        userId: userId,
+        sort: sort,
+        limit: limit,
+        offset: offset,
+      );
+      return Right(posts);
+    } catch (e) {
+      return Left(ServerFailure(message: '해시태그 게시물 조회 실패: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Post>>> getPostsByLocation({
+    required double lat,
+    required double lng,
+    int radiusM = 50,
+    String? userId,
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final posts = await remoteDataSource.getPostsByLocation(
+        lat: lat,
+        lng: lng,
+        radiusM: radiusM,
+        userId: userId,
+        limit: limit,
+        offset: offset,
+      );
+      return Right(posts);
+    } catch (e) {
+      return Left(ServerFailure(message: '위치 게시물 조회 실패: ${e.toString()}'));
+    }
+  }
+
+  // ─── Bookmark collection operations (M-F3) ──────────────────────────────
+
+  @override
+  Future<Either<Failure, List<BookmarkCollection>>> getBookmarkCollections(String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final collections = await remoteDataSource.getBookmarkCollections(userId);
+      return Right(collections);
+    } catch (e) {
+      return Left(ServerFailure(message: '북마크 컬렉션 조회 실패: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, BookmarkCollection>> createBookmarkCollection({
+    required String userId,
+    required String name,
+    String emoji = '📁',
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final collection = await remoteDataSource.createBookmarkCollection(
+        userId: userId,
+        name: name,
+        emoji: emoji,
+      );
+      return Right(collection);
+    } catch (e) {
+      return Left(ServerFailure(message: '북마크 컬렉션 생성 실패: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteBookmarkCollection(String collectionId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.deleteBookmarkCollection(collectionId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '북마크 컬렉션 삭제 실패: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateSavedPostCollection({
+    required String postId,
+    required String userId,
+    String? collectionId,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.updateSavedPostCollection(
+        postId: postId,
+        userId: userId,
+        collectionId: collectionId,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '북마크 컬렉션 이동 실패: ${e.toString()}'));
     }
   }
 }

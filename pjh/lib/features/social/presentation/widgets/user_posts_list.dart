@@ -11,11 +11,13 @@ import '../../../../shared/themes/app_theme.dart';
 class UserPostsList extends StatefulWidget {
   final String userId;
   final bool isMyProfile;
+  final String? petId;
 
   const UserPostsList({
     super.key,
     required this.userId,
     this.isMyProfile = false,
+    this.petId,
   });
 
   @override
@@ -41,6 +43,14 @@ class _UserPostsListState extends State<UserPostsList> {
   }
 
   @override
+  void didUpdateWidget(UserPostsList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.petId != widget.petId) {
+      _loadPosts();
+    }
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
@@ -56,13 +66,17 @@ class _UserPostsListState extends State<UserPostsList> {
   }
 
   Future<void> _loadPosts() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _posts = []; _hasMore = true; _lastCreatedAt = null; });
     try {
-      final rows = await Supabase.instance.client
+      var query = Supabase.instance.client
           .from('posts')
-          .select('id, image_url, image_urls, caption, post_type, created_at')
+          .select('id, image_url, image_urls, caption, post_type, created_at, pet_id')
           .eq('author_id', widget.userId)
-          .isFilter('deleted_at', null)
+          .isFilter('deleted_at', null);
+      if (widget.petId != null) {
+        query = query.eq('pet_id', widget.petId!);
+      }
+      final rows = await query
           .order('created_at', ascending: false)
           .limit(_pageSize);
       if (mounted) {
@@ -86,12 +100,16 @@ class _UserPostsListState extends State<UserPostsList> {
     if (_loadingMore || !_hasMore || _lastCreatedAt == null) return;
     setState(() => _loadingMore = true);
     try {
-      final rows = await Supabase.instance.client
+      var query = Supabase.instance.client
           .from('posts')
-          .select('id, image_url, image_urls, caption, post_type, created_at')
+          .select('id, image_url, image_urls, caption, post_type, created_at, pet_id')
           .eq('author_id', widget.userId)
           .isFilter('deleted_at', null)
-          .lt('created_at', _lastCreatedAt!)
+          .lt('created_at', _lastCreatedAt!);
+      if (widget.petId != null) {
+        query = query.eq('pet_id', widget.petId!);
+      }
+      final rows = await query
           .order('created_at', ascending: false)
           .limit(_pageSize);
       if (mounted) {

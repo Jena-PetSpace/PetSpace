@@ -8,6 +8,7 @@ import '../entities/post.dart';
 import '../entities/comment.dart';
 import '../entities/follow.dart';
 import '../entities/notification.dart';
+import '../entities/bookmark_collection.dart';
 
 abstract class SocialRepository {
   // User operations
@@ -101,6 +102,42 @@ abstract class SocialRepository {
   Future<Either<Failure, List<Post>>> getSavedPosts(
       {required String userId, int limit = 20});
   Future<Either<Failure, bool>> isPostSaved(String postId, String userId);
+
+  // Bookmark collection operations
+  Future<Either<Failure, List<BookmarkCollection>>> getBookmarkCollections(String userId);
+  Future<Either<Failure, BookmarkCollection>> createBookmarkCollection({
+    required String userId,
+    required String name,
+    String emoji = '📁',
+  });
+  Future<Either<Failure, void>> deleteBookmarkCollection(String collectionId);
+  Future<Either<Failure, void>> updateSavedPostCollection({
+    required String postId,
+    required String userId,
+    String? collectionId,
+  });
+
+  // Discovery operations
+  Future<Either<Failure, List<Post>>> getRecommendedPosts({
+    required String userId,
+    int limit = 20,
+    int offset = 0,
+  });
+  Future<Either<Failure, List<Post>>> getPostsByHashtag({
+    required String hashtag,
+    String? userId,
+    String sort = 'popular',
+    int limit = 20,
+    int offset = 0,
+  });
+  Future<Either<Failure, List<Post>>> getPostsByLocation({
+    required double lat,
+    required double lng,
+    int radiusM = 50,
+    String? userId,
+    int limit = 20,
+    int offset = 0,
+  });
 
   // Cover image
   Future<Either<Failure, String>> uploadCoverImage(

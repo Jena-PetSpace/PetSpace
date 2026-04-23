@@ -56,6 +56,14 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.petspace.app" />
             </intent-filter>
+
+            <!-- App Links: https://petspace.app/share/... 딥링크 (도메인 owner 인증 후 활성화) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="petspace.app" />
+            </intent-filter>
         </activity>
 
         <!-- Kakao OAuth Callback Handler (Kakao SDK에서 제공하는 Activity 사용) -->

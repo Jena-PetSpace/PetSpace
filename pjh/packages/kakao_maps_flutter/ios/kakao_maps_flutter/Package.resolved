@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "KakaoMapsSDK-SPM",
+        "repositoryURL": "https://github.com/kakao-mapsSDK/KakaoMapsSDK-SPM.git",
+        "state": {
+          "branch": null,
+          "revision": "cc073a32729b7f545cca49f96d0b859fa3a0d5db",
+          "version": "2.12.10"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

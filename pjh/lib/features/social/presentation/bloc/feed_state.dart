@@ -95,3 +95,30 @@ class FeedPostUnsaved extends FeedState {
   @override
   List<Object?> get props => [postId];
 }
+
+class FeedRecommendedLoaded extends FeedState {
+  final List<Post> posts;
+  final bool hasReachedMax;
+  final bool isLoadingMore;
+
+  const FeedRecommendedLoaded({
+    required this.posts,
+    required this.hasReachedMax,
+    this.isLoadingMore = false,
+  });
+
+  FeedRecommendedLoaded copyWith({
+    List<Post>? posts,
+    bool? hasReachedMax,
+    bool? isLoadingMore,
+  }) {
+    return FeedRecommendedLoaded(
+      posts: posts ?? this.posts,
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    );
+  }
+
+  @override
+  List<Object?> get props => [posts, hasReachedMax, isLoadingMore];
+}

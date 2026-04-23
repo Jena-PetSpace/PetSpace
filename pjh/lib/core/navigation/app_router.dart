@@ -47,6 +47,7 @@ import '../../features/social/presentation/pages/channel_subscription_page.dart'
 import '../../features/pets/presentation/pages/public_pet_page.dart';
 import '../../features/emotion/presentation/pages/weekly_report_page.dart';
 import '../../features/emotion/presentation/pages/ai_history_page.dart';
+import '../../features/emotion/presentation/pages/emotion_timeline_page.dart';
 import '../../features/emotion/presentation/pages/emotion_loading_page.dart';
 import '../../features/emotion/presentation/pages/emotion_result_page.dart';
 import '../../features/emotion/domain/entities/emotion_analysis.dart';
@@ -70,6 +71,8 @@ import '../../features/chat/presentation/pages/create_chat_page.dart';
 import '../../features/chat/presentation/pages/chat_room_settings_page.dart';
 import '../../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
+import '../../features/social/presentation/pages/hashtag_page.dart';
+import '../../features/social/presentation/pages/location_posts_page.dart';
 import '../../features/my/presentation/pages/my_settings_page.dart';
 import '../../features/profile/presentation/pages/notification_settings_page.dart';
 import '../../features/profile/presentation/pages/privacy_settings_page.dart';
@@ -476,6 +479,25 @@ class AppRouter {
               ),
             ),
             GoRoute(
+              path: '/hashtag/:tag',
+              name: 'hashtag',
+              builder: (context, state) => HashtagPage(
+                hashtag: state.pathParameters['tag']!,
+              ),
+            ),
+            GoRoute(
+              path: '/location',
+              name: 'location-posts',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return LocationPostsPage(
+                  lat: (extra['lat'] as num?)?.toDouble() ?? 0.0,
+                  lng: (extra['lng'] as num?)?.toDouble() ?? 0.0,
+                  locationName: extra['locationName'] as String?,
+                );
+              },
+            ),
+            GoRoute(
               path: '/hospital',
               name: 'hospital',
               builder: (_, __) => const HospitalSearchPage(),
@@ -543,6 +565,27 @@ class AppRouter {
                   create: (_) => sl<EmotionAnalysisBloc>(),
                   child: const AiHistoryPage(),
                 );
+              },
+            ),
+            GoRoute(
+              path: '/emotion-timeline',
+              name: 'emotion-timeline',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>? ?? {};
+                return EmotionTimelinePage(
+                  petId: extra['petId'] as String? ?? '',
+                  petName: extra['petName'] as String? ?? '반려동물',
+                  petAvatarUrl: extra['petAvatarUrl'] as String?,
+                );
+              },
+            ),
+            // 공유 딥링크: https://petspace.app/share/emotion/:id
+            GoRoute(
+              path: '/share/emotion/:analysisId',
+              name: 'share-emotion',
+              builder: (context, state) {
+                final id = state.pathParameters['analysisId']!;
+                return EmotionResultLoaderPage(analysisId: id);
               },
             ),
           ],

@@ -28,6 +28,7 @@ class Post extends Equatable {
   final String? location;
   final double? locationLat;
   final double? locationLng;
+  final int? recommendationScore;
 
   const Post({
     required this.id,
@@ -54,6 +55,7 @@ class Post extends Equatable {
     this.location,
     this.locationLat,
     this.locationLng,
+    this.recommendationScore,
   });
 
   Post copyWith({
@@ -79,6 +81,7 @@ class Post extends Equatable {
     String? location,
     double? locationLat,
     double? locationLng,
+    int? recommendationScore,
   }) {
     return Post(
       id: id ?? this.id,
@@ -103,6 +106,7 @@ class Post extends Equatable {
       location: location ?? this.location,
       locationLat: locationLat ?? this.locationLat,
       locationLng: locationLng ?? this.locationLng,
+      recommendationScore: recommendationScore ?? this.recommendationScore,
     );
   }
 
@@ -130,5 +134,6 @@ class Post extends Equatable {
         location,
         locationLat,
         locationLng,
+        recommendationScore,
       ];
 }

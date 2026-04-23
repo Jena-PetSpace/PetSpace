@@ -7,6 +7,7 @@ import '../models/post_model.dart';
 import '../models/comment_model.dart';
 import '../models/social_user_model.dart';
 import '../models/notification_model.dart';
+import '../../domain/entities/bookmark_collection.dart';
 import '../../domain/entities/comment.dart';
 // import '../../domain/entities/follow.dart'; // 현재 사용하지 않음
 import '../../domain/entities/notification.dart';
@@ -81,6 +82,38 @@ abstract class SocialRemoteDataSource {
   });
   Future<List<String>> getPopularHashtags({int limit = 20});
   Future<List<String>> getTrendingHashtags({int limit = 10, int days = 7});
+
+  // Discovery operations (M-F3)
+  Future<List<Post>> getRecommendedPosts(String userId, {int limit = 20, int offset = 0});
+  Future<List<Post>> getPostsByHashtag({
+    required String hashtag,
+    String? userId,
+    String sort = 'popular',
+    int limit = 20,
+    int offset = 0,
+  });
+  Future<List<Post>> getPostsByLocation({
+    required double lat,
+    required double lng,
+    int radiusM = 50,
+    String? userId,
+    int limit = 20,
+    int offset = 0,
+  });
+
+  // Bookmark collection operations (M-F3)
+  Future<List<BookmarkCollection>> getBookmarkCollections(String userId);
+  Future<BookmarkCollection> createBookmarkCollection({
+    required String userId,
+    required String name,
+    String emoji = '📁',
+  });
+  Future<void> deleteBookmarkCollection(String collectionId);
+  Future<void> updateSavedPostCollection({
+    required String postId,
+    required String userId,
+    String? collectionId,
+  });
 }
 
 // Supabase 기반 Social 기능 구현
@@ -1567,6 +1600,165 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
 
       // 실패 시 빈 배열 반환
       return [];
+    }
+  }
+
+  // ==================== Discovery Operations (M-F3) ====================
+
+  @override
+  Future<List<Post>> getRecommendedPosts(String userId, {int limit = 20, int offset = 0}) async {
+    try {
+      final response = await supabaseClient.rpc('get_recommended_posts', params: {
+        'p_user_id': userId,
+        'p_limit': limit,
+        'p_offset': offset,
+      });
+      return (response as List).map((json) {
+        final model = PostModel.fromJson(json as Map<String, dynamic>);
+        final entity = model.toEntity();
+        return entity.copyWith(
+          recommendationScore: json['recommendation_score'] as int?,
+        );
+      }).toList();
+    } catch (e, st) {
+      _logger.error('getRecommendedPosts 실패', error: e, stackTrace: st, tag: 'SocialDataSource');
+      throw Exception('추천 게시물 조회 실패: $e');
+    }
+  }
+
+  @override
+  Future<List<Post>> getPostsByHashtag({
+    required String hashtag,
+    String? userId,
+    String sort = 'popular',
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final response = await supabaseClient.rpc('get_posts_by_hashtag', params: {
+        'p_hashtag': hashtag,
+        'p_user_id': userId,
+        'p_sort': sort,
+        'p_limit': limit,
+        'p_offset': offset,
+      });
+      return (response as List)
+          .map((json) => PostModel.fromJson(json as Map<String, dynamic>).toEntity())
+          .toList();
+    } catch (e, st) {
+      _logger.error('getPostsByHashtag 실패', error: e, stackTrace: st, tag: 'SocialDataSource');
+      throw Exception('해시태그 게시물 조회 실패: $e');
+    }
+  }
+
+  @override
+  Future<List<Post>> getPostsByLocation({
+    required double lat,
+    required double lng,
+    int radiusM = 50,
+    String? userId,
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final response = await supabaseClient.rpc('get_posts_by_location', params: {
+        'p_lat': lat,
+        'p_lng': lng,
+        'p_radius_m': radiusM,
+        'p_user_id': userId,
+        'p_limit': limit,
+        'p_offset': offset,
+      });
+      return (response as List)
+          .map((json) => PostModel.fromJson(json as Map<String, dynamic>).toEntity())
+          .toList();
+    } catch (e, st) {
+      _logger.error('getPostsByLocation 실패', error: e, stackTrace: st, tag: 'SocialDataSource');
+      throw Exception('위치 게시물 조회 실패: $e');
+    }
+  }
+
+  // ==================== Bookmark Collection Operations (M-F3) ====================
+
+  @override
+  Future<List<BookmarkCollection>> getBookmarkCollections(String userId) async {
+    try {
+      final response = await supabaseClient
+          .from('bookmark_collections')
+          .select('*, saved_posts(count)')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+      return (response as List).map((json) => BookmarkCollection(
+        id: json['id'] as String,
+        userId: json['user_id'] as String,
+        name: json['name'] as String,
+        emoji: json['emoji'] as String? ?? '📁',
+        createdAt: DateTime.parse(json['created_at'] as String),
+        updatedAt: DateTime.parse(json['updated_at'] as String),
+        postCount: (json['saved_posts'] as List?)?.isNotEmpty == true
+            ? (json['saved_posts'][0]['count'] as int? ?? 0)
+            : 0,
+      )).toList();
+    } catch (e, st) {
+      _logger.error('getBookmarkCollections 실패', error: e, stackTrace: st, tag: 'SocialDataSource');
+      throw Exception('북마크 컬렉션 조회 실패: $e');
+    }
+  }
+
+  @override
+  Future<BookmarkCollection> createBookmarkCollection({
+    required String userId,
+    required String name,
+    String emoji = '📁',
+  }) async {
+    try {
+      final response = await supabaseClient
+          .from('bookmark_collections')
+          .insert({'user_id': userId, 'name': name, 'emoji': emoji})
+          .select()
+          .single();
+      return BookmarkCollection(
+        id: response['id'] as String,
+        userId: response['user_id'] as String,
+        name: response['name'] as String,
+        emoji: response['emoji'] as String? ?? '📁',
+        createdAt: DateTime.parse(response['created_at'] as String),
+        updatedAt: DateTime.parse(response['updated_at'] as String),
+      );
+    } catch (e, st) {
+      _logger.error('createBookmarkCollection 실패', error: e, stackTrace: st, tag: 'SocialDataSource');
+      throw Exception('북마크 컬렉션 생성 실패: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteBookmarkCollection(String collectionId) async {
+    try {
+      await supabaseClient
+          .from('bookmark_collections')
+          .delete()
+          .eq('id', collectionId);
+    } catch (e, st) {
+      _logger.error('deleteBookmarkCollection 실패', error: e, stackTrace: st, tag: 'SocialDataSource');
+      throw Exception('북마크 컬렉션 삭제 실패: $e');
+    }
+  }
+
+  @override
+  Future<void> updateSavedPostCollection({
+    required String postId,
+    required String userId,
+    String? collectionId,
+  }) async {
+    try {
+      await supabaseClient
+          .from('saved_posts')
+          .update({'collection_id': collectionId})
+          .eq('post_id', postId)
+          .eq('user_id', userId);
+    } catch (e, st) {
+      _logger.error('updateSavedPostCollection 실패', error: e, stackTrace: st, tag: 'SocialDataSource');
+      throw Exception('북마크 컬렉션 이동 실패: $e');
     }
   }
 
