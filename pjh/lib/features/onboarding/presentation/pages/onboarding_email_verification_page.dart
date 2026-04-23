@@ -214,8 +214,16 @@ class _OnboardingEmailVerificationPageState
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            context.go('/onboarding/login');
+          onPressed: () async {
+            // 미완료 인증 상태의 session을 정리한 뒤 로그인 페이지로 이동
+            try {
+              await Supabase.instance.client.auth.signOut();
+            } catch (e) {
+              developer.log('signOut 실패: $e', name: 'EmailVerification');
+            }
+            if (context.mounted) {
+              context.go('/onboarding/login');
+            }
           },
         ),
       ),

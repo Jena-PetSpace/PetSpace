@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:kakao_maps_flutter/kakao_maps_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/api_config.dart';
@@ -143,9 +144,12 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   // ── 초기화 ──────────────────────────────────────────────────────────────────
 
+  static const String _favoritesPrefKey = 'hospital_search_favorites';
+
   @override
   void initState() {
     super.initState();
+    _loadFavorites();
     _getLocation();
     _searchFocusNode.addListener(() {
       if (!mounted) return;
@@ -155,6 +159,25 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         }
       }
     });
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ids = prefs.getStringList(_favoritesPrefKey) ?? [];
+      if (mounted) setState(() => _favoriteIds.addAll(ids));
+    } catch (e) {
+      dev.log('[HS] 북마크 로드 실패: $e', name: 'HospitalSearch');
+    }
+  }
+
+  Future<void> _persistFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_favoritesPrefKey, _favoriteIds.toList());
+    } catch (e) {
+      dev.log('[HS] 북마크 저장 실패: $e', name: 'HospitalSearch');
+    }
   }
 
   @override
@@ -212,7 +235,11 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.deniedForever) {
-        if (mounted) setState(() => _locationError = '설정에서 위치 권한을 허용해주세요');
+        if (mounted) {
+          setState(() => _locationError = '설정에서 위치 권한을 허용해주세요');
+          // 권한 영구 거부 시 설정 앱으로 즉시 유도
+          await Geolocator.openAppSettings();
+        }
         _searchCategory(_selectedCategory);
         return;
       }
@@ -686,6 +713,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         _favoriteIds.add(place.id);
       }
     });
+    _persistFavorites(); // 로컬 저장 (앱 재시작 후에도 유지)
   }
 
   bool _isFavorite(String id) => _favoriteIds.contains(id);
