@@ -337,11 +337,14 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
       ));
 
       // AuthBloc의 상태 변경을 기다림 (isOnboardingCompleted가 true로 업데이트될 때까지)
-      await authBloc.stream.firstWhere(
-        (state) =>
-            state is AuthAuthenticated && state.user.isOnboardingCompleted,
-        orElse: () => authState,
-      );
+      // 서버 지연 등으로 stream이 응답하지 않을 경우 5초 후 현재 state로 fallback
+      await authBloc.stream
+          .firstWhere(
+            (state) =>
+                state is AuthAuthenticated && state.user.isOnboardingCompleted,
+            orElse: () => authState,
+          )
+          .timeout(const Duration(seconds: 5), onTimeout: () => authState);
 
       if (mounted) {
         // GoRouter의 redirect 로직이 자동으로 홈으로 리다이렉트함

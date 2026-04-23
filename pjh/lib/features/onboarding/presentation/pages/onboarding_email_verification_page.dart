@@ -26,6 +26,8 @@ class _OnboardingEmailVerificationPageState
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  // KeyboardListener 전용 FocusNode (dispose 관리)
+  final List<FocusNode> _keyboardListenerNodes = List.generate(6, (_) => FocusNode());
 
   bool _isVerifying = false;
   bool _isResending = false;
@@ -62,6 +64,9 @@ class _OnboardingEmailVerificationPageState
     }
     for (var focusNode in _focusNodes) {
       focusNode.dispose();
+    }
+    for (var node in _keyboardListenerNodes) {
+      node.dispose();
     }
     _countdownTimer?.cancel();
     super.dispose();
@@ -284,7 +289,7 @@ class _OnboardingEmailVerificationPageState
                     width: 48,
                     height: 60,
                     child: KeyboardListener(
-                      focusNode: FocusNode(),
+                      focusNode: _keyboardListenerNodes[index],
                       onKeyEvent: (event) => _onKeyPressed(index, event),
                       child: TextField(
                         controller: _controllers[index],

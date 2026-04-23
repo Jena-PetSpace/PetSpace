@@ -75,7 +75,7 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
     if (error.contains('not found') || error.contains('invalid')) {
       return '등록되지 않은 이메일입니다.';
     }
-    return '오류가 발생했습니다: $error';
+    return '요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
   }
 
   @override

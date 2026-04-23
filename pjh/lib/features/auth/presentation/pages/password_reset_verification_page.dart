@@ -25,6 +25,8 @@ class _PasswordResetVerificationPageState
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  // KeyboardListener 전용 FocusNode (dispose 관리)
+  final List<FocusNode> _keyboardListenerNodes = List.generate(6, (_) => FocusNode());
 
   bool _isVerifying = false;
   bool _isResending = false;
@@ -46,6 +48,9 @@ class _PasswordResetVerificationPageState
     }
     for (var focusNode in _focusNodes) {
       focusNode.dispose();
+    }
+    for (var node in _keyboardListenerNodes) {
+      node.dispose();
     }
     _countdownTimer?.cancel();
     super.dispose();
@@ -95,7 +100,7 @@ class _PasswordResetVerificationPageState
       if (mounted) {
         setState(() {
           _isResending = false;
-          _errorMessage = '코드 재발송 실패: ${e.toString()}';
+          _errorMessage = '인증 코드 재발송에 실패했습니다. 잠시 후 다시 시도해주세요.';
         });
       }
     }
@@ -161,7 +166,7 @@ class _PasswordResetVerificationPageState
       if (mounted) {
         setState(() {
           _isVerifying = false;
-          _errorMessage = '인증 실패: ${e.toString()}';
+          _errorMessage = '인증 처리 중 오류가 발생했습니다. 다시 시도해주세요.';
         });
       }
     }
@@ -263,7 +268,7 @@ class _PasswordResetVerificationPageState
                     width: 48,
                     height: 60,
                     child: KeyboardListener(
-                      focusNode: FocusNode(),
+                      focusNode: _keyboardListenerNodes[index],
                       onKeyEvent: (event) => _onKeyPressed(index, event),
                       child: TextField(
                         controller: _controllers[index],

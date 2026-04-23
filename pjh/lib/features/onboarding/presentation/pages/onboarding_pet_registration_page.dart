@@ -166,10 +166,9 @@ class _OnboardingPetRegistrationPageState
           CircleAvatar(
             radius: 20.w,
             backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.2),
-            child: Icon(
-              pet['type'] == PetType.dog ? Icons.pets : Icons.pets,
-              color: AppTheme.primaryColor,
-              size: 20.w,
+            child: Text(
+              pet['type'] == PetType.dog ? '🐶' : '🐱',
+              style: TextStyle(fontSize: 20.sp),
             ),
           ),
           SizedBox(width: 12.w),
@@ -617,9 +616,10 @@ class _OnboardingPetRegistrationPageState
   }
 
   void _selectBirthDate() async {
+    // 기존 선택값이 있으면 유지, 없으면 오늘 날짜를 기본으로 표시
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365)),
+      initialDate: _birthDate ?? DateTime.now(),
       firstDate: DateTime.now().subtract(const Duration(days: 365 * 30)),
       lastDate: DateTime.now(),
     );

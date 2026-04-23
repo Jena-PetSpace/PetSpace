@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../shared/themes/app_theme.dart';
+
 class TermsDetailPage extends StatelessWidget {
   final String title;
   final String content;
@@ -50,7 +52,12 @@ class TermsDetailPage extends StatelessWidget {
             ),
             if (onAgree != null)
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 20,
+                  bottom: 20 + MediaQuery.of(context).padding.bottom,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
@@ -70,7 +77,7 @@ class TermsDetailPage extends StatelessWidget {
                       Navigator.of(context).pop();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
+                      backgroundColor: AppTheme.primaryColor,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
