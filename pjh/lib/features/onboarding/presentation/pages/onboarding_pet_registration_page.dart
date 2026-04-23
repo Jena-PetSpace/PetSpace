@@ -166,10 +166,9 @@ class _OnboardingPetRegistrationPageState
           CircleAvatar(
             radius: 20.w,
             backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.2),
-            child: Icon(
-              pet['type'] == PetType.dog ? Icons.pets : Icons.pets,
-              color: AppTheme.primaryColor,
-              size: 20.w,
+            child: Text(
+              pet['type'] == PetType.dog ? '🐶' : '🐱',
+              style: TextStyle(fontSize: 20.sp),
             ),
           ),
           SizedBox(width: 12.w),
@@ -617,9 +616,10 @@ class _OnboardingPetRegistrationPageState
   }
 
   void _selectBirthDate() async {
+    // 기존 선택값이 있으면 유지, 없으면 오늘 날짜를 기본으로 표시
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365)),
+      initialDate: _birthDate ?? DateTime.now(),
       firstDate: DateTime.now().subtract(const Duration(days: 365 * 30)),
       lastDate: DateTime.now(),
     );
@@ -721,6 +721,7 @@ class _OnboardingPetRegistrationPageState
       int failCount = 0;
 
       // PetBloc을 통해 모든 펫을 DB에 저장
+      // 각 AddPetEvent마다 stream.firstWhere로 해당 펫의 결과를 정확히 기다림
       for (final petData in _registeredPets) {
         // Map을 Pet 엔티티로 변환
         final petType = petData['type'] == PetType.dog
@@ -749,17 +750,23 @@ class _OnboardingPetRegistrationPageState
           updatedAt: DateTime.now(),
         );
 
-        // PetBloc에 이벤트 발행
+        // 이벤트 발행 전 stream 대기 준비 (race condition 방지)
+        final resultFuture = petBloc.stream
+            .firstWhere(
+              (state) => state is PetOperationSuccess || state is PetError,
+            )
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () => PetError('타임아웃: ${pet.name} 등록 시간 초과'),
+            );
+
         petBloc.add(AddPetEvent(pet));
 
-        // 상태 변화를 기다림 (최대 5초)
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        // 현재 상태 확인
-        final currentState = petBloc.state;
-        if (currentState is PetOperationSuccess || currentState is PetLoaded) {
+        // 해당 펫의 결과 확정까지 대기
+        final result = await resultFuture;
+        if (result is PetOperationSuccess) {
           successCount++;
-        } else if (currentState is PetError) {
+        } else {
           failCount++;
         }
       }

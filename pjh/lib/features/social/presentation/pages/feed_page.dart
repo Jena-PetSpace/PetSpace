@@ -190,19 +190,21 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Widget _buildPostCard(post) {
+    final uid = _effectiveUserId ?? '';
     return PostCard(
       post: post,
-      currentUserId: widget.userId ?? '',
+      currentUserId: uid,
       onLike: () {
+        if (uid.isEmpty) return;
         if (post.isLikedByCurrentUser) {
           context.read<FeedBloc>().add(UnlikePostRequested(
                 postId: post.id,
-                userId: widget.userId ?? '',
+                userId: uid,
               ));
         } else {
           context.read<FeedBloc>().add(LikePostRequested(
                 postId: post.id,
-                userId: widget.userId ?? '',
+                userId: uid,
               ));
         }
       },

@@ -20,5 +20,5 @@ flutter_native_splash:
     # branding 이미지 없음 - 중앙 아이콘만 표시
 
   android: true
-  ios: false
+  ios: true
   web: false

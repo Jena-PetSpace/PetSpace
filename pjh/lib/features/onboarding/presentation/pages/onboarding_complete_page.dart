@@ -110,11 +110,11 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
                     width: 40.w,
                     height: 40.w,
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: AppTheme.successColor,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withValues(alpha: 0.3),
+                          color: AppTheme.successColor.withValues(alpha: 0.3),
                           blurRadius: 8.r,
                           spreadRadius: 2.r,
                         ),
@@ -194,21 +194,21 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
               Icons.camera_alt,
               '감정 분석',
               '반려동물의 감정을 AI로 분석해보세요',
-              Colors.blue,
+              AppTheme.accentColor,
             ),
             SizedBox(height: 16.h),
             _buildFeatureItem(
               Icons.timeline,
               '건강 및 일상 기록',
               '건강관리와 소중한 순간들을 기록하세요',
-              Colors.green,
+              AppTheme.subColor,
             ),
             SizedBox(height: 16.h),
             _buildFeatureItem(
               Icons.people,
               '커뮤니티 참여',
               '다른 반려인들과 소통하고 공유하세요',
-              Colors.orange,
+              AppTheme.highlightColor,
             ),
           ],
         ),
@@ -337,11 +337,14 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
       ));
 
       // AuthBloc의 상태 변경을 기다림 (isOnboardingCompleted가 true로 업데이트될 때까지)
-      await authBloc.stream.firstWhere(
-        (state) =>
-            state is AuthAuthenticated && state.user.isOnboardingCompleted,
-        orElse: () => authState,
-      );
+      // 서버 지연 등으로 stream이 응답하지 않을 경우 5초 후 현재 state로 fallback
+      await authBloc.stream
+          .firstWhere(
+            (state) =>
+                state is AuthAuthenticated && state.user.isOnboardingCompleted,
+            orElse: () => authState,
+          )
+          .timeout(const Duration(seconds: 5), onTimeout: () => authState);
 
       if (mounted) {
         // GoRouter의 redirect 로직이 자동으로 홈으로 리다이렉트함

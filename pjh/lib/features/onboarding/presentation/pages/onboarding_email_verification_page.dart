@@ -26,6 +26,8 @@ class _OnboardingEmailVerificationPageState
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+  // KeyboardListener 전용 FocusNode (dispose 관리)
+  final List<FocusNode> _keyboardListenerNodes = List.generate(6, (_) => FocusNode());
 
   bool _isVerifying = false;
   bool _isResending = false;
@@ -62,6 +64,9 @@ class _OnboardingEmailVerificationPageState
     }
     for (var focusNode in _focusNodes) {
       focusNode.dispose();
+    }
+    for (var node in _keyboardListenerNodes) {
+      node.dispose();
     }
     _countdownTimer?.cancel();
     super.dispose();
@@ -214,8 +219,16 @@ class _OnboardingEmailVerificationPageState
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            context.go('/onboarding/login');
+          onPressed: () async {
+            // 미완료 인증 상태의 session을 정리한 뒤 로그인 페이지로 이동
+            try {
+              await Supabase.instance.client.auth.signOut();
+            } catch (e) {
+              developer.log('signOut 실패: $e', name: 'EmailVerification');
+            }
+            if (context.mounted) {
+              context.go('/onboarding/login');
+            }
           },
         ),
       ),
@@ -276,7 +289,7 @@ class _OnboardingEmailVerificationPageState
                     width: 48,
                     height: 60,
                     child: KeyboardListener(
-                      focusNode: FocusNode(),
+                      focusNode: _keyboardListenerNodes[index],
                       onKeyEvent: (event) => _onKeyPressed(index, event),
                       child: TextField(
                         controller: _controllers[index],

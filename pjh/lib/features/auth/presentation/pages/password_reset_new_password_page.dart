@@ -117,7 +117,7 @@ class _PasswordResetNewPasswordPageState
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = '비밀번호 변경 중 오류가 발생했습니다: ${e.toString()}';
+          _errorMessage = '비밀번호 변경 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
         });
       }
     }
@@ -130,7 +130,7 @@ class _PasswordResetNewPasswordPageState
     if (error.contains('New password should be different')) {
       return '이전 비밀번호와 다른 비밀번호를 입력해주세요';
     }
-    return '오류가 발생했습니다: $error';
+    return '비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.';
   }
 
   String? _validatePassword(String? value) {

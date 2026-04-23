@@ -259,10 +259,10 @@ class _HealthMainViewState extends State<_HealthMainView> {
 
     final typeColors = {
       null: AppTheme.primaryColor,
-      HealthRecordType.vaccination: const Color(0xFF4CAF50),
+      HealthRecordType.vaccination: AppTheme.successColor,
       HealthRecordType.checkup: AppTheme.accentColor,
-      HealthRecordType.weight: const Color(0xFFFF9800),
-      HealthRecordType.medication: const Color(0xFF9C27B0),
+      HealthRecordType.weight: AppTheme.highlightColor,
+      HealthRecordType.medication: AppTheme.secondaryColor,
       HealthRecordType.surgery: AppTheme.errorColor,
     };
 

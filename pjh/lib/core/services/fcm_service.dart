@@ -7,7 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Firebase Cloud Messaging 서비스
 /// 푸시 알림을 관리하고 토큰을 Supabase에 저장
 class FCMService {
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  FirebaseMessaging get _firebaseMessaging => FirebaseMessaging.instance;
   final SupabaseClient _supabase;
 
   /// GoRouter navigatorKey — main.dart에서 주입

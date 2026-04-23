@@ -144,7 +144,7 @@ class _PostCardState extends State<PostCard> {
           // 프로필 영역(아바타+이름+시간) 전체를 하나의 InkWell로 묶어 프로필 이동
           Expanded(
             child: InkWell(
-              onTap: () => context.push('/profile/${post.authorId}'),
+              onTap: () => context.push('/user-profile/${post.authorId}'),
               borderRadius: BorderRadius.circular(8.r),
               child: Row(
                 children: [
@@ -170,11 +170,15 @@ class _PostCardState extends State<PostCard> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(children: [
-                          Text(
-                            post.authorName,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14.sp,
+                          Flexible(
+                            child: Text(
+                              post.authorName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                              ),
                             ),
                           ),
                           SizedBox(width: 4.w),
@@ -184,6 +188,8 @@ class _PostCardState extends State<PostCard> {
                         ]),
                         Text(
                           _formatDateTime(post.createdAt),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Theme.of(context).textTheme.bodySmall?.color,
                             fontSize: 12.sp,

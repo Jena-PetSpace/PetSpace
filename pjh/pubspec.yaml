@@ -42,11 +42,6 @@ dependencies:
   shimmer: ^3.0.0
   flutter_screenutil: ^5.9.3
 
-  # Google ML Kit & Vision API
-  google_ml_kit: ^0.18.0
-  googleapis: ^13.2.0
-  googleapis_auth: ^1.6.0
-
   # Utilities
   intl: ^0.19.0
   http: ^1.2.1
@@ -81,6 +76,8 @@ dependencies:
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^4.0.0
   flutter_native_splash: ^2.4.1

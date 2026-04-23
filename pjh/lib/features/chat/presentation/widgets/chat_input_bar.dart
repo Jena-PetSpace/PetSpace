@@ -85,12 +85,14 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   @override
   Widget build(BuildContext context) {
+    // iOS home indicator(34pt) 영역을 피하기 위해 SafeArea.bottom 반영
+    final safeBottom = MediaQuery.of(context).padding.bottom;
     return Container(
       padding: EdgeInsets.only(
         left: 8.w,
         right: 8.w,
         top: 8.h,
-        bottom: 8.h,
+        bottom: 8.h + safeBottom,
       ),
       decoration: BoxDecoration(
         color: Colors.white,

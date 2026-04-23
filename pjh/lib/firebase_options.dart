@@ -8,21 +8,26 @@ import 'package:flutter/foundation.dart'
 import 'config/secrets.dart';
 
 class DefaultFirebaseOptions {
-  static FirebaseOptions get currentPlatform {
-    if (kIsWeb) {
-      throw UnsupportedError('Web 플랫폼은 지원하지 않습니다.');
-    }
+  static FirebaseOptions? get currentPlatformOrNull {
+    if (kIsWeb) return null;
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'iOS Firebase 설정이 아직 완료되지 않았습니다.\n'
-          'Firebase Console → iOS 앱 등록 → GoogleService-Info.plist 배치 후 설정하세요.',
-        );
+        // iOS Firebase 설정 미완료 — null 반환하여 Firebase 건너뜀
+        return null;
       default:
-        throw UnsupportedError('지원하지 않는 플랫폼입니다.');
+        return null;
     }
+  }
+
+  // 하위 호환용 (기존 코드에서 참조 시)
+  static FirebaseOptions get currentPlatform {
+    final options = currentPlatformOrNull;
+    if (options == null) {
+      throw UnsupportedError('현재 플랫폼에서 Firebase가 지원되지 않습니다.');
+    }
+    return options;
   }
 
   /// Android — secrets.dart에서 키 참조

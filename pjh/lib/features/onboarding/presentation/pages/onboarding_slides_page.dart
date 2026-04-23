@@ -121,13 +121,13 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
             width: 200,
             height: 200,
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.1),
+              color: AppTheme.highlightColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.psychology,
               size: 100,
-              color: Colors.orange,
+              color: AppTheme.highlightColor,
             ),
           ),
           const SizedBox(height: 48),
@@ -165,13 +165,13 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
             width: 200,
             height: 200,
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
+              color: AppTheme.subColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.people,
               size: 100,
-              color: Colors.green,
+              color: AppTheme.subColor,
             ),
           ),
           const SizedBox(height: 48),

@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:kakao_maps_flutter/kakao_maps_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/api_config.dart';
@@ -143,9 +144,12 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   // ── 초기화 ──────────────────────────────────────────────────────────────────
 
+  static const String _favoritesPrefKey = 'hospital_search_favorites';
+
   @override
   void initState() {
     super.initState();
+    _loadFavorites();
     _getLocation();
     _searchFocusNode.addListener(() {
       if (!mounted) return;
@@ -155,6 +159,25 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         }
       }
     });
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ids = prefs.getStringList(_favoritesPrefKey) ?? [];
+      if (mounted) setState(() => _favoriteIds.addAll(ids));
+    } catch (e) {
+      dev.log('[HS] 북마크 로드 실패: $e', name: 'HospitalSearch');
+    }
+  }
+
+  Future<void> _persistFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_favoritesPrefKey, _favoriteIds.toList());
+    } catch (e) {
+      dev.log('[HS] 북마크 저장 실패: $e', name: 'HospitalSearch');
+    }
   }
 
   @override
@@ -212,7 +235,11 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         perm = await Geolocator.requestPermission();
       }
       if (perm == LocationPermission.deniedForever) {
-        if (mounted) setState(() => _locationError = '설정에서 위치 권한을 허용해주세요');
+        if (mounted) {
+          setState(() => _locationError = '설정에서 위치 권한을 허용해주세요');
+          // 권한 영구 거부 시 설정 앱으로 즉시 유도
+          await Geolocator.openAppSettings();
+        }
         _searchCategory(_selectedCategory);
         return;
       }
@@ -463,11 +490,27 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         // 지도가 준비된 경우에만 마커 업데이트
         if (_mapReady) await _updateMarkers();
       } else {
+        // API 오류 (401/403/5xx) — 사용자 안내
         setState(() => _searching = false);
+        dev.log('검색 API 실패: ${response.statusCode}', name: 'HospitalSearch');
+        if (mounted) {
+          final message = response.statusCode == 401 || response.statusCode == 403
+              ? '카카오 지도 API 인증이 필요합니다. 관리자에게 문의해주세요.'
+              : '장소 검색에 실패했습니다. 잠시 후 다시 시도해주세요.';
+          _showSnack(message);
+        }
+      }
+    } on TimeoutException {
+      if (mounted) {
+        setState(() => _searching = false);
+        _showSnack('검색 시간이 초과되었습니다. 네트워크를 확인해주세요.');
       }
     } catch (e) {
       dev.log('검색 오류: $e', name: 'HospitalSearch');
-      if (mounted) setState(() => _searching = false);
+      if (mounted) {
+        setState(() => _searching = false);
+        _showSnack('검색 중 오류가 발생했습니다.');
+      }
     }
   }
 
@@ -686,6 +729,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
         _favoriteIds.add(place.id);
       }
     });
+    _persistFavorites(); // 로컬 저장 (앱 재시작 후에도 유지)
   }
 
   bool _isFavorite(String id) => _favoriteIds.contains(id);

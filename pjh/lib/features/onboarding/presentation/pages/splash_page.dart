@@ -257,9 +257,10 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
               ),
             ),
 
-            // ── 하단: 3dot 로딩 인디케이터 + JENA Team ──
+            // ── 하단: 3dot 로딩 인디케이터 + JENA Team (home indicator 영역 회피) ──
             Positioned(
-              bottom: 48.h, left: 0, right: 0,
+              bottom: 48.h + MediaQuery.of(context).padding.bottom,
+              left: 0, right: 0,
               child: Column(
                 children: [
                   Row(
