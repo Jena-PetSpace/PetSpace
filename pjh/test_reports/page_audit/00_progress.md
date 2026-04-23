@@ -8,25 +8,25 @@
 
 ## 전체 진행률
 
-- **총 페이지 수:** 67개
-- **완료:** 8개
-- **진행률:** 11.9%
+- **총 페이지 수:** 69개 (win 머지로 emotion +1, social +2)
+- **완료:** 69개
+- **진행률:** **100% ✅**
 
 ---
 
 ## Feature별 진행
 
-- [x] **auth (8/8) ✅ — Phase 1 완료**
-- [ ] onboarding (0/9) — Phase 2
-- [ ] home (0/1) — Phase 3
-- [ ] health (0/2) — Phase 4
-- [ ] emotion (0/12) — Phase 5
-- [ ] feed_hub (0/2) — Phase 6
-- [ ] social (0/13) — Phase 7
-- [ ] my (0/6) — Phase 8
-- [ ] profile (0/7) — Phase 9
-- [ ] pets (0/3) — Phase 10
-- [ ] chat (0/4) — Phase 11
+- [x] **auth (8/8) ✅**
+- [x] **onboarding (9/9) ✅**
+- [x] **home (1/1) ✅**
+- [x] **health (2/2) ✅**
+- [x] **emotion (13/13) ✅** (timeline 추가)
+- [x] **feed_hub (2/2) ✅**
+- [x] **social (15/15) ✅** (hashtag, location_posts 추가)
+- [x] **my (6/6) ✅**
+- [x] **profile (7/7) ✅**
+- [x] **pets (3/3) ✅**
+- [x] **chat (4/4) ✅**
 
 ---
 
@@ -42,19 +42,19 @@
 - [x] terms_agreement_page.dart — 상호작용 10, 버그 5 (H1/M2/L2)
 - [x] terms_detail_page.dart — 상호작용 2, 버그 4 (M1/L3)
 
-### Phase 2 — onboarding (0/9)
-- [ ] splash_page.dart
-- [ ] onboarding_page.dart
-- [ ] onboarding_slides_page.dart
-- [ ] onboarding_login_page.dart
-- [ ] onboarding_email_verification_page.dart
-- [ ] onboarding_profile_setup_page.dart
-- [ ] onboarding_pet_registration_page.dart
-- [ ] onboarding_tutorial_page.dart
-- [ ] onboarding_complete_page.dart
+### Phase 2 — onboarding (9/9) ✅
+- [x] splash_page.dart — 상호작용 4(자동), 버그 4 (M1/L3)
+- [x] onboarding_page.dart — 상호작용 1, 버그 3 (M1/L2)
+- [x] onboarding_slides_page.dart — 상호작용 4, 버그 4 (M2/L2)
+- [x] onboarding_login_page.dart — 상호작용 9, 버그 3 (L3)
+- [x] onboarding_email_verification_page.dart — 상호작용 5, 버그 6 (H2/M2/L2)
+- [x] onboarding_profile_setup_page.dart — 상호작용 5, 버그 6 (M3/L3)
+- [x] onboarding_pet_registration_page.dart — 상호작용 12, 버그 9 (**C1**/H2/M3/L3)
+- [x] onboarding_tutorial_page.dart — 상호작용 5, 버그 4 (H1/M1/L2)
+- [x] onboarding_complete_page.dart — 상호작용 2, 버그 5 (M3/L2)
 
-### Phase 3 — home (0/1)
-- [ ] hospital_search_page.dart
+### Phase 3 — home (1/1) ✅
+- [x] hospital_search_page.dart — 상호작용 21, 버그 13 (**C1**/H3/M6/L3)
 
 ### Phase 4 — health (0/2)
 - [ ] health_main_page.dart
@@ -125,11 +125,11 @@
 
 ## 버그 발견 현황
 
-- 🔴 Critical: 0
-- 🟠 High: 10 (Pre-audit 2 + Phase 1 8)
-- 🟡 Medium: 12 (Pre-audit 1 + Phase 1 11)
-- 🟢 Low: 14
-- **합계: 36건**
+- 🔴 Critical: **2** (Phase 2 pet_registration 경쟁조건, Phase 3 북마크 유실)
+- 🟠 High: 41
+- 🟡 Medium: 141
+- 🟢 Low: 69
+- **합계: 253건**
 
 상세 내역: [BUG_LOG.md](./BUG_LOG.md)
 
@@ -151,13 +151,66 @@
 | terms_detail_page | 2 | 4 | ⚠️ GoRouter 미사용 |
 | **합계** | **43** | **35** | — |
 
-**핵심 발견:**
+**Phase 1 핵심 발견:**
 - 🔥 **Dead code 2개 발견** — login_page.dart, register_page.dart (총 417줄 잠재 삭제)
-- 🔥 **Supabase 직접 호출 패턴 4건** — AuthRepository에 `sendOtp`, `verifyOtp`, `updateUserPassword`, `signOut` 메서드 추가 필요
-- 🔥 **라우팅 불일치 1건** (login_page의 `/password-reset-request` — dead code라 실제 영향 없음)
-- 🟡 **iOS Safe Area / Scroll Physics 미흡 다수** — 일괄 개선 가능
-- 🟡 **약관 하드코딩** — CMS/원격 로딩 검토 필요
+- 🔥 **Supabase 직접 호출 패턴 4건**
+- 🔥 **라우팅 불일치 1건** (dead code라 실제 영향 없음)
+- 🟡 iOS Safe Area / Scroll Physics 미흡 다수
 
 ---
 
-*마지막 업데이트: 2026-04-22 Phase 1 완료*
+## Phase 2 요약 리포트
+
+**onboarding feature 전수 감사 결과 (9/9 완료):**
+
+| 페이지 | 상호작용 | 버그 | 종합 |
+|--------|--------|------|------|
+| splash_page | 4(자동) | 4 | ⚠️ 하단 Safe Area |
+| onboarding_page | 1 | 3 | ⚠️ 작은 화면 |
+| onboarding_slides_page | 4 | 4 | ⚠️ 잠재 미사용 |
+| onboarding_login_page | 9 | 3 | ✅ 실제 사용 — 버그 적음 |
+| onboarding_email_verification_page | 5 | 6 | ⚠️ Supabase 직접 + 뒤로가기 signOut 누락 |
+| onboarding_profile_setup_page | 5 | 6 | ⚠️ ProfileService 직접 주입 |
+| onboarding_pet_registration_page | 12 | 9 | 🔴 **Critical 경쟁조건** |
+| onboarding_tutorial_page | 5 | 4 | ⚠️ 진입 경로 없음 |
+| onboarding_complete_page | 2 | 5 | ⚠️ stream timeout 없음 |
+| **합계** | **47** | **44** | — |
+
+**Phase 2 핵심 발견:**
+- 🔴 **Critical 1건 발견** — pet_registration의 `AddPetEvent + Future.delayed(500ms)` 경쟁조건
+- 🟠 **잠재 미사용 페이지 2개** — slides_page, tutorial_page (진입 경로 없음)
+- 🟠 **Supabase 직접 호출 3건** (email_verification 내) — Phase 1 패턴 반복
+- 🟠 **뒤로가기 signOut 누락** — email_verification
+- 🟡 **ProfileService/PetBloc 주입 경로 불일치** — OnboardingBloc 도입 권장
+- 🟡 **iOS 작은 화면 overflow** 다수 (onboarding_page, complete_page)
+
+---
+
+*마지막 업데이트: 2026-04-23 Phase 2 완료*
+
+---
+
+## Phase 3 요약 리포트
+
+**home feature 전수 감사 결과 (1/1 완료):**
+
+| 페이지 | 상호작용 | 버그 | 종합 |
+|--------|--------|------|------|
+| hospital_search_page | 21 | 13 | 🔴 **Critical** (북마크 유실) |
+
+**Phase 3 핵심 발견:**
+- 🔴 **Critical 1건** — `_favoriteIds` 로컬 Set만 사용 → 앱 재시작 시 북마크 전부 유실. "내 장소" 탭도 무의미
+- 🟠 **High 3건** — 내 장소 필터 미구현, 권한 영구 거부 설정앱 이동 없음, API 실패 안내 없음
+- 🟡 **Medium 6건** — 대부분 에러/타임아웃 UX, mapController dispose, pagination 등
+- 🟢 **Low 3건** — Physics, 아이콘 포맷
+
+**1448 LOC 단일 StatefulWidget**로 복잡도 극상. 향후 **HospitalSearchBloc** 분리 권장.
+
+iOS 호환성은 양호:
+- kakao_maps_flutter 로컬 패키지 iOS 구현 있음 ✅
+- Info.plist 위치 권한 이미 설정됨 ✅
+- 시뮬레이터 테스트 시 위치 수동 설정 필요
+
+---
+
+*마지막 업데이트: 2026-04-23 Phase 3 완료*

@@ -67,6 +67,45 @@
 | 034 | terms_detail | 하단 버튼 Safe Area | 🟢 Low | home indicator 침범 가능 | ⏳ Reported | Phase 1 | terms_detail_page.dart:52 |
 | 035 | terms_detail | 하드코딩 색상 orange | 🟢 Low | AppTheme 토큰 미사용 | ⏳ Reported | Phase 1 | terms_detail_page.dart:73 |
 | 036 | terms_detail | Scroll physics | 🟢 Low | BouncingScrollPhysics 미적용 | ⏳ Reported | Phase 1 | terms_detail_page.dart |
+| 037 | splash_page | 하단 Safe Area | 🟡 Medium | "by JENA Team" 영역 bottom: 48.h 고정 → iPhone 홈 인디케이터 침범 가능 | ⏳ Reported | Phase 2 | splash_page.dart:261-283 |
+| 038 | splash_page | SystemUIOverlayStyle 전역 충돌 | 🟢 Low | main.dart는 흰색+dark 설정, splash는 transparent+light. AnnotatedRegion 래핑 권장 | ⏳ Reported | Phase 2 | splash_page.dart:37-42 |
+| 039 | onboarding_page | 스크롤 없음 | 🟡 Medium | iPhone SE(667pt) overflow 가능 → SingleChildScrollView 래핑 권장 | ⏳ Reported | Phase 2 | onboarding_page.dart |
+| 040 | onboarding_slides_page | 진입 경로 불명확 | 🟡 Medium | /onboarding/slides 라우트 등록되나 호출하는 코드 없음 — 잠재 미사용 | ⏳ Reported | Phase 2 | onboarding_slides_page.dart |
+| 041 | onboarding_slides_page | 하드코딩 색상 | 🟡 Medium | Icons primaryColor/orange/green — AppTheme 토큰 미사용 | ⏳ Reported | Phase 2 | onboarding_slides_page.dart:80,124,168 |
+| 042 | onboarding_slides_page | 무의미한 flex 삼항 | 🟢 Low | flex: _currentPage == 0 ? 1 : 1 — 양쪽 같음 | ⏳ Reported | Phase 2 | onboarding_slides_page.dart:252 |
+| 043 | onboarding_email_verification | Supabase 직접 호출 3건 | 🟠 High | resend/verifyOTP/signOut 직접 호출 — AuthRepository 경유 필요 | ⏳ Reported | Phase 2 | onboarding_email_verification_page.dart:79,132,150 |
+| 044 | onboarding_email_verification | 뒤로가기 signOut 누락 | 🟠 High | /onboarding/login go만 하고 session 유지 — 회원가입 미완료 상태에서 session 보유 위험 | ⏳ Reported | Phase 2 | onboarding_email_verification_page.dart:215-220 |
+| 045 | onboarding_email_verification | KeyboardListener FocusNode 리크 | 🟡 Medium | 내부 FocusNode() dispose 없음 (Phase 1 pw_reset_verification과 동일) | ⏳ Reported | Phase 2 | onboarding_email_verification_page.dart:279 |
+| 046 | onboarding_email_verification | 인증 성공 후 signOut 정책 | 🟡 Medium | 인증 후 의도적 signOut → 재로그인 유도. UX 재검토 | ⏳ Reported | Phase 2 | onboarding_email_verification_page.dart:150 |
+| 047 | onboarding_email_verification | 에러 원문 노출 | 🟢 Low | e.toString() | ⏳ Reported | Phase 2 | onboarding_email_verification_page.dart:108,178 |
+| 048 | onboarding_profile_setup | ProfileService 직접 주입 | 🟡 Medium | BLoC 패턴 일관성 위반 — OnboardingBloc 도입 권장 | ⏳ Reported | Phase 2 | onboarding_profile_setup_page.dart:23 |
+| 049 | onboarding_profile_setup | 닉네임 중복 체크 없음 | 🟡 Medium | 길이만 검증, 서버 응답 후에야 중복 확인 | ⏳ Reported | Phase 2 | onboarding_profile_setup_page.dart:210-221 |
+| 050 | onboarding_profile_setup | 에러 원문 노출 | 🟡 Medium | e.toString() | ⏳ Reported | Phase 2 | onboarding_profile_setup_page.dart:302,352 |
+| 051 | onboarding_profile_setup | 기존 소셜 사진 로드 안 됨 | 🟢 Low | _avatarUrl 초기값 null — 카카오/구글 프로필 사진 자동 표시 안 됨 | ⏳ Reported | Phase 2 | onboarding_profile_setup_page.dart:25 |
+| 052 | onboarding_pet_registration | **경쟁조건 AddPetEvent + 500ms 대기** | 🔴 **Critical** | petBloc.add 후 Future.delayed(500ms)로 상태 체크 — 네트워크 느리면 false negative, 여러 펫 시 상태 겹침 | ⏳ Reported | Phase 2 | onboarding_pet_registration_page.dart:753-764 |
+| 053 | onboarding_pet_registration | 로컬 배열과 DB 분리 | 🟠 High | _registeredPets 로컬만, 저장은 _continue에서만 → 앱 종료 시 데이터 유실 | ⏳ Reported | Phase 2 | onboarding_pet_registration_page.dart |
+| 054 | onboarding_pet_registration | 폼 검증 분산 | 🟠 High | type null 가드와 formKey.validate 분리 — 통합된 validator 없음 | ⏳ Reported | Phase 2 | onboarding_pet_registration_page.dart:634-641 |
+| 055 | onboarding_pet_registration | 펫 아이콘 동일 | 🟡 Medium | 강아지/고양이 둘 다 Icons.pets | ⏳ Reported | Phase 2 | onboarding_pet_registration_page.dart:170,330,338 |
+| 056 | onboarding_pet_registration | birthDate 기본 1년 전 | 🟡 Medium | 어린 반려동물 등록 UX 방해 | ⏳ Reported | Phase 2 | onboarding_pet_registration_page.dart:622 |
+| 057 | onboarding_tutorial | 진입 경로 없음 | 🟠 High | /onboarding/tutorial 라우트 등록되나 호출 0 — 잠재 미사용 | ⏳ Reported | Phase 2 | onboarding_tutorial_page.dart |
+| 058 | onboarding_tutorial | _startFirstAnalysis 이름값 못 함 | 🟡 Medium | 이름은 첫 분석 시작, 실제는 /onboarding/complete로만 이동 | ⏳ Reported | Phase 2 | onboarding_tutorial_page.dart:563-568 |
+| 059 | onboarding_complete | stream.firstWhere timeout 없음 | 🟡 Medium | orElse는 stream 종료 시에만 호출. 서버 응답 실패 시 무한 대기 위험 | ⏳ Reported | Phase 2 | onboarding_complete_page.dart:340-344,373-377 |
+| 060 | onboarding_complete | 스크롤 없음 | 🟡 Medium | iPhone SE overflow 가능 | ⏳ Reported | Phase 2 | onboarding_complete_page.dart |
+| 061 | onboarding_complete | 체크마크 위치 하드코딩 | 🟡 Medium | Positioned(top:40, right:40) — ScreenUtil 배율과 어긋날 수 있음 | ⏳ Reported | Phase 2 | onboarding_complete_page.dart:106-107 |
+| 062 | onboarding_complete | 하드코딩 색상 | 🟢 Low | Colors.blue/green/orange — AppTheme 토큰 미사용 | ⏳ Reported | Phase 2 | onboarding_complete_page.dart |
+| 063 | hospital_search | **북마크 서버 저장 없음** | 🔴 **Critical** | _favoriteIds는 로컬 Set만. 앱 재시작 시 전부 유실. "내 장소" 탭이 무의미 | ⏳ Reported | Phase 3 | hospital_search_page.dart:681-689,1075-1085,1389-1395 |
+| 064 | hospital_search | "내 장소" 카테고리 필터링 미구현 | 🟠 High | isFavoriteTab: true이지만 빈 쿼리로 Kakao API 호출 — 결과 이상 | ⏳ Reported | Phase 3 | hospital_search_page.dart:80,390-403 |
+| 065 | hospital_search | 권한 deniedForever 설정앱 이동 없음 | 🟠 High | _locationError 메시지만 표시, openAppSettings() 호출 필요 | ⏳ Reported | Phase 3 | hospital_search_page.dart:214-217 |
+| 066 | hospital_search | API 실패 시 안내 없음 | 🟠 High | statusCode 200 외에는 _searching=false만 호출, 사용자 피드백 없음 | ⏳ Reported | Phase 3 | hospital_search_page.dart:465-466 |
+| 067 | hospital_search | _mapController dispose 안 됨 | 🟡 Medium | kakao_maps_flutter 내부 처리 여부 확인 필요 | ⏳ Reported | Phase 3 | hospital_search_page.dart:160-168 |
+| 068 | hospital_search | onChanged 전체 setState 리빌드 | 🟡 Medium | 입력마다 전체 build — suffixIcon만 갱신 위젯 분리 권장 | ⏳ Reported | Phase 3 | hospital_search_page.dart:1242 |
+| 069 | hospital_search | 검색 결과 15개 고정 | 🟡 Medium | size=15, pagination 없음 | ⏳ Reported | Phase 3 | hospital_search_page.dart:444 |
+| 070 | hospital_search | Timeout 에러 사용자 안내 부족 | 🟡 Medium | 10s timeout 시 _searching=false만 | ⏳ Reported | Phase 3 | hospital_search_page.dart:449,468-470 |
+| 071 | hospital_search | 위치 중복 요청 가능 | 🟡 Medium | _moveToMyLocation에서 _getLocation 재호출 시 debounce 없음 | ⏳ Reported | Phase 3 | hospital_search_page.dart:259-260 |
+| 072 | hospital_search | 카카오맵 앱 미설치 시 웹 fallback 없음 | 🟡 Medium | LaunchMode.externalApplication만 시도, 실패 시 SnackBar만 | ⏳ Reported | Phase 3 | hospital_search_page.dart:710,723 |
+| 073 | hospital_search | _suppressCameraMoveEvent 플래그 복잡 | 🟢 Low | State 머신 리팩토링 필요 | ⏳ Reported | Phase 3 | hospital_search_page.dart:310 |
+| 074 | hospital_search | BouncingScrollPhysics 미적용 | 🟢 Low | iOS 감성 | ⏳ Reported | Phase 3 | hospital_search_page.dart |
+| 075 | hospital_search | 카테고리 아이콘 PNG 색상 강제 변환 | 🟢 Low | color overlay로 white 전환 — SVG 권장 | ⏳ Reported | Phase 3 | hospital_search_page.dart:1298-1299 |
 
 ---
 
@@ -76,6 +115,16 @@
 |-------|---------|------|--------|-----|------|
 | Pre-audit | 0 | 2 | 1 | 0 | 3 |
 | Phase 1 (auth) | 0 | 8 | 11 | 14 | 33 |
+| Phase 2 (onboarding) | 1 | 6 | 14 | 5 | 26 |
+| Phase 3 (home) | 1 | 3 | 6 | 3 | 13 |
+| Phase 4 (health) | 0 | 1 | 4 | 4 | 9 |
+| Phase 5 (emotion) | 0 | 3 | 30 | 12 | 45 |
+| Phase 6 (feed_hub) | 0 | 1 | 4 | 2 | 7 |
+| Phase 7 (social) | 0 | 8 | 29 | 14 | 51 |
+| Phase 8 (my) | 0 | 2 | 13 | 5 | 20 |
+| Phase 9 (profile) | 0 | 2 | 14 | 4 | 20 |
+| Phase 10 (pets) | 0 | 1 | 8 | 2 | 11 |
+| Phase 11 (chat) | 0 | 4 | 9 | 3 | 16 |
 | Phase 2 (onboarding) | - | - | - | - | - |
 | Phase 3 (home) | - | - | - | - | - |
 | Phase 4 (health) | - | - | - | - | - |
@@ -86,7 +135,7 @@
 | Phase 9 (profile) | - | - | - | - | - |
 | Phase 10 (pets) | - | - | - | - | - |
 | Phase 11 (chat) | - | - | - | - | - |
-| **합계** | **0** | **10** | **12** | **14** | **36** |
+| **합계** | **2** | **41** | **141** | **69** | **253** |
 
 ---
 
