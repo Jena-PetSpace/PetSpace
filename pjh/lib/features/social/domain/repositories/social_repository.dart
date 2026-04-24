@@ -108,6 +108,10 @@ abstract class SocialRepository {
       {required String userId, int limit = 20});
   Future<Either<Failure, bool>> isPostSaved(String postId, String userId);
 
+  /// 유저 연속 활동 일수 조회 (RPC get_user_streak).
+  /// RPC 미구현 상태면 0 반환 — 퀘스트 시스템 연동 후 활성화 예정.
+  Future<Either<Failure, int>> getUserStreak(String userId);
+
   // Bookmark collection operations
   Future<Either<Failure, List<BookmarkCollection>>> getBookmarkCollections(String userId);
   Future<Either<Failure, BookmarkCollection>> createBookmarkCollection({

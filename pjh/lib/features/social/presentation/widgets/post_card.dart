@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../../../config/injection_container.dart';
 import '../../../../core/services/block_service.dart';
 import '../../../../core/utils/hashtag_utils.dart';
@@ -13,6 +11,7 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_viewer_page.dart';
 import '../../../emotion/presentation/widgets/emotion_chart.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/repositories/social_repository.dart';
 import 'collection_picker_sheet.dart';
 import 'likes_bottom_sheet.dart';
 
@@ -72,20 +71,17 @@ class _PostCardState extends State<PostCard> {
     if (widget.currentUserId.isEmpty) return;
     final prev = _isSaved;
     setState(() => _isSaved = !_isSaved);
-    try {
-      if (prev) {
-        await Supabase.instance.client
-            .from('saved_posts')
-            .delete()
-            .eq('post_id', post.id)
-            .eq('user_id', widget.currentUserId);
-      } else {
-        await Supabase.instance.client.from('saved_posts').upsert({
-          'post_id': post.id,
-          'user_id': widget.currentUserId,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-        if (mounted) {
+    final repo = sl<SocialRepository>();
+    final result = prev
+        ? await repo.unsavePost(post.id, widget.currentUserId)
+        : await repo.savePost(post.id, widget.currentUserId);
+    result.fold(
+      (failure) {
+        dev.log('북마크 토글 실패: ${failure.message}', name: 'PostCard');
+        if (mounted) setState(() => _isSaved = prev);
+      },
+      (_) {
+        if (!prev && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('저장되었습니다 🔖'),
@@ -94,11 +90,8 @@ class _PostCardState extends State<PostCard> {
             ),
           );
         }
-      }
-    } catch (e) {
-      dev.log('북마크 토글 실패: $e', name: 'PostCard');
-      if (mounted) setState(() => _isSaved = prev);
-    }
+      },
+    );
   }
 
   @override
@@ -471,15 +464,10 @@ class _PostCardState extends State<PostCard> {
 
   Future<int> _fetchStreak(String authorId) async {
     if (_streakCache.containsKey(authorId)) return _streakCache[authorId]!;
-    try {
-      final res = await Supabase.instance.client
-          .rpc('get_user_streak', params: {'p_user_id': authorId});
-      final streak = (res as int?) ?? 0;
-      _streakCache[authorId] = streak;
-      return streak;
-    } catch (_) {
-      return 0;
-    }
+    final result = await sl<SocialRepository>().getUserStreak(authorId);
+    final streak = result.fold((_) => 0, (v) => v);
+    _streakCache[authorId] = streak;
+    return streak;
   }
 
   Widget _buildTypeBadge() {

@@ -116,6 +116,20 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, int>> getUserStreak(String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      // ignore: avoid_dynamic_calls
+      final streak = await remoteDataSource.getUserStreak(userId);
+      return Right(streak);
+    } catch (e) {
+      return const Right(0); // RPC 미구현 / 실패 시 0 fallback
+    }
+  }
+
+  @override
   Future<Either<Failure, bool>> isPostLiked(
       String postId, String userId) async {
     try {

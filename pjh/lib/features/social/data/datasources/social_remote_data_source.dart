@@ -29,6 +29,7 @@ abstract class SocialRemoteDataSource {
   Future<String> uploadCoverImage(String userId, File file);
   Future<Post> getPost(String postId);
   Future<Map<String, dynamic>?> getPostDetail(String postId);
+  Future<int> getUserStreak(String userId);
   Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId);
   Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt, bool followingOnly = false});
   Future<List<Post>> getExplorePosts(int limit, String? lastPostId, {DateTime? lastCreatedAt});
@@ -499,6 +500,19 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _logger.error('Failed to get post detail',
           error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물 상세 조회 중 오류가 발생했습니다: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<int> getUserStreak(String userId) async {
+    // RPC get_user_streak 는 아직 스키마에 없음 (퀘스트 시스템 연동 후 추가 예정).
+    // 호출은 유지하되 실패 시 0 반환.
+    try {
+      final res = await supabaseClient
+          .rpc('get_user_streak', params: {'p_user_id': userId});
+      return (res as int?) ?? 0;
+    } catch (_) {
+      return 0;
     }
   }
 
