@@ -80,6 +80,22 @@ abstract class SocialRepository {
   Future<Either<Failure, List<Map<String, dynamic>>>> getPointTransactions(
       String userId);
 
+  /// 포인트 잔액 조회 (user_points 뷰)
+  Future<Either<Failure, int>> getUserPoints(String userId);
+
+  /// 퀘스트 타입별 오늘 수행 여부 확인.
+  /// questType: 'analyze' (감정 분석) | 'post' (게시물 작성) | 'like' (좋아요)
+  Future<Either<Failure, bool>> hasQuestActivityToday({
+    required String userId,
+    required String questType,
+  });
+
+  /// 퀘스트 완료 시 포인트 지급 (RPC increment_user_points)
+  Future<Either<Failure, void>> incrementUserPoints({
+    required String userId,
+    required int points,
+  });
+
   // Like operations
   Future<Either<Failure, void>> likePost(String postId, String userId);
   Future<Either<Failure, void>> unlikePost(String postId, String userId);

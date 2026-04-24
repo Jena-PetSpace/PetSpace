@@ -179,6 +179,53 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, int>> getUserPoints(String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final points = await remoteDataSource.getUserPoints(userId);
+      return Right(points);
+    } catch (e) {
+      return Left(ServerFailure(message: '포인트 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> hasQuestActivityToday({
+    required String userId,
+    required String questType,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final achieved = await remoteDataSource.hasQuestActivityToday(
+          userId: userId, questType: questType);
+      return Right(achieved);
+    } catch (e) {
+      return Left(ServerFailure(message: '퀘스트 확인 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> incrementUserPoints({
+    required String userId,
+    required int points,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.incrementUserPoints(
+          userId: userId, points: points);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '포인트 지급 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Map<String, dynamic>>>> getSavedPostsRaw(
       String userId) async {
     try {

@@ -43,6 +43,15 @@ abstract class SocialRemoteDataSource {
   Future<Set<String>> getEarnedBadgeIds(String userId);
   Future<void> checkAndAwardBadges(String userId);
   Future<List<Map<String, dynamic>>> getPointTransactions(String userId);
+  Future<int> getUserPoints(String userId);
+  Future<bool> hasQuestActivityToday({
+    required String userId,
+    required String questType,
+  });
+  Future<void> incrementUserPoints({
+    required String userId,
+    required int points,
+  });
   Future<int> getUserStreak(String userId);
   Future<Map<String, dynamic>?> getNotificationPreferences(String userId);
   Future<void> upsertNotificationPreference({
@@ -595,6 +604,67 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
                 .toList(),
           );
     }
+  }
+
+  @override
+  Future<int> getUserPoints(String userId) async {
+    final res = await supabaseClient
+        .from('user_points')
+        .select('balance')
+        .eq('user_id', userId)
+        .maybeSingle();
+    return (res?['balance'] as int?) ?? 0;
+  }
+
+  @override
+  Future<bool> hasQuestActivityToday({
+    required String userId,
+    required String questType,
+  }) async {
+    final todayStart = DateTime.now().copyWith(
+        hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
+    final iso = todayStart.toIso8601String();
+    switch (questType) {
+      case 'analyze':
+        final rows = await supabaseClient
+            .from('emotion_history')
+            .select('id')
+            .eq('user_id', userId)
+            .gte('created_at', iso)
+            .limit(1);
+        return (rows as List).isNotEmpty;
+      case 'post':
+        final rows = await supabaseClient
+            .from('posts')
+            .select('id')
+            .eq('author_id', userId)
+            .isFilter('deleted_at', null)
+            .gte('created_at', iso)
+            .limit(1);
+        return (rows as List).isNotEmpty;
+      case 'like':
+        // BUG 수정: 기존 코드는 존재하지 않는 'post_likes' 참조 — 실제 테이블은 'likes'
+        final rows = await supabaseClient
+            .from('likes')
+            .select('id')
+            .eq('user_id', userId)
+            .gte('created_at', iso)
+            .limit(1);
+        return (rows as List).isNotEmpty;
+      default:
+        return false;
+    }
+  }
+
+  @override
+  Future<void> incrementUserPoints({
+    required String userId,
+    required int points,
+  }) async {
+    await supabaseClient.rpc('increment_user_points', params: {
+      'p_user_id': userId,
+      'p_points': points,
+    });
   }
 
   @override
