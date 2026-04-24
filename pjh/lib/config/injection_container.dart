@@ -101,7 +101,9 @@ import '../core/services/notification_service.dart';
 import '../core/services/push_notification_service.dart';
 import '../core/services/realtime_service.dart';
 import '../core/services/profile_service.dart';
+import '../core/services/block_service.dart';
 import '../core/services/fcm_service.dart';
+import '../core/services/local_notification_service.dart';
 
 final sl = GetIt.instance;
 
@@ -427,10 +429,19 @@ Future<void> _initCore() async {
     ),
   );
 
+  sl.registerLazySingleton<LocalNotificationService>(
+    () => LocalNotificationService(supabase: sl()),
+  );
+
+  sl.registerLazySingleton<BlockService>(
+    () => BlockService(supabase: sl()),
+  );
+
   try {
     sl.registerLazySingleton<FCMService>(
       () => FCMService(
         supabase: sl(),
+        localNotificationService: sl<LocalNotificationService>(),
       ),
     );
   } catch (e) {

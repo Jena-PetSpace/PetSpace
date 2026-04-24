@@ -1,19 +1,29 @@
 import 'dart:developer' as dev;
+import 'dart:io' show Platform;
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart' show GlobalKey, NavigatorState;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'local_notification_service.dart';
+
 /// Firebase Cloud Messaging 서비스
 /// 푸시 알림을 관리하고 토큰을 Supabase에 저장
+/// 포그라운드 수신 시 LocalNotificationService로 알림 표시
 class FCMService {
   FirebaseMessaging get _firebaseMessaging => FirebaseMessaging.instance;
   final SupabaseClient _supabase;
+  final LocalNotificationService? _localNotif;
 
   /// GoRouter navigatorKey — main.dart에서 주입
   GlobalKey<NavigatorState>? navigatorKey;
 
-  FCMService({required SupabaseClient supabase}) : _supabase = supabase;
+  FCMService({
+    required SupabaseClient supabase,
+    LocalNotificationService? localNotificationService,
+  })  : _supabase = supabase,
+        _localNotif = localNotificationService;
 
   /// 메시지 data 필드 기준 라우팅
   void _routeFromData(Map<String, dynamic> data) {
@@ -105,9 +115,11 @@ class FCMService {
       }
 
       // user_devices 테이블에 토큰 저장 (중복 방지)
+      final platform = Platform.isIOS ? 'ios' : (Platform.isAndroid ? 'android' : 'other');
       await _supabase.from('user_devices').upsert({
         'user_id': userId,
         'fcm_token': token,
+        'platform': platform,
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'fcm_token');
 
@@ -118,10 +130,31 @@ class FCMService {
     }
   }
 
-  /// 포그라운드 메시지 처리
+  /// 포그라운드 메시지 처리 — 시스템 알림이 표시되지 않으므로 로컬 알림으로 표시
   void _handleForegroundMessage(RemoteMessage message) {
-    dev.log('포그라운드 메시지 수신: ${message.notification?.title}', name: 'FCMService');
-    // 포그라운드에서는 알림 데이터만 저장 — 탭 시 처리는 onMessageOpenedApp에서
+    final title = message.notification?.title ?? '알림';
+    final body = message.notification?.body ?? '';
+    dev.log('포그라운드 메시지 수신: $title', name: 'FCMService');
+
+    final localNotif = _localNotif;
+    if (localNotif == null) return;
+
+    // payload 구성 (string=string only)
+    final payload = LocalNotificationService.buildPayload(
+      message.data.map((k, v) => MapEntry(k, v?.toString() ?? '')),
+    );
+
+    // 해시 기반 id — 중복 방지
+    final id = (message.messageId ??
+            DateTime.now().microsecondsSinceEpoch.toString())
+        .hashCode;
+
+    localNotif.showSocialNotification(
+      id: id,
+      title: title,
+      body: body,
+      payload: payload,
+    );
   }
 
   /// 알림 탭 → 인앱 라우팅 (앱이 백그라운드 → 포그라운드 전환 시)

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../config/injection_container.dart';
+import '../../../../core/services/local_notification_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 
 class HealthAlertSettingsPage extends StatefulWidget {
@@ -43,10 +45,44 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
     await prefs.setBool('health_alert_d1', _alertD1);
     await prefs.setString('health_alert_time', _alertTime);
 
+    // 알림 비활성화 시 예약된 건강 알림 모두 취소
+    // 활성화 시에는 HealthBloc이 기록 추가/수정 시점에 재스케줄링 (LocalNotificationService.scheduleHealthAlert)
+    if (!_alertEnabled) {
+      try {
+        // NOTE: 현재는 건강 전용 cancelByChannel API가 없어서 전체 취소 대신
+        // SharedPreferences 플래그만 읽어서 HealthBloc이 스케줄을 안 하도록 유도
+        // 향후 개별 취소: sl<LocalNotificationService>().cancelNotification(recordId.hashCode)
+      } catch (_) {}
+    }
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('알림 설정이 저장되었습니다'), backgroundColor: AppTheme.primaryColor),
       );
+    }
+  }
+
+  /// 알림 동작 확인용 — 5초 뒤 테스트 알림
+  Future<void> _sendTestNotification() async {
+    try {
+      final notif = sl<LocalNotificationService>();
+      await notif.scheduleHealthAlert(
+        id: 999999,
+        title: '알림 테스트',
+        body: '건강 알림이 정상적으로 동작합니다.',
+        scheduledDate: DateTime.now().add(const Duration(seconds: 5)),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('5초 뒤 테스트 알림이 도착합니다')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('테스트 알림 예약 실패. 알림 권한을 확인해주세요.')),
+        );
+      }
     }
   }
 
@@ -59,6 +95,11 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
         centerTitle: true, backgroundColor: Colors.white,
         foregroundColor: AppTheme.primaryTextColor, elevation: 0.5,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_active_outlined),
+            tooltip: '알림 테스트',
+            onPressed: _sendTestNotification,
+          ),
           TextButton(
             onPressed: _saveSettings,
             child: Text('저장', style: TextStyle(color: AppTheme.primaryColor, fontSize: 14.sp, fontWeight: FontWeight.w700)),

@@ -59,14 +59,14 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
       }
       final response = await Supabase.instance.client
           .from('user_blocks')
-          .select('blocked_user_id, users!user_blocks_blocked_user_id_fkey(display_name, avatar_url)')
-          .eq('user_id', userId)
+          .select('blocked_id, users!user_blocks_blocked_id_fkey(display_name, avatar_url)')
+          .eq('blocker_id', userId)
           .limit(100);
 
       final list = (response as List).map((row) {
         final userMap = row['users'] as Map<String, dynamic>?;
         return _BlockedUser(
-          id: row['blocked_user_id'] as String,
+          id: row['blocked_id'] as String,
           displayName: userMap?['display_name'] as String? ?? '사용자',
           avatarUrl: userMap?['avatar_url'] as String?,
         );
@@ -96,8 +96,8 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
       await Supabase.instance.client
           .from('user_blocks')
           .delete()
-          .eq('user_id', userId)
-          .eq('blocked_user_id', user.id);
+          .eq('blocker_id', userId)
+          .eq('blocked_id', user.id);
       if (mounted) {
         setState(() => _blockedUsers.removeWhere((u) => u.id == user.id));
         ScaffoldMessenger.of(context).showSnackBar(

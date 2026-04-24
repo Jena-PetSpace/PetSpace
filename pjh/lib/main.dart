@@ -28,6 +28,7 @@ import 'core/constants/app_constants.dart';
 import 'core/cache/cache_manager.dart';
 import 'core/services/realtime_service.dart';
 import 'core/services/fcm_service.dart';
+import 'core/services/local_notification_service.dart';
 import 'features/pets/presentation/bloc/pet_bloc.dart';
 import 'features/pets/presentation/bloc/pet_event.dart';
 import 'core/navigation/app_router.dart';
@@ -125,6 +126,14 @@ Future<void> _initBackground() async {
 
   // CacheManager
   await CacheManager().initialize();
+
+  // LocalNotificationService (플랫폼 무관하게 초기화 — 로컬 알림은 FCM 없어도 필요)
+  try {
+    await di.sl<LocalNotificationService>().initialize();
+    log('✅ LocalNotificationService 초기화 완료', name: 'main.localnotif');
+  } catch (e) {
+    log('⚠️ LocalNotificationService 초기화 실패: $e', name: 'main.localnotif');
+  }
 
   // RealtimeService
   if (SupabaseOptions.isConfigured) {
