@@ -312,6 +312,27 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
                   themeMode: themeMode,
                   scrollBehavior: const _BouncingScrollBehavior(),
                   routerConfig: _router,
+                  // 모든 페이지의 iOS status bar 영역(시계/와이파이/배터리)을
+                  // 항상 흰색 배경 + 검은 아이콘으로 고정.
+                  // Stack overlay 로 구현 (AppBar 색상과 무관하게 동작).
+                  builder: (context, child) {
+                    if (child == null) return const SizedBox.shrink();
+                    final topInset = MediaQuery.of(context).padding.top;
+                    return Stack(
+                      children: [
+                        child,
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: topInset,
+                          child: const IgnorePointer(
+                            child: ColoredBox(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

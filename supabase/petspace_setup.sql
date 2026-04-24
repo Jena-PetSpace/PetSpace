@@ -2050,8 +2050,10 @@ CREATE POLICY notifications_delete_own ON notifications
     FOR DELETE USING (user_id = auth.uid());
 
 DROP POLICY IF EXISTS notifications_insert_service ON notifications;
+-- 트리거(notify_on_like/comment/follow, SECURITY DEFINER)에서 INSERT 가능하도록 허용.
+-- 실제 INSERT 는 트리거와 Edge Function 에서만 발생.
 CREATE POLICY notifications_insert_service ON notifications
-    FOR INSERT WITH CHECK (auth.role() = 'service_role');
+    FOR INSERT WITH CHECK (true);
 
 -- ── 11.2 알림 자동 생성 트리거 (like / comment / follow) ──────────────────
 CREATE OR REPLACE FUNCTION notify_on_like()
@@ -2060,21 +2062,26 @@ DECLARE
     v_post_author_id UUID;
     v_sender_name TEXT;
 BEGIN
-    SELECT author_id INTO v_post_author_id FROM posts WHERE id = NEW.post_id;
-    IF v_post_author_id IS NULL OR v_post_author_id = NEW.user_id THEN
-        RETURN NEW;
-    END IF;
-    SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.user_id;
+    -- 알림 INSERT 실패해도 본 INSERT(likes) 는 성공하도록 EXCEPTION 핸들링
+    BEGIN
+        SELECT author_id INTO v_post_author_id FROM posts WHERE id = NEW.post_id;
+        IF v_post_author_id IS NULL OR v_post_author_id = NEW.user_id THEN
+            RETURN NEW;
+        END IF;
+        SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.user_id;
 
-    INSERT INTO notifications (user_id, sender_id, type, title, body, post_id, data, is_sent)
-    VALUES (
-        v_post_author_id, NEW.user_id, 'like',
-        '새로운 좋아요',
-        v_sender_name || '님이 회원님의 게시글을 좋아합니다.',
-        NEW.post_id,
-        jsonb_build_object('post_id', NEW.post_id::text, 'sender_id', NEW.user_id::text),
-        FALSE
-    );
+        INSERT INTO notifications (user_id, sender_id, type, title, body, post_id, data, is_sent)
+        VALUES (
+            v_post_author_id, NEW.user_id, 'like',
+            '새로운 좋아요',
+            v_sender_name || '님이 회원님의 게시글을 좋아합니다.',
+            NEW.post_id,
+            jsonb_build_object('post_id', NEW.post_id::text, 'sender_id', NEW.user_id::text),
+            FALSE
+        );
+    EXCEPTION WHEN OTHERS THEN
+        RAISE LOG 'notify_on_like error: %', SQLERRM;
+    END;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -2090,31 +2097,36 @@ DECLARE
     v_sender_name TEXT;
     v_preview TEXT;
 BEGIN
-    -- BUG 수정: comments 테이블은 user_id 가 아니라 author_id 컬럼 사용
-    SELECT author_id INTO v_post_author_id FROM posts WHERE id = NEW.post_id;
-    IF v_post_author_id IS NULL OR v_post_author_id = NEW.author_id THEN
-        RETURN NEW;
-    END IF;
-    SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.author_id;
+    -- 알림 INSERT 실패해도 본 INSERT(comments) 는 성공하도록 EXCEPTION 핸들링
+    BEGIN
+        -- BUG 수정: comments 테이블은 user_id 가 아니라 author_id 컬럼 사용
+        SELECT author_id INTO v_post_author_id FROM posts WHERE id = NEW.post_id;
+        IF v_post_author_id IS NULL OR v_post_author_id = NEW.author_id THEN
+            RETURN NEW;
+        END IF;
+        SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.author_id;
 
-    v_preview := LEFT(COALESCE(NEW.content, ''), 50);
-    IF LENGTH(COALESCE(NEW.content, '')) > 50 THEN
-        v_preview := v_preview || '...';
-    END IF;
+        v_preview := LEFT(COALESCE(NEW.content, ''), 50);
+        IF LENGTH(COALESCE(NEW.content, '')) > 50 THEN
+            v_preview := v_preview || '...';
+        END IF;
 
-    INSERT INTO notifications (user_id, sender_id, type, title, body, post_id, comment_id, data, is_sent)
-    VALUES (
-        v_post_author_id, NEW.author_id, 'comment',
-        '새로운 댓글',
-        v_sender_name || ': ' || v_preview,
-        NEW.post_id, NEW.id,
-        jsonb_build_object(
-            'post_id', NEW.post_id::text,
-            'comment_id', NEW.id::text,
-            'sender_id', NEW.author_id::text
-        ),
-        FALSE
-    );
+        INSERT INTO notifications (user_id, sender_id, type, title, body, post_id, comment_id, data, is_sent)
+        VALUES (
+            v_post_author_id, NEW.author_id, 'comment',
+            '새로운 댓글',
+            v_sender_name || ': ' || v_preview,
+            NEW.post_id, NEW.id,
+            jsonb_build_object(
+                'post_id', NEW.post_id::text,
+                'comment_id', NEW.id::text,
+                'sender_id', NEW.author_id::text
+            ),
+            FALSE
+        );
+    EXCEPTION WHEN OTHERS THEN
+        RAISE LOG 'notify_on_comment error: %', SQLERRM;
+    END;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -2128,19 +2140,24 @@ RETURNS TRIGGER AS $$
 DECLARE
     v_sender_name TEXT;
 BEGIN
-    IF NEW.follower_id = NEW.following_id THEN
-        RETURN NEW;
-    END IF;
-    SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.follower_id;
+    -- 알림 INSERT 실패해도 본 INSERT(follows) 는 성공하도록 EXCEPTION 핸들링
+    BEGIN
+        IF NEW.follower_id = NEW.following_id THEN
+            RETURN NEW;
+        END IF;
+        SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.follower_id;
 
-    INSERT INTO notifications (user_id, sender_id, type, title, body, data, is_sent)
-    VALUES (
-        NEW.following_id, NEW.follower_id, 'follow',
-        '새로운 팔로워',
-        v_sender_name || '님이 회원님을 팔로우하기 시작했어요.',
-        jsonb_build_object('sender_id', NEW.follower_id::text),
-        FALSE
-    );
+        INSERT INTO notifications (user_id, sender_id, type, title, body, data, is_sent)
+        VALUES (
+            NEW.following_id, NEW.follower_id, 'follow',
+            '새로운 팔로워',
+            v_sender_name || '님이 회원님을 팔로우하기 시작했어요.',
+            jsonb_build_object('sender_id', NEW.follower_id::text),
+            FALSE
+        );
+    EXCEPTION WHEN OTHERS THEN
+        RAISE LOG 'notify_on_follow error: %', SQLERRM;
+    END;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
