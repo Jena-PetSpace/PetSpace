@@ -146,15 +146,15 @@ class _PostDetailPageState extends State<PostDetailPage> {
     }
   }
 
-  void _submitComment() {
+  void _submitComment(BuildContext ctx) {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
-    final authState = context.read<AuthBloc>().state;
+    final authState = ctx.read<AuthBloc>().state;
     final senderName =
         authState is AuthAuthenticated ? authState.user.displayName : '사용자';
 
     if (_replyToCommentId != null) {
-      context.read<CommentBloc>().add(CreateReplyRequested(
+      ctx.read<CommentBloc>().add(CreateReplyRequested(
             postId: widget.postId,
             parentId: _replyToCommentId!,
             content: content,
@@ -166,7 +166,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         _replyToAuthorName = null;
       });
     } else {
-      context.read<CommentBloc>().add(CreateCommentRequested(
+      ctx.read<CommentBloc>().add(CreateCommentRequested(
             postId: widget.postId,
             content: content,
             postAuthorId: _post?['author_id'] as String?,
@@ -174,7 +174,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
           ));
     }
     _commentController.clear();
-    FocusScope.of(context).unfocus();
+    FocusScope.of(ctx).unfocus();
   }
 
   void _showReplyInput(String commentId, String authorName) {
@@ -275,7 +275,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
               ),
             ),
           ),
-          _buildCommentInput(),
+          Builder(builder: (ctx) => _buildCommentInput(ctx)),
         ]),
       ),
     );
@@ -504,7 +504,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ),
       );
 
-  Widget _buildCommentInput() => Container(
+  Widget _buildCommentInput(BuildContext ctx) => Container(
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
@@ -577,11 +577,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     ),
                     maxLines: null,
                     textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _submitComment(),
+                    onSubmitted: (_) => _submitComment(ctx),
                   ),
                 ),
                 IconButton(
-                    onPressed: _submitComment,
+                    onPressed: () => _submitComment(ctx),
                     icon: Icon(Icons.send_rounded, size: 24.w),
                     color: AppTheme.primaryColor),
               ]),
