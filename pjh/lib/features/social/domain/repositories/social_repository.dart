@@ -50,6 +50,15 @@ abstract class SocialRepository {
   /// 아직 포함하지 않아 상세 렌더링 호환성을 위해 노출. Post 엔티티 확장 후 제거 예정.
   Future<Either<Failure, Map<String, dynamic>?>> getPostDetail(String postId);
 
+  /// 프로필 게시물 그리드용 raw query (petId 필터 + 무한 스크롤).
+  /// Post entity 확장 전까지 map 기반 렌더링 호환용.
+  Future<Either<Failure, List<Map<String, dynamic>>>> getUserPostsFiltered({
+    required String authorId,
+    String? petId,
+    String? beforeCreatedAt,
+    int limit = 30,
+  });
+
   // Like operations
   Future<Either<Failure, void>> likePost(String postId, String userId);
   Future<Either<Failure, void>> unlikePost(String postId, String userId);

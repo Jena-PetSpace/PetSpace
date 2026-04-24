@@ -29,6 +29,12 @@ abstract class SocialRemoteDataSource {
   Future<String> uploadCoverImage(String userId, File file);
   Future<Post> getPost(String postId);
   Future<Map<String, dynamic>?> getPostDetail(String postId);
+  Future<List<Map<String, dynamic>>> getUserPostsFiltered({
+    required String authorId,
+    String? petId,
+    String? beforeCreatedAt,
+    int limit = 30,
+  });
   Future<int> getUserStreak(String userId);
   Future<Map<String, dynamic>?> getNotificationPreferences(String userId);
   Future<void> upsertNotificationPreference({
@@ -507,6 +513,28 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물 상세 조회 중 오류가 발생했습니다: ${e.toString()}');
     }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getUserPostsFiltered({
+    required String authorId,
+    String? petId,
+    String? beforeCreatedAt,
+    int limit = 30,
+  }) async {
+    var query = supabaseClient
+        .from('posts')
+        .select('id, image_url, image_urls, caption, post_type, created_at, pet_id')
+        .eq('author_id', authorId)
+        .isFilter('deleted_at', null);
+    if (petId != null) query = query.eq('pet_id', petId);
+    if (beforeCreatedAt != null) {
+      query = query.lt('created_at', beforeCreatedAt);
+    }
+    final rows = await query
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return List<Map<String, dynamic>>.from(rows);
   }
 
   @override
