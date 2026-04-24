@@ -254,8 +254,8 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
             onPressed: _currentPage == _totalPages - 1 ? _goToLogin : _nextPage,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Colors.white,
+              foregroundColor: AppTheme.primaryTextColor,
             ),
             child: Text(
               _currentPage == _totalPages - 1 ? '시작하기' : '다음',

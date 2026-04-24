@@ -214,7 +214,7 @@ class AnalysisGuidePage extends StatelessWidget {
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF6F61),
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppTheme.primaryTextColor,
                         padding: EdgeInsets.symmetric(vertical: 13.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.r),
@@ -236,8 +236,8 @@ class AnalysisGuidePage extends StatelessWidget {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppTheme.primaryTextColor,
                         padding: EdgeInsets.symmetric(vertical: 13.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.r),

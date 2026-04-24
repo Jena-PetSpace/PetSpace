@@ -90,8 +90,8 @@ class _PasswordResetNewPasswordPageState
                     context.go('/onboarding/login');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppTheme.primaryTextColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -321,7 +321,7 @@ class _PasswordResetNewPasswordPageState
                     onPressed: _isLoading ? null : _resetPassword,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.accentColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppTheme.primaryTextColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

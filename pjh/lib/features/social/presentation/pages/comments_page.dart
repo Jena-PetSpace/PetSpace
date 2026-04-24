@@ -247,7 +247,7 @@ class _CommentsPageState extends State<CommentsPage> {
           children: [
             CircleAvatar(
               radius: 16.r,
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: Colors.white,
               child: Text(
                 widget.currentUserId.isNotEmpty
                     ? widget.currentUserId[0].toUpperCase()

@@ -75,7 +75,7 @@ class _MySavedPostsViewState extends State<_MySavedPostsView> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('컬렉션이 변경되었습니다'),
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: Colors.white,
               ),
             );
             context.read<BookmarkBloc>().add(LoadSavedPostsByCollection(

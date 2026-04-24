@@ -402,8 +402,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveChanges,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.white,
+                foregroundColor: AppTheme.primaryTextColor,
                 padding: EdgeInsets.symmetric(vertical: 12.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.r),

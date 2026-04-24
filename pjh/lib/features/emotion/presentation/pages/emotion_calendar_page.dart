@@ -290,8 +290,8 @@ class _EmotionCalendarPageState extends State<EmotionCalendarPage> {
             icon: Icon(Icons.psychology_outlined, size: 18.w),
             label: const Text('지금 분석하기'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Colors.white,
+              foregroundColor: AppTheme.primaryTextColor,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20.r)),
             ),

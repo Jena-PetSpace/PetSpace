@@ -84,8 +84,8 @@ class _ProfilePageState extends State<ProfilePage>
           ),
         ),
         centerTitle: true,
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.primaryTextColor,
         elevation: 0,
         actions: widget.isMyProfile
             ? [
@@ -280,22 +280,27 @@ class _ProfilePageState extends State<ProfilePage>
 
   Widget _buildProfileHeader(
       SocialUser user, bool isFollowing, bool isOwnProfile) {
+    // 상대방 프로필 + 커버 이미지 없음 → 빈 공간 숨김
+    final hasCover =
+        user.coverImageUrl != null && user.coverImageUrl!.isNotEmpty;
+    final showCover = isOwnProfile || hasCover;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ProfileCover(
-          coverImageUrl: user.coverImageUrl,
-          canEdit: isOwnProfile,
-          onImagePicked: (file) {
-            final userId = widget.currentUserId ??
-                Supabase.instance.client.auth.currentUser?.id;
-            if (userId == null) return;
-            context.read<ProfileBloc>().add(UpdateCoverImageRequested(
-                  userId: userId,
-                  file: file,
-                ));
-          },
-        ),
+        if (showCover)
+          ProfileCover(
+            coverImageUrl: user.coverImageUrl,
+            canEdit: isOwnProfile,
+            onImagePicked: (file) {
+              final userId = widget.currentUserId ??
+                  Supabase.instance.client.auth.currentUser?.id;
+              if (userId == null) return;
+              context.read<ProfileBloc>().add(UpdateCoverImageRequested(
+                    userId: userId,
+                    file: file,
+                  ));
+            },
+          ),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           decoration: BoxDecoration(
@@ -385,7 +390,7 @@ class _ProfilePageState extends State<ProfilePage>
             onPressed: () => _showSettings(),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white.withValues(alpha: 0.2),
-              foregroundColor: Colors.white,
+              foregroundColor: AppTheme.primaryTextColor,
             ),
             child: Icon(Icons.settings, size: 24.w),
           ),
@@ -414,7 +419,7 @@ class _ProfilePageState extends State<ProfilePage>
           onPressed: _isSendingMessage ? null : () => _sendMessage(user),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white.withValues(alpha: 0.2),
-            foregroundColor: Colors.white,
+            foregroundColor: AppTheme.primaryTextColor,
           ),
           child: _isSendingMessage
               ? SizedBox(

@@ -281,8 +281,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 child: ElevatedButton(
                   onPressed: _dismissFullGuide,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppTheme.primaryTextColor,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16.r),
                     ),
@@ -536,8 +536,8 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                   child: ElevatedButton(
                     onPressed: _canAnalyze ? _startAnalysis : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppTheme.primaryTextColor,
                       disabledBackgroundColor: Colors.grey.shade300,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14.r),
@@ -1078,7 +1078,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('반려동물을 먼저 선택해주세요 🐾'),
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: Colors.white,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 2),
       ),
@@ -1129,7 +1129,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('설정 > 앱 > PetSpace에서 카메라·사진 권한을 허용해주세요'),
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: Colors.white,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 4),
         action: SnackBarAction(
@@ -1161,7 +1161,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                   content: Text(
                     '사진은 최대 $_maxImages장까지 추가할 수 있어요. ${addable.length}장만 추가됐습니다.',
                   ),
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: Colors.white,
                   behavior: SnackBarBehavior.floating,
                   duration: const Duration(seconds: 3),
                 ),

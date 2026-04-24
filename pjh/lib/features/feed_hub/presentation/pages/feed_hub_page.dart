@@ -185,35 +185,23 @@ class _FeedHubPageState extends State<FeedHubPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 세그먼트
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-            child: Container(
-              height: 40.h,
-              decoration: BoxDecoration(
-                color: AppTheme.subtleBackground,
-                borderRadius: BorderRadius.circular(20.r),
+          // 상위 탭 (사진 / Q&A) — ai_history 와 동일한 TabBar 스타일
+          Row(
+            children: [
+              _modeTab(
+                label: '사진',
+                active: _mode == _FeedMode.photo,
+                onTap: () => _switchMode(_FeedMode.photo),
               ),
-              padding: EdgeInsets.all(3.w),
-              child: Row(
-                children: [
-                  _segmentBtn(
-                    icon: Icons.photo_camera_rounded,
-                    label: '사진',
-                    active: _mode == _FeedMode.photo,
-                    onTap: () => _switchMode(_FeedMode.photo),
-                  ),
-                  _segmentBtn(
-                    icon: Icons.forum_rounded,
-                    label: 'Q&A',
-                    active: _mode == _FeedMode.qna,
-                    onTap: () => _switchMode(_FeedMode.qna),
-                  ),
-                ],
+              _modeTab(
+                label: 'Q&A',
+                active: _mode == _FeedMode.qna,
+                onTap: () => _switchMode(_FeedMode.qna),
               ),
-            ),
+            ],
           ),
-          // 탭바
+          const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
+          // 하위 탭
           if (_mode == _FeedMode.photo)
             _buildPhotoTabBar()
           else
@@ -224,48 +212,35 @@ class _FeedHubPageState extends State<FeedHubPage>
     );
   }
 
-  Widget _segmentBtn({
-    required IconData icon,
+  Widget _modeTab({
     required String label,
     required bool active,
     required VoidCallback onTap,
   }) {
     return Expanded(
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+        child: Container(
+          height: 44.h,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: active ? AppTheme.primaryColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(17.r),
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.25),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : null,
+            border: Border(
+              bottom: BorderSide(
+                color: active ? AppTheme.primaryColor : Colors.transparent,
+                width: 2.5,
+              ),
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 15.w,
-                color: active ? Colors.white : AppTheme.secondaryTextColor,
-              ),
-              SizedBox(width: 5.w),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  color: active ? Colors.white : AppTheme.secondaryTextColor,
-                ),
-              ),
-            ],
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+              color: active
+                  ? AppTheme.primaryColor
+                  : AppTheme.secondaryTextColor,
+            ),
           ),
         ),
       ),

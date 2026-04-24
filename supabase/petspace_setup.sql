@@ -2090,11 +2090,12 @@ DECLARE
     v_sender_name TEXT;
     v_preview TEXT;
 BEGIN
+    -- BUG 수정: comments 테이블은 user_id 가 아니라 author_id 컬럼 사용
     SELECT author_id INTO v_post_author_id FROM posts WHERE id = NEW.post_id;
-    IF v_post_author_id IS NULL OR v_post_author_id = NEW.user_id THEN
+    IF v_post_author_id IS NULL OR v_post_author_id = NEW.author_id THEN
         RETURN NEW;
     END IF;
-    SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.user_id;
+    SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.author_id;
 
     v_preview := LEFT(COALESCE(NEW.content, ''), 50);
     IF LENGTH(COALESCE(NEW.content, '')) > 50 THEN
@@ -2103,14 +2104,14 @@ BEGIN
 
     INSERT INTO notifications (user_id, sender_id, type, title, body, post_id, comment_id, data, is_sent)
     VALUES (
-        v_post_author_id, NEW.user_id, 'comment',
+        v_post_author_id, NEW.author_id, 'comment',
         '새로운 댓글',
         v_sender_name || ': ' || v_preview,
         NEW.post_id, NEW.id,
         jsonb_build_object(
             'post_id', NEW.post_id::text,
             'comment_id', NEW.id::text,
-            'sender_id', NEW.user_id::text
+            'sender_id', NEW.author_id::text
         ),
         FALSE
     );
