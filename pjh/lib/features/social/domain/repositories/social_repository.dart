@@ -215,6 +215,10 @@ abstract class SocialRepository {
   Future<Either<Failure, void>> unblockUser(String blockerId, String blockedId);
   Future<Either<Failure, bool>> isBlocked(String blockerId, String blockedId);
 
+  /// 차단 목록 (users JOIN 포함) — 설정 화면 렌더링용 raw Map
+  Future<Either<Failure, List<Map<String, dynamic>>>> getBlockedUsersDetailed(
+      String blockerId);
+
   // Report operations
   Future<Either<Failure, void>> reportPost(
       String postId, String userId, String reason);

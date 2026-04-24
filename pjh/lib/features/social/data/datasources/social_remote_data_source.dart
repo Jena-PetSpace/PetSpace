@@ -43,6 +43,7 @@ abstract class SocialRemoteDataSource {
   Future<Set<String>> getEarnedBadgeIds(String userId);
   Future<void> checkAndAwardBadges(String userId);
   Future<List<Map<String, dynamic>>> getPointTransactions(String userId);
+  Future<List<Map<String, dynamic>>> getBlockedUsersDetailed(String blockerId);
   Future<int> getUserPoints(String userId);
   Future<bool> hasQuestActivityToday({
     required String userId,
@@ -665,6 +666,19 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       'p_user_id': userId,
       'p_points': points,
     });
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getBlockedUsersDetailed(
+      String blockerId) async {
+    // BUG 수정: users.avatar_url 컬럼 없음 — 실제 컬럼은 photo_url
+    final response = await supabaseClient
+        .from('user_blocks')
+        .select(
+            'blocked_id, users!user_blocks_blocked_id_fkey(display_name, photo_url)')
+        .eq('blocker_id', blockerId)
+        .limit(100);
+    return List<Map<String, dynamic>>.from(response as List);
   }
 
   @override

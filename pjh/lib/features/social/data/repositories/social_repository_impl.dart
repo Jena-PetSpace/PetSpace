@@ -179,6 +179,20 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getBlockedUsersDetailed(
+      String blockerId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final rows = await remoteDataSource.getBlockedUsersDetailed(blockerId);
+      return Right(rows);
+    } catch (e) {
+      return Left(ServerFailure(message: '차단 목록 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, int>> getUserPoints(String userId) async {
     try {
       if (!await networkInfo.isConnected) {
