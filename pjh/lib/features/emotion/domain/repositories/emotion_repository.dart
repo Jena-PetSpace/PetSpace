@@ -50,4 +50,13 @@ abstract class EmotionRepository {
     required String breed,
     int days = 30,
   });
+
+  /// 최근 7일 해당 감정 평균과 비교해 상대값 텍스트 반환.
+  /// 데이터 부족 / 오류 시 null.
+  Future<Either<Failure, String?>> getEmotionComparisonInsight({
+    required String petId,
+    required String emotion,
+    required num value,
+    int days = 7,
+  });
 }

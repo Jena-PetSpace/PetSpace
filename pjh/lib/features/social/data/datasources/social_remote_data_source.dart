@@ -28,6 +28,7 @@ abstract class SocialRemoteDataSource {
   Future<void> deletePostImages(String userId, String postId);
   Future<String> uploadCoverImage(String userId, File file);
   Future<Post> getPost(String postId);
+  Future<Map<String, dynamic>?> getPostDetail(String postId);
   Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId);
   Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt, bool followingOnly = false});
   Future<List<Post>> getExplorePosts(int limit, String? lastPostId, {DateTime? lastCreatedAt});
@@ -483,6 +484,21 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _logger.error('Failed to get post',
           error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getPostDetail(String postId) async {
+    try {
+      final response = await supabaseClient.from('posts').select('''
+            *,
+            users!posts_author_id_fkey(id, display_name, photo_url)
+          ''').eq('id', postId).maybeSingle();
+      return response;
+    } catch (e, stackTrace) {
+      _logger.error('Failed to get post detail',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      throw Exception('게시물 상세 조회 중 오류가 발생했습니다: ${e.toString()}');
     }
   }
 

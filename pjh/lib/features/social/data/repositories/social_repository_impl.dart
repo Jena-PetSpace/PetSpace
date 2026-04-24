@@ -101,6 +101,36 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, Map<String, dynamic>?>> getPostDetail(
+      String postId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final detail = await remoteDataSource.getPostDetail(postId);
+      return Right(detail);
+    } catch (e) {
+      return Left(
+          ServerFailure(message: '게시물 상세 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> isPostLiked(
+      String postId, String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final liked = await remoteDataSource.isPostLiked(postId, userId);
+      return Right(liked);
+    } catch (e) {
+      return Left(
+          ServerFailure(message: '좋아요 상태 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Post>>> getFeedPosts({
     required String userId,
     int limit = 20,

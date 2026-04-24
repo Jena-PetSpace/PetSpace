@@ -12,6 +12,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../emotion/domain/repositories/emotion_repository.dart';
+import '../../domain/repositories/social_repository.dart';
 import '../bloc/comment_bloc.dart';
 import '../bloc/comment_event.dart';
 import '../bloc/comment_state.dart';
@@ -56,34 +58,20 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 
   Future<void> _loadPost() async {
-    try {
-      final client = Supabase.instance.client;
-      final myId = client.auth.currentUser?.id ?? '';
+    final myId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final repo = di.sl<SocialRepository>();
 
-      final res = await client
-          .from('posts')
-          .select('*, users!posts_author_id_fkey(id, display_name, photo_url)')
-          .eq('id', widget.postId)
-          .maybeSingle();
+    try {
+      final detailResult = await repo.getPostDetail(widget.postId);
+      final res = detailResult.fold((_) => null, (r) => r);
 
       bool liked = false;
       bool saved = false;
       if (myId.isNotEmpty && res != null) {
-        final likeRow = await client
-            .from('likes')
-            .select('id')
-            .eq('post_id', widget.postId)
-            .eq('user_id', myId)
-            .maybeSingle();
-        liked = likeRow != null;
-
-        final savedRow = await client
-            .from('saved_posts')
-            .select('id')
-            .eq('post_id', widget.postId)
-            .eq('user_id', myId)
-            .maybeSingle();
-        saved = savedRow != null;
+        final likedResult = await repo.isPostLiked(widget.postId, myId);
+        liked = likedResult.fold((_) => false, (v) => v);
+        final savedResult = await repo.isPostSaved(widget.postId, myId);
+        saved = savedResult.fold((_) => false, (v) => v);
       }
 
       if (mounted) {
@@ -114,37 +102,19 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
     _likeDebounce?.cancel();
     _likeDebounce = Timer(const Duration(milliseconds: 300), () async {
-      try {
-        final client = Supabase.instance.client;
-        if (!wasLiked) {
-          await client.from('likes').upsert({
-            'post_id': widget.postId,
-            'user_id': myId,
-            'created_at': DateTime.now().toIso8601String(),
-          }, onConflict: 'user_id,post_id', ignoreDuplicates: true);
-          await client.rpc('increment_post_likes',
-              params: {'post_id': widget.postId});
-        } else {
-          final deleted = await client
-              .from('likes')
-              .delete()
-              .eq('post_id', widget.postId)
-              .eq('user_id', myId)
-              .select();
-          if (deleted.isNotEmpty) {
-            await client.rpc('decrement_post_likes',
-                params: {'post_id': widget.postId});
-          }
-        }
-      } catch (e) {
-        dev.log('좋아요 토글 실패: $e', name: 'PostDetailPage');
+      final repo = di.sl<SocialRepository>();
+      final result = wasLiked
+          ? await repo.unlikePost(widget.postId, myId)
+          : await repo.likePost(widget.postId, myId);
+      result.fold((failure) {
+        dev.log('좋아요 토글 실패: ${failure.message}', name: 'PostDetailPage');
         if (mounted) {
           setState(() {
             _isLiked = wasLiked;
             _likesCount += wasLiked ? 1 : -1;
           });
         }
-      }
+      }, (_) {});
     });
   }
 
@@ -157,25 +127,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
     setState(() => _isSaved = !wasSaved);
 
     Future(() async {
-      try {
-        final client = Supabase.instance.client;
-        if (!wasSaved) {
-          await client.from('saved_posts').upsert({
-            'post_id': widget.postId,
-            'user_id': myId,
-            'created_at': DateTime.now().toIso8601String(),
-          }, onConflict: 'user_id,post_id', ignoreDuplicates: true);
-        } else {
-          await client
-              .from('saved_posts')
-              .delete()
-              .eq('post_id', widget.postId)
-              .eq('user_id', myId);
-        }
-      } catch (e) {
-        dev.log('저장 토글 실패: $e', name: 'PostDetailPage');
+      final repo = di.sl<SocialRepository>();
+      final result = wasSaved
+          ? await repo.unsavePost(widget.postId, myId)
+          : await repo.savePost(widget.postId, myId);
+      result.fold((failure) {
+        dev.log('저장 토글 실패: ${failure.message}', name: 'PostDetailPage');
         if (mounted) setState(() => _isSaved = wasSaved);
-      }
+      }, (_) {});
     });
   }
 
@@ -499,29 +458,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   Future<String?> _getComparisonInsight(
       String petId, String emotion, num value) async {
-    try {
-      final response = await Supabase.instance.client.rpc(
-        'get_emotion_timeline',
-        params: {'p_pet_id': petId, 'p_days': 7},
-      );
-      final entries = response as List;
-      if (entries.isEmpty) return null;
-
-      final avgKey = '${emotion}_avg';
-      final avgs = entries
-          .map((e) => (e[avgKey] as num?)?.toDouble() ?? 0.0)
-          .where((v) => v > 0)
-          .toList();
-      if (avgs.isEmpty) return null;
-
-      final avg = avgs.reduce((a, b) => a + b) / avgs.length;
-      final diff = ((value.toDouble() - avg) * 100).round();
-      if (diff.abs() < 5) return '지난 7일 평균과 비슷해요';
-      if (diff > 0) return '지난 7일 평균보다 $diff% 높아요';
-      return '지난 7일 평균보다 ${diff.abs()}% 낮아요';
-    } catch (_) {
-      return null;
-    }
+    final result = await di.sl<EmotionRepository>().getEmotionComparisonInsight(
+          petId: petId,
+          emotion: emotion,
+          value: value,
+        );
+    return result.fold((_) => null, (insight) => insight);
   }
 
   Widget _buildCommentHeader(CommentState state) {

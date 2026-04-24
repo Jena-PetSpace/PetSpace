@@ -46,9 +46,14 @@ abstract class SocialRepository {
   });
   Future<Either<Failure, Post>> getPost(String postId);
 
+  /// 상세 페이지용 원본 JSON (users JOIN 포함). Post entity가 petId/petName 등을
+  /// 아직 포함하지 않아 상세 렌더링 호환성을 위해 노출. Post 엔티티 확장 후 제거 예정.
+  Future<Either<Failure, Map<String, dynamic>?>> getPostDetail(String postId);
+
   // Like operations
   Future<Either<Failure, void>> likePost(String postId, String userId);
   Future<Either<Failure, void>> unlikePost(String postId, String userId);
+  Future<Either<Failure, bool>> isPostLiked(String postId, String userId);
   Future<Either<Failure, List<SocialUser>>> getPostLikes(String postId);
 
   // Comment operations

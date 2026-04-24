@@ -570,4 +570,40 @@ class EmotionRepositoryImpl implements EmotionRepository {
         return null;
     }
   }
+
+  @override
+  Future<Either<Failure, String?>> getEmotionComparisonInsight({
+    required String petId,
+    required String emotion,
+    required num value,
+    int days = 7,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요'));
+      }
+      final response = await supabaseClient.rpc(
+        'get_emotion_timeline',
+        params: {'p_pet_id': petId, 'p_days': days},
+      );
+      final entries = response as List;
+      if (entries.isEmpty) return const Right(null);
+
+      final avgKey = '${emotion}_avg';
+      final avgs = entries
+          .map((e) => (e[avgKey] as num?)?.toDouble() ?? 0.0)
+          .where((v) => v > 0)
+          .toList();
+      if (avgs.isEmpty) return const Right(null);
+
+      final avg = avgs.reduce((a, b) => a + b) / avgs.length;
+      final diff = ((value.toDouble() - avg) * 100).round();
+      if (diff.abs() < 5) return const Right('지난 7일 평균과 비슷해요');
+      if (diff > 0) return Right('지난 7일 평균보다 $diff% 높아요');
+      return Right('지난 7일 평균보다 ${diff.abs()}% 낮아요');
+    } catch (e) {
+      return Left(
+          ServerFailure(message: '감정 비교 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
 }
