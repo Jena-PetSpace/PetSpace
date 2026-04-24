@@ -180,12 +180,14 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<Either<Failure, void>> leaveChatRoom({
     required String roomId,
     required String userId,
+    String? leaverName,
   }) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
     }
     try {
-      await remoteDataSource.leaveChatRoom(roomId: roomId, userId: userId);
+      await remoteDataSource.leaveChatRoom(
+          roomId: roomId, userId: userId, leaverName: leaverName);
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure(message: '채팅방 나가기에 실패했습니다: $e'));
@@ -253,6 +255,38 @@ class ChatRepositoryImpl implements ChatRepository {
       return Right(result.map((m) => m.toEntity()).toList());
     } catch (e) {
       return Left(ServerFailure(message: '참여자 목록을 불러오지 못했습니다: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadChatRoomPhoto({
+    required String roomId,
+    required String userId,
+    required File file,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
+    }
+    try {
+      final url = await remoteDataSource.uploadChatRoomPhoto(
+          roomId: roomId, userId: userId, file: file);
+      return Right(url);
+    } catch (e) {
+      return Left(ServerFailure(message: '채팅방 사진 업로드에 실패했습니다: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>?>> getChatRoomInfo(
+      String roomId) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
+    }
+    try {
+      final info = await remoteDataSource.getChatRoomInfo(roomId);
+      return Right(info);
+    } catch (e) {
+      return Left(ServerFailure(message: '채팅방 정보 조회에 실패했습니다: $e'));
     }
   }
 }
