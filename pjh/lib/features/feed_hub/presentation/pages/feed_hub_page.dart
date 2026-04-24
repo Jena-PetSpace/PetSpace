@@ -185,22 +185,31 @@ class _FeedHubPageState extends State<FeedHubPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 상위 탭 (사진 / Q&A) — ai_history 와 동일한 TabBar 스타일
-          Row(
-            children: [
-              _modeTab(
-                label: '사진',
-                active: _mode == _FeedMode.photo,
-                onTap: () => _switchMode(_FeedMode.photo),
+          // 상위 탭 (사진 / Q&A) — AI 분석 페이지와 동일한 pill-style 토글
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 9.h),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF0F4),
+                borderRadius: BorderRadius.circular(30.r),
               ),
-              _modeTab(
-                label: 'Q&A',
-                active: _mode == _FeedMode.qna,
-                onTap: () => _switchMode(_FeedMode.qna),
+              padding: EdgeInsets.all(3.w),
+              child: Row(
+                children: [
+                  _modeTab(
+                    label: '사진',
+                    active: _mode == _FeedMode.photo,
+                    onTap: () => _switchMode(_FeedMode.photo),
+                  ),
+                  _modeTab(
+                    label: 'Q&A',
+                    active: _mode == _FeedMode.qna,
+                    onTap: () => _switchMode(_FeedMode.qna),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-          const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
           // 하위 탭
           if (_mode == _FeedMode.photo)
             _buildPhotoTabBar()
@@ -219,27 +228,30 @@ class _FeedHubPageState extends State<FeedHubPage>
   }) {
     return Expanded(
       child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Container(
-          height: 44.h,
-          alignment: Alignment.center,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: EdgeInsets.symmetric(vertical: 11.h),
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: active ? AppTheme.primaryColor : Colors.transparent,
-                width: 2.5,
-              ),
-            ),
+            color: active ? AppTheme.primaryColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(26.r),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
           ),
           child: Text(
             label,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w400,
-              color: active
-                  ? AppTheme.primaryColor
-                  : AppTheme.secondaryTextColor,
+              fontSize: 15.sp,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: active ? Colors.white : AppTheme.secondaryTextColor,
             ),
           ),
         ),

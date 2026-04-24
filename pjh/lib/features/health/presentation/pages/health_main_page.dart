@@ -92,7 +92,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
             button: true,
             child: FloatingActionButton(
               onPressed: () => _showAddRecordSheet(context),
-              backgroundColor: Colors.white,
+              backgroundColor: AppTheme.primaryColor,
               child: const Icon(Icons.add, color: Colors.white),
             ),
           ),
@@ -391,8 +391,8 @@ class _HealthMainViewState extends State<_HealthMainView> {
           ElevatedButton.icon(
             onPressed: () => context.push('/pets'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppTheme.primaryTextColor,
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.r),
               ),

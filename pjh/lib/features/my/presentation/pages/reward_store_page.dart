@@ -60,8 +60,8 @@ class _RewardStorePageState extends State<RewardStorePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('리워드 스토어'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryTextColor,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: SafeArea(

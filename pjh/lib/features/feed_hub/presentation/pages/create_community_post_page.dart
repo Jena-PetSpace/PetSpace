@@ -213,8 +213,8 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppTheme.primaryTextColor,
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r)),

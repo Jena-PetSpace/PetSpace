@@ -84,8 +84,8 @@ class _ProfilePageState extends State<ProfilePage>
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryTextColor,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: widget.isMyProfile
             ? [

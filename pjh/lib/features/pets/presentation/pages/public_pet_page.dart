@@ -109,7 +109,7 @@ class _PublicPetPageState extends State<PublicPetPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('링크가 복사되었습니다: $link'),
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.primaryColor,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -156,8 +156,8 @@ class _PublicPetPageState extends State<PublicPetPage> {
           SliverAppBar(
             expandedHeight: 200.h,
             pinned: true,
-            backgroundColor: Colors.white,
-            foregroundColor: AppTheme.primaryTextColor,
+            backgroundColor: AppTheme.primaryColor,
+            foregroundColor: Colors.white,
             actions: [
               IconButton(icon: const Icon(Icons.share_outlined), onPressed: _shareProfile),
             ],
