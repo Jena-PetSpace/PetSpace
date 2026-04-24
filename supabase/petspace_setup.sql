@@ -407,8 +407,11 @@ END;
 $$ language 'plpgsql';
 
 -- 좋아요 카운터
+-- ⚠️ SECURITY DEFINER 필수: 다른 사람 게시물에 좋아요 시 posts UPDATE 가
+-- RLS 정책(본인 글만 수정) 에 막힘. postgres 권한으로 실행되어야 BYPASSRLS.
 CREATE OR REPLACE FUNCTION increment_likes_count()
 RETURNS TRIGGER
+SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
@@ -419,6 +422,7 @@ $$ language 'plpgsql';
 
 CREATE OR REPLACE FUNCTION decrement_likes_count()
 RETURNS TRIGGER
+SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
@@ -427,9 +431,10 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- 댓글 카운터
+-- 댓글 카운터 (동일 이유로 SECURITY DEFINER 필수)
 CREATE OR REPLACE FUNCTION increment_comments_count()
 RETURNS TRIGGER
+SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
@@ -440,6 +445,7 @@ $$ language 'plpgsql';
 
 CREATE OR REPLACE FUNCTION decrement_comments_count()
 RETURNS TRIGGER
+SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
@@ -521,9 +527,10 @@ BEGIN
 END;
 $$;
 
--- M-F2: comment_likes 트리거용 카운트 함수
+-- M-F2: comment_likes 트리거용 카운트 함수 (SECURITY DEFINER 필수, RLS 우회)
 CREATE OR REPLACE FUNCTION increment_comment_likes_count()
 RETURNS TRIGGER
+SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
@@ -534,6 +541,7 @@ $$ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION decrement_comment_likes_count()
 RETURNS TRIGGER
+SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
