@@ -39,6 +39,10 @@ abstract class SocialRemoteDataSource {
     String? category,
     int limit = 30,
   });
+  Future<List<Map<String, dynamic>>> getSavedPostsRaw(String userId);
+  Future<Set<String>> getEarnedBadgeIds(String userId);
+  Future<void> checkAndAwardBadges(String userId);
+  Future<List<Map<String, dynamic>>> getPointTransactions(String userId);
   Future<int> getUserStreak(String userId);
   Future<Map<String, dynamic>?> getNotificationPreferences(String userId);
   Future<void> upsertNotificationPreference({
@@ -539,6 +543,81 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         .order('created_at', ascending: false)
         .limit(limit);
     return List<Map<String, dynamic>>.from(rows);
+  }
+
+  @override
+  Future<Set<String>> getEarnedBadgeIds(String userId) async {
+    final res = await supabaseClient
+        .from('user_badges')
+        .select('badge_id')
+        .eq('user_id', userId);
+    return Set<String>.from(
+        (res as List).map((r) => r['badge_id'] as String));
+  }
+
+  @override
+  Future<void> checkAndAwardBadges(String userId) async {
+    final existing = await supabaseClient
+        .from('user_badges')
+        .select('badge_id')
+        .eq('user_id', userId);
+    final earnedIds =
+        Set<String>.from((existing as List).map((r) => r['badge_id'] as String));
+    final toAward = <String>[];
+
+    if (!earnedIds.contains('first_analysis')) {
+      // BUG 수정: 기존 코드는 존재하지 않는 'emotion_analyses' 참조 — 실제 테이블은 'emotion_history'
+      final analyses = await supabaseClient
+          .from('emotion_history')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1);
+      if ((analyses as List).isNotEmpty) toAward.add('first_analysis');
+    }
+
+    if (!earnedIds.contains('streak_7')) {
+      final pets = await supabaseClient
+          .from('pets')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1);
+      if ((pets as List).isNotEmpty) toAward.add('streak_7');
+    }
+
+    if (toAward.isNotEmpty) {
+      await supabaseClient.from('user_badges').insert(
+            toAward
+                .map((id) => {
+                      'user_id': userId,
+                      'badge_id': id,
+                      'earned_at': DateTime.now().toIso8601String(),
+                    })
+                .toList(),
+          );
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getPointTransactions(String userId) async {
+    final response = await supabaseClient
+        .from('point_transactions')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getSavedPostsRaw(String userId) async {
+    final response = await supabaseClient
+        .from('saved_posts')
+        .select('post_id, posts(id, image_url, caption, author_id)')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+    return (response as List)
+        .map((e) => e['posts'] as Map<String, dynamic>?)
+        .whereType<Map<String, dynamic>>()
+        .toList();
   }
 
   @override

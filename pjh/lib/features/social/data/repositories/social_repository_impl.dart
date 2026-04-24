@@ -139,6 +139,60 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, Set<String>>> getEarnedBadgeIds(String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final ids = await remoteDataSource.getEarnedBadgeIds(userId);
+      return Right(ids);
+    } catch (e) {
+      return Left(ServerFailure(message: '뱃지 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> checkAndAwardBadges(String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.checkAndAwardBadges(userId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '뱃지 처리 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getPointTransactions(
+      String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final rows = await remoteDataSource.getPointTransactions(userId);
+      return Right(rows);
+    } catch (e) {
+      return Left(ServerFailure(message: '포인트 내역 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getSavedPostsRaw(
+      String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final rows = await remoteDataSource.getSavedPostsRaw(userId);
+      return Right(rows);
+    } catch (e) {
+      return Left(ServerFailure(message: '저장 게시물 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Map<String, dynamic>>>> getCommunityPosts({
     String? category,
     int limit = 30,

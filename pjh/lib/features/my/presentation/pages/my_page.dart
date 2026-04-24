@@ -7,8 +7,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 import '../widgets/my_profile_header.dart';
 import '../widgets/user_badges_section.dart';
 
@@ -58,33 +60,27 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   Future<void> _loadPosts() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
-    try {
-      final results = await Future.wait([
-        Supabase.instance.client
-            .from('posts')
-            .select('id, image_url, caption, author_id')
-            .eq('author_id', userId)
-            .order('created_at', ascending: false),
-        Supabase.instance.client
-            .from('saved_posts')
-            .select('post_id, posts(id, image_url, caption, author_id)')
-            .eq('user_id', userId)
-            .order('created_at', ascending: false),
-      ]);
-      if (mounted) {
-        setState(() {
-          _myPosts = List<Map<String, dynamic>>.from(results[0] as List);
-          _savedPosts = (results[1] as List)
-              .map((e) => e['posts'] as Map<String, dynamic>?)
-              .whereType<Map<String, dynamic>>()
-              .toList();
-          _postsLoading = false;
-        });
-      }
-    } catch (e) {
-      dev.log('게시글 로드 실패: $e', name: 'MyPage');
-      if (mounted) setState(() => _postsLoading = false);
-    }
+    final repo = sl<SocialRepository>();
+    final results = await Future.wait([
+      repo.getUserPostsFiltered(authorId: userId, limit: 100),
+      repo.getSavedPostsRaw(userId),
+    ]);
+    if (!mounted) return;
+    setState(() {
+      _myPosts = results[0].fold(
+          (failure) {
+            dev.log('내 게시글 로드 실패: ${failure.message}', name: 'MyPage');
+            return <Map<String, dynamic>>[];
+          },
+          (list) => list);
+      _savedPosts = results[1].fold(
+          (failure) {
+            dev.log('저장 게시글 로드 실패: ${failure.message}', name: 'MyPage');
+            return <Map<String, dynamic>>[];
+          },
+          (list) => list);
+      _postsLoading = false;
+    });
   }
 
   @override

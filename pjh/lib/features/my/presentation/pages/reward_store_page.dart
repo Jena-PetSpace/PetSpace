@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 
 class RewardStorePage extends StatefulWidget {
   const RewardStorePage({super.key});
@@ -24,36 +26,33 @@ class _RewardStorePageState extends State<RewardStorePage> {
   }
 
   Future<void> _loadPoints() async {
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      setState(() {
+        _currentPoints = 0;
+        _loading = false;
+      });
+      return;
+    }
+    final result = await sl<SocialRepository>().getPointTransactions(userId);
+    if (!mounted) return;
+    result.fold(
+      (failure) {
+        dev.log('포인트 조회 실패: ${failure.message}', name: 'RewardStore');
         setState(() {
           _currentPoints = 0;
           _loading = false;
         });
-        return;
-      }
-      final response = await Supabase.instance.client
-          .from('point_transactions')
-          .select('amount')
-          .eq('user_id', userId);
-      final total = (response as List)
-          .fold<int>(0, (sum, row) => sum + ((row['amount'] as num?)?.toInt() ?? 0));
-      if (mounted) {
+      },
+      (rows) {
+        final total = rows.fold<int>(
+            0, (sum, row) => sum + ((row['amount'] as num?)?.toInt() ?? 0));
         setState(() {
           _currentPoints = total;
           _loading = false;
         });
-      }
-    } catch (e) {
-      dev.log('포인트 조회 실패: $e', name: 'RewardStore');
-      if (mounted) {
-        setState(() {
-          _currentPoints = 0;
-          _loading = false;
-        });
-      }
-    }
+      },
+    );
   }
 
   @override

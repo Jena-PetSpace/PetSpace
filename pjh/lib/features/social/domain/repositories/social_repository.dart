@@ -66,6 +66,20 @@ abstract class SocialRepository {
     int limit = 30,
   });
 
+  /// 내가 저장한 게시물 (saved_posts + posts JOIN) — my_page 용 raw Map
+  Future<Either<Failure, List<Map<String, dynamic>>>> getSavedPostsRaw(
+      String userId);
+
+  /// 획득한 뱃지 ID 집합
+  Future<Either<Failure, Set<String>>> getEarnedBadgeIds(String userId);
+
+  /// 뱃지 획득 조건 체크 + 신규 뱃지 삽입 (클라이언트 측 룰 평가)
+  Future<Either<Failure, void>> checkAndAwardBadges(String userId);
+
+  /// 포인트 거래 내역 조회 (reward_store_page 용)
+  Future<Either<Failure, List<Map<String, dynamic>>>> getPointTransactions(
+      String userId);
+
   // Like operations
   Future<Either<Failure, void>> likePost(String postId, String userId);
   Future<Either<Failure, void>> unlikePost(String postId, String userId);
