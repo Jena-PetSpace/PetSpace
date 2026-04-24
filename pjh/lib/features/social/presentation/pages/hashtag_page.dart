@@ -6,11 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../domain/entities/post.dart';
-import '../../data/models/post_model.dart';
+import '../../domain/repositories/social_repository.dart';
 import '../bloc/feed_bloc.dart';
 import '../widgets/post_card.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
@@ -70,37 +71,31 @@ class _HashtagPageState extends State<HashtagPage> {
       setState(() => _loadingMore = true);
     }
 
-    try {
-      final response = await _supabase.rpc('get_posts_by_hashtag', params: {
-        'p_hashtag': widget.hashtag,
-        'p_user_id': _currentUserId.isEmpty ? null : _currentUserId,
-        'p_sort': 'recent',
-        'p_limit': 20,
-        'p_offset': reset ? 0 : _posts.length,
-      });
-
-      final List<Post> fetched = (response as List)
-          .map((e) => PostModel.fromJson(e as Map<String, dynamic>).toEntity())
-          .toList();
-
-      setState(() {
-        _loading = false;
-        _loadingMore = false;
-        _hasMore = fetched.length == 20;
-        if (reset) {
-          _posts = fetched;
-        } else {
-          _posts = [..._posts, ...fetched];
-        }
-      });
-    } catch (e) {
-      dev.log('HashtagPage load error: $e', name: 'HashtagPage');
-      setState(() {
-        _loading = false;
-        _loadingMore = false;
-        _error = e.toString();
-      });
-    }
+    final result = await sl<SocialRepository>().getPostsByHashtag(
+      hashtag: widget.hashtag,
+      userId: _currentUserId.isEmpty ? null : _currentUserId,
+      sort: 'recent',
+      limit: 20,
+      offset: reset ? 0 : _posts.length,
+    );
+    result.fold(
+      (failure) {
+        dev.log('HashtagPage load error: ${failure.message}', name: 'HashtagPage');
+        setState(() {
+          _loading = false;
+          _loadingMore = false;
+          _error = failure.message;
+        });
+      },
+      (fetched) {
+        setState(() {
+          _loading = false;
+          _loadingMore = false;
+          _hasMore = fetched.length == 20;
+          _posts = reset ? fetched : [..._posts, ...fetched];
+        });
+      },
+    );
   }
 
   @override
