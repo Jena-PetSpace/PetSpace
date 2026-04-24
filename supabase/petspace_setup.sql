@@ -1980,3 +1980,270 @@ BEGIN
   LIMIT p_limit OFFSET p_offset;
 END;
 $$;
+
+-- ============================================================================
+-- PART 11: 알림/차단 시스템 (2026-04-23 추가)
+-- ============================================================================
+-- FCM 백엔드 + 로컬 알림 + 사용자 차단 + 알림 설정 동기화.
+-- Edge Function send-push-notification 이 is_sent=false 레코드를 폴링 발송.
+
+-- ── 11.1 notifications 테이블 확장 ────────────────────────────────────────
+-- 기존 테이블에 컬럼만 추가 (idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'notifications' AND column_name = 'is_sent'
+    ) THEN
+        ALTER TABLE notifications
+            ADD COLUMN is_sent BOOLEAN DEFAULT FALSE;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'notifications' AND column_name = 'post_id'
+    ) THEN
+        ALTER TABLE notifications
+            ADD COLUMN post_id UUID REFERENCES posts(id) ON DELETE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'notifications' AND column_name = 'comment_id'
+    ) THEN
+        ALTER TABLE notifications
+            ADD COLUMN comment_id UUID REFERENCES comments(id) ON DELETE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'notifications' AND column_name = 'sent_at'
+    ) THEN
+        ALTER TABLE notifications
+            ADD COLUMN sent_at TIMESTAMP WITH TIME ZONE;
+    END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created
+    ON notifications(user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_unsent
+    ON notifications(created_at ASC)
+    WHERE is_sent = FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_notifications_unread
+    ON notifications(user_id, created_at DESC)
+    WHERE read = FALSE;
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS notifications_select_own ON notifications;
+CREATE POLICY notifications_select_own ON notifications
+    FOR SELECT USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS notifications_update_own ON notifications;
+CREATE POLICY notifications_update_own ON notifications
+    FOR UPDATE USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS notifications_delete_own ON notifications;
+CREATE POLICY notifications_delete_own ON notifications
+    FOR DELETE USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS notifications_insert_service ON notifications;
+CREATE POLICY notifications_insert_service ON notifications
+    FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- ── 11.2 알림 자동 생성 트리거 (like / comment / follow) ──────────────────
+CREATE OR REPLACE FUNCTION notify_on_like()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_post_author_id UUID;
+    v_sender_name TEXT;
+BEGIN
+    SELECT author_id INTO v_post_author_id FROM posts WHERE id = NEW.post_id;
+    IF v_post_author_id IS NULL OR v_post_author_id = NEW.user_id THEN
+        RETURN NEW;
+    END IF;
+    SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.user_id;
+
+    INSERT INTO notifications (user_id, sender_id, type, title, body, post_id, data, is_sent)
+    VALUES (
+        v_post_author_id, NEW.user_id, 'like',
+        '새로운 좋아요',
+        v_sender_name || '님이 회원님의 게시글을 좋아합니다.',
+        NEW.post_id,
+        jsonb_build_object('post_id', NEW.post_id::text, 'sender_id', NEW.user_id::text),
+        FALSE
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_notify_on_like ON likes;
+CREATE TRIGGER trigger_notify_on_like
+    AFTER INSERT ON likes FOR EACH ROW EXECUTE FUNCTION notify_on_like();
+
+CREATE OR REPLACE FUNCTION notify_on_comment()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_post_author_id UUID;
+    v_sender_name TEXT;
+    v_preview TEXT;
+BEGIN
+    SELECT author_id INTO v_post_author_id FROM posts WHERE id = NEW.post_id;
+    IF v_post_author_id IS NULL OR v_post_author_id = NEW.user_id THEN
+        RETURN NEW;
+    END IF;
+    SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.user_id;
+
+    v_preview := LEFT(COALESCE(NEW.content, ''), 50);
+    IF LENGTH(COALESCE(NEW.content, '')) > 50 THEN
+        v_preview := v_preview || '...';
+    END IF;
+
+    INSERT INTO notifications (user_id, sender_id, type, title, body, post_id, comment_id, data, is_sent)
+    VALUES (
+        v_post_author_id, NEW.user_id, 'comment',
+        '새로운 댓글',
+        v_sender_name || ': ' || v_preview,
+        NEW.post_id, NEW.id,
+        jsonb_build_object(
+            'post_id', NEW.post_id::text,
+            'comment_id', NEW.id::text,
+            'sender_id', NEW.user_id::text
+        ),
+        FALSE
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_notify_on_comment ON comments;
+CREATE TRIGGER trigger_notify_on_comment
+    AFTER INSERT ON comments FOR EACH ROW EXECUTE FUNCTION notify_on_comment();
+
+CREATE OR REPLACE FUNCTION notify_on_follow()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_sender_name TEXT;
+BEGIN
+    IF NEW.follower_id = NEW.following_id THEN
+        RETURN NEW;
+    END IF;
+    SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.follower_id;
+
+    INSERT INTO notifications (user_id, sender_id, type, title, body, data, is_sent)
+    VALUES (
+        NEW.following_id, NEW.follower_id, 'follow',
+        '새로운 팔로워',
+        v_sender_name || '님이 회원님을 팔로우하기 시작했어요.',
+        jsonb_build_object('sender_id', NEW.follower_id::text),
+        FALSE
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_notify_on_follow ON follows;
+CREATE TRIGGER trigger_notify_on_follow
+    AFTER INSERT ON follows FOR EACH ROW EXECUTE FUNCTION notify_on_follow();
+
+-- ── 11.3 user_blocks 헬퍼 (RLS + RPC) ─────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_user_blocks_blocker ON user_blocks(blocker_id);
+CREATE INDEX IF NOT EXISTS idx_user_blocks_blocked ON user_blocks(blocked_id);
+
+ALTER TABLE user_blocks ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS user_blocks_select_own ON user_blocks;
+CREATE POLICY user_blocks_select_own ON user_blocks
+    FOR SELECT USING (blocker_id = auth.uid());
+
+DROP POLICY IF EXISTS user_blocks_insert_own ON user_blocks;
+CREATE POLICY user_blocks_insert_own ON user_blocks
+    FOR INSERT WITH CHECK (blocker_id = auth.uid());
+
+DROP POLICY IF EXISTS user_blocks_delete_own ON user_blocks;
+CREATE POLICY user_blocks_delete_own ON user_blocks
+    FOR DELETE USING (blocker_id = auth.uid());
+
+CREATE OR REPLACE FUNCTION get_blocked_user_ids(p_user_id UUID)
+RETURNS TABLE(blocked_id UUID) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT ub.blocked_id
+    FROM user_blocks ub
+    WHERE ub.blocker_id = p_user_id;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION is_mutually_blocked(p_user_a UUID, p_user_b UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = p_user_a AND blocked_id = p_user_b)
+           OR (blocker_id = p_user_b AND blocked_id = p_user_a)
+    );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+-- ── 11.4 notification_preferences (사용자별 알림 설정) ────────────────────
+CREATE TABLE IF NOT EXISTS notification_preferences (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    enabled_push BOOLEAN DEFAULT TRUE NOT NULL,
+    enabled_like BOOLEAN DEFAULT TRUE NOT NULL,
+    enabled_comment BOOLEAN DEFAULT TRUE NOT NULL,
+    enabled_follow BOOLEAN DEFAULT TRUE NOT NULL,
+    enabled_mention BOOLEAN DEFAULT TRUE NOT NULL,
+    enabled_system BOOLEAN DEFAULT TRUE NOT NULL,
+    enabled_health_alert BOOLEAN DEFAULT TRUE NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION touch_notification_preferences_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at := NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_touch_notif_prefs ON notification_preferences;
+CREATE TRIGGER trigger_touch_notif_prefs
+    BEFORE UPDATE ON notification_preferences
+    FOR EACH ROW EXECUTE FUNCTION touch_notification_preferences_updated_at();
+
+ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS notif_prefs_select_own ON notification_preferences;
+CREATE POLICY notif_prefs_select_own ON notification_preferences
+    FOR SELECT USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS notif_prefs_insert_own ON notification_preferences;
+CREATE POLICY notif_prefs_insert_own ON notification_preferences
+    FOR INSERT WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS notif_prefs_update_own ON notification_preferences;
+CREATE POLICY notif_prefs_update_own ON notification_preferences
+    FOR UPDATE USING (user_id = auth.uid());
+
+-- 사용자 생성 시 기본 preferences 자동 생성
+CREATE OR REPLACE FUNCTION create_default_notification_preferences()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO notification_preferences (user_id)
+    VALUES (NEW.id)
+    ON CONFLICT (user_id) DO NOTHING;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_create_notif_prefs ON users;
+CREATE TRIGGER trigger_create_notif_prefs
+    AFTER INSERT ON users
+    FOR EACH ROW EXECUTE FUNCTION create_default_notification_preferences();
+
+-- 기존 사용자 backfill
+INSERT INTO notification_preferences (user_id)
+SELECT id FROM users
+ON CONFLICT (user_id) DO NOTHING;

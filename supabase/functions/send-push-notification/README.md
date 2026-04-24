@@ -42,11 +42,11 @@ supabase secrets set FCM_SERVER_KEY=<복사한_키>
 supabase functions deploy send-push-notification
 ```
 
-### 4. 마이그레이션 적용
+### 4. SQL 스키마 적용
 ```bash
-# 20260423_001_notifications_extend.sql 적용
-# 20260423_002_notification_triggers.sql 적용
-# Dashboard → Database → SQL Editor → 파일 내용 실행
+# supabase/petspace_setup.sql 의 PART 11 (알림/차단 시스템) 섹션 적용
+# Dashboard → Database → SQL Editor → 해당 섹션 내용 실행
+# (전체 재실행은 idempotent — IF NOT EXISTS / OR REPLACE 로 안전)
 ```
 
 ### 5. Cron Job 설정
