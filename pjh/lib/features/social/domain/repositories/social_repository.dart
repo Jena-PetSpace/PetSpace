@@ -112,6 +112,18 @@ abstract class SocialRepository {
   /// RPC 미구현 상태면 0 반환 — 퀘스트 시스템 연동 후 활성화 예정.
   Future<Either<Failure, int>> getUserStreak(String userId);
 
+  /// 알림 설정 전체 조회 (notification_preferences 테이블)
+  Future<Either<Failure, Map<String, dynamic>?>> getNotificationPreferences(
+      String userId);
+
+  /// 알림 설정 단일 컬럼 upsert.
+  /// 예: serverColumn='enabled_like', value=false
+  Future<Either<Failure, void>> upsertNotificationPreference({
+    required String userId,
+    required String column,
+    required bool value,
+  });
+
   // Bookmark collection operations
   Future<Either<Failure, List<BookmarkCollection>>> getBookmarkCollections(String userId);
   Future<Either<Failure, BookmarkCollection>> createBookmarkCollection({

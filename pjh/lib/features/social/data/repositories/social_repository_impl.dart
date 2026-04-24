@@ -130,6 +130,40 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, Map<String, dynamic>?>> getNotificationPreferences(
+      String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final row = await remoteDataSource.getNotificationPreferences(userId);
+      return Right(row);
+    } catch (e) {
+      return Left(ServerFailure(
+          message: '알림 설정 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> upsertNotificationPreference({
+    required String userId,
+    required String column,
+    required bool value,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.upsertNotificationPreference(
+          userId: userId, column: column, value: value);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(
+          message: '알림 설정 저장 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, bool>> isPostLiked(
       String postId, String userId) async {
     try {

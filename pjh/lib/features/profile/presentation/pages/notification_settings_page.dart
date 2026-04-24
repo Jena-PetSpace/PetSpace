@@ -5,7 +5,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
@@ -59,19 +61,19 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     }
 
     // 2. 서버 값으로 덮어쓰기 (단일 소스 원칙)
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) {
-        if (mounted) setState(() => _loading = false);
-        return;
-      }
-      final row = await Supabase.instance.client
-          .from('notification_preferences')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (row != null && mounted) {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    final result = await sl<SocialRepository>().getNotificationPreferences(userId);
+    await result.fold(
+      (failure) async {
+        dev.log('서버 알림 설정 로드 실패(로컬 값 유지): ${failure.message}',
+            name: 'NotificationSettings');
+      },
+      (row) async {
+        if (row == null || !mounted) return;
         setState(() {
           _pushEnabled = row['enabled_push'] as bool? ?? true;
           _likeNotification = row['enabled_like'] as bool? ?? true;
@@ -88,13 +90,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
         await prefs.setBool('notification_follow', _followNotification);
         await prefs.setBool('notification_mention', _mentionNotification);
         await prefs.setBool('notification_system', _systemNotification);
-      }
-    } catch (e) {
-      dev.log('서버 알림 설정 로드 실패(로컬 값 유지): $e',
-          name: 'NotificationSettings');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+      },
+    );
+    if (mounted) setState(() => _loading = false);
   }
 
   /// 로컬 저장 + 서버 upsert (optimistic)
@@ -105,24 +103,29 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
     if (serverColumn == null) return;
 
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
-      await Supabase.instance.client.from('notification_preferences').upsert({
-        'user_id': userId,
-        serverColumn: value,
-      });
-    } catch (e) {
-      dev.log('서버 알림 설정 저장 실패: $e', name: 'NotificationSettings');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('설정 동기화에 실패했습니다. 네트워크를 확인해주세요.'),
-          ),
-        );
-        onRollback?.call();
-      }
-    }
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final result = await sl<SocialRepository>().upsertNotificationPreference(
+      userId: userId,
+      column: serverColumn,
+      value: value,
+    );
+    result.fold(
+      (failure) {
+        dev.log('서버 알림 설정 저장 실패: ${failure.message}',
+            name: 'NotificationSettings');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('설정 동기화에 실패했습니다. 네트워크를 확인해주세요.'),
+            ),
+          );
+          onRollback?.call();
+        }
+      },
+      (_) {},
+    );
   }
 
   @override

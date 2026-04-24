@@ -30,6 +30,12 @@ abstract class SocialRemoteDataSource {
   Future<Post> getPost(String postId);
   Future<Map<String, dynamic>?> getPostDetail(String postId);
   Future<int> getUserStreak(String userId);
+  Future<Map<String, dynamic>?> getNotificationPreferences(String userId);
+  Future<void> upsertNotificationPreference({
+    required String userId,
+    required String column,
+    required bool value,
+  });
   Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId);
   Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt, bool followingOnly = false});
   Future<List<Post>> getExplorePosts(int limit, String? lastPostId, {DateTime? lastCreatedAt});
@@ -514,6 +520,28 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     } catch (_) {
       return 0;
     }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getNotificationPreferences(
+      String userId) async {
+    return await supabaseClient
+        .from('notification_preferences')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+  }
+
+  @override
+  Future<void> upsertNotificationPreference({
+    required String userId,
+    required String column,
+    required bool value,
+  }) async {
+    await supabaseClient.from('notification_preferences').upsert({
+      'user_id': userId,
+      column: value,
+    });
   }
 
   @override
