@@ -1,15 +1,16 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../data/models/chat_message_model.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_participant.dart';
+import '../../domain/repositories/chat_repository.dart';
 import '../bloc/chat_detail/chat_detail_bloc.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
@@ -30,7 +31,7 @@ class ChatDetailPage extends StatefulWidget {
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
   final ScrollController _scrollController = ScrollController();
-  RealtimeChannel? _messageChannel;
+  StreamSubscription<ChatMessage>? _messageSubscription;
 
   List<ChatParticipant> _participants = [];
   String? _roomName;
@@ -78,54 +79,28 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Future<void> _loadParticipants() async {
-    try {
-      final supabase = Supabase.instance.client;
-      final response = await supabase.from('chat_participants').select('''
-            *,
-            users(id, display_name, photo_url)
-          ''').eq('room_id', widget.roomId).eq('is_active', true);
-
-      if (mounted) {
-        setState(() {
-          _participants = (response as List).map((json) {
-            final map = json as Map<String, dynamic>;
-            final userData = map['users'] as Map<String, dynamic>?;
-            return ChatParticipant(
-              id: map['id'] as String,
-              roomId: map['room_id'] as String,
-              userId: map['user_id'] as String,
-              displayName: userData?['display_name'] as String?,
-              photoUrl: userData?['photo_url'] as String?,
-              role: (map['role'] as String?) == 'admin'
-                  ? ChatRole.admin
-                  : ChatRole.member,
-              joinedAt: DateTime.parse(map['joined_at'] as String),
-              lastReadAt: DateTime.parse(map['last_read_at'] as String),
-              isActive: map['is_active'] as bool? ?? true,
-            );
-          }).toList();
-        });
-      }
-    } catch (e) {
-      log('Failed to load participants: $e', name: 'ChatDetail');
-    }
+    final result = await sl<ChatRepository>().getRoomParticipants(widget.roomId);
+    result.fold(
+      (failure) =>
+          log('Failed to load participants: ${failure.message}', name: 'ChatDetail'),
+      (participants) {
+        if (mounted) setState(() => _participants = participants);
+      },
+    );
   }
 
   Future<void> _refreshRoomName() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('chat_rooms')
-          .select('name')
-          .eq('id', widget.roomId)
-          .maybeSingle();
-      if (mounted && response != null) {
+    final result = await sl<ChatRepository>().getChatRoomInfo(widget.roomId);
+    result.fold(
+      (failure) =>
+          log('Failed to refresh room name: ${failure.message}', name: 'ChatDetail'),
+      (info) {
+        if (!mounted || info == null) return;
         setState(() {
-          _roomName = response['name'] as String? ?? _roomName;
+          _roomName = info['name'] as String? ?? _roomName;
         });
-      }
-    } catch (e) {
-      log('Failed to refresh room name: $e', name: 'ChatDetail');
-    }
+      },
+    );
   }
 
   void _onScroll() {
@@ -138,60 +113,41 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   void _subscribeToMessages() {
-    final supabase = Supabase.instance.client;
-    _messageChannel = supabase.channel('chat_messages:${widget.roomId}');
-
-    _messageChannel!
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'chat_messages',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'room_id',
-            value: widget.roomId,
-          ),
-          callback: (payload) {
-            final newRecord = payload.newRecord;
-            // 본인이 보낸 메시지는 이미 UI에 반영됨 - 중복 방지는 BLoC에서 처리
-            try {
-              final messageModel = ChatMessageModel.fromJson(newRecord);
-              context.read<ChatDetailBloc>().add(
-                    ChatDetailNewMessageReceived(
-                        message: messageModel.toEntity()),
-                  );
-              // 읽음 처리
-              context.read<ChatDetailBloc>().add(
-                    ChatDetailMarkAsReadRequested(
-                      roomId: widget.roomId,
-                      userId: _currentUserId,
-                    ),
-                  );
-              // 참여자 다시 로드 (상대방 읽음 상태 갱신)
-              _loadParticipants();
-              // 새 메시지 수신 시 맨 아래로 스크롤
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (_scrollController.hasClients) {
-                  _scrollController.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                  );
-                }
-              });
-            } catch (e) {
-              log('Failed to parse realtime message: $e', name: 'ChatDetail');
-            }
-          },
-        )
-        .subscribe();
+    _messageSubscription = sl<ChatRepository>()
+        .subscribeToRoomMessages(widget.roomId)
+        .listen((message) {
+      if (!mounted) return;
+      // 본인이 보낸 메시지는 이미 UI에 반영됨 - 중복 방지는 BLoC에서 처리
+      context.read<ChatDetailBloc>().add(
+            ChatDetailNewMessageReceived(message: message),
+          );
+      // 읽음 처리
+      context.read<ChatDetailBloc>().add(
+            ChatDetailMarkAsReadRequested(
+              roomId: widget.roomId,
+              userId: _currentUserId,
+            ),
+          );
+      // 참여자 다시 로드 (상대방 읽음 상태 갱신)
+      _loadParticipants();
+      // 새 메시지 수신 시 맨 아래로 스크롤
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }, onError: (e) {
+      log('Failed to parse realtime message: $e', name: 'ChatDetail');
+    });
   }
 
   void _unsubscribeFromMessages() {
-    if (_messageChannel != null) {
-      Supabase.instance.client.removeChannel(_messageChannel!);
-      _messageChannel = null;
-    }
+    _messageSubscription?.cancel();
+    _messageSubscription = null;
   }
 
   /// 메시지별 안 읽은 참여자 수 계산 (1:1, 그룹 모두 동일)
@@ -209,45 +165,27 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Future<void> _sendMultipleImages(List<File> images) async {
-    try {
-      final supabase = Supabase.instance.client;
-      final userId = _currentUserId;
-      final List<String> uploadedUrls = [];
-
-      for (int i = 0; i < images.length; i++) {
-        final fileExt = images[i].path.split('.').last;
-        final fileName =
-            'chat/$userId/${DateTime.now().millisecondsSinceEpoch}_$i.$fileExt';
-        await supabase.storage.from('images').upload(fileName, images[i]);
-        final url = supabase.storage.from('images').getPublicUrl(fileName);
-        uploadedUrls.add(url);
-      }
-
-      final response = await supabase.from('chat_messages').insert({
-        'room_id': widget.roomId,
-        'sender_id': userId,
-        'type': 'image',
-        'image_url': uploadedUrls.first,
-        'image_urls': uploadedUrls,
-        'content': '사진 ${uploadedUrls.length}장',
-      }).select('''
-            *,
-            users:sender_id(id, display_name, photo_url)
-          ''').single();
-
-      if (mounted) {
-        final messageModel = ChatMessageModel.fromJson(response);
-        context.read<ChatDetailBloc>().add(
-              ChatDetailNewMessageReceived(message: messageModel.toEntity()),
-            );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이미지 전송 실패: $e')),
-        );
-      }
-    }
+    final result = await sl<ChatRepository>().sendMultiImageMessage(
+      roomId: widget.roomId,
+      senderId: _currentUserId,
+      images: images,
+    );
+    result.fold(
+      (failure) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('이미지 전송 실패: ${failure.message}')),
+          );
+        }
+      },
+      (message) {
+        if (mounted) {
+          context.read<ChatDetailBloc>().add(
+                ChatDetailNewMessageReceived(message: message),
+              );
+        }
+      },
+    );
   }
 
   @override

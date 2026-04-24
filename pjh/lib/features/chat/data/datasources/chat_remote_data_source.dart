@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/chat_room_model.dart';
@@ -58,6 +59,10 @@ abstract class ChatRemoteDataSource {
     required String senderId,
     required List<File> imageFiles,
   });
+
+  /// 특정 채팅방의 새 메시지 Stream (Realtime INSERT 이벤트).
+  /// 구독 취소 시 내부 channel 자동 정리.
+  Stream<ChatMessageModel> subscribeToRoomMessages(String roomId);
 }
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
@@ -504,5 +509,38 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         .map((json) =>
             ChatParticipantModel.fromJson(json as Map<String, dynamic>))
         .toList();
+  }
+
+  @override
+  Stream<ChatMessageModel> subscribeToRoomMessages(String roomId) {
+    final controller = StreamController<ChatMessageModel>();
+    RealtimeChannel? channel;
+
+    channel = supabaseClient.channel('chat_messages:$roomId')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'chat_messages',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'room_id',
+          value: roomId,
+        ),
+        callback: (payload) {
+          try {
+            controller.add(ChatMessageModel.fromJson(payload.newRecord));
+          } catch (e, st) {
+            controller.addError(e, st);
+          }
+        },
+      ).subscribe();
+
+    controller.onCancel = () async {
+      if (channel != null) {
+        await supabaseClient.removeChannel(channel);
+      }
+    };
+
+    return controller.stream;
   }
 }

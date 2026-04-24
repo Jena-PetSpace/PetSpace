@@ -94,4 +94,15 @@ abstract class ChatRepository {
   /// 채팅방 참여자 목록 조회
   Future<Either<Failure, List<ChatParticipant>>> getRoomParticipants(
       String roomId);
+
+  /// 여러 이미지를 한 메시지로 전송 (첫 URL은 image_url, 전체는 image_urls)
+  Future<Either<Failure, ChatMessage>> sendMultiImageMessage({
+    required String roomId,
+    required String senderId,
+    required List<File> images,
+  });
+
+  /// 채팅방 새 메시지 실시간 Stream (Supabase Realtime INSERT).
+  /// 구독 취소(.cancel) 시 채널 자동 정리.
+  Stream<ChatMessage> subscribeToRoomMessages(String roomId);
 }
