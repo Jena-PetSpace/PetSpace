@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../social/presentation/pages/channel_subscription_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:go_router/go_router.dart';
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 import '../../../social/presentation/pages/feed_page.dart';
 import '../widgets/community_post_card.dart';
 import 'create_community_post_page.dart';
@@ -26,7 +27,6 @@ class _FeedHubPageState extends State<FeedHubPage>
     with TickerProviderStateMixin {
   late TabController _photoTabController;
   late TabController _qnaTabController;
-  final _supabase = Supabase.instance.client;
 
   _FeedMode _mode = _FeedMode.photo;
 
@@ -79,27 +79,23 @@ class _FeedHubPageState extends State<FeedHubPage>
 
   Future<void> _loadCommunityPosts({String? category}) async {
     setState(() => _communityLoading = true);
-    try {
-      var query = _supabase
-          .from('posts')
-          .select(
-              'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
-          .isFilter('deleted_at', null)
-          .not('hashtags', 'cs', '{"magazine"}');
-
-      if (category != null) {
-        query = query.contains('hashtags', [category]);
-      }
-
-      final response = await query.order('created_at', ascending: false).limit(30);
-      setState(() {
-        _communityPosts = List<Map<String, dynamic>>.from(response);
-        _communityLoading = false;
-      });
-    } catch (e) {
-      dev.log('커뮤니티 포스트 로드 실패: $e', name: 'FeedHubPage');
-      setState(() => _communityLoading = false);
-    }
+    final result = await sl<SocialRepository>().getCommunityPosts(
+      category: category,
+      limit: 30,
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) {
+        dev.log('커뮤니티 포스트 로드 실패: ${failure.message}', name: 'FeedHubPage');
+        setState(() => _communityLoading = false);
+      },
+      (posts) {
+        setState(() {
+          _communityPosts = posts;
+          _communityLoading = false;
+        });
+      },
+    );
   }
 
   void _switchMode(_FeedMode mode) {

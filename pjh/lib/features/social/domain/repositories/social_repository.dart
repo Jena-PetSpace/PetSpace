@@ -59,6 +59,13 @@ abstract class SocialRepository {
     int limit = 30,
   });
 
+  /// 커뮤니티 게시물 (매거진 태그 제외, 카테고리 필터).
+  /// users JOIN 포함 raw Map. feed_hub 렌더링 호환용.
+  Future<Either<Failure, List<Map<String, dynamic>>>> getCommunityPosts({
+    String? category,
+    int limit = 30,
+  });
+
   // Like operations
   Future<Either<Failure, void>> likePost(String postId, String userId);
   Future<Either<Failure, void>> unlikePost(String postId, String userId);

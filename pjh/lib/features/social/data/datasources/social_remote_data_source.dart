@@ -35,6 +35,10 @@ abstract class SocialRemoteDataSource {
     String? beforeCreatedAt,
     int limit = 30,
   });
+  Future<List<Map<String, dynamic>>> getCommunityPosts({
+    String? category,
+    int limit = 30,
+  });
   Future<int> getUserStreak(String userId);
   Future<Map<String, dynamic>?> getNotificationPreferences(String userId);
   Future<void> upsertNotificationPreference({
@@ -535,6 +539,23 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
         .order('created_at', ascending: false)
         .limit(limit);
     return List<Map<String, dynamic>>.from(rows);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getCommunityPosts({
+    String? category,
+    int limit = 30,
+  }) async {
+    var query = supabaseClient
+        .from('posts')
+        .select(
+            'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
+        .isFilter('deleted_at', null)
+        .not('hashtags', 'cs', '{"magazine"}');
+    if (category != null) query = query.contains('hashtags', [category]);
+    final response =
+        await query.order('created_at', ascending: false).limit(limit);
+    return List<Map<String, dynamic>>.from(response);
   }
 
   @override

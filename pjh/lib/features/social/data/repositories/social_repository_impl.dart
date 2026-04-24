@@ -139,6 +139,23 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getCommunityPosts({
+    String? category,
+    int limit = 30,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final rows = await remoteDataSource.getCommunityPosts(
+          category: category, limit: limit);
+      return Right(rows);
+    } catch (e) {
+      return Left(ServerFailure(message: '커뮤니티 게시물 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, int>> getUserStreak(String userId) async {
     try {
       if (!await networkInfo.isConnected) {
