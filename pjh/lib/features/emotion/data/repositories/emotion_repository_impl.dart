@@ -572,6 +572,30 @@ class EmotionRepositoryImpl implements EmotionRepository {
   }
 
   @override
+  Future<Either<Failure, List<EmotionAnalysis>>> getAnalysesByPet({
+    required String petId,
+    int limit = 20,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      }
+      final response = await supabaseClient
+          .from('emotion_history')
+          .select()
+          .eq('pet_id', petId)
+          .order('created_at', ascending: false)
+          .limit(limit);
+      final analyses = (response as List)
+          .map((data) => EmotionAnalysisModel.fromJson(data) as EmotionAnalysis)
+          .toList();
+      return Right(analyses);
+    } catch (e) {
+      return Left(ServerFailure(message: '감정 기록 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, String?>> getEmotionComparisonInsight({
     required String petId,
     required String emotion,

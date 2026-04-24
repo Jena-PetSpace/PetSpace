@@ -4,7 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
+import '../../../emotion/domain/entities/emotion_analysis.dart';
+import '../../../emotion/domain/repositories/emotion_repository.dart';
+import '../../../social/domain/repositories/social_repository.dart';
+import '../../domain/repositories/pet_repository.dart';
 
 class PublicPetPage extends StatefulWidget {
   final String petId;
@@ -16,11 +21,12 @@ class PublicPetPage extends StatefulWidget {
 
 class _PublicPetPageState extends State<PublicPetPage> {
   Map<String, dynamic>? _pet;
-  List<Map<String, dynamic>> _analyses = [];
+  List<EmotionAnalysis> _analyses = [];
   bool _loading = true;
   bool _isFollowing = false;
   int _followerCount = 0;
   String? _currentUserId;
+  String? _ownerId;
 
   @override
   void initState() {
@@ -31,40 +37,37 @@ class _PublicPetPageState extends State<PublicPetPage> {
 
   Future<void> _load() async {
     try {
-      final pet = await Supabase.instance.client
-          .from('pets')
-          .select('*, users!pets_user_id_fkey(display_name, photo_url)')
-          .eq('id', widget.petId)
-          .maybeSingle();
+      final petRepo = di.sl<PetRepository>();
+      final emotionRepo = di.sl<EmotionRepository>();
+      final socialRepo = di.sl<SocialRepository>();
 
-      final analyses = await Supabase.instance.client
-          .from('emotion_analyses')
-          .select('id, dominant_emotion, happiness, analyzed_at')
-          .eq('pet_id', widget.petId)
-          .order('analyzed_at', ascending: false)
-          .limit(20);
+      final petResult = await petRepo.getPetDetail(widget.petId);
+      final pet = petResult.fold((_) => null, (r) => r);
+      final ownerId = pet?['user_id'] as String?;
 
-      final follows = await Supabase.instance.client
-          .from('pet_follows')
-          .select('id')
-          .eq('pet_id', widget.petId);
+      final analysesResult = await emotionRepo.getAnalysesByPet(
+          petId: widget.petId, limit: 20);
+      final analyses = analysesResult.fold((_) => <EmotionAnalysis>[], (r) => r);
 
+      int followerCount = 0;
       bool isFollowing = false;
-      if (_currentUserId != null) {
-        final myFollow = await Supabase.instance.client
-            .from('pet_follows')
-            .select('id')
-            .eq('pet_id', widget.petId)
-            .eq('follower_id', _currentUserId!)
-            .maybeSingle();
-        isFollowing = myFollow != null;
+      if (ownerId != null) {
+        final followersResult = await socialRepo.getFollowers(ownerId);
+        followerCount =
+            followersResult.fold((_) => 0, (list) => list.length);
+        if (_currentUserId != null && _currentUserId != ownerId) {
+          final isFollowingResult =
+              await socialRepo.isFollowing(_currentUserId!, ownerId);
+          isFollowing = isFollowingResult.fold((_) => false, (v) => v);
+        }
       }
 
       if (mounted) {
         setState(() {
           _pet = pet;
-          _analyses = List<Map<String, dynamic>>.from(analyses);
-          _followerCount = (follows as List).length;
+          _ownerId = ownerId;
+          _analyses = analyses;
+          _followerCount = followerCount;
           _isFollowing = isFollowing;
           _loading = false;
         });
@@ -76,26 +79,28 @@ class _PublicPetPageState extends State<PublicPetPage> {
   }
 
   Future<void> _toggleFollow() async {
-    if (_currentUserId == null) return;
-    try {
-      if (_isFollowing) {
-        await Supabase.instance.client
-            .from('pet_follows')
-            .delete()
-            .eq('pet_id', widget.petId)
-            .eq('follower_id', _currentUserId!);
-        if (mounted) setState(() { _isFollowing = false; _followerCount--; });
-      } else {
-        await Supabase.instance.client.from('pet_follows').insert({
-          'pet_id': widget.petId,
-          'follower_id': _currentUserId!,
-          'created_at': DateTime.now().toIso8601String(),
+    if (_currentUserId == null || _ownerId == null) return;
+    if (_currentUserId == _ownerId) return; // 본인은 팔로우 불가
+
+    final socialRepo = di.sl<SocialRepository>();
+    final wasFollowing = _isFollowing;
+    setState(() {
+      _isFollowing = !wasFollowing;
+      _followerCount += wasFollowing ? -1 : 1;
+    });
+
+    final result = wasFollowing
+        ? await socialRepo.unfollowUser(_currentUserId!, _ownerId!)
+        : await socialRepo.followUser(_currentUserId!, _ownerId!);
+    result.fold((failure) {
+      dev.log('팔로우 토글 실패: ${failure.message}', name: 'PublicPetPage');
+      if (mounted) {
+        setState(() {
+          _isFollowing = wasFollowing;
+          _followerCount += wasFollowing ? 1 : -1;
         });
-        if (mounted) setState(() { _isFollowing = true; _followerCount++; });
       }
-    } catch (e) {
-      dev.log('팔로우 오류: $e', name: 'PublicPetPage');
-    }
+    }, (_) {});
   }
 
   void _shareProfile() {
@@ -115,6 +120,17 @@ class _PublicPetPageState extends State<PublicPetPage> {
     'sleepiness': '😴', 'curiosity': '🧐',
   };
 
+  String _dominantEmotion(EmotionAnalysis a) {
+    final scores = <String, double>{
+      'happiness': a.emotions.happiness,
+      'sadness': a.emotions.sadness,
+      'anxiety': a.emotions.anxiety,
+      'sleepiness': a.emotions.sleepiness,
+      'curiosity': a.emotions.curiosity,
+    };
+    return scores.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -126,9 +142,11 @@ class _PublicPetPageState extends State<PublicPetPage> {
     }
 
     final name = _pet!['name'] as String? ?? '이름 없음';
-    final species = _pet!['species'] as String? ?? '';
-    final photoUrl = _pet!['photo_url'] as String?;
-    final ownerName = (_pet!['users'] as Map?)?['display_name'] as String? ?? '';
+    final species = _pet!['type'] as String? ?? _pet!['species'] as String? ?? '';
+    final photoUrl = _pet!['avatar_url'] as String? ?? _pet!['photo_url'] as String?;
+    final ownerName =
+        (_pet!['users'] as Map?)?['display_name'] as String? ?? '';
+    final isOwnPet = _currentUserId != null && _currentUserId == _ownerId;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
@@ -185,32 +203,34 @@ class _PublicPetPageState extends State<PublicPetPage> {
           SliverToBoxAdapter(child: Padding(
             padding: EdgeInsets.all(16.w),
             child: Column(children: [
-              // 통계 + 팔로우 버튼
+              // 통계 + 팔로우 버튼 (보호자 팔로우)
               Row(children: [
                 Expanded(child: _buildStat('${_analyses.length}', '분석 횟수')),
                 Container(width: 1, height: 40.h, color: AppTheme.dividerColor),
                 Expanded(child: _buildStat('$_followerCount', '팔로워')),
-                SizedBox(width: 12.w),
-                GestureDetector(
-                  onTap: _toggleFollow,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                    decoration: BoxDecoration(
-                      color: _isFollowing ? AppTheme.subtleBackground : AppTheme.primaryColor,
-                      borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(color: AppTheme.primaryColor),
-                    ),
-                    child: Text(
-                      _isFollowing ? '팔로잉' : '팔로우',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w700,
-                        color: _isFollowing ? AppTheme.primaryColor : Colors.white,
+                if (!isOwnPet) ...[
+                  SizedBox(width: 12.w),
+                  GestureDetector(
+                    onTap: _toggleFollow,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                      decoration: BoxDecoration(
+                        color: _isFollowing ? AppTheme.subtleBackground : AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(color: AppTheme.primaryColor),
+                      ),
+                      child: Text(
+                        _isFollowing ? '팔로잉' : '보호자 팔로우',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w700,
+                          color: _isFollowing ? AppTheme.primaryColor : Colors.white,
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ]),
               SizedBox(height: 20.h),
 
@@ -227,8 +247,7 @@ class _PublicPetPageState extends State<PublicPetPage> {
                   ),
                   itemCount: _analyses.length,
                   itemBuilder: (_, i) {
-                    final a = _analyses[i];
-                    final emotion = a['dominant_emotion'] as String? ?? 'happiness';
+                    final emotion = _dominantEmotion(_analyses[i]);
                     final emoji = _emotionEmoji[emotion] ?? '🐾';
                     return Container(
                       decoration: BoxDecoration(

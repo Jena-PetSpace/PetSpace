@@ -59,4 +59,11 @@ abstract class EmotionRepository {
     required num value,
     int days = 7,
   });
+
+  /// 특정 반려동물의 감정 분석 이력 (RLS 로 본인 기록만 반환).
+  /// 공개 프로필에서 다른 유저 조회 시 빈 리스트.
+  Future<Either<Failure, List<EmotionAnalysis>>> getAnalysesByPet({
+    required String petId,
+    int limit = 20,
+  });
 }
