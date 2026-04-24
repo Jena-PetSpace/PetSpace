@@ -6,8 +6,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../chat/domain/repositories/chat_repository.dart';
+import '../../../pets/domain/entities/pet.dart';
+import '../../../pets/domain/repositories/pet_repository.dart';
+import '../../domain/entities/follow.dart';
 import '../../domain/entities/social_user.dart';
+import '../../domain/repositories/social_repository.dart';
 import '../bloc/profile_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../widgets/profile_cover.dart';
@@ -37,7 +43,7 @@ class _ProfilePageState extends State<ProfilePage>
   late TabController _tabController;
   bool _isSendingMessage = false;
   String? _selectedPetId;
-  List<Map<String, dynamic>> _pets = [];
+  List<Pet> _pets = [];
 
   @override
   void initState() {
@@ -51,18 +57,13 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Future<void> _loadPets() async {
-    try {
-      final rows = await Supabase.instance.client
-          .from('pets')
-          .select('id, name, profile_image_url, species')
-          .eq('owner_id', widget.userId)
-          .order('created_at', ascending: true);
-      if (mounted) {
-        setState(() {
-          _pets = List<Map<String, dynamic>>.from(rows);
-        });
-      }
-    } catch (_) {}
+    final result = await sl<PetRepository>().getUserPets(widget.userId);
+    result.fold(
+      (_) {},
+      (pets) {
+        if (mounted) setState(() => _pets = pets);
+      },
+    );
   }
 
   @override
@@ -177,16 +178,15 @@ class _ProfilePageState extends State<ProfilePage>
                 separatorBuilder: (_, __) => SizedBox(width: 8.w),
                 itemBuilder: (context, index) {
                   final isAll = index == 0;
+                  final pet = isAll ? null : _pets[index - 1];
                   final selected = isAll
                       ? _selectedPetId == null
-                      : _pets[index - 1]['id'] == _selectedPetId;
+                      : pet!.id == _selectedPetId;
 
-                  final label = isAll ? '전체' : (_pets[index - 1]['name'] as String? ?? '');
-                  final imageUrl = isAll
-                      ? null
-                      : _pets[index - 1]['profile_image_url'] as String?;
-                  final petId = isAll ? null : _pets[index - 1]['id'] as String?;
-                  final petName = isAll ? null : _pets[index - 1]['name'] as String?;
+                  final label = isAll ? '전체' : (pet!.name);
+                  final imageUrl = isAll ? null : pet!.avatarUrl;
+                  final petId = isAll ? null : pet!.id;
+                  final petName = isAll ? null : pet!.name;
 
                   return GestureDetector(
                     onTap: () => setState(() {
@@ -224,7 +224,7 @@ class _ProfilePageState extends State<ProfilePage>
                             SizedBox(width: 6.w),
                           ] else if (!isAll) ...[
                             Text(
-                              _pets[index - 1]['species'] == 'cat' ? '🐱' : '🐶',
+                              pet!.type == PetType.cat ? '🐱' : '🐶',
                               style: const TextStyle(fontSize: 14),
                             ),
                             SizedBox(width: 4.w),
@@ -251,14 +251,14 @@ class _ProfilePageState extends State<ProfilePage>
               padding: EdgeInsets.only(right: 8.w),
               child: GestureDetector(
                 onTap: () {
-                  final pet = _pets.firstWhere(
-                      (p) => p['id'] == _selectedPetId,
-                      orElse: () => {});
-                  if (pet.isEmpty) return;
+                  final matched =
+                      _pets.where((p) => p.id == _selectedPetId).toList();
+                  if (matched.isEmpty) return;
+                  final pet = matched.first;
                   context.push('/emotion-timeline', extra: {
                     'petId': _selectedPetId!,
-                    'petName': pet['name'] as String? ?? '',
-                    'petAvatarUrl': pet['profile_image_url'] as String?,
+                    'petName': pet.name,
+                    'petAvatarUrl': pet.avatarUrl,
                   });
                 },
                 child: Container(
@@ -440,7 +440,7 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _buildFollowList({required bool isFollowers}) {
-    return FutureBuilder<List<dynamic>>(
+    return FutureBuilder<List<Follow>>(
       future: _loadFollowData(isFollowers),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -467,34 +467,32 @@ class _ProfilePageState extends State<ProfilePage>
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
           itemCount: list.length,
           itemBuilder: (context, index) {
-            final item = list[index] as Map<String, dynamic>;
-            final user = isFollowers
-                ? item['follower'] as Map<String, dynamic>?
-                : item['following'] as Map<String, dynamic>?;
-            if (user == null) return const SizedBox.shrink();
+            final follow = list[index];
+            final uid =
+                isFollowers ? follow.followerId : follow.followingId;
+            final displayName = isFollowers
+                ? follow.followerName
+                : follow.followingName;
+            final photoUrl = isFollowers
+                ? follow.followerProfileImage
+                : follow.followingProfileImage;
             return ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                backgroundImage: user['photo_url'] != null &&
-                        (user['photo_url'] as String).isNotEmpty
-                    ? CachedNetworkImageProvider(user['photo_url'] as String)
-                    : null,
-                child: user['photo_url'] == null ||
-                        (user['photo_url'] as String).isEmpty
+                backgroundImage:
+                    photoUrl != null && photoUrl.isNotEmpty
+                        ? CachedNetworkImageProvider(photoUrl)
+                        : null,
+                child: photoUrl == null || photoUrl.isEmpty
                     ? Icon(Icons.person,
                         color: AppTheme.primaryColor, size: 20.w)
                     : null,
               ),
               title: Text(
-                user['display_name'] as String? ?? '사용자',
+                displayName.isEmpty ? '사용자' : displayName,
                 style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
               ),
-              onTap: () {
-                final uid = isFollowers
-                    ? item['follower_id'] as String
-                    : item['following_id'] as String;
-                context.push('/user-profile/$uid');
-              },
+              onTap: () => context.push('/user-profile/$uid'),
             );
           },
         );
@@ -502,26 +500,15 @@ class _ProfilePageState extends State<ProfilePage>
     );
   }
 
-  Future<List<dynamic>> _loadFollowData(bool isFollowers) async {
-    try {
-      final supabase = Supabase.instance.client;
-      if (isFollowers) {
-        return await supabase
-            .from('follows')
-            .select(
-                'follower_id, follower:users!follows_follower_id_fkey(display_name, photo_url)')
-            .eq('following_id', widget.userId);
-      } else {
-        return await supabase
-            .from('follows')
-            .select(
-                'following_id, following:users!follows_following_id_fkey(display_name, photo_url)')
-            .eq('follower_id', widget.userId);
-      }
-    } catch (e) {
-      log('팔로우 데이터 로드 실패: $e', name: 'ProfilePage');
-      return [];
-    }
+  Future<List<Follow>> _loadFollowData(bool isFollowers) async {
+    final repo = sl<SocialRepository>();
+    final result = isFollowers
+        ? await repo.getFollowers(widget.userId)
+        : await repo.getFollowing(widget.userId);
+    return result.fold((failure) {
+      log('팔로우 데이터 로드 실패: ${failure.message}', name: 'ProfilePage');
+      return <Follow>[];
+    }, (list) => list);
   }
 
   Widget _buildErrorState(String message) {
@@ -612,43 +599,24 @@ class _ProfilePageState extends State<ProfilePage>
 
     setState(() => _isSendingMessage = true);
 
-    try {
-      final supabase = Supabase.instance.client;
+    final result = await sl<ChatRepository>().createDirectChat(
+      currentUserId: currentUserId,
+      otherUserId: user.id,
+    );
 
-      // 기존 1:1 채팅방 찾기
-      final existingRoomId = await supabase.rpc('find_direct_chat', params: {
-        'p_user1_id': currentUserId,
-        'p_user2_id': user.id,
-      });
+    if (!mounted) return;
+    setState(() => _isSendingMessage = false);
 
-      String roomId;
-      if (existingRoomId != null) {
-        roomId = existingRoomId as String;
-      } else {
-        // 새 채팅방 생성
-        final roomRes = await supabase
-            .from('chat_rooms')
-            .insert({'type': 'direct', 'created_by': currentUserId})
-            .select()
-            .single();
-        roomId = roomRes['id'] as String;
-
-        // 참여자 추가
-        await supabase.from('chat_participants').insert([
-          {'room_id': roomId, 'user_id': currentUserId, 'role': 'admin'},
-          {'room_id': roomId, 'user_id': user.id, 'role': 'member'},
-        ]);
-      }
-
-      if (!mounted) return;
-      setState(() => _isSendingMessage = false);
-      context.push('/chat/$roomId?name=${Uri.encodeComponent(user.displayName)}');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isSendingMessage = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('채팅방 생성에 실패했습니다.')),
-      );
-    }
+    result.fold(
+      (failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('채팅방 생성에 실패했습니다.')),
+        );
+      },
+      (room) {
+        context.push(
+            '/chat/${room.id}?name=${Uri.encodeComponent(user.displayName)}');
+      },
+    );
   }
 }
