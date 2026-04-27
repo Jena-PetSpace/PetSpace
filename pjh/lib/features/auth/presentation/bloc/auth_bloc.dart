@@ -45,7 +45,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthProfileRefreshRequested>(_onProfileRefreshRequested);
   }
 
-  void _onAuthStarted(AuthStarted event, Emitter<AuthState> emit) {
+  Future<void> _onAuthStarted(
+      AuthStarted event, Emitter<AuthState> emit) async {
+    // 1) 즉시 현재 세션 체크 → AuthInitial 에서 빠르게 탈출
+    //    (실기기에서 onAuthStateChange 의 INITIAL 이벤트 누락 시 무한 스플래시 방지)
+    try {
+      final currentResult = await _authRepository.getCurrentUser();
+      currentResult.fold(
+        (_) => add(const AuthUserChanged(null)),
+        (user) => add(AuthUserChanged(user)),
+      );
+    } catch (_) {
+      add(const AuthUserChanged(null));
+    }
+
+    // 2) 이후 인증 상태 변경 스트림 구독
     _authStateSubscription = _authRepository.authStateChanges.listen(
       (user) => add(AuthUserChanged(user)),
       onError: (error) {
