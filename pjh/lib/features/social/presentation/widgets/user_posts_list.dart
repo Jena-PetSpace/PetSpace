@@ -4,9 +4,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../domain/repositories/social_repository.dart';
 
 class UserPostsList extends StatefulWidget {
   final String userId;
@@ -67,20 +67,19 @@ class _UserPostsListState extends State<UserPostsList> {
 
   Future<void> _loadPosts() async {
     setState(() { _loading = true; _posts = []; _hasMore = true; _lastCreatedAt = null; });
-    try {
-      var query = Supabase.instance.client
-          .from('posts')
-          .select('id, image_url, image_urls, caption, post_type, created_at, pet_id')
-          .eq('author_id', widget.userId)
-          .isFilter('deleted_at', null);
-      if (widget.petId != null) {
-        query = query.eq('pet_id', widget.petId!);
-      }
-      final rows = await query
-          .order('created_at', ascending: false)
-          .limit(_pageSize);
-      if (mounted) {
-        final list = List<Map<String, dynamic>>.from(rows);
+    final result = await sl<SocialRepository>().getUserPostsFiltered(
+      authorId: widget.userId,
+      petId: widget.petId,
+      limit: _pageSize,
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) {
+        dev.log('UserPostsList load error: ${failure.message}',
+            name: 'UserPostsList');
+        setState(() => _loading = false);
+      },
+      (list) {
         setState(() {
           _posts = list;
           _loading = false;
@@ -89,31 +88,27 @@ class _UserPostsListState extends State<UserPostsList> {
             _lastCreatedAt = list.last['created_at'] as String?;
           }
         });
-      }
-    } catch (e) {
-      dev.log('UserPostsList load error: $e', name: 'UserPostsList');
-      if (mounted) setState(() => _loading = false);
-    }
+      },
+    );
   }
 
   Future<void> _loadMore() async {
     if (_loadingMore || !_hasMore || _lastCreatedAt == null) return;
     setState(() => _loadingMore = true);
-    try {
-      var query = Supabase.instance.client
-          .from('posts')
-          .select('id, image_url, image_urls, caption, post_type, created_at, pet_id')
-          .eq('author_id', widget.userId)
-          .isFilter('deleted_at', null)
-          .lt('created_at', _lastCreatedAt!);
-      if (widget.petId != null) {
-        query = query.eq('pet_id', widget.petId!);
-      }
-      final rows = await query
-          .order('created_at', ascending: false)
-          .limit(_pageSize);
-      if (mounted) {
-        final list = List<Map<String, dynamic>>.from(rows);
+    final result = await sl<SocialRepository>().getUserPostsFiltered(
+      authorId: widget.userId,
+      petId: widget.petId,
+      beforeCreatedAt: _lastCreatedAt,
+      limit: _pageSize,
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) {
+        dev.log('UserPostsList loadMore error: ${failure.message}',
+            name: 'UserPostsList');
+        setState(() => _loadingMore = false);
+      },
+      (list) {
         setState(() {
           _posts = [..._posts, ...list];
           _loadingMore = false;
@@ -122,11 +117,8 @@ class _UserPostsListState extends State<UserPostsList> {
             _lastCreatedAt = list.last['created_at'] as String?;
           }
         });
-      }
-    } catch (e) {
-      dev.log('UserPostsList loadMore error: $e', name: 'UserPostsList');
-      if (mounted) setState(() => _loadingMore = false);
-    }
+      },
+    );
   }
 
   @override

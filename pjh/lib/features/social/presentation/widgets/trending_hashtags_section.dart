@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../domain/repositories/social_repository.dart';
 
 class TrendingHashtagsSection extends StatefulWidget {
   const TrendingHashtagsSection({super.key});
@@ -23,20 +24,16 @@ class _TrendingHashtagsSectionState extends State<TrendingHashtagsSection> {
   }
 
   Future<void> _load() async {
-    try {
-      final result = await Supabase.instance.client.rpc(
-        'get_trending_hashtags',
-        params: {'p_limit': 10, 'p_days': 7},
-      );
-      if (mounted) {
-        setState(() {
-          _hashtags = (result as List).map((e) => e['hashtag'] as String).toList();
-          _loading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
+    final result = await sl<SocialRepository>()
+        .getTrendingHashtags(limit: 10, days: 7);
+    if (!mounted) return;
+    result.fold(
+      (_) => setState(() => _loading = false),
+      (tags) => setState(() {
+        _hashtags = tags;
+        _loading = false;
+      }),
+    );
   }
 
   @override

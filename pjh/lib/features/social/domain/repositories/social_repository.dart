@@ -46,9 +46,60 @@ abstract class SocialRepository {
   });
   Future<Either<Failure, Post>> getPost(String postId);
 
+  /// 상세 페이지용 원본 JSON (users JOIN 포함). Post entity가 petId/petName 등을
+  /// 아직 포함하지 않아 상세 렌더링 호환성을 위해 노출. Post 엔티티 확장 후 제거 예정.
+  Future<Either<Failure, Map<String, dynamic>?>> getPostDetail(String postId);
+
+  /// 프로필 게시물 그리드용 raw query (petId 필터 + 무한 스크롤).
+  /// Post entity 확장 전까지 map 기반 렌더링 호환용.
+  Future<Either<Failure, List<Map<String, dynamic>>>> getUserPostsFiltered({
+    required String authorId,
+    String? petId,
+    String? beforeCreatedAt,
+    int limit = 30,
+  });
+
+  /// 커뮤니티 게시물 (매거진 태그 제외, 카테고리 필터).
+  /// users JOIN 포함 raw Map. feed_hub 렌더링 호환용.
+  Future<Either<Failure, List<Map<String, dynamic>>>> getCommunityPosts({
+    String? category,
+    int limit = 30,
+  });
+
+  /// 내가 저장한 게시물 (saved_posts + posts JOIN) — my_page 용 raw Map
+  Future<Either<Failure, List<Map<String, dynamic>>>> getSavedPostsRaw(
+      String userId);
+
+  /// 획득한 뱃지 ID 집합
+  Future<Either<Failure, Set<String>>> getEarnedBadgeIds(String userId);
+
+  /// 뱃지 획득 조건 체크 + 신규 뱃지 삽입 (클라이언트 측 룰 평가)
+  Future<Either<Failure, void>> checkAndAwardBadges(String userId);
+
+  /// 포인트 거래 내역 조회 (reward_store_page 용)
+  Future<Either<Failure, List<Map<String, dynamic>>>> getPointTransactions(
+      String userId);
+
+  /// 포인트 잔액 조회 (user_points 뷰)
+  Future<Either<Failure, int>> getUserPoints(String userId);
+
+  /// 퀘스트 타입별 오늘 수행 여부 확인.
+  /// questType: 'analyze' (감정 분석) | 'post' (게시물 작성) | 'like' (좋아요)
+  Future<Either<Failure, bool>> hasQuestActivityToday({
+    required String userId,
+    required String questType,
+  });
+
+  /// 퀘스트 완료 시 포인트 지급 (RPC increment_user_points)
+  Future<Either<Failure, void>> incrementUserPoints({
+    required String userId,
+    required int points,
+  });
+
   // Like operations
   Future<Either<Failure, void>> likePost(String postId, String userId);
   Future<Either<Failure, void>> unlikePost(String postId, String userId);
+  Future<Either<Failure, bool>> isPostLiked(String postId, String userId);
   Future<Either<Failure, List<SocialUser>>> getPostLikes(String postId);
 
   // Comment operations
@@ -103,6 +154,22 @@ abstract class SocialRepository {
       {required String userId, int limit = 20});
   Future<Either<Failure, bool>> isPostSaved(String postId, String userId);
 
+  /// 유저 연속 활동 일수 조회 (RPC get_user_streak).
+  /// RPC 미구현 상태면 0 반환 — 퀘스트 시스템 연동 후 활성화 예정.
+  Future<Either<Failure, int>> getUserStreak(String userId);
+
+  /// 알림 설정 전체 조회 (notification_preferences 테이블)
+  Future<Either<Failure, Map<String, dynamic>?>> getNotificationPreferences(
+      String userId);
+
+  /// 알림 설정 단일 컬럼 upsert.
+  /// 예: serverColumn='enabled_like', value=false
+  Future<Either<Failure, void>> upsertNotificationPreference({
+    required String userId,
+    required String column,
+    required bool value,
+  });
+
   // Bookmark collection operations
   Future<Either<Failure, List<BookmarkCollection>>> getBookmarkCollections(String userId);
   Future<Either<Failure, BookmarkCollection>> createBookmarkCollection({
@@ -147,6 +214,10 @@ abstract class SocialRepository {
   Future<Either<Failure, void>> blockUser(String blockerId, String blockedId);
   Future<Either<Failure, void>> unblockUser(String blockerId, String blockedId);
   Future<Either<Failure, bool>> isBlocked(String blockerId, String blockedId);
+
+  /// 차단 목록 (users JOIN 포함) — 설정 화면 렌더링용 raw Map
+  Future<Either<Failure, List<Map<String, dynamic>>>> getBlockedUsersDetailed(
+      String blockerId);
 
   // Report operations
   Future<Either<Failure, void>> reportPost(

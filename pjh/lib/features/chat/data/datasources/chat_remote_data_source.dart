@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/chat_room_model.dart';
@@ -33,7 +34,11 @@ abstract class ChatRemoteDataSource {
   Future<void> updateLastRead({required String roomId, required String userId});
   Future<int> getTotalUnreadCount(String userId);
   Future<List<ChatParticipantModel>> searchUsers(String query);
-  Future<void> leaveChatRoom({required String roomId, required String userId});
+  Future<void> leaveChatRoom({
+    required String roomId,
+    required String userId,
+    String? leaverName,
+  });
   Future<void> addChatMembers({
     required String roomId,
     required List<String> memberIds,
@@ -42,12 +47,22 @@ abstract class ChatRemoteDataSource {
       {required String roomId, required String name});
   Future<void> updateChatRoomPhoto(
       {required String roomId, required String photoUrl});
+  Future<String> uploadChatRoomPhoto({
+    required String roomId,
+    required String userId,
+    required File file,
+  });
+  Future<Map<String, dynamic>?> getChatRoomInfo(String roomId);
   Future<List<ChatParticipantModel>> getRoomParticipants(String roomId);
   Future<ChatMessageModel> sendMultiImageMessage({
     required String roomId,
     required String senderId,
     required List<File> imageFiles,
   });
+
+  /// 특정 채팅방의 새 메시지 Stream (Realtime INSERT 이벤트).
+  /// 구독 취소 시 내부 channel 자동 정리.
+  Stream<ChatMessageModel> subscribeToRoomMessages(String roomId);
 }
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
@@ -373,8 +388,20 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
   }
 
   @override
-  Future<void> leaveChatRoom(
-      {required String roomId, required String userId}) async {
+  Future<void> leaveChatRoom({
+    required String roomId,
+    required String userId,
+    String? leaverName,
+  }) async {
+    // 시스템 메시지 먼저 (나가기 전에 보내야 RLS 통과)
+    if (leaverName != null && leaverName.isNotEmpty) {
+      await supabaseClient.from('chat_messages').insert({
+        'room_id': roomId,
+        'sender_id': userId,
+        'content': '$leaverName님이 채팅방을 나갔습니다.',
+        'type': 'system',
+      });
+    }
     await supabaseClient
         .from('chat_participants')
         .update({'is_active': false})
@@ -407,6 +434,33 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     await supabaseClient
         .from('chat_rooms')
         .update({'avatar_url': photoUrl}).eq('id', roomId);
+  }
+
+  @override
+  Future<String> uploadChatRoomPhoto({
+    required String roomId,
+    required String userId,
+    required File file,
+  }) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final filePath = 'chat/$userId/room_${roomId}_$timestamp.jpg';
+    await supabaseClient.storage.from('images').upload(filePath, file);
+    final publicUrl =
+        supabaseClient.storage.from('images').getPublicUrl(filePath);
+    await supabaseClient
+        .from('chat_rooms')
+        .update({'avatar_url': publicUrl}).eq('id', roomId);
+    return publicUrl;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getChatRoomInfo(String roomId) async {
+    final response = await supabaseClient
+        .from('chat_rooms')
+        .select('name, avatar_url')
+        .eq('id', roomId)
+        .maybeSingle();
+    return response;
   }
 
   @override
@@ -455,5 +509,38 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
         .map((json) =>
             ChatParticipantModel.fromJson(json as Map<String, dynamic>))
         .toList();
+  }
+
+  @override
+  Stream<ChatMessageModel> subscribeToRoomMessages(String roomId) {
+    final controller = StreamController<ChatMessageModel>();
+    RealtimeChannel? channel;
+
+    channel = supabaseClient.channel('chat_messages:$roomId')
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'chat_messages',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'room_id',
+          value: roomId,
+        ),
+        callback: (payload) {
+          try {
+            controller.add(ChatMessageModel.fromJson(payload.newRecord));
+          } catch (e, st) {
+            controller.addError(e, st);
+          }
+        },
+      ).subscribe();
+
+    controller.onCancel = () async {
+      if (channel != null) {
+        await supabaseClient.removeChannel(channel);
+      }
+    };
+
+    return controller.stream;
   }
 }

@@ -182,86 +182,108 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     LikePostRequested event,
     Emitter<FeedState> emit,
   ) async {
-    if (state is FeedLoaded) {
-      final currentState = state as FeedLoaded;
+    final current = state;
+    List<Post> posts;
+    if (current is FeedLoaded) {
+      posts = current.posts;
+    } else if (current is FeedRecommendedLoaded) {
+      posts = current.posts;
+    } else {
+      return;
+    }
 
-      // 원본 상태 저장
-      final originalPosts = List<Post>.from(currentState.posts);
+    final originalPosts = List<Post>.from(posts);
+    final updatedPosts = posts.map((post) {
+      if (post.id == event.postId) {
+        return post.copyWith(
+          isLikedByCurrentUser: true,
+          likesCount: post.likesCount + 1,
+        );
+      }
+      return post;
+    }).toList();
 
-      final updatedPosts = currentState.posts.map((post) {
-        if (post.id == event.postId) {
-          return post.copyWith(
-            isLikedByCurrentUser: true,
-            likesCount: post.likesCount + 1,
+    if (current is FeedLoaded) {
+      emit(current.copyWith(posts: updatedPosts));
+    } else if (current is FeedRecommendedLoaded) {
+      emit(current.copyWith(posts: updatedPosts));
+    }
+
+    final result = await _likePost(LikePostParams(
+      postId: event.postId,
+      userId: event.userId,
+    ));
+
+    result.fold(
+      (_) {
+        // 실패 시 원본 상태로 복원
+        if (current is FeedLoaded) {
+          emit(current.copyWith(posts: originalPosts));
+        } else if (current is FeedRecommendedLoaded) {
+          emit(current.copyWith(posts: originalPosts));
+        }
+      },
+      (_) {
+        final likedPost =
+            posts.where((p) => p.id == event.postId).firstOrNull;
+        if (likedPost != null && likedPost.authorId != event.userId) {
+          _pushService.sendLikeNotification(
+            toUserId: likedPost.authorId,
+            fromUserId: event.userId,
+            fromUserName: '사용자',
+            postId: event.postId,
           );
         }
-        return post;
-      }).toList();
-
-      emit(currentState.copyWith(posts: updatedPosts));
-
-      final result = await _likePost(LikePostParams(
-        postId: event.postId,
-        userId: event.userId,
-      ));
-
-      result.fold(
-        (failure) {
-          // 실패 시 원본 상태로 복원
-          emit(currentState.copyWith(posts: originalPosts));
-        },
-        (_) {
-          // 성공 시 게시글 작성자에게 알림 발송 (자기 자신 제외)
-          final likedPost =
-              currentState.posts.where((p) => p.id == event.postId).firstOrNull;
-          if (likedPost != null && likedPost.authorId != event.userId) {
-            _pushService.sendLikeNotification(
-              toUserId: likedPost.authorId,
-              fromUserId: event.userId,
-              fromUserName: '사용자',
-              postId: event.postId,
-            );
-          }
-        },
-      );
-    }
+      },
+    );
   }
 
   Future<void> _onUnlikePostRequested(
     UnlikePostRequested event,
     Emitter<FeedState> emit,
   ) async {
-    if (state is FeedLoaded) {
-      final currentState = state as FeedLoaded;
-
-      // 원본 상태 저장
-      final originalPosts = List<Post>.from(currentState.posts);
-
-      final updatedPosts = currentState.posts.map((post) {
-        if (post.id == event.postId) {
-          return post.copyWith(
-            isLikedByCurrentUser: false,
-            likesCount: post.likesCount - 1,
-          );
-        }
-        return post;
-      }).toList();
-
-      emit(currentState.copyWith(posts: updatedPosts));
-
-      final result = await _unlikePost(UnlikePostParams(
-        postId: event.postId,
-        userId: event.userId,
-      ));
-
-      result.fold(
-        (failure) {
-          // 실패 시 원본 상태로 복원
-          emit(currentState.copyWith(posts: originalPosts));
-        },
-        (_) {},
-      );
+    final current = state;
+    List<Post> posts;
+    if (current is FeedLoaded) {
+      posts = current.posts;
+    } else if (current is FeedRecommendedLoaded) {
+      posts = current.posts;
+    } else {
+      return;
     }
+
+    final originalPosts = List<Post>.from(posts);
+    final updatedPosts = posts.map((post) {
+      if (post.id == event.postId) {
+        return post.copyWith(
+          isLikedByCurrentUser: false,
+          likesCount: post.likesCount - 1,
+        );
+      }
+      return post;
+    }).toList();
+
+    if (current is FeedLoaded) {
+      emit(current.copyWith(posts: updatedPosts));
+    } else if (current is FeedRecommendedLoaded) {
+      emit(current.copyWith(posts: updatedPosts));
+    }
+
+    final result = await _unlikePost(UnlikePostParams(
+      postId: event.postId,
+      userId: event.userId,
+    ));
+
+    result.fold(
+      (_) {
+        if (current is FeedLoaded) {
+          emit(current.copyWith(posts: originalPosts));
+        } else if (current is FeedRecommendedLoaded) {
+          emit(current.copyWith(posts: originalPosts));
+        }
+      },
+      (_) {},
+    );
   }
 
   Future<void> _onUpdatePostRequested(

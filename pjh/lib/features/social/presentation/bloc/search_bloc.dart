@@ -174,17 +174,11 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     final currentUserId =
         Supabase.instance.client.auth.currentUser?.id;
     if (currentUserId == null) return {};
-    try {
-      final rows = await Supabase.instance.client
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', currentUserId);
-      return (rows as List)
-          .map((r) => r['following_id'] as String)
-          .toSet();
-    } catch (_) {
-      return {};
-    }
+    final result = await repository.getFollowing(currentUserId);
+    return result.fold(
+      (_) => <String>{},
+      (list) => list.map((f) => f.followingId).toSet(),
+    );
   }
 
   List<SocialUser> _sortByFollowing(

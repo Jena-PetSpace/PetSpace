@@ -4,10 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 
 class _Quest {
   final String id;
@@ -107,18 +107,13 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
   Future<void> _loadPoints() async {
     final auth = context.read<AuthBloc>().state;
     if (auth is! AuthAuthenticated) return;
-    try {
-      final res = await Supabase.instance.client
-          .from('user_points')
-          .select('balance')
-          .eq('user_id', auth.user.uid)
-          .maybeSingle();
-      if (mounted && res != null) {
-        setState(() => _totalPoints = res['balance'] as int? ?? 0);
-      }
-    } catch (e) {
-      dev.log('포인트 조회 실패: $e', name: 'QuestCard');
-    }
+    final result = await sl<SocialRepository>().getUserPoints(auth.user.uid);
+    if (!mounted) return;
+    result.fold(
+      (failure) =>
+          dev.log('포인트 조회 실패: ${failure.message}', name: 'QuestCard'),
+      (balance) => setState(() => _totalPoints = balance),
+    );
   }
 
   /// 퀘스트 탭 → 해당 페이지로 이동 (복귀 시 GoRouter listener가 _verifyAllPendingQuests 호출)
@@ -132,50 +127,11 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
     if (auth is! AuthAuthenticated) return;
 
     final uid = auth.user.uid;
-    final supabase = Supabase.instance.client;
-    final todayStart = DateTime.now().copyWith(
-        hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
+    final repo = sl<SocialRepository>();
 
-    bool achieved = false;
-    try {
-      switch (quest.id) {
-        case 'analyze':
-          // 오늘 감정 분석 기록이 있는지 확인
-          final rows = await supabase
-              .from('emotion_history')
-              .select('id')
-              .eq('user_id', uid)
-              .gte('created_at', todayStart.toIso8601String())
-              .limit(1);
-          achieved = (rows as List).isNotEmpty;
-          break;
-        case 'post':
-          // 오늘 게시글을 작성했는지 확인
-          final rows = await supabase
-              .from('posts')
-              .select('id')
-              .eq('author_id', uid)
-              .isFilter('deleted_at', null)
-              .gte('created_at', todayStart.toIso8601String())
-              .limit(1);
-          achieved = (rows as List).isNotEmpty;
-          break;
-        case 'like':
-          // 오늘 좋아요를 눌렀는지 확인
-          final rows = await supabase
-              .from('post_likes')
-              .select('id')
-              .eq('user_id', uid)
-              .gte('created_at', todayStart.toIso8601String())
-              .limit(1);
-          achieved = (rows as List).isNotEmpty;
-          break;
-      }
-    } catch (e) {
-      dev.log('퀘스트 검증 실패: $e', name: 'QuestCard');
-      return;
-    }
-
+    final activityResult = await repo.hasQuestActivityToday(
+        userId: uid, questType: quest.id);
+    final achieved = activityResult.fold((_) => false, (v) => v);
     if (!achieved || !mounted) return;
 
     // 이미 완료 처리된 경우 skip (SharedPreferences 기준)
@@ -185,14 +141,13 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
 
     await prefs.setBool(key, true);
 
-    try {
-      await supabase.rpc('increment_user_points', params: {
-        'p_user_id': uid,
-        'p_points': quest.points,
-      });
-    } catch (e) {
-      dev.log('포인트 지급 실패: $e', name: 'QuestCard');
-    }
+    final incrementResult = await repo.incrementUserPoints(
+        userId: uid, points: quest.points);
+    incrementResult.fold(
+      (failure) =>
+          dev.log('포인트 지급 실패: ${failure.message}', name: 'QuestCard'),
+      (_) {},
+    );
 
     if (!mounted) return;
     setState(() {

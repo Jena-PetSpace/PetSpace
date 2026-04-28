@@ -57,10 +57,15 @@ class PostModel {
     this.isSavedByCurrentUser = false,
   });
 
-  // Supabase JSON -> Model
+  // Supabase JSON -> Model.
+  // posts 테이블 직접 select 결과와 RPC(get_recommended_posts 등) 결과 둘 다 수용.
+  // RPC 는 users JOIN 대신 flat author_name/author_photo 를 반환하고
+  // updated_at / post_type 같은 일부 컬럼이 없을 수 있음.
   factory PostModel.fromJson(Map<String, dynamic> json) {
-    // users 테이블 JOIN 데이터 처리
+    // users 테이블 JOIN 데이터 처리 (fallback: RPC flat 필드)
     final userData = json['users'] as Map<String, dynamic>?;
+    final authorNameFromRpc = json['author_name'] as String?;
+    final authorPhotoFromRpc = json['author_photo'] as String?;
 
     // image_urls 우선, 없으면 image_url 레거시 폴백
     final rawImageUrls = json['image_urls'];
@@ -72,6 +77,14 @@ class PostModel {
     } else {
       imageUrls = [];
     }
+
+    final createdAtStr = json['created_at'] as String?;
+    final updatedAtStr = json['updated_at'] as String?;
+    final createdAt = createdAtStr != null
+        ? DateTime.parse(createdAtStr)
+        : DateTime.now();
+    final updatedAt =
+        updatedAtStr != null ? DateTime.parse(updatedAtStr) : createdAt;
 
     return PostModel(
       id: json['id'] as String,
@@ -87,14 +100,15 @@ class PostModel {
           : [],
       likesCount: json['likes_count'] as int? ?? 0,
       commentsCount: json['comments_count'] as int? ?? 0,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       isPrivate: json['is_private'] as bool? ?? false,
       location: json['location'] as String?,
       locationLat: (json['location_lat'] as num?)?.toDouble(),
       locationLng: (json['location_lng'] as num?)?.toDouble(),
-      authorName: userData?['display_name'] as String?,
-      authorPhotoUrl: userData?['photo_url'] as String?,
+      authorName: userData?['display_name'] as String? ?? authorNameFromRpc,
+      authorPhotoUrl:
+          userData?['photo_url'] as String? ?? authorPhotoFromRpc,
     );
   }
 

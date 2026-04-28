@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../../../../config/injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/chat_room.dart';
+import '../../domain/repositories/chat_repository.dart';
 import '../bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../widgets/chat_room_tile.dart';
 
@@ -223,51 +223,39 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              try {
-                final supabase = Supabase.instance.client;
+              // 내 이름: AuthBloc 에서 바로 획득 (추가 네트워크 호출 제거)
+              final authState = context.read<AuthBloc>().state;
+              final myName = authState is AuthAuthenticated
+                  ? authState.user.displayName
+                  : '사용자';
 
-                // 내 이름 가져오기
-                final myProfile = await supabase
-                    .from('users')
-                    .select('display_name')
-                    .eq('id', _currentUserId)
-                    .maybeSingle();
-                final myName = myProfile?['display_name'] ?? '사용자';
-
-                // 시스템 메시지 먼저 (나가기 전에 보내야 RLS 통과)
-                await supabase.from('chat_messages').insert({
-                  'room_id': room.id,
-                  'sender_id': _currentUserId,
-                  'content': '$myName님이 채팅방을 나갔습니다.',
-                  'type': 'system',
-                });
-
-                // 참여자 비활성화
-                await supabase
-                    .from('chat_participants')
-                    .update({'is_active': false})
-                    .eq('room_id', room.id)
-                    .eq('user_id', _currentUserId);
-
-                if (!context.mounted) return;
-                context.read<ChatRoomsBloc>().add(
-                      ChatRoomsLoadRequested(userId: _currentUserId),
-                    );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('채팅방을 나갔습니다'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('오류: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
+              final result = await sl<ChatRepository>().leaveChatRoom(
+                roomId: room.id,
+                userId: _currentUserId,
+                leaverName: myName,
+              );
+              if (!context.mounted) return;
+              result.fold(
+                (failure) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('오류: ${failure.message}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                },
+                (_) {
+                  context.read<ChatRoomsBloc>().add(
+                        ChatRoomsLoadRequested(userId: _currentUserId),
+                      );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('채팅방을 나갔습니다'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+              );
             },
             child: Text(
               '나가기',

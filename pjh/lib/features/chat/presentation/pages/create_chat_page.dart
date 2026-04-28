@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 import '../../domain/entities/chat_participant.dart';
 import '../../domain/usecases/search_users_for_chat.dart';
 import '../../../../core/usecases/usecase.dart';
@@ -51,51 +51,31 @@ class _CreateChatPageState extends State<CreateChatPage> {
   }
 
   Future<void> _loadFollowingList() async {
-    try {
-      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-      if (currentUserId == null) return;
+    final currentUserId = _currentUserId;
+    if (currentUserId.isEmpty) return;
 
-      // 내가 팔로우하는 사람들의 ID 가져오기
-      final followsResponse = await Supabase.instance.client
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', currentUserId);
+    final result = await sl<SocialRepository>().getFollowing(currentUserId);
+    if (!mounted) return;
 
-      final followingIds = (followsResponse as List)
-          .map((f) => f['following_id'] as String)
-          .toList();
-
-      if (followingIds.isEmpty) {
-        if (mounted) setState(() => _isLoadingFollowing = false);
-        return;
-      }
-
-      // 팔로잉 유저 정보 가져오기
-      final usersResponse = await Supabase.instance.client
-          .from('users')
-          .select('id, display_name, photo_url')
-          .inFilter('id', followingIds);
-
-      if (mounted) {
+    result.fold(
+      (_) => setState(() => _isLoadingFollowing = false),
+      (follows) {
         setState(() {
-          _followingList = (usersResponse as List).map((json) {
-            final map = json as Map<String, dynamic>;
-            return ChatParticipant(
-              id: '',
-              roomId: '',
-              userId: map['id'] as String,
-              displayName: map['display_name'] as String?,
-              photoUrl: map['photo_url'] as String?,
-              joinedAt: DateTime.now(),
-              lastReadAt: DateTime.now(),
-            );
-          }).toList();
+          _followingList = follows
+              .map((f) => ChatParticipant(
+                    id: '',
+                    roomId: '',
+                    userId: f.followingId,
+                    displayName: f.followingName,
+                    photoUrl: f.followingProfileImage,
+                    joinedAt: DateTime.now(),
+                    lastReadAt: DateTime.now(),
+                  ))
+              .toList();
           _isLoadingFollowing = false;
         });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingFollowing = false);
-    }
+      },
+    );
   }
 
   Future<void> _searchUsers(String query) async {

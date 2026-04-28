@@ -28,6 +28,38 @@ abstract class SocialRemoteDataSource {
   Future<void> deletePostImages(String userId, String postId);
   Future<String> uploadCoverImage(String userId, File file);
   Future<Post> getPost(String postId);
+  Future<Map<String, dynamic>?> getPostDetail(String postId);
+  Future<List<Map<String, dynamic>>> getUserPostsFiltered({
+    required String authorId,
+    String? petId,
+    String? beforeCreatedAt,
+    int limit = 30,
+  });
+  Future<List<Map<String, dynamic>>> getCommunityPosts({
+    String? category,
+    int limit = 30,
+  });
+  Future<List<Map<String, dynamic>>> getSavedPostsRaw(String userId);
+  Future<Set<String>> getEarnedBadgeIds(String userId);
+  Future<void> checkAndAwardBadges(String userId);
+  Future<List<Map<String, dynamic>>> getPointTransactions(String userId);
+  Future<List<Map<String, dynamic>>> getBlockedUsersDetailed(String blockerId);
+  Future<int> getUserPoints(String userId);
+  Future<bool> hasQuestActivityToday({
+    required String userId,
+    required String questType,
+  });
+  Future<void> incrementUserPoints({
+    required String userId,
+    required int points,
+  });
+  Future<int> getUserStreak(String userId);
+  Future<Map<String, dynamic>?> getNotificationPreferences(String userId);
+  Future<void> upsertNotificationPreference({
+    required String userId,
+    required String column,
+    required bool value,
+  });
   Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId);
   Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt, bool followingOnly = false});
   Future<List<Post>> getExplorePosts(int limit, String? lastPostId, {DateTime? lastCreatedAt});
@@ -484,6 +516,244 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
           error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('게시물을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getPostDetail(String postId) async {
+    try {
+      final response = await supabaseClient.from('posts').select('''
+            *,
+            users!posts_author_id_fkey(id, display_name, photo_url)
+          ''').eq('id', postId).maybeSingle();
+      return response;
+    } catch (e, stackTrace) {
+      _logger.error('Failed to get post detail',
+          error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
+      throw Exception('게시물 상세 조회 중 오류가 발생했습니다: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getUserPostsFiltered({
+    required String authorId,
+    String? petId,
+    String? beforeCreatedAt,
+    int limit = 30,
+  }) async {
+    var query = supabaseClient
+        .from('posts')
+        .select('id, image_url, image_urls, caption, post_type, created_at, pet_id')
+        .eq('author_id', authorId)
+        .isFilter('deleted_at', null);
+    if (petId != null) query = query.eq('pet_id', petId);
+    if (beforeCreatedAt != null) {
+      query = query.lt('created_at', beforeCreatedAt);
+    }
+    final rows = await query
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
+  @override
+  Future<Set<String>> getEarnedBadgeIds(String userId) async {
+    final res = await supabaseClient
+        .from('user_badges')
+        .select('badge_id')
+        .eq('user_id', userId);
+    return Set<String>.from(
+        (res as List).map((r) => r['badge_id'] as String));
+  }
+
+  @override
+  Future<void> checkAndAwardBadges(String userId) async {
+    final existing = await supabaseClient
+        .from('user_badges')
+        .select('badge_id')
+        .eq('user_id', userId);
+    final earnedIds =
+        Set<String>.from((existing as List).map((r) => r['badge_id'] as String));
+    final toAward = <String>[];
+
+    if (!earnedIds.contains('first_analysis')) {
+      // BUG 수정: 기존 코드는 존재하지 않는 'emotion_analyses' 참조 — 실제 테이블은 'emotion_history'
+      final analyses = await supabaseClient
+          .from('emotion_history')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1);
+      if ((analyses as List).isNotEmpty) toAward.add('first_analysis');
+    }
+
+    if (!earnedIds.contains('streak_7')) {
+      final pets = await supabaseClient
+          .from('pets')
+          .select('id')
+          .eq('user_id', userId)
+          .limit(1);
+      if ((pets as List).isNotEmpty) toAward.add('streak_7');
+    }
+
+    if (toAward.isNotEmpty) {
+      await supabaseClient.from('user_badges').insert(
+            toAward
+                .map((id) => {
+                      'user_id': userId,
+                      'badge_id': id,
+                      'earned_at': DateTime.now().toIso8601String(),
+                    })
+                .toList(),
+          );
+    }
+  }
+
+  @override
+  Future<int> getUserPoints(String userId) async {
+    final res = await supabaseClient
+        .from('user_points')
+        .select('balance')
+        .eq('user_id', userId)
+        .maybeSingle();
+    return (res?['balance'] as int?) ?? 0;
+  }
+
+  @override
+  Future<bool> hasQuestActivityToday({
+    required String userId,
+    required String questType,
+  }) async {
+    final todayStart = DateTime.now().copyWith(
+        hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
+    final iso = todayStart.toIso8601String();
+    switch (questType) {
+      case 'analyze':
+        final rows = await supabaseClient
+            .from('emotion_history')
+            .select('id')
+            .eq('user_id', userId)
+            .gte('created_at', iso)
+            .limit(1);
+        return (rows as List).isNotEmpty;
+      case 'post':
+        final rows = await supabaseClient
+            .from('posts')
+            .select('id')
+            .eq('author_id', userId)
+            .isFilter('deleted_at', null)
+            .gte('created_at', iso)
+            .limit(1);
+        return (rows as List).isNotEmpty;
+      case 'like':
+        // BUG 수정: 기존 코드는 존재하지 않는 'post_likes' 참조 — 실제 테이블은 'likes'
+        final rows = await supabaseClient
+            .from('likes')
+            .select('id')
+            .eq('user_id', userId)
+            .gte('created_at', iso)
+            .limit(1);
+        return (rows as List).isNotEmpty;
+      default:
+        return false;
+    }
+  }
+
+  @override
+  Future<void> incrementUserPoints({
+    required String userId,
+    required int points,
+  }) async {
+    await supabaseClient.rpc('increment_user_points', params: {
+      'p_user_id': userId,
+      'p_points': points,
+    });
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getBlockedUsersDetailed(
+      String blockerId) async {
+    // BUG 수정: users.avatar_url 컬럼 없음 — 실제 컬럼은 photo_url
+    final response = await supabaseClient
+        .from('user_blocks')
+        .select(
+            'blocked_id, users!user_blocks_blocked_id_fkey(display_name, photo_url)')
+        .eq('blocker_id', blockerId)
+        .limit(100);
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getPointTransactions(String userId) async {
+    final response = await supabaseClient
+        .from('point_transactions')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getSavedPostsRaw(String userId) async {
+    final response = await supabaseClient
+        .from('saved_posts')
+        .select('post_id, posts(id, image_url, caption, author_id)')
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+    return (response as List)
+        .map((e) => e['posts'] as Map<String, dynamic>?)
+        .whereType<Map<String, dynamic>>()
+        .toList();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getCommunityPosts({
+    String? category,
+    int limit = 30,
+  }) async {
+    var query = supabaseClient
+        .from('posts')
+        .select(
+            'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
+        .isFilter('deleted_at', null)
+        .not('hashtags', 'cs', '{"magazine"}');
+    if (category != null) query = query.contains('hashtags', [category]);
+    final response =
+        await query.order('created_at', ascending: false).limit(limit);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  @override
+  Future<int> getUserStreak(String userId) async {
+    // RPC get_user_streak 는 아직 스키마에 없음 (퀘스트 시스템 연동 후 추가 예정).
+    // 호출은 유지하되 실패 시 0 반환.
+    try {
+      final res = await supabaseClient
+          .rpc('get_user_streak', params: {'p_user_id': userId});
+      return (res as int?) ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getNotificationPreferences(
+      String userId) async {
+    return await supabaseClient
+        .from('notification_preferences')
+        .select()
+        .eq('user_id', userId)
+        .maybeSingle();
+  }
+
+  @override
+  Future<void> upsertNotificationPreference({
+    required String userId,
+    required String column,
+    required bool value,
+  }) async {
+    await supabaseClient.from('notification_preferences').upsert({
+      'user_id': userId,
+      column: value,
+    });
   }
 
   @override

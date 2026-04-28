@@ -1,9 +1,10 @@
 import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 
 class BadgeDefinition {
   final String id;
@@ -85,23 +86,19 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
   }
 
   Future<void> _loadBadges() async {
-    try {
-      final res = await Supabase.instance.client
-          .from('user_badges')
-          .select('badge_id')
-          .eq('user_id', widget.userId);
-      if (mounted) {
-        setState(() {
-          _earnedIds = Set<String>.from(
-            (res as List).map((r) => r['badge_id'] as String),
-          );
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      dev.log('뱃지 로드 실패: $e', name: 'UserBadges');
-      if (mounted) setState(() => _loading = false);
-    }
+    final result =
+        await sl<SocialRepository>().getEarnedBadgeIds(widget.userId);
+    if (!mounted) return;
+    result.fold(
+      (failure) {
+        dev.log('뱃지 로드 실패: ${failure.message}', name: 'UserBadges');
+        setState(() => _loading = false);
+      },
+      (ids) => setState(() {
+        _earnedIds = ids;
+        _loading = false;
+      }),
+    );
   }
 
   @override
@@ -231,48 +228,11 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
 /// 뱃지 획득 처리 유틸리티
 class BadgeAwarder {
   static Future<void> checkAndAward(String userId) async {
-    final client = Supabase.instance.client;
-    try {
-      final existing = await client
-          .from('user_badges')
-          .select('badge_id')
-          .eq('user_id', userId);
-      final earnedIds = Set<String>.from(
-          (existing as List).map((r) => r['badge_id'] as String));
-
-      final toAward = <String>[];
-
-      if (!earnedIds.contains('first_analysis')) {
-        final analyses = await client
-            .from('emotion_analyses')
-            .select('id')
-            .eq('user_id', userId)
-            .limit(1);
-        if ((analyses as List).isNotEmpty) toAward.add('first_analysis');
-      }
-
-      if (!earnedIds.contains('streak_7')) {
-        final pets = await client
-            .from('pets')
-            .select('id')
-            .eq('user_id', userId)
-            .limit(1);
-        if ((pets as List).isNotEmpty) toAward.add('streak_7');
-      }
-
-      if (toAward.isNotEmpty) {
-        await client.from('user_badges').insert(
-          toAward
-              .map((id) => {
-                    'user_id': userId,
-                    'badge_id': id,
-                    'earned_at': DateTime.now().toIso8601String(),
-                  })
-              .toList(),
-        );
-      }
-    } catch (e) {
-      dev.log('뱃지 체크 실패: $e', name: 'BadgeAwarder');
-    }
+    final result = await sl<SocialRepository>().checkAndAwardBadges(userId);
+    result.fold(
+      (failure) => dev.log('뱃지 체크 실패: ${failure.message}',
+          name: 'BadgeAwarder'),
+      (_) {},
+    );
   }
 }

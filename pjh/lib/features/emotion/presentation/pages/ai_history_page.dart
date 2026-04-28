@@ -4,7 +4,6 @@ import '../../../../config/injection_container.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../pets/domain/entities/pet.dart';
@@ -13,6 +12,7 @@ import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../data/models/health_analysis_model.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../../domain/entities/health_analysis.dart';
+import '../../domain/repositories/emotion_repository.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/pet_inline_dropdown.dart';
 import 'emotion_result_page.dart';
@@ -123,41 +123,41 @@ class _AiHistoryPageState extends State<AiHistoryPage>
 
   Future<void> _loadDashboard() async {
     setState(() => _dashboardLoading = true);
-    try {
-      final auth = context.read<AuthBloc>().state;
-      if (auth is! AuthAuthenticated) return;
-
-      // TODO(arch): Supabase 직접 호출 → EmotionRepository.getLatestHealthByArea()로 이전 필요 (Clean Architecture 위반)
-      final result = await Supabase.instance.client.rpc(
-        'get_latest_health_by_area',
-        params: {
-          'p_user_id': auth.user.uid,
-          'p_pet_id': _showUnregistered ? null : _selectedPet?.id,
-        },
-      );
-
-      final rows = (result as List).cast<Map<String, dynamic>>();
-      final statuses = HealthArea.values.map((area) {
-        final found = rows
-            .where((r) => r['area'] == area.displayName)
-            .firstOrNull;
-        return _AreaStatus(
-          area: area,
-          score: found?['overall_score'] as int?,
-          status: found?['status'] as String?,
-          riskAlert: found?['risk_alert'] as bool?,
-          date: found != null
-              ? DateTime.parse(found['created_at'] as String)
-              : null,
-        );
-      }).toList();
-
-      if (mounted) setState(() => _areaStatuses = statuses);
-    } catch (e) {
-      log('Dashboard load error: $e', name: 'AiHistory');
-    } finally {
+    final auth = context.read<AuthBloc>().state;
+    if (auth is! AuthAuthenticated) {
       if (mounted) setState(() => _dashboardLoading = false);
+      return;
     }
+    final result = await sl<EmotionRepository>().getLatestHealthByArea(
+      userId: auth.user.uid,
+      petId: _showUnregistered ? null : _selectedPet?.id,
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) {
+        log('Dashboard load error: ${failure.message}', name: 'AiHistory');
+        setState(() => _dashboardLoading = false);
+      },
+      (rows) {
+        final statuses = HealthArea.values.map((area) {
+          final found =
+              rows.where((r) => r['area'] == area.displayName).firstOrNull;
+          return _AreaStatus(
+            area: area,
+            score: found?['overall_score'] as int?,
+            status: found?['status'] as String?,
+            riskAlert: found?['risk_alert'] as bool?,
+            date: found != null
+                ? DateTime.parse(found['created_at'] as String)
+                : null,
+          );
+        }).toList();
+        setState(() {
+          _areaStatuses = statuses;
+          _dashboardLoading = false;
+        });
+      },
+    );
   }
 
   Future<void> _loadHealthHistory() async {
@@ -166,13 +166,9 @@ class _AiHistoryPageState extends State<AiHistoryPage>
       final auth = context.read<AuthBloc>().state;
       if (auth is! AuthAuthenticated) return;
 
-      final result = await Supabase.instance.client
-          .from('health_history')
-          .select()
-          .eq('user_id', auth.user.uid)
-          .order('created_at', ascending: false);
-
-      final rows = (result as List).cast<Map<String, dynamic>>();
+      final result =
+          await sl<EmotionRepository>().getHealthHistory(auth.user.uid);
+      final rows = result.fold((_) => <Map<String, dynamic>>[], (r) => r);
       final models = rows.map(HealthAnalysisModel.fromSupabaseRow).toList();
       if (mounted) setState(() => _healthHistory = models);
     } catch (e) {

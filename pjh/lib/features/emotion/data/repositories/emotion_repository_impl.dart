@@ -570,4 +570,161 @@ class EmotionRepositoryImpl implements EmotionRepository {
         return null;
     }
   }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getLatestHealthByArea({
+    required String userId,
+    String? petId,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요'));
+      }
+      final result = await supabaseClient.rpc(
+        'get_latest_health_by_area',
+        params: {'p_user_id': userId, 'p_pet_id': petId},
+      );
+      return Right((result as List).cast<Map<String, dynamic>>());
+    } catch (e) {
+      return Left(ServerFailure(message: '건강 현황 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getHealthHistory(
+      String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요'));
+      }
+      final result = await supabaseClient
+          .from('health_history')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+      return Right((result as List).cast<Map<String, dynamic>>());
+    } catch (e) {
+      return Left(ServerFailure(message: '건강 이력 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getEmotionTimeline({
+    required String petId,
+    int days = 30,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요'));
+      }
+      final response = await supabaseClient.rpc(
+        'get_emotion_timeline',
+        params: {'p_pet_id': petId, 'p_days': days},
+      );
+      return Right((response as List).cast<Map<String, dynamic>>());
+    } catch (e) {
+      return Left(ServerFailure(message: '감정 타임라인 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> saveHealthAnalysis({
+    required String userId,
+    required List<String> imagePathsOrUrls,
+    required Map<String, dynamic> resultJson,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요'));
+      }
+      // 로컬 경로 → Storage 업로드, URL 이면 그대로
+      final uploadedUrls = <String>[];
+      for (int i = 0; i < imagePathsOrUrls.length; i++) {
+        final p = imagePathsOrUrls[i];
+        if (p.startsWith('http')) {
+          uploadedUrls.add(p);
+          continue;
+        }
+        final file = File(p);
+        if (!await file.exists()) continue;
+        final storagePath =
+            'health/$userId/${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+        await supabaseClient.storage.from('images').uploadBinary(
+              storagePath,
+              await file.readAsBytes(),
+              fileOptions: const FileOptions(contentType: 'image/jpeg'),
+            );
+        final url =
+            supabaseClient.storage.from('images').getPublicUrl(storagePath);
+        uploadedUrls.add(url);
+      }
+
+      final payload = Map<String, dynamic>.from(resultJson);
+      payload['image_urls'] = uploadedUrls;
+      await supabaseClient.from('health_history').insert(payload);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '건강 분석 저장 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<EmotionAnalysis>>> getAnalysesByPet({
+    required String petId,
+    int limit = 20,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+      }
+      final response = await supabaseClient
+          .from('emotion_history')
+          .select()
+          .eq('pet_id', petId)
+          .order('created_at', ascending: false)
+          .limit(limit);
+      final analyses = (response as List)
+          .map((data) => EmotionAnalysisModel.fromJson(data) as EmotionAnalysis)
+          .toList();
+      return Right(analyses);
+    } catch (e) {
+      return Left(ServerFailure(message: '감정 기록 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String?>> getEmotionComparisonInsight({
+    required String petId,
+    required String emotion,
+    required num value,
+    int days = 7,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요'));
+      }
+      final response = await supabaseClient.rpc(
+        'get_emotion_timeline',
+        params: {'p_pet_id': petId, 'p_days': days},
+      );
+      final entries = response as List;
+      if (entries.isEmpty) return const Right(null);
+
+      final avgKey = '${emotion}_avg';
+      final avgs = entries
+          .map((e) => (e[avgKey] as num?)?.toDouble() ?? 0.0)
+          .where((v) => v > 0)
+          .toList();
+      if (avgs.isEmpty) return const Right(null);
+
+      final avg = avgs.reduce((a, b) => a + b) / avgs.length;
+      final diff = ((value.toDouble() - avg) * 100).round();
+      if (diff.abs() < 5) return const Right('지난 7일 평균과 비슷해요');
+      if (diff > 0) return Right('지난 7일 평균보다 $diff% 높아요');
+      return Right('지난 7일 평균보다 ${diff.abs()}% 낮아요');
+    } catch (e) {
+      return Left(
+          ServerFailure(message: '감정 비교 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
 }

@@ -56,6 +56,26 @@ class PetRepositoryImpl implements PetRepository {
   }
 
   @override
+  Future<Either<Failure, Map<String, dynamic>?>> getPetDetail(
+      String petId) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+    }
+    try {
+      final response = await supabaseClient
+          .from(_tableName)
+          .select('*, users!pets_user_id_fkey(id, display_name, photo_url)')
+          .eq('id', petId)
+          .maybeSingle();
+      return Right(response);
+    } on PostgrestException catch (e) {
+      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
+    } catch (e) {
+      return Left(GeneralFailure(message: '반려동물 상세 조회 중 오류 발생: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, Pet>> getPetById(String petId) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));

@@ -11,10 +11,23 @@
       "Bash(git commit -m ':*)",
       "Bash(git push:*)",
       "Bash(git remote:*)",
-      "Bash(ssh-keyscan github.com)"
+      "Bash(ssh-keyscan github.com)",
+      "Bash(awk '{print \"App PID:\", $2, \"\\(Runner.app 실행 중\\)\"}')",
+      "Bash(tee /tmp/iphone_build.log)",
+      "Bash(kill 2450)",
+      "Bash(pkill -f \"flutter run\")",
+      "Bash(kill 2452)",
+      "Bash(flutter config *)",
+      "Bash(tee /tmp/iphone_build_final.log)",
+      "Read(//private/tmp/**)",
+      "Bash(kill 21563)",
+      "Bash(pkill -f \"flutter.*run.*00008140\")",
+      "Bash(xcrun devicectl *)"
     ],
     "additionalDirectories": [
-      "/Users/jena/.ssh"
+      "/Users/jena/.ssh",
+      "/Users/jena/Desktop/PetSpace/pjh/ios/Runner.xcodeproj",
+      "/Users/jena/Desktop/PetSpace/pjh/.dart_tool"
     ]
   }
 }

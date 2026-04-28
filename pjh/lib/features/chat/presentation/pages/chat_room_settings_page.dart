@@ -11,6 +11,7 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
 import '../../domain/entities/chat_participant.dart';
 import '../../../../config/injection_container.dart';
+import '../../domain/repositories/chat_repository.dart';
 import '../../domain/usecases/search_users_for_chat.dart';
 import '../../../../core/usecases/usecase.dart';
 
@@ -74,56 +75,32 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Future<void> _loadRoomInfo() async {
-    try {
-      final response = await _supabase
-          .from('chat_rooms')
-          .select('name, avatar_url')
-          .eq('id', widget.roomId)
-          .single();
-      if (mounted) {
+    final result = await sl<ChatRepository>().getChatRoomInfo(widget.roomId);
+    result.fold(
+      (failure) => log('[ChatRoomSettings] 채팅방 정보 로드 실패: ${failure.message}',
+          name: 'ChatRoomSettings'),
+      (info) {
+        if (info == null || !mounted) return;
         setState(() {
-          _currentPhotoUrl = response['avatar_url'] as String?;
-          if (_nameController.text.isEmpty && response['name'] != null) {
-            _nameController.text = response['name'] as String;
+          _currentPhotoUrl = info['avatar_url'] as String?;
+          if (_nameController.text.isEmpty && info['name'] != null) {
+            _nameController.text = info['name'] as String;
           }
         });
-      }
-    } catch (e) {
-      log('[ChatRoomSettings] 채팅방 정보 로드 실패: $e', name: 'ChatRoomSettings');
-    }
+      },
+    );
   }
 
   Future<void> _loadParticipants() async {
-    try {
-      final response = await _supabase.from('chat_participants').select('''
-            *,
-            users(id, display_name, photo_url)
-          ''').eq('room_id', widget.roomId).eq('is_active', true);
-
-      if (mounted) {
-        setState(() {
-          _participants = (response as List).map((json) {
-            final map = json as Map<String, dynamic>;
-            final userData = map['users'] as Map<String, dynamic>?;
-            return ChatParticipant(
-              id: map['id'] as String,
-              roomId: map['room_id'] as String,
-              userId: map['user_id'] as String,
-              displayName: userData?['display_name'] as String?,
-              photoUrl: userData?['photo_url'] as String?,
-              role: (map['role'] as String?) == 'admin'
-                  ? ChatRole.admin
-                  : ChatRole.member,
-              joinedAt: DateTime.parse(map['joined_at'] as String),
-              lastReadAt: DateTime.parse(map['last_read_at'] as String),
-              isActive: map['is_active'] as bool? ?? true,
-            );
-          }).toList();
-        });
-      }
-    } catch (e) {
-      log('[ChatRoomSettings] 참여자 로드 실패: $e', name: 'ChatRoomSettings');
-    }
+    final result = await sl<ChatRepository>().getRoomParticipants(widget.roomId);
+    result.fold(
+      (failure) => log('[ChatRoomSettings] 참여자 로드 실패: ${failure.message}',
+          name: 'ChatRoomSettings'),
+      (participants) {
+        if (!mounted) return;
+        setState(() => _participants = participants);
+      },
+    );
   }
 
   Future<void> _loadNotificationSetting() async {
@@ -169,53 +146,55 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
 
   Future<void> _saveChanges() async {
     setState(() => _isSaving = true);
-    try {
-      // 이름 저장
-      final newName = _nameController.text.trim();
-      if (newName.isNotEmpty) {
-        await _supabase
-            .from('chat_rooms')
-            .update({'name': newName}).eq('id', widget.roomId);
+    final repo = sl<ChatRepository>();
+
+    // 이름 저장
+    final newName = _nameController.text.trim();
+    if (newName.isNotEmpty) {
+      final nameResult = await repo.updateChatRoomName(
+          roomId: widget.roomId, name: newName);
+      final nameError = nameResult.fold((f) => f.message, (_) => null);
+      if (nameError != null) {
+        if (mounted) {
+          setState(() => _isSaving = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('저장에 실패했습니다: $nameError'),
+                backgroundColor: Colors.red),
+          );
+        }
+        return;
       }
+    }
 
-      // 사진 업로드 (대기 중인 파일이 있으면)
-      if (_pendingPhotoFile != null) {
-        final userId = _currentUserId;
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final filePath = 'chat/$userId/room_${widget.roomId}_$timestamp.jpg';
-
-        await _supabase.storage
-            .from('images')
-            .upload(filePath, _pendingPhotoFile!);
-        final publicUrl =
-            _supabase.storage.from('images').getPublicUrl(filePath);
-
-        await _supabase
-            .from('chat_rooms')
-            .update({'avatar_url': publicUrl}).eq('id', widget.roomId);
-
-        _pendingPhotoFile = null;
+    // 사진 업로드 (대기 중인 파일이 있으면)
+    if (_pendingPhotoFile != null) {
+      final photoResult = await repo.uploadChatRoomPhoto(
+        roomId: widget.roomId,
+        userId: _currentUserId,
+        file: _pendingPhotoFile!,
+      );
+      final photoError = photoResult.fold((f) => f.message, (_) => null);
+      if (photoError != null) {
+        if (mounted) {
+          setState(() => _isSaving = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('저장에 실패했습니다: $photoError'),
+                backgroundColor: Colors.red),
+          );
+        }
+        return;
       }
+      _pendingPhotoFile = null;
+    }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('설정이 저장되었습니다.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _goBack(saved: true);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('저장에 실패했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('설정이 저장되었습니다.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _goBack(saved: true);
     }
   }
 
@@ -241,43 +220,42 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
 
     if (confirmed != true) return;
 
-    try {
-      // 내 이름 가져오기
-      final myProfile = await _supabase
-          .from('users')
-          .select('display_name')
-          .eq('id', _currentUserId)
-          .maybeSingle();
-      final myName = myProfile?['display_name'] ?? '사용자';
+    // 내 이름: 참여자 목록에서 찾기 (이미 로드됨)
+    final me = _participants.firstWhere(
+      (p) => p.userId == _currentUserId,
+      orElse: () => ChatParticipant(
+        id: '',
+        roomId: widget.roomId,
+        userId: _currentUserId,
+        displayName: '사용자',
+        photoUrl: null,
+        role: ChatRole.member,
+        joinedAt: DateTime.now(),
+        lastReadAt: DateTime.now(),
+        isActive: true,
+      ),
+    );
 
-      // 시스템 메시지 먼저 (나가기 전에 보내야 RLS 통과)
-      await _supabase.from('chat_messages').insert({
-        'room_id': widget.roomId,
-        'sender_id': _currentUserId,
-        'content': '$myName님이 채팅방을 나갔습니다.',
-        'type': 'system',
-      });
-
-      // 참여자 비활성화
-      await _supabase
-          .from('chat_participants')
-          .update({'is_active': false})
-          .eq('room_id', widget.roomId)
-          .eq('user_id', _currentUserId);
-
-      if (mounted) {
-        context.go('/chat');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('채팅방 나가기에 실패했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    final result = await sl<ChatRepository>().leaveChatRoom(
+      roomId: widget.roomId,
+      userId: _currentUserId,
+      leaverName: me.displayName ?? '사용자',
+    );
+    result.fold(
+      (failure) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('채팅방 나가기에 실패했습니다: ${failure.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      (_) {
+        if (mounted) context.go('/chat');
+      },
+    );
   }
 
   Future<void> _showAddMembersSheet() async {
@@ -628,7 +606,6 @@ class _AddMembersSheet extends StatefulWidget {
 class _AddMembersSheetState extends State<_AddMembersSheet> {
   final _searchController = TextEditingController();
   final SearchUsersForChat _searchUsersForChat = sl<SearchUsersForChat>();
-  final _supabase = Supabase.instance.client;
 
   List<ChatParticipant> _searchResults = [];
   final List<ChatParticipant> _selectedUsers = [];
@@ -686,38 +663,35 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
 
     setState(() => _isAdding = true);
 
-    try {
-      final participants = _selectedUsers
-          .map((u) => {
-                'room_id': widget.roomId,
-                'user_id': u.userId,
-                'role': 'member',
-              })
-          .toList();
+    final result = await sl<ChatRepository>().addChatMembers(
+      roomId: widget.roomId,
+      memberIds: _selectedUsers.map((u) => u.userId).toList(),
+    );
 
-      await _supabase.from('chat_participants').upsert(participants);
-
-      widget.onMembersAdded();
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${_selectedUsers.length}명이 추가되었습니다.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isAdding = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('멤버 추가에 실패했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    result.fold(
+      (failure) {
+        if (mounted) {
+          setState(() => _isAdding = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('멤버 추가에 실패했습니다: ${failure.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      (_) {
+        widget.onMembersAdded();
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${_selectedUsers.length}명이 추가되었습니다.'),
+            ),
+          );
+        }
+      },
+    );
   }
 
   @override

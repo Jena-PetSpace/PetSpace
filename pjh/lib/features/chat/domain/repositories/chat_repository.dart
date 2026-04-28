@@ -55,10 +55,12 @@ abstract class ChatRepository {
   /// 채팅용 유저 검색
   Future<Either<Failure, List<ChatParticipant>>> searchUsers(String query);
 
-  /// 그룹 채팅방 나가기
+  /// 그룹 채팅방 나가기.
+  /// leaverName 을 전달하면 "xxx님이 채팅방을 나갔습니다" 시스템 메시지를 먼저 전송.
   Future<Either<Failure, void>> leaveChatRoom({
     required String roomId,
     required String userId,
+    String? leaverName,
   });
 
   /// 그룹 채팅방 멤버 추가
@@ -73,13 +75,34 @@ abstract class ChatRepository {
     required String name,
   });
 
-  /// 채팅방 사진 변경
+  /// 채팅방 사진 변경 (URL 만 업데이트)
   Future<Either<Failure, void>> updateChatRoomPhoto({
     required String roomId,
     required String photoUrl,
   });
 
+  /// 채팅방 사진 업로드 + URL 갱신 (Storage + DB 원자 수행)
+  Future<Either<Failure, String>> uploadChatRoomPhoto({
+    required String roomId,
+    required String userId,
+    required File file,
+  });
+
+  /// 채팅방 기본 정보 (name, avatar_url)
+  Future<Either<Failure, Map<String, dynamic>?>> getChatRoomInfo(String roomId);
+
   /// 채팅방 참여자 목록 조회
   Future<Either<Failure, List<ChatParticipant>>> getRoomParticipants(
       String roomId);
+
+  /// 여러 이미지를 한 메시지로 전송 (첫 URL은 image_url, 전체는 image_urls)
+  Future<Either<Failure, ChatMessage>> sendMultiImageMessage({
+    required String roomId,
+    required String senderId,
+    required List<File> images,
+  });
+
+  /// 채팅방 새 메시지 실시간 Stream (Supabase Realtime INSERT).
+  /// 구독 취소(.cancel) 시 채널 자동 정리.
+  Stream<ChatMessage> subscribeToRoomMessages(String roomId);
 }

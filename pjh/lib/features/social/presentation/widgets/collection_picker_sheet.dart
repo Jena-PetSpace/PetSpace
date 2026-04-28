@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/bookmark_collection.dart';
+import '../../domain/repositories/social_repository.dart';
 
 class CollectionPickerSheet extends StatefulWidget {
   final String postId;
@@ -40,7 +41,6 @@ class CollectionPickerSheet extends StatefulWidget {
 }
 
 class _CollectionPickerSheetState extends State<CollectionPickerSheet> {
-  final _supabase = Supabase.instance.client;
   List<BookmarkCollection> _collections = [];
   bool _loading = true;
   String? _selectedId;
@@ -54,54 +54,30 @@ class _CollectionPickerSheetState extends State<CollectionPickerSheet> {
   }
 
   Future<void> _loadCollections() async {
-    try {
-      final response = await _supabase
-          .from('bookmark_collections')
-          .select('id, user_id, name, emoji, created_at, updated_at, post_count')
-          .eq('user_id', widget.userId)
-          .order('created_at', ascending: false);
-
-      setState(() {
-        _collections = (response as List).map((e) {
-          final m = e as Map<String, dynamic>;
-          return BookmarkCollection(
-            id: m['id'] as String,
-            userId: m['user_id'] as String,
-            name: m['name'] as String,
-            emoji: m['emoji'] as String? ?? '📁',
-            createdAt: DateTime.parse(m['created_at'] as String),
-            updatedAt: DateTime.parse(m['updated_at'] as String),
-            postCount: m['post_count'] as int? ?? 0,
-          );
-        }).toList();
+    final result =
+        await sl<SocialRepository>().getBookmarkCollections(widget.userId);
+    if (!mounted) return;
+    result.fold(
+      (_) => setState(() => _loading = false),
+      (list) => setState(() {
+        _collections = list;
         _loading = false;
-      });
-    } catch (_) {
-      setState(() => _loading = false);
-    }
+      }),
+    );
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    try {
-      if (_selectedId == null) {
-        // 기본 저장소 (collection_id = null)
-        await _supabase
-            .from('saved_posts')
-            .update({'collection_id': null})
-            .eq('post_id', widget.postId)
-            .eq('user_id', widget.userId);
-      } else {
-        await _supabase
-            .from('saved_posts')
-            .update({'collection_id': _selectedId})
-            .eq('post_id', widget.postId)
-            .eq('user_id', widget.userId);
-      }
-      if (mounted) Navigator.pop(context, _selectedId);
-    } catch (_) {
-      setState(() => _saving = false);
-    }
+    final result = await sl<SocialRepository>().updateSavedPostCollection(
+      postId: widget.postId,
+      userId: widget.userId,
+      collectionId: _selectedId,
+    );
+    if (!mounted) return;
+    result.fold(
+      (_) => setState(() => _saving = false),
+      (_) => Navigator.pop(context, _selectedId),
+    );
   }
 
   Future<void> _createCollection() async {
@@ -161,32 +137,19 @@ class _CollectionPickerSheetState extends State<CollectionPickerSheet> {
 
     if (name == null || name.isEmpty) return;
 
-    try {
-      final response = await _supabase
-          .from('bookmark_collections')
-          .insert({
-            'user_id': widget.userId,
-            'name': name,
-            'emoji': selectedEmoji,
-          })
-          .select()
-          .single();
-
-      final newCol = BookmarkCollection(
-        id: response['id'] as String,
-        userId: response['user_id'] as String,
-        name: response['name'] as String,
-        emoji: response['emoji'] as String? ?? '📁',
-        createdAt: DateTime.parse(response['created_at'] as String),
-        updatedAt: DateTime.parse(response['updated_at'] as String),
-        postCount: 0,
-      );
-
-      setState(() {
+    final result = await sl<SocialRepository>().createBookmarkCollection(
+      userId: widget.userId,
+      name: name,
+      emoji: selectedEmoji,
+    );
+    if (!mounted) return;
+    result.fold(
+      (_) {},
+      (newCol) => setState(() {
         _collections = [newCol, ..._collections];
         _selectedId = newCol.id;
-      });
-    } catch (_) {}
+      }),
+    );
   }
 
   @override

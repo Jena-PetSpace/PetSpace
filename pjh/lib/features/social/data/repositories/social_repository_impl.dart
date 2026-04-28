@@ -101,6 +101,239 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, Map<String, dynamic>?>> getPostDetail(
+      String postId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final detail = await remoteDataSource.getPostDetail(postId);
+      return Right(detail);
+    } catch (e) {
+      return Left(
+          ServerFailure(message: '게시물 상세 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getUserPostsFiltered({
+    required String authorId,
+    String? petId,
+    String? beforeCreatedAt,
+    int limit = 30,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final rows = await remoteDataSource.getUserPostsFiltered(
+        authorId: authorId,
+        petId: petId,
+        beforeCreatedAt: beforeCreatedAt,
+        limit: limit,
+      );
+      return Right(rows);
+    } catch (e) {
+      return Left(ServerFailure(message: '게시물 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Set<String>>> getEarnedBadgeIds(String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final ids = await remoteDataSource.getEarnedBadgeIds(userId);
+      return Right(ids);
+    } catch (e) {
+      return Left(ServerFailure(message: '뱃지 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> checkAndAwardBadges(String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.checkAndAwardBadges(userId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '뱃지 처리 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getPointTransactions(
+      String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final rows = await remoteDataSource.getPointTransactions(userId);
+      return Right(rows);
+    } catch (e) {
+      return Left(ServerFailure(message: '포인트 내역 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getBlockedUsersDetailed(
+      String blockerId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final rows = await remoteDataSource.getBlockedUsersDetailed(blockerId);
+      return Right(rows);
+    } catch (e) {
+      return Left(ServerFailure(message: '차단 목록 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, int>> getUserPoints(String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final points = await remoteDataSource.getUserPoints(userId);
+      return Right(points);
+    } catch (e) {
+      return Left(ServerFailure(message: '포인트 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> hasQuestActivityToday({
+    required String userId,
+    required String questType,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final achieved = await remoteDataSource.hasQuestActivityToday(
+          userId: userId, questType: questType);
+      return Right(achieved);
+    } catch (e) {
+      return Left(ServerFailure(message: '퀘스트 확인 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> incrementUserPoints({
+    required String userId,
+    required int points,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.incrementUserPoints(
+          userId: userId, points: points);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '포인트 지급 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getSavedPostsRaw(
+      String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final rows = await remoteDataSource.getSavedPostsRaw(userId);
+      return Right(rows);
+    } catch (e) {
+      return Left(ServerFailure(message: '저장 게시물 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Map<String, dynamic>>>> getCommunityPosts({
+    String? category,
+    int limit = 30,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final rows = await remoteDataSource.getCommunityPosts(
+          category: category, limit: limit);
+      return Right(rows);
+    } catch (e) {
+      return Left(ServerFailure(message: '커뮤니티 게시물 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, int>> getUserStreak(String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      // ignore: avoid_dynamic_calls
+      final streak = await remoteDataSource.getUserStreak(userId);
+      return Right(streak);
+    } catch (e) {
+      return const Right(0); // RPC 미구현 / 실패 시 0 fallback
+    }
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>?>> getNotificationPreferences(
+      String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final row = await remoteDataSource.getNotificationPreferences(userId);
+      return Right(row);
+    } catch (e) {
+      return Left(ServerFailure(
+          message: '알림 설정 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> upsertNotificationPreference({
+    required String userId,
+    required String column,
+    required bool value,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      await remoteDataSource.upsertNotificationPreference(
+          userId: userId, column: column, value: value);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(
+          message: '알림 설정 저장 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> isPostLiked(
+      String postId, String userId) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final liked = await remoteDataSource.isPostLiked(postId, userId);
+      return Right(liked);
+    } catch (e) {
+      return Left(
+          ServerFailure(message: '좋아요 상태 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Post>>> getFeedPosts({
     required String userId,
     int limit = 20,

@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../../../../config/injection_container.dart';
 import '../../../../core/utils/back_press_handler.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../social/domain/entities/post.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 
 class CreateCommunityPostPage extends StatefulWidget {
   const CreateCommunityPostPage({super.key});
@@ -56,23 +57,30 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
 
     setState(() => _isSubmitting = true);
 
-    try {
-      await Supabase.instance.client.from('posts').insert({
-        'author_id': authState.user.uid,
-        'caption': '$title\n\n$content',
-        'hashtags': ['community', _selectedCategory],
-        'likes_count': 0,
-        'comments_count': 0,
-      });
+    final post = Post(
+      id: '',
+      authorId: authState.user.uid,
+      authorName: authState.user.displayName,
+      type: PostType.text,
+      content: '$title\n\n$content',
+      tags: ['community', _selectedCategory],
+      createdAt: DateTime.now(),
+    );
 
-      if (!mounted) return;
-      Navigator.of(context).pop(true); // true = 새 글 작성됨
-    } catch (e) {
-      dev.log('커뮤니티 포스트 작성 실패: $e', name: 'CreateCommunityPostPage');
-      _showSnack('작성에 실패했습니다. 다시 시도해주세요.');
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
+    final result = await sl<SocialRepository>().createPost(post);
+    if (!mounted) return;
+    result.fold(
+      (failure) {
+        dev.log('커뮤니티 포스트 작성 실패: ${failure.message}',
+            name: 'CreateCommunityPostPage');
+        _showSnack('작성에 실패했습니다. 다시 시도해주세요.');
+        setState(() => _isSubmitting = false);
+      },
+      (_) {
+        setState(() => _isSubmitting = false);
+        Navigator.of(context).pop(true);
+      },
+    );
   }
 
   void _showSnack(String msg) {

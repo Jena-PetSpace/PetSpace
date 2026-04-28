@@ -28,6 +28,7 @@ import 'core/constants/app_constants.dart';
 import 'core/cache/cache_manager.dart';
 import 'core/services/realtime_service.dart';
 import 'core/services/fcm_service.dart';
+import 'core/services/local_notification_service.dart';
 import 'features/pets/presentation/bloc/pet_bloc.dart';
 import 'features/pets/presentation/bloc/pet_event.dart';
 import 'core/navigation/app_router.dart';
@@ -125,6 +126,14 @@ Future<void> _initBackground() async {
 
   // CacheManager
   await CacheManager().initialize();
+
+  // LocalNotificationService (플랫폼 무관하게 초기화 — 로컬 알림은 FCM 없어도 필요)
+  try {
+    await di.sl<LocalNotificationService>().initialize();
+    log('✅ LocalNotificationService 초기화 완료', name: 'main.localnotif');
+  } catch (e) {
+    log('⚠️ LocalNotificationService 초기화 실패: $e', name: 'main.localnotif');
+  }
 
   // RealtimeService
   if (SupabaseOptions.isConfigured) {
@@ -303,6 +312,27 @@ class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
                   themeMode: themeMode,
                   scrollBehavior: const _BouncingScrollBehavior(),
                   routerConfig: _router,
+                  // 모든 페이지의 iOS status bar 영역(시계/와이파이/배터리)을
+                  // 항상 흰색 배경 + 검은 아이콘으로 고정.
+                  // Stack overlay 로 구현 (AppBar 색상과 무관하게 동작).
+                  builder: (context, child) {
+                    if (child == null) return const SizedBox.shrink();
+                    final topInset = MediaQuery.of(context).padding.top;
+                    return Stack(
+                      children: [
+                        child,
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: topInset,
+                          child: const IgnorePointer(
+                            child: ColoredBox(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

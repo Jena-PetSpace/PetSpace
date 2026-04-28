@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 
 class PrivacySettingsPage extends StatefulWidget {
   const PrivacySettingsPage({super.key});
@@ -57,18 +59,15 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
         });
         return;
       }
-      final response = await Supabase.instance.client
-          .from('user_blocks')
-          .select('blocked_user_id, users!user_blocks_blocked_user_id_fkey(display_name, avatar_url)')
-          .eq('user_id', userId)
-          .limit(100);
-
-      final list = (response as List).map((row) {
+      final result =
+          await sl<SocialRepository>().getBlockedUsersDetailed(userId);
+      final rows = result.fold((_) => <Map<String, dynamic>>[], (r) => r);
+      final list = rows.map((row) {
         final userMap = row['users'] as Map<String, dynamic>?;
         return _BlockedUser(
-          id: row['blocked_user_id'] as String,
+          id: row['blocked_id'] as String,
           displayName: userMap?['display_name'] as String? ?? '사용자',
-          avatarUrl: userMap?['avatar_url'] as String?,
+          avatarUrl: userMap?['photo_url'] as String?,
         );
       }).toList();
 
@@ -93,11 +92,9 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
-      await Supabase.instance.client
-          .from('user_blocks')
-          .delete()
-          .eq('user_id', userId)
-          .eq('blocked_user_id', user.id);
+      final result =
+          await sl<SocialRepository>().unblockUser(userId, user.id);
+      result.fold((f) => throw Exception(f.message), (_) {});
       if (mounted) {
         setState(() => _blockedUsers.removeWhere((u) => u.id == user.id));
         ScaffoldMessenger.of(context).showSnackBar(

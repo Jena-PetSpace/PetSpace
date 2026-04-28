@@ -8,7 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../widgets/result/emotion_share_card.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
+
+import '../../../../config/injection_container.dart';
+import '../../domain/repositories/emotion_repository.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
@@ -262,48 +265,19 @@ class _HealthResultPageState extends State<HealthResultPage> {
   }
 
   Future<void> _saveResult() async {
-    try {
-      final client = Supabase.instance.client;
-      final userId = client.auth.currentUser?.id ?? '';
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    if (userId.isEmpty) return;
 
-      // 로컬 파일 경로를 Storage URL로 업로드
-      final uploadedUrls = <String>[];
-      for (final path in widget.result.imageUrls) {
-        if (path.startsWith('http')) {
-          uploadedUrls.add(path);
-          continue;
-        }
-        try {
-          final file = File(path);
-          if (!await file.exists()) continue;
-          final ext = path.contains('.') ? path.split('.').last.toLowerCase() : 'jpg';
-          final fileName = 'health_${DateTime.now().millisecondsSinceEpoch}_${uploadedUrls.length}.$ext';
-          final storagePath = 'health/$userId/$fileName';
-          await client.storage.from('images').uploadBinary(
-            storagePath,
-            await file.readAsBytes(),
-            fileOptions: FileOptions(
-              contentType: ext == 'png' ? 'image/png' : 'image/jpeg',
-              upsert: true,
-            ),
-          );
-          final url = client.storage.from('images').getPublicUrl(storagePath);
-          uploadedUrls.add(url);
-          log('건강분석 이미지 업로드 성공: $url', name: 'HealthResultPage');
-        } catch (e) {
-          log('건강분석 이미지 업로드 실패: $e', name: 'HealthResultPage');
-        }
-      }
-
-      // 업로드된 URL로 교체
-      final jsonData = widget.result.toSupabaseJson();
-      jsonData['image_urls'] = uploadedUrls;
-
-      await client.from('health_history').insert(jsonData);
-      log('건강분석 저장 완료 (이미지 ${uploadedUrls.length}장)', name: 'HealthResultPage');
-    } catch (e) {
-      log('건강분석 저장 실패: $e', name: 'HealthResultPage');
-    }
+    final result = await sl<EmotionRepository>().saveHealthAnalysis(
+      userId: userId,
+      imagePathsOrUrls: widget.result.imageUrls,
+      resultJson: widget.result.toSupabaseJson(),
+    );
+    result.fold(
+      (failure) =>
+          log('건강분석 저장 실패: ${failure.message}', name: 'HealthResultPage'),
+      (_) => log('건강분석 저장 완료', name: 'HealthResultPage'),
+    );
   }
 
   Color get _statusColor {

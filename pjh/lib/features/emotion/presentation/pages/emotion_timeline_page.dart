@@ -5,9 +5,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../domain/repositories/emotion_repository.dart';
 
 class EmotionTimelinePage extends StatefulWidget {
   final String petId;
@@ -39,29 +39,37 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
 
   Future<void> _load() async {
     setState(() { _loading = true; });
-    try {
-      final response = await Supabase.instance.client.rpc(
-        'get_emotion_timeline',
-        params: {'p_pet_id': widget.petId, 'p_days': _daysRange},
-      );
-      if (mounted) {
-        final list = (response as List).map((json) => _TimelineEntry(
-          date: DateTime.parse(json['date'] as String),
-          dominantEmotion: json['dominant_emotion'] as String? ?? 'happiness',
-          dominantValue: (json['dominant_value'] as num?)?.toDouble() ?? 0,
-          happiness: (json['happiness_avg'] as num?)?.toDouble() ?? 0,
-          sadness: (json['sadness_avg'] as num?)?.toDouble() ?? 0,
-          anger: (json['anger_avg'] as num?)?.toDouble() ?? 0,
-          fear: (json['fear_avg'] as num?)?.toDouble() ?? 0,
-          count: (json['analysis_count'] as num?)?.toInt() ?? 0,
-          imageUrl: json['first_image_url'] as String?,
-        )).toList();
-        setState(() { _entries = list; _loading = false; });
-      }
-    } catch (e) {
-      dev.log('EmotionTimeline load error: $e', name: 'EmotionTimeline');
-      if (mounted) setState(() => _loading = false);
-    }
+    final result = await sl<EmotionRepository>().getEmotionTimeline(
+      petId: widget.petId,
+      days: _daysRange,
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) {
+        dev.log('EmotionTimeline load error: ${failure.message}',
+            name: 'EmotionTimeline');
+        setState(() => _loading = false);
+      },
+      (rows) {
+        final list = rows.map((json) => _TimelineEntry(
+              date: DateTime.parse(json['date'] as String),
+              dominantEmotion:
+                  json['dominant_emotion'] as String? ?? 'happiness',
+              dominantValue:
+                  (json['dominant_value'] as num?)?.toDouble() ?? 0,
+              happiness: (json['happiness_avg'] as num?)?.toDouble() ?? 0,
+              sadness: (json['sadness_avg'] as num?)?.toDouble() ?? 0,
+              anger: (json['anger_avg'] as num?)?.toDouble() ?? 0,
+              fear: (json['fear_avg'] as num?)?.toDouble() ?? 0,
+              count: (json['analysis_count'] as num?)?.toInt() ?? 0,
+              imageUrl: json['first_image_url'] as String?,
+            )).toList();
+        setState(() {
+          _entries = list;
+          _loading = false;
+        });
+      },
+    );
   }
 
   @override

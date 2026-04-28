@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../social/presentation/pages/channel_subscription_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:go_router/go_router.dart';
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 import '../../../social/presentation/pages/feed_page.dart';
 import '../widgets/community_post_card.dart';
 import 'create_community_post_page.dart';
@@ -26,7 +27,6 @@ class _FeedHubPageState extends State<FeedHubPage>
     with TickerProviderStateMixin {
   late TabController _photoTabController;
   late TabController _qnaTabController;
-  final _supabase = Supabase.instance.client;
 
   _FeedMode _mode = _FeedMode.photo;
 
@@ -79,27 +79,23 @@ class _FeedHubPageState extends State<FeedHubPage>
 
   Future<void> _loadCommunityPosts({String? category}) async {
     setState(() => _communityLoading = true);
-    try {
-      var query = _supabase
-          .from('posts')
-          .select(
-              'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
-          .isFilter('deleted_at', null)
-          .not('hashtags', 'cs', '{"magazine"}');
-
-      if (category != null) {
-        query = query.contains('hashtags', [category]);
-      }
-
-      final response = await query.order('created_at', ascending: false).limit(30);
-      setState(() {
-        _communityPosts = List<Map<String, dynamic>>.from(response);
-        _communityLoading = false;
-      });
-    } catch (e) {
-      dev.log('커뮤니티 포스트 로드 실패: $e', name: 'FeedHubPage');
-      setState(() => _communityLoading = false);
-    }
+    final result = await sl<SocialRepository>().getCommunityPosts(
+      category: category,
+      limit: 30,
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) {
+        dev.log('커뮤니티 포스트 로드 실패: ${failure.message}', name: 'FeedHubPage');
+        setState(() => _communityLoading = false);
+      },
+      (posts) {
+        setState(() {
+          _communityPosts = posts;
+          _communityLoading = false;
+        });
+      },
+    );
   }
 
   void _switchMode(_FeedMode mode) {
@@ -189,26 +185,23 @@ class _FeedHubPageState extends State<FeedHubPage>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 세그먼트
+          // 상위 탭 (사진 / Q&A) — AI 분석 페이지와 동일한 pill-style 토글
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 9.h),
             child: Container(
-              height: 40.h,
               decoration: BoxDecoration(
-                color: AppTheme.subtleBackground,
-                borderRadius: BorderRadius.circular(20.r),
+                color: const Color(0xFFEEF0F4),
+                borderRadius: BorderRadius.circular(30.r),
               ),
               padding: EdgeInsets.all(3.w),
               child: Row(
                 children: [
-                  _segmentBtn(
-                    icon: Icons.photo_camera_rounded,
+                  _modeTab(
                     label: '사진',
                     active: _mode == _FeedMode.photo,
                     onTap: () => _switchMode(_FeedMode.photo),
                   ),
-                  _segmentBtn(
-                    icon: Icons.forum_rounded,
+                  _modeTab(
                     label: 'Q&A',
                     active: _mode == _FeedMode.qna,
                     onTap: () => _switchMode(_FeedMode.qna),
@@ -217,7 +210,7 @@ class _FeedHubPageState extends State<FeedHubPage>
               ),
             ),
           ),
-          // 탭바
+          // 하위 탭
           if (_mode == _FeedMode.photo)
             _buildPhotoTabBar()
           else
@@ -228,8 +221,7 @@ class _FeedHubPageState extends State<FeedHubPage>
     );
   }
 
-  Widget _segmentBtn({
-    required IconData icon,
+  Widget _modeTab({
     required String label,
     required bool active,
     required VoidCallback onTap,
@@ -239,37 +231,28 @@ class _FeedHubPageState extends State<FeedHubPage>
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
+          padding: EdgeInsets.symmetric(vertical: 11.h),
           decoration: BoxDecoration(
             color: active ? AppTheme.primaryColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(17.r),
+            borderRadius: BorderRadius.circular(26.r),
             boxShadow: active
                 ? [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.25),
-                      blurRadius: 6,
+                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      blurRadius: 8,
                       offset: const Offset(0, 2),
-                    )
+                    ),
                   ]
-                : null,
+                : [],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 15.w,
-                color: active ? Colors.white : AppTheme.secondaryTextColor,
-              ),
-              SizedBox(width: 5.w),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  color: active ? Colors.white : AppTheme.secondaryTextColor,
-                ),
-              ),
-            ],
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15.sp,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: active ? Colors.white : AppTheme.secondaryTextColor,
+            ),
           ),
         ),
       ),
