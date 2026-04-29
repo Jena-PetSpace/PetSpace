@@ -1739,6 +1739,19 @@ BEGIN
 END;
 $$;
 
+-- 2-파라미터 오버로드 (하위 호환)
+CREATE OR REPLACE FUNCTION increment_user_points(p_user_id UUID, p_points INT)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO point_transactions (user_id, amount, type, description)
+  VALUES (p_user_id, p_points, 'quest', '퀘스트 완료');
+END;
+$$;
+
 -- ================================================================
 -- 건강 분석 히스토리 (AI 건강분석 결과 저장)
 -- 추가: 2026-04-16
