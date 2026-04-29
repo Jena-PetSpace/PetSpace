@@ -1348,6 +1348,10 @@ ON CONFLICT (id) DO NOTHING;
 --      Edge Function 또는 cron job 구성을 권장.
 --
 
+-- 버킷 전체를 허용하는 광범위한 SELECT 정책 제거 (Security Advisor 경고 해소)
+-- 폴더별 세분화 정책(아래)으로 대체됨
+DROP POLICY IF EXISTS "Allow public reads from images" ON storage.objects;
+
 -- 프로필 이미지
 DROP POLICY IF EXISTS "Users can upload own profile images" ON storage.objects;
 CREATE POLICY "Users can upload own profile images" ON storage.objects
@@ -1792,6 +1796,7 @@ RETURNS TABLE (
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT DISTINCT ON (area)
     area,
@@ -1810,6 +1815,8 @@ AS $$
     )
   ORDER BY area, created_at DESC;
 $$;
+
+REVOKE EXECUTE ON FUNCTION get_latest_health_by_area(UUID, UUID) FROM anon;
 
 
 -- ================================================================
@@ -2080,10 +2087,9 @@ CREATE POLICY notifications_delete_own ON notifications
     FOR DELETE USING (user_id = auth.uid());
 
 DROP POLICY IF EXISTS notifications_insert_service ON notifications;
--- 트리거(notify_on_like/comment/follow, SECURITY DEFINER)에서 INSERT 가능하도록 허용.
--- 실제 INSERT 는 트리거와 Edge Function 에서만 발생.
-CREATE POLICY notifications_insert_service ON notifications
-    FOR INSERT WITH CHECK (true);
+-- notify_on_like/comment/follow 트리거는 SECURITY DEFINER 함수라 RLS를 우회하므로
+-- 이 정책은 authenticated 사용자의 직접 INSERT만 차단 목적으로 제거.
+-- anon/authenticated 의 직접 INSERT는 허용하지 않는다.
 
 -- ── 11.2 알림 자동 생성 트리거 (like / comment / follow) ──────────────────
 CREATE OR REPLACE FUNCTION notify_on_like()
@@ -2114,7 +2120,7 @@ BEGIN
     END;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS trigger_notify_on_like ON likes;
 CREATE TRIGGER trigger_notify_on_like
@@ -2159,7 +2165,7 @@ BEGIN
     END;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS trigger_notify_on_comment ON comments;
 CREATE TRIGGER trigger_notify_on_comment
@@ -2190,7 +2196,7 @@ BEGIN
     END;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS trigger_notify_on_follow ON follows;
 CREATE TRIGGER trigger_notify_on_follow
@@ -2222,7 +2228,9 @@ BEGIN
     FROM user_blocks ub
     WHERE ub.blocker_id = p_user_id;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
+
+REVOKE EXECUTE ON FUNCTION get_blocked_user_ids(UUID) FROM anon;
 
 CREATE OR REPLACE FUNCTION is_mutually_blocked(p_user_a UUID, p_user_b UUID)
 RETURNS BOOLEAN AS $$
@@ -2233,7 +2241,9 @@ BEGIN
            OR (blocker_id = p_user_b AND blocked_id = p_user_a)
     );
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
+
+REVOKE EXECUTE ON FUNCTION is_mutually_blocked(UUID, UUID) FROM anon;
 
 -- ── 11.4 notification_preferences (사용자별 알림 설정) ────────────────────
 CREATE TABLE IF NOT EXISTS notification_preferences (
@@ -2254,7 +2264,7 @@ BEGIN
     NEW.updated_at := NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 DROP TRIGGER IF EXISTS trigger_touch_notif_prefs ON notification_preferences;
 CREATE TRIGGER trigger_touch_notif_prefs
@@ -2284,7 +2294,9 @@ BEGIN
     ON CONFLICT (user_id) DO NOTHING;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE EXECUTE ON FUNCTION create_default_notification_preferences() FROM anon, authenticated;
 
 DROP TRIGGER IF EXISTS trigger_create_notif_prefs ON users;
 CREATE TRIGGER trigger_create_notif_prefs
@@ -2295,3 +2307,51 @@ CREATE TRIGGER trigger_create_notif_prefs
 INSERT INTO notification_preferences (user_id)
 SELECT id FROM users
 ON CONFLICT (user_id) DO NOTHING;
+
+-- ============================================================================
+-- PART 12: 함수 권한 강화 (anon 역할 EXECUTE 차단)
+-- ============================================================================
+-- anon(비로그인) 사용자가 SECURITY DEFINER 함수를 직접 호출하지 못하도록 제한.
+-- 트리거 전용 함수, 인증 필요 쓰기 함수, 민감 조회 함수 포함.
+
+-- 쓰기 카운터 함수 (트리거 전용 또는 authenticated 전용)
+REVOKE EXECUTE ON FUNCTION increment_likes_count() FROM anon;
+REVOKE EXECUTE ON FUNCTION decrement_likes_count() FROM anon;
+REVOKE EXECUTE ON FUNCTION increment_comments_count() FROM anon;
+REVOKE EXECUTE ON FUNCTION decrement_comments_count() FROM anon;
+REVOKE EXECUTE ON FUNCTION increment_comment_likes_count() FROM anon;
+REVOKE EXECUTE ON FUNCTION decrement_comment_likes_count() FROM anon;
+REVOKE EXECUTE ON FUNCTION increment_post_likes(UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION decrement_post_likes(UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION increment_post_comments(UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION decrement_post_comments(UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION increment_comment_likes(UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION decrement_comment_likes(UUID) FROM anon;
+
+-- 포인트/퀘스트 함수 (authenticated 전용)
+REVOKE EXECUTE ON FUNCTION increment_user_points(UUID, INTEGER) FROM anon;
+REVOKE EXECUTE ON FUNCTION increment_user_points(UUID, INTEGER, TEXT, TEXT) FROM anon;
+
+-- 계정/게시물 삭제 함수 (authenticated 전용)
+REVOKE EXECUTE ON FUNCTION delete_user_account() FROM anon;
+REVOKE EXECUTE ON FUNCTION soft_delete_post(UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION soft_delete_comment(UUID) FROM anon;
+
+-- 채팅 함수 (authenticated 전용)
+REVOKE EXECUTE ON FUNCTION get_total_unread_count(UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION get_room_unread_count(UUID, UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION is_room_member(UUID, UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION find_direct_chat(UUID, UUID) FROM anon;
+
+-- 알림 트리거 함수 (직접 호출 불필요)
+REVOKE EXECUTE ON FUNCTION notify_on_like() FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION notify_on_comment() FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION notify_on_follow() FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION handle_new_user() FROM anon, authenticated;
+
+-- 개인 데이터 조회 함수 (authenticated 전용)
+REVOKE EXECUTE ON FUNCTION get_user_pets(UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION get_user_streak(UUID) FROM anon;
+REVOKE EXECUTE ON FUNCTION get_feed_posts(UUID, INTEGER, INTEGER) FROM anon;
+REVOKE EXECUTE ON FUNCTION get_emotion_statistics(UUID, UUID, INTEGER) FROM anon;
+REVOKE EXECUTE ON FUNCTION get_emotion_timeline(UUID, INTEGER) FROM anon;
