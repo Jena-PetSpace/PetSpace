@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
@@ -99,6 +100,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(AuthError(failure.message)),
       (user) {
         AnalyticsService.instance.logLogin(method: 'google');
+        NotificationService().registerToken(user.id);
         emit(AuthAuthenticated(user));
       },
     );
@@ -115,6 +117,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(AuthError(failure.message)),
       (user) {
         AnalyticsService.instance.logLogin(method: 'kakao');
+        NotificationService().registerToken(user.id);
         emit(AuthAuthenticated(user));
       },
     );
@@ -134,6 +137,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(AuthError(failure.message)),
       (user) {
         AnalyticsService.instance.logLogin(method: 'email');
+        NotificationService().registerToken(user.id);
         emit(AuthAuthenticated(user));
       },
     );
@@ -170,6 +174,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
+
+    // 로그아웃 전 토큰 비활성화 (실패해도 로그아웃 계속)
+    await NotificationService().deactivateToken();
 
     final result = await _signOut();
     result.fold(

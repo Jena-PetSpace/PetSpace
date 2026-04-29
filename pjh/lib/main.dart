@@ -28,6 +28,7 @@ import 'shared/themes/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/cache/cache_manager.dart';
 import 'core/services/analytics_service.dart';
+import 'core/services/notification_service.dart';
 import 'core/services/realtime_service.dart';
 import 'core/services/fcm_service.dart';
 import 'core/services/local_notification_service.dart';
@@ -144,6 +145,14 @@ Future<void> _initBackground() async {
   // RealtimeService
   if (SupabaseOptions.isConfigured) {
     await RealtimeService().initialize();
+  }
+
+  // NotificationService 초기화
+  try {
+    await NotificationService().initialize();
+    log('✅ NotificationService 초기화 완료', name: 'main.notif');
+  } catch (e) {
+    log('⚠️ NotificationService 초기화 실패: $e', name: 'main.notif');
   }
 
   // FCMService 초기화 (Firebase 성공 시에만)
