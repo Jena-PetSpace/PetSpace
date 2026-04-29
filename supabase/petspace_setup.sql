@@ -317,6 +317,26 @@ CREATE INDEX IF NOT EXISTS idx_emotion_history_created_at ON emotion_history(cre
 CREATE INDEX IF NOT EXISTS idx_emotion_history_emotion_analysis ON emotion_history USING GIN(emotion_analysis);
 CREATE INDEX IF NOT EXISTS idx_emotion_history_user_created_at ON emotion_history(user_id, created_at DESC);
 
+-- 감정 통계 뷰 (SECURITY INVOKER: RLS 우회 방지)
+DROP VIEW IF EXISTS public.emotion_stats;
+CREATE VIEW public.emotion_stats
+  WITH (security_invoker = true)
+AS
+SELECT user_id,
+    pet_id,
+    date_trunc('day'::text, created_at) AS day,
+    avg((emotion_analysis ->> 'happiness'::text)::numeric) AS avg_happiness,
+    avg((emotion_analysis ->> 'calm'::text)::numeric) AS avg_calm,
+    avg((emotion_analysis ->> 'excitement'::text)::numeric) AS avg_excitement,
+    avg((emotion_analysis ->> 'curiosity'::text)::numeric) AS avg_curiosity,
+    avg((emotion_analysis ->> 'anxiety'::text)::numeric) AS avg_anxiety,
+    avg((emotion_analysis ->> 'fear'::text)::numeric) AS avg_fear,
+    avg((emotion_analysis ->> 'sadness'::text)::numeric) AS avg_sadness,
+    avg((emotion_analysis ->> 'discomfort'::text)::numeric) AS avg_discomfort,
+    count(*) AS analysis_count
+FROM emotion_history
+GROUP BY user_id, pet_id, (date_trunc('day'::text, created_at));
+
 -- Comments
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_author_id ON comments(author_id);
@@ -1528,8 +1548,10 @@ CREATE TABLE IF NOT EXISTS point_transactions (
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
--- 포인트 잔액 뷰
-CREATE OR REPLACE VIEW user_points AS
+-- 포인트 잔액 뷰 (SECURITY INVOKER: RLS 우회 방지)
+CREATE OR REPLACE VIEW user_points
+  WITH (security_invoker = true)
+AS
   SELECT user_id, COALESCE(SUM(amount), 0)::INTEGER AS balance
   FROM point_transactions
   GROUP BY user_id;
