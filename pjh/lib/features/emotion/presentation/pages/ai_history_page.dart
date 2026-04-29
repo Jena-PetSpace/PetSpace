@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
@@ -1125,16 +1126,12 @@ class _AiHistoryPageState extends State<AiHistoryPage>
     );
   }
 
-  Widget _buildEmptyState(String msg) => Center(
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.history, size: 40.w, color: Colors.grey.shade300),
-              SizedBox(height: 12.h),
-              Text(msg,
-                  style: TextStyle(
-                      fontSize: 13.sp,
-                      color: AppTheme.secondaryTextColor)),
-            ]),
+  Widget _buildEmptyState(String msg) => EmptyStateWidget(
+        icon: Icons.history,
+        emoji: '🧠',
+        title: msg,
+        subtitle: '반려동물의 감정과 건강을 AI로 분석하고\n변화를 추적해보세요!',
+        actionLabel: '첫 분석 시작',
+        onAction: () => context.go('/emotion'),
       );
 }

@@ -35,12 +35,25 @@ class HomeDashboardHeader extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
               child: Row(
                 children: [
-                  // 로고
-                  PetSpaceLogo(variant: LogoVariant.dark, height: 51.h),
+                  // 로고 + 인사말
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      PetSpaceLogo(variant: LogoVariant.dark, height: 28.h),
+                      SizedBox(height: 2.h),
+                      _buildGreeting(context),
+                    ],
+                  ),
                   const Spacer(),
                   // 스트릭 배지
                   _buildStreakBadge(context),
-                  SizedBox(width: 10.w),
+                  SizedBox(width: 6.w),
+                  // 검색 아이콘
+                  GestureDetector(
+                    onTap: () => context.push('/search'),
+                    child: Icon(Icons.search_rounded, color: Colors.white, size: 24.w),
+                  ),
+                  SizedBox(width: 6.w),
                   // 알림 아이콘
                   _buildNotificationIcon(context),
                   SizedBox(width: 4.w),
@@ -61,7 +74,37 @@ class HomeDashboardHeader extends StatelessWidget {
     );
   }
 
-  // 로고: PetSpaceLogo 공유 위젯 사용
+  // ── 시간대별 인사말 ───────────────────────────────────
+  Widget _buildGreeting(BuildContext context) {
+    final hour = DateTime.now().hour;
+    final String greeting;
+    if (hour < 6) {
+      greeting = '🌙 늦은 밤이에요';
+    } else if (hour < 12) {
+      greeting = '☀️ 좋은 아침이에요';
+    } else if (hour < 18) {
+      greeting = '🌤 즐거운 오후예요';
+    } else {
+      greeting = '🌙 편안한 저녁이에요';
+    }
+
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        final name = state is AuthAuthenticated
+            ? state.user.displayName.split(' ').first
+            : '';
+        final label = name.isNotEmpty ? '$greeting, $name님' : greeting;
+        return Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.sp,
+            color: Colors.white.withValues(alpha: 0.75),
+            fontWeight: FontWeight.w500,
+          ),
+        );
+      },
+    );
+  }
 
   // ── 스트릭 배지 ───────────────────────────────────────
   Widget _buildStreakBadge(BuildContext context) {

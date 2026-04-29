@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/emotion_chart.dart';
@@ -489,33 +491,13 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.history,
-            size: 64.w,
-            color: Colors.grey[400],
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            '아직 분석 기록이 없습니다',
-            style: TextStyle(
-              fontSize: 18.sp,
-              color: Colors.grey[600],
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            '첫 번째 감정 분석을 시작해보세요!',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.grey[500],
-            ),
-          ),
-        ],
-      ),
+    return EmptyStateWidget(
+      icon: Icons.history,
+      emoji: '🐾',
+      title: '아직 분석 기록이 없어요',
+      subtitle: '반려동물의 감정을 AI로 분석하고\n변화를 기록해보세요!',
+      actionLabel: '첫 분석 시작',
+      onAction: () => context.go('/emotion'),
     );
   }
 

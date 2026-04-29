@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../domain/entities/social_user.dart';
 import '../bloc/search_bloc.dart';
 import '../widgets/post_card.dart';
@@ -490,21 +491,11 @@ class _SearchPageState extends State<SearchPage>
   }
 
   Widget _buildEmptyState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.search_off, size: 80.w, color: Colors.grey[300]),
-          SizedBox(height: 16.h),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
+    return EmptyStateWidget(
+      icon: Icons.search_off,
+      emoji: '🔍',
+      title: message,
+      subtitle: '다른 키워드로 검색하거나\n해시태그를 탐색해보세요!',
     );
   }
 }

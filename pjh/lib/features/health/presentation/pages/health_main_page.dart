@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -353,59 +354,31 @@ class _HealthMainViewState extends State<_HealthMainView> {
   }
 
   Widget _buildEmptyRecordState() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 40.h),
-        child: Column(
-          children: [
-            Icon(Icons.health_and_safety_outlined,
-                size: 64.w, color: Colors.grey[300]),
-            SizedBox(height: 16.h),
-            Text(
-              '건강 기록이 없습니다',
-              style: TextStyle(fontSize: 16.sp, color: Colors.grey[500]),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              '+ 버튼을 눌러 기록을 추가해보세요',
-              style: TextStyle(fontSize: 13.sp, color: Colors.grey[400]),
-            ),
-          ],
-        ),
-      ),
+    return EmptyStateWidget(
+      icon: Icons.health_and_safety_outlined,
+      emoji: '🏥',
+      title: '건강 기록이 없어요',
+      subtitle: '반려동물의 건강 상태를 기록하고\n변화를 추적해보세요!',
+      secondaryLabel: 'AI 건강 분석',
+      onSecondary: () => context.go('/emotion'),
+      actionLabel: '기록 추가',
+      onAction: () {
+        // FAB 대신 시트 직접 호출 — 이미 FAB이 있으므로 안내만
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('+ 버튼을 눌러 기록을 추가하세요')),
+        );
+      },
     );
   }
 
   Widget _buildEmptyPetState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.pets, size: 64.w, color: Colors.grey[300]),
-          SizedBox(height: 16.h),
-          Text(
-            '반려동물을 먼저 등록해주세요',
-            style: TextStyle(fontSize: 16.sp, color: Colors.grey[500]),
-          ),
-          SizedBox(height: 20.h),
-          ElevatedButton.icon(
-            onPressed: () => context.push('/pets'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-            ),
-            icon: const Icon(Icons.add),
-            label: Text(
-              '반려동물 등록하기',
-              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
+    return EmptyStateWidget(
+      icon: Icons.pets,
+      emoji: '🐾',
+      title: '반려동물을 먼저 등록해주세요',
+      subtitle: '반려동물을 등록하면\n건강 기록과 AI 분석을 시작할 수 있어요!',
+      actionLabel: '반려동물 등록',
+      onAction: () => context.push('/pets'),
     );
   }
 

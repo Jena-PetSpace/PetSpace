@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 import '../widgets/my_profile_header.dart';
@@ -245,62 +246,17 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildEmptyState(bool isMyPosts) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 24.h),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        isMyPosts
-                            ? Icons.grid_on_outlined
-                            : Icons.bookmark_outline_rounded,
-                        size: 48.w,
-                        color: AppTheme.lightTextColor,
-                      ),
-                      SizedBox(height: 16.h),
-                      Text(
-                        isMyPosts
-                            ? '아직 게시글이 없어요\n첫 이야기를 공유해보세요 📸'
-                            : '저장한 게시글이 없어요\n마음에 드는 게시글을 저장해보세요 🔖',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 13.sp,
-                            color: AppTheme.secondaryTextColor,
-                            height: 1.6),
-                      ),
-                      if (isMyPosts) ...[
-                        SizedBox(height: 20.h),
-                        ElevatedButton(
-                          onPressed: () => context.push('/create-post'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.r)),
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 24.w, vertical: 10.h),
-                          ),
-                          child: Text('게시글 작성하기',
-                              style: TextStyle(fontSize: 13.sp)),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+    return EmptyStateWidget(
+      icon: isMyPosts ? Icons.grid_on_outlined : Icons.bookmark_outline_rounded,
+      emoji: isMyPosts ? '📸' : '🔖',
+      title: isMyPosts ? '아직 게시글이 없어요' : '저장한 게시글이 없어요',
+      subtitle: isMyPosts
+          ? '반려동물의 일상을 첫 번째로\n커뮤니티에 공유해보세요!'
+          : '마음에 드는 게시글을\n저장해두면 여기서 볼 수 있어요.',
+      actionLabel: isMyPosts ? '첫 게시글 작성' : '피드 탐색',
+      onAction: isMyPosts
+          ? () => context.push('/create-post')
+          : () => context.go('/feed'),
     );
   }
 }

@@ -56,10 +56,13 @@ class NotificationsPage extends StatelessWidget {
               return const NotificationShimmerLoading();
             } else if (state is NotificationsLoaded) {
               if (state.notifications.isEmpty) {
-                return const EmptyStateWidget(
+                return EmptyStateWidget(
                   icon: Icons.notifications_none_rounded,
-                  title: '새로운 알림이 없습니다',
-                  subtitle: '활동이 생기면 여기에 알림이 표시됩니다.',
+                  emoji: '🔔',
+                  title: '새로운 알림이 없어요',
+                  subtitle: '친구를 팔로우하거나 게시물을 올리면\n활동 알림이 여기에 표시돼요!',
+                  actionLabel: '피드 탐색',
+                  onAction: () => context.go('/feed'),
                 );
               }
               return ListView.builder(

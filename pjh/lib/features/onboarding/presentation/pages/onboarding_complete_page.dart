@@ -68,6 +68,8 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
               _buildWelcomeMessage(),
               SizedBox(height: 24.h),
               _buildFeatureHighlights(),
+              SizedBox(height: 16.h),
+              _buildFirstAnalysisCta(),
               const Spacer(flex: 3),
               _buildActionButtons(),
               SizedBox(height: 16.h),
@@ -256,6 +258,72 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFirstAnalysisCta() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: GestureDetector(
+        onTap: _tryFirstAnalysis,
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppTheme.primaryColor, AppTheme.primaryColor.withValues(alpha: 0.8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48.w,
+                height: 48.w,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Icon(Icons.psychology, color: Colors.white, size: 26.w),
+              ),
+              SizedBox(width: 14.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '지금 바로 AI 첫 분석 해보기 🐾',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      '반려동물 사진 한 장으로 감정을 분석해드려요',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14.w),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
