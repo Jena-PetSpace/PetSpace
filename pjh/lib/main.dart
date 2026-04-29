@@ -12,6 +12,7 @@ import 'package:app_links/app_links.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart' as kakao;
 import 'package:kakao_maps_flutter/kakao_maps_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Config
@@ -26,6 +27,7 @@ import 'shared/themes/app_theme.dart';
 // Core
 import 'core/constants/app_constants.dart';
 import 'core/cache/cache_manager.dart';
+import 'core/services/analytics_service.dart';
 import 'core/services/realtime_service.dart';
 import 'core/services/fcm_service.dart';
 import 'core/services/local_notification_service.dart';
@@ -57,18 +59,20 @@ void main() async {
   PaintingBinding.instance.imageCache.maximumSize = 200; // 최대 200개 이미지
   PaintingBinding.instance.imageCache.maximumSizeBytes = 50 << 20; // 50MB
 
-  // 전역 Flutter 에러 핸들러
+  // 전역 Flutter 에러 핸들러 (Crashlytics로 리포트)
   FlutterError.onError = (FlutterErrorDetails details) {
     log('FlutterError: ${details.exceptionAsString()}',
         name: 'GlobalError',
         error: details.exception,
         stackTrace: details.stack);
+    FirebaseCrashlytics.instance.recordFlutterFatalError(details);
   };
 
-  // Dart 비동기 에러 핸들러
+  // Dart 비동기 에러 핸들러 (Crashlytics로 리포트)
   PlatformDispatcher.instance.onError = (error, stack) {
     log('PlatformError: $error',
         name: 'GlobalError', error: error, stackTrace: stack);
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;
   };
 
@@ -115,6 +119,8 @@ Future<void> _initBackground() async {
     try {
       await Firebase.initializeApp(options: firebaseOptions);
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+      AnalyticsService.instance.initialize();
       firebaseInitialized = true;
       log('✅ Firebase 초기화 완료', name: 'main.firebase');
     } catch (e) {

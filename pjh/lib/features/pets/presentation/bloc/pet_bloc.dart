@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/pet.dart';
 import '../../domain/usecases/add_pet.dart';
 import '../../domain/usecases/delete_pet.dart';
@@ -86,6 +87,7 @@ class PetBloc extends Bloc<PetEvent, PetState> {
       result.fold(
         (failure) => emit(PetError(failure.message)),
         (newPet) {
+          AnalyticsService.instance.logPetRegistered(petType: newPet.type.name);
           final updatedPets = [...currentState.pets, newPet];
           emit(PetOperationSuccess(
             message: '반려동물이 성공적으로 등록되었습니다.',

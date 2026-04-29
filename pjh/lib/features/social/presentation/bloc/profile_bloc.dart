@@ -9,6 +9,7 @@ import '../../domain/usecases/get_user_profile.dart';
 import '../../domain/usecases/follow_user.dart';
 import '../../domain/usecases/unfollow_user.dart';
 import '../../domain/repositories/social_repository.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/push_notification_service.dart';
 
 part 'profile_event.dart';
@@ -107,6 +108,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           emit(currentState.copyWith(error: failure.message));
         },
         (follow) {
+          AnalyticsService.instance.logFollow();
           // 팔로우 성공 → 대상 사용자에게 알림 발송
           _pushService.sendFollowNotification(
             toUserId: event.followingId,

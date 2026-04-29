@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
@@ -96,7 +97,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await _signInWithGoogle();
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) => emit(AuthAuthenticated(user)),
+      (user) {
+        AnalyticsService.instance.logLogin(method: 'google');
+        emit(AuthAuthenticated(user));
+      },
     );
   }
 
@@ -109,7 +113,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await _signInWithKakao();
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) => emit(AuthAuthenticated(user)),
+      (user) {
+        AnalyticsService.instance.logLogin(method: 'kakao');
+        emit(AuthAuthenticated(user));
+      },
     );
   }
 
@@ -125,7 +132,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) => emit(AuthAuthenticated(user)),
+      (user) {
+        AnalyticsService.instance.logLogin(method: 'email');
+        emit(AuthAuthenticated(user));
+      },
     );
   }
 
@@ -149,8 +159,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       },
       (user) {
-        // 회원가입 성공 시 이메일 인증 대기 상태로 전환
-        // 실제 로그인은 이메일 인증 후에만 가능
+        AnalyticsService.instance.logSignUp(method: 'email');
         emit(AuthEmailVerificationRequired(user));
       },
     );
@@ -220,7 +229,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await _authRepository.updateUserProfile(updatedUser);
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) => emit(AuthAuthenticated(user)),
+      (user) {
+        AnalyticsService.instance.logOnboardingComplete();
+        emit(AuthAuthenticated(user));
+      },
     );
   }
 

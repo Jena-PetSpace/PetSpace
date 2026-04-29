@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../config/injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -547,6 +548,7 @@ class _EmotionResultPageState extends State<EmotionResultPage>
       createdAt: DateTime.now(),
     );
 
+    AnalyticsService.instance.logAnalysisSharedToFeed(analysisType: 'emotion');
     ctx.read<FeedBloc>().add(CreatePostRequested(
       post: post,
       images: imageFiles,

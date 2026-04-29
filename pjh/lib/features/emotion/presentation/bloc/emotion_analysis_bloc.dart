@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../../domain/usecases/analyze_emotion.dart';
 import '../../domain/usecases/save_emotion_analysis.dart';
@@ -45,6 +46,10 @@ class EmotionAnalysisBloc
     Emitter<EmotionAnalysisState> emit,
   ) async {
     emit(EmotionAnalysisLoading());
+    AnalyticsService.instance.logEmotionAnalysisStart(
+      imageCount: event.imagePaths.length,
+      petType: event.petType,
+    );
 
     final result = await _analyzeEmotion(AnalyzeEmotionParams(
       imagePaths: event.imagePaths,
@@ -55,7 +60,13 @@ class EmotionAnalysisBloc
 
     result.fold(
       (failure) => emit(EmotionAnalysisError(failure.message)),
-      (analysis) => emit(EmotionAnalysisSuccess(analysis)),
+      (analysis) {
+        AnalyticsService.instance.logEmotionAnalysisComplete(
+          dominantEmotion: analysis.emotions.dominantEmotion,
+          imageCount: event.imagePaths.length,
+        );
+        emit(EmotionAnalysisSuccess(analysis));
+      },
     );
   }
 

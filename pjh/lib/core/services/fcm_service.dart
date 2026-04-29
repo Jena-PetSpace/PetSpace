@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart' show GlobalKey, NavigatorState;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'analytics_service.dart';
 import 'local_notification_service.dart';
 
 /// Firebase Cloud Messaging 서비스
@@ -69,9 +70,11 @@ class FCMService {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         dev.log('푸시 알림 권한 승인됨', name: 'FCMService');
+        AnalyticsService.instance.logNotificationPermissionGranted();
       } else if (settings.authorizationStatus ==
           AuthorizationStatus.provisional) {
         dev.log('푸시 알림 임시 권한 승인됨', name: 'FCMService');
+        AnalyticsService.instance.logNotificationPermissionGranted();
       } else {
         dev.log('푸시 알림 권한 거부됨', name: 'FCMService');
         return;

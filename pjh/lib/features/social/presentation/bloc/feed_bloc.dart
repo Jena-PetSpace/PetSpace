@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/usecases/create_post.dart';
 import '../../domain/usecases/delete_post.dart';
@@ -165,6 +166,11 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     result.fold(
       (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (post) {
+        AnalyticsService.instance.logPostCreated(
+          postType: post.type.name,
+          imageCount: post.imageUrls.length,
+        );
+
         // 스낵바 트리거용 FeedPostCreated emit
         emit(FeedPostCreated(post));
 

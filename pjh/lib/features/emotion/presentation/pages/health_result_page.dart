@@ -12,6 +12,7 @@ import '../widgets/result/emotion_share_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../domain/repositories/emotion_repository.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../config/injection_container.dart' as di;
@@ -259,6 +260,7 @@ class _HealthResultPageState extends State<HealthResultPage> {
       createdAt: DateTime.now(),
     );
 
+    AnalyticsService.instance.logAnalysisSharedToFeed(analysisType: 'health');
     ctx.read<FeedBloc>().add(CreatePostRequested(
       post: post,
       images: imageFiles,
