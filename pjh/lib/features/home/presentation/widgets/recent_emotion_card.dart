@@ -75,28 +75,6 @@ class RecentEmotionCard extends StatelessWidget {
                 ),
               ),
 
-              // 신뢰도 표시
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '신뢰도',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${(analysis.confidence * 100).toInt()}%',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: _getConfidenceColor(analysis.confidence),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
@@ -132,12 +110,6 @@ class RecentEmotionCard extends StatelessWidget {
       case 'discomfort': return Icons.sick_outlined;
       default:           return Icons.help_outline;
     }
-  }
-
-  Color _getConfidenceColor(double confidence) {
-    if (confidence > 0.7) return Colors.green;
-    if (confidence > 0.4) return Colors.orange;
-    return Colors.red;
   }
 
   String _formatDateTime(DateTime dateTime) {

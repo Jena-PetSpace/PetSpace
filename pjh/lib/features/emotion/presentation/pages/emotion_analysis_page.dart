@@ -114,7 +114,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
 
   Future<void> _checkFirstVisit() async {
     final prefs = await SharedPreferences.getInstance();
-    final hasSeenTip = prefs.getBool('has_seen_emotion_tip') ?? false;
+    final hasSeenTip = prefs.getBool('has_seen_emotion_guide') ?? false;
     if (!hasSeenTip && mounted) {
       setState(() => _showFullGuide = true);
     }
@@ -122,7 +122,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
 
   Future<void> _dismissFullGuide() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('has_seen_emotion_tip', true);
+    await prefs.setBool('has_seen_emotion_guide', true);
     if (mounted) setState(() => _showFullGuide = false);
   }
 
@@ -401,6 +401,29 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.help_outline, size: 22.w, color: AppTheme.primaryColor),
+            tooltip: '촬영 가이드',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AnalysisGuidePage(
+                    isEmotion: _tabIndex == 0,
+                    area: _tabIndex == 1 ? _selectedArea : null,
+                    onImagesSelected: (paths) {
+                      setState(() {
+                        _imagePaths.clear();
+                        _imagePaths.addAll(paths.take(_maxImages));
+                      });
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(68.h),
           child: Container(

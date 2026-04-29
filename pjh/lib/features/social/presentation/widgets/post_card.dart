@@ -564,13 +564,6 @@ class _PostCardState extends State<PostCard> {
                     ),
                   ],
                 ),
-                Text(
-                  '신뢰도 ${(emotionAnalysis.confidence * 100).toInt()}%',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                  ),
-                ),
               ],
             ),
           ),

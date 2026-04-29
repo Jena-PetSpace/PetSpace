@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import '../widgets/multi_image_gallery_widget.dart';
 import '../widgets/result/emotion_share_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
@@ -319,7 +320,9 @@ class _HealthResultPageState extends State<HealthResultPage> {
                   ),
                   Expanded(
                     child: Text(
-                      '${r.area.displayName} 건강 분석 결과',
+                      r.imageUrls.length > 1
+                          ? '${r.area.displayName} 분석 (${r.imageUrls.length}장)'
+                          : '${r.area.displayName} 건강 분석 결과',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 15.sp,
@@ -331,32 +334,6 @@ class _HealthResultPageState extends State<HealthResultPage> {
                   SizedBox(width: 48.w),
                 ]),
               ),
-              // 분석 이미지 썸네일
-              if (r.imageUrls.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(bottom: 10.h),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: r.imageUrls.take(3).map((url) => Container(
-                      margin: EdgeInsets.symmetric(horizontal: 4.w),
-                      width: 40.w,
-                      height: 40.w,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.15),
-                        border: Border.all(color: Colors.white30, width: 1),
-                      ),
-                      child: ClipOval(
-                        child: Image.file(
-                          File(url),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(
-                            Icons.pets, size: 20.w, color: Colors.white54),
-                        ),
-                      ),
-                    )).toList(),
-                  ),
-                ),
               // 종합 점수 + 상태 배지
               Padding(
                 padding: EdgeInsets.only(bottom: 20.h),
@@ -405,6 +382,15 @@ class _HealthResultPageState extends State<HealthResultPage> {
           child: SingleChildScrollView(
             padding: EdgeInsets.all(14.w),
             child: Column(children: [
+              // 분석 이미지 갤러리
+              if (r.imageUrls.isNotEmpty) ...[
+                MultiImageGalleryWidget(
+                  imagePaths: r.imageUrls,
+                  height: 200,
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                SizedBox(height: 12.h),
+              ],
               // risk_alert 배너
               if (r.riskAlert) ...[
                 Container(

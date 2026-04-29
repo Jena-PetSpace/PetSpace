@@ -2,8 +2,24 @@ part of '../../pages/emotion_result_page.dart';
 
 // ── 카드 A: Hero · Delta · Distribution ─────────────────────
 extension _EmotionResultCardsA on _EmotionResultPageState {
+  /// 사진 장수에 따른 헤더 서브레이블
+  String _imageCountLabel() {
+    final count = widget.imagePaths.isNotEmpty
+        ? widget.imagePaths.length
+        : (widget.analysis.imageUrl.isNotEmpty ? 1 : 0);
+    if (count == 0) return '주요 감정';
+    if (count == 1) return '사진 1장 분석';
+    return '사진 $count장 분석';
+  }
+
   Widget _buildHeroCard(
       String dominant, String name, IconData icon, double value, Color color) {
+    final paths = widget.imagePaths;
+    final networkUrl = widget.analysis.imageUrl;
+    final allPaths = paths.isNotEmpty
+        ? paths
+        : (networkUrl.isNotEmpty ? [networkUrl] : <String>[]);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -18,6 +34,7 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
       ),
       child: Column(
         children: [
+          // 상단 gradient 헤더
           Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 20.w),
@@ -48,7 +65,7 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '주요 감정',
+                      _imageCountLabel(),
                       style: TextStyle(
                         fontSize: 11.sp,
                         color: Colors.white.withValues(alpha: 0.8),
@@ -76,62 +93,60 @@ extension _EmotionResultCardsA on _EmotionResultPageState {
               ],
             ),
           ),
+          // 갤러리 + 설명 영역
           Padding(
             padding: EdgeInsets.all(16.w),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.imagePaths.isNotEmpty || widget.analysis.imageUrl.isNotEmpty)
-                  _buildImageThumbnails()
+                // 이미지 갤러리
+                if (allPaths.isNotEmpty)
+                  MultiImageGalleryWidget(
+                    imagePaths: allPaths,
+                    height: 200,
+                    borderRadius: BorderRadius.circular(12.r),
+                  )
                 else
                   Container(
-                    width: 88.w,
-                    height: 88.w,
+                    width: double.infinity,
+                    height: 80.h,
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Icon(Icons.pets, size: 40.w, color: color),
                   ),
-                SizedBox(width: 14.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.access_time,
-                              size: 13.w, color: Colors.grey),
-                          SizedBox(width: 4.w),
-                          Text(
-                            _formatDateTime(widget.analysis.analyzedAt),
-                            style: TextStyle(
-                                fontSize: 11.sp, color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 10.h),
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 12.w, vertical: 10.h),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: color.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Text(
-                          _getShortDescription(dominant),
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color: color,
-                            fontWeight: FontWeight.w600,
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
+                SizedBox(height: 12.h),
+                // 날짜
+                Row(
+                  children: [
+                    Icon(Icons.access_time, size: 13.w, color: Colors.grey),
+                    SizedBox(width: 4.w),
+                    Text(
+                      _formatDateTime(widget.analysis.analyzedAt),
+                      style: TextStyle(fontSize: 11.sp, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8.h),
+                // 설명 박스
+                Container(
+                  width: double.infinity,
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: color.withValues(alpha: 0.25)),
+                  ),
+                  child: Text(
+                    _getShortDescription(dominant),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                      height: 1.5,
+                    ),
                   ),
                 ),
               ],

@@ -20,6 +20,7 @@ import '../../data/services/emotion_insights_service.dart';
 import '../../data/services/emotion_diary_service.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/emotion_radar_chart.dart';
+import '../widgets/multi_image_gallery_widget.dart';
 import '../widgets/result/emotion_share_card.dart';
 
 part '../widgets/result/emotion_result_helpers.dart';
@@ -604,104 +605,4 @@ class _EmotionResultPageState extends State<EmotionResultPage>
     );
   }
 
-  // ── 이미지 썸네일 ──
-  // 로컬 파일(imagePaths) 우선, 없으면 Supabase imageUrl로 표시
-  Widget _buildImageThumbnails() {
-    final paths = widget.imagePaths;
-    final networkUrl = widget.analysis.imageUrl;
-
-    Widget fallback() => Container(
-          width: 88.w,
-          height: 88.w,
-          color: Colors.grey.shade200,
-          child: Icon(Icons.image_not_supported_outlined,
-              size: 32.w, color: Colors.grey.shade400),
-        );
-
-    Widget buildSingleImage() {
-      // 로컬 파일 우선
-      if (paths.isNotEmpty) {
-        final file = File(paths.first);
-        return Image.file(
-          file,
-          width: 88.w,
-          height: 88.w,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => fallback(),
-        );
-      }
-      // 로컬 파일 없으면 Supabase Storage URL로 표시
-      if (networkUrl.isEmpty) return fallback();
-      return Image.network(
-        networkUrl,
-        width: 88.w,
-        height: 88.w,
-        fit: BoxFit.cover,
-        loadingBuilder: (_, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            width: 88.w,
-            height: 88.w,
-            color: Colors.grey.shade100,
-            child: Center(
-              child: SizedBox(
-                width: 24.w,
-                height: 24.w,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  value: progress.expectedTotalBytes != null
-                      ? progress.cumulativeBytesLoaded /
-                          progress.expectedTotalBytes!
-                      : null,
-                ),
-              ),
-            ),
-          );
-        },
-        errorBuilder: (_, __, ___) => fallback(),
-      );
-    }
-
-    if (paths.length <= 1) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12.r),
-        child: buildSingleImage(),
-      );
-    }
-
-    // 여러 장인 경우 첫 번째 + 장수 배지
-    return SizedBox(
-      width: 88.w,
-      height: 88.w,
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
-            child: Image.file(
-              File(paths.first),
-              width: 88.w,
-              height: 88.w,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => fallback(),
-            ),
-          ),
-          Positioned(
-            bottom: 4.h,
-            right: 4.w,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(6.r),
-              ),
-              child: Text(
-                '${paths.length}장',
-                style: TextStyle(fontSize: 9.sp, color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

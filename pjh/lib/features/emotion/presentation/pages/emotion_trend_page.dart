@@ -396,22 +396,6 @@ class _EmotionTrendPageState extends State<EmotionTrendPage>
                             fontSize: 16.sp, fontWeight: FontWeight.w500),
                       ),
                     ),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Text(
-                        '${(pattern.confidence * 100).toInt()}%',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
                 SizedBox(height: 12.h),
