@@ -100,6 +100,14 @@ class LocalNotificationService {
         importance: Importance.defaultImportance,
       ),
     );
+    await androidPlugin.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'chat',
+        '채팅 알림',
+        description: '실시간 메시지 알림',
+        importance: Importance.high,
+      ),
+    );
   }
 
   Future<void> _requestPermissions() async {

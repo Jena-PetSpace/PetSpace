@@ -12,18 +12,18 @@ class AppConfig {
   // API configurations
   static String get baseUrl {
     if (isProduction) {
-      return 'https://api.meongnyangdiary.com';
+      return 'https://api.petspace.app';
     } else {
-      return 'https://dev-api.meongnyangdiary.com';
+      return 'https://dev-api.petspace.app';
     }
   }
 
   // Supabase configurations
   static String get supabaseProjectId {
     if (isProduction) {
-      return 'meongnyangdiary-prod';
+      return 'petspace-prod';
     } else {
-      return 'meongnyangdiary-dev';
+      return 'petspace-dev';
     }
   }
 
@@ -70,19 +70,19 @@ class AppConfig {
   static const Duration loginLockoutDuration = Duration(minutes: 15);
 
   // Support
-  static const String supportEmail = 'support@meongnyangdiary.com';
-  static const String privacyPolicyUrl = 'https://meongnyangdiary.com/privacy';
-  static const String termsOfServiceUrl = 'https://meongnyangdiary.com/terms';
+  static const String supportEmail = 'support@petspace.app';
+  static const String privacyPolicyUrl = 'https://petspace.app/privacy';
+  static const String termsOfServiceUrl = 'https://petspace.app/terms';
 
   // App Store URLs
   static const String appStoreUrl =
-      'https://apps.apple.com/app/meongnyangdiary';
+      'https://apps.apple.com/app/petspace';
   static const String playStoreUrl =
-      'https://play.google.com/store/apps/details?id=com.meongnyangdiary';
+      'https://play.google.com/store/apps/details?id=com.petspace.app';
 
   // Social Media
-  static const String instagramUrl = 'https://instagram.com/meongnyangdiary';
-  static const String facebookUrl = 'https://facebook.com/meongnyangdiary';
+  static const String instagramUrl = 'https://instagram.com/petspace_app';
+  static const String facebookUrl = 'https://facebook.com/petspace.app';
 
   // Development settings
   static bool get showDebugInfo => isDebug;
@@ -122,8 +122,8 @@ class EnvironmentConfig {
     switch (current) {
       case Environment.development:
         return {
-          'baseUrl': 'https://dev-api.meongnyangdiary.com',
-          'supabaseProjectId': 'meongnyangdiary-dev',
+          'baseUrl': 'https://dev-api.petspace.app',
+          'supabaseProjectId': 'petspace-dev',
           'enableAnalytics': false,
           'enableCrashlytics': false,
           'showDebugBanner': true,
@@ -131,8 +131,8 @@ class EnvironmentConfig {
         };
       case Environment.staging:
         return {
-          'baseUrl': 'https://staging-api.meongnyangdiary.com',
-          'supabaseProjectId': 'meongnyangdiary-staging',
+          'baseUrl': 'https://staging-api.petspace.app',
+          'supabaseProjectId': 'petspace-staging',
           'enableAnalytics': true,
           'enableCrashlytics': true,
           'showDebugBanner': false,
@@ -140,8 +140,8 @@ class EnvironmentConfig {
         };
       case Environment.production:
         return {
-          'baseUrl': 'https://api.meongnyangdiary.com',
-          'supabaseProjectId': 'meongnyangdiary-prod',
+          'baseUrl': 'https://api.petspace.app',
+          'supabaseProjectId': 'petspace-prod',
           'enableAnalytics': true,
           'enableCrashlytics': true,
           'showDebugBanner': false,

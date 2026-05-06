@@ -44,6 +44,27 @@
 # Firebase IID (deprecated, referenced by mlkit)
 -dontwarn com.google.firebase.iid.**
 
-# 일반 규칙
+# Crashlytics
+-keep class com.google.firebase.crashlytics.** { *; }
 -keepattributes SourceFile,LineNumberTable
+
+# Ktor (Supabase Kotlin SDK 내부)
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
+
+# Flutter Local Notifications
+-keep class com.dexterous.** { *; }
+
+# Permission Handler
+-keep class com.baseflow.permissionhandler.** { *; }
+
+# JSON 직렬화 (Gson)
+-keepclassmembers class * {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# 일반 규칙
+-keepattributes Signature
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
 -keep public class * extends java.lang.Exception
