@@ -84,6 +84,7 @@ class EmotionRepositoryImpl implements EmotionRepository {
         analyzedAt: DateTime.now(),
         memo: null,
         tags: const [],
+        isSleepy: emotionScores.isSleepy,
       );
 
       return Right(analysis);

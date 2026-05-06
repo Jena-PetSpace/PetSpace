@@ -37,18 +37,26 @@ class DefaultAvatar extends StatelessWidget {
     final radius = size.r / 2;
 
     if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: imageUrl!,
-        imageBuilder: (context, imageProvider) => CircleAvatar(
-          radius: radius,
-          backgroundImage: imageProvider,
+      return Semantics(
+        label: '$name 프로필 사진',
+        image: true,
+        child: CachedNetworkImage(
+          imageUrl: imageUrl!,
+          imageBuilder: (context, imageProvider) => CircleAvatar(
+            radius: radius,
+            backgroundImage: imageProvider,
+          ),
+          placeholder: (context, url) => _buildFallback(radius),
+          errorWidget: (context, url, error) => _buildFallback(radius),
         ),
-        placeholder: (context, url) => _buildFallback(radius),
-        errorWidget: (context, url, error) => _buildFallback(radius),
       );
     }
 
-    return _buildFallback(radius);
+    return Semantics(
+      label: '$name 프로필 사진',
+      image: true,
+      child: _buildFallback(radius),
+    );
   }
 
   Widget _buildFallback(double radius) {

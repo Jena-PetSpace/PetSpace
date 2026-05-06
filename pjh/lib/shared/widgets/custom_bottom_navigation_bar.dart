@@ -36,76 +36,85 @@ class CustomBottomNavigationBar extends StatelessWidget {
 
               // 중앙 AI분석 FAB
               if (index == 2) {
-                return GestureDetector(
-                  onTap: () => onTap(index),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 52.w,
-                        height: 52.w,
-                        margin: EdgeInsets.only(bottom: 2.h),
-                        decoration: BoxDecoration(
-                          color: AppTheme.highlightColor,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.highlightColor.withValues(alpha: 0.45),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
+                return Semantics(
+                  label: 'AI분석',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () => onTap(index),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 52.w,
+                          height: 52.w,
+                          margin: EdgeInsets.only(bottom: 2.h),
+                          decoration: BoxDecoration(
+                            color: AppTheme.highlightColor,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.highlightColor.withValues(alpha: 0.45),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.psychology_outlined,
+                            size: 26.w,
+                            color: Colors.white,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.psychology_outlined,
-                          size: 26.w,
-                          color: Colors.white,
+                        Text(
+                          'AI분석',
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected
+                                ? AppTheme.highlightColor
+                                : AppTheme.highlightColor,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'AI분석',
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected
-                              ? AppTheme.highlightColor
-                              : AppTheme.highlightColor,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               }
 
-              return GestureDetector(
-                onTap: () => onTap(index),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isSelected ? item.selectedIcon : item.icon,
-                        color: isSelected
-                            ? AppTheme.primaryColor
-                            : const Color(0xFFBDBDBD),
-                        size: 24.w,
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        item.label,
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+              return Semantics(
+                label: item.label,
+                button: true,
+                selected: isSelected,
+                child: GestureDetector(
+                  onTap: () => onTap(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSelected ? item.selectedIcon : item.icon,
                           color: isSelected
                               ? AppTheme.primaryColor
                               : const Color(0xFFBDBDBD),
+                          size: 24.w,
                         ),
-                      ),
-                    ],
+                        SizedBox(height: 4.h),
+                        Text(
+                          item.label,
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: isSelected
+                                ? AppTheme.primaryColor
+                                : const Color(0xFFBDBDBD),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

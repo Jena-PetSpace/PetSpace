@@ -104,7 +104,7 @@ void main() async {
   await di.init();
 
   // ✅ runApp 호출 — 네이티브 스플래시 종료
-  runApp(const MeongNyangDiaryApp());
+  runApp(const PetSpaceApp());
 
   // Firebase + Cache + Realtime + FCM 백그라운드 처리
   unawaited(_initBackground());
@@ -166,14 +166,14 @@ Future<void> _initBackground() async {
   }
 }
 
-class MeongNyangDiaryApp extends StatefulWidget {
-  const MeongNyangDiaryApp({super.key});
+class PetSpaceApp extends StatefulWidget {
+  const PetSpaceApp({super.key});
 
   @override
-  State<MeongNyangDiaryApp> createState() => _MeongNyangDiaryAppState();
+  State<PetSpaceApp> createState() => _PetSpaceAppState();
 }
 
-class _MeongNyangDiaryAppState extends State<MeongNyangDiaryApp> {
+class _PetSpaceAppState extends State<PetSpaceApp> {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
   late final AuthBloc _authBloc;

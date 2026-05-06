@@ -16,7 +16,7 @@ import 'package:meong_nyang_diary/config/injection_container.dart' as di;
 import 'package:meong_nyang_diary/supabase_options.dart';
 import 'package:meong_nyang_diary/config/api_config.dart';
 import 'package:meong_nyang_diary/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:meong_nyang_diary/main.dart' show MeongNyangDiaryApp;
+import 'package:meong_nyang_diary/main.dart' show PetSpaceApp;
 
 /// integration_test에서 호출할 앱 부팅 함수
 Future<void> bootAppForTest() async {
@@ -73,5 +73,5 @@ Future<void> bootAppForTest() async {
     log('DI init error: $e', name: 'testEntry.di');
   }
 
-  runApp(const MeongNyangDiaryApp());
+  runApp(const PetSpaceApp());
 }

@@ -167,8 +167,10 @@ class EmotionScores extends Equatable {
   final double discomfort;
 
   // ── deprecated: 생리지표로 분리됨 → isSleepy 사용 ─────────────
-  @Deprecated('생리지표로 분리됨. EmotionAnalysis.isSleepy 사용')
+  @Deprecated('생리지표로 분리됨. isSleepy 사용')
   final double sleepiness;
+
+  final bool isSleepy;
 
   // ── 추가 분석 지표 (0~100 스케일) ────────────────────────────
   final int stressLevel;
@@ -194,6 +196,7 @@ class EmotionScores extends Equatable {
     this.discomfort  = 0.0,
     // ignore: deprecated_member_use_from_same_package
     this.sleepiness  = 0.0,
+    this.isSleepy    = false,
     this.stressLevel = 0,
     this.activityLevel = 0,
     this.healthSignal = 'normal',
@@ -279,6 +282,7 @@ class EmotionScores extends Equatable {
       discomfort:  (json['discomfort']  as num?)?.toDouble() ?? 0.0,
       // ignore: deprecated_member_use_from_same_package
       sleepiness:  (json['sleepiness']  as num?)?.toDouble() ?? 0.0, // 하위 호환
+      isSleepy:    json['is_sleepy'] as bool? ?? false,
       stressLevel:    (json['stress_level']   as num?)?.toInt() ?? 0,
       activityLevel:  (json['activity_level'] as num?)?.toInt() ?? 0,
       healthSignal:   json['health_signal']   as String? ?? 'normal',
@@ -299,6 +303,7 @@ class EmotionScores extends Equatable {
       'fear':       fear,
       'sadness':    sadness,
       'discomfort': discomfort,
+      'is_sleepy':       isSleepy,
       'stress_level':    stressLevel,
       'activity_level':  activityLevel,
       'health_signal':   healthSignal,
@@ -327,6 +332,7 @@ class EmotionScores extends Equatable {
     double? sadness,
     double? discomfort,
     double? sleepiness,
+    bool? isSleepy,
     int? stressLevel,
     int? activityLevel,
     String? healthSignal,
@@ -346,6 +352,7 @@ class EmotionScores extends Equatable {
       discomfort:  discomfort  ?? this.discomfort,
       // ignore: deprecated_member_use_from_same_package
       sleepiness:  sleepiness  ?? this.sleepiness,
+      isSleepy:    isSleepy    ?? this.isSleepy,
       stressLevel:    stressLevel    ?? this.stressLevel,
       activityLevel:  activityLevel  ?? this.activityLevel,
       healthSignal:   healthSignal   ?? this.healthSignal,
@@ -361,7 +368,7 @@ class EmotionScores extends Equatable {
         happiness, calm, excitement, curiosity,
         anxiety, fear, sadness, discomfort,
         // ignore: deprecated_member_use_from_same_package
-        sleepiness,
+        sleepiness, isSleepy,
         stressLevel, activityLevel, healthSignal, comfortLevel,
         facialFeatures, healthTips, breedInsight,
       ];

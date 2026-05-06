@@ -114,6 +114,65 @@ extension _EmotionResultHelpers on _EmotionResultPageState {
     }
   }
 
+  List<_CareAction> _getCareActions(String emotion) {
+    switch (emotion) {
+      case 'happiness':
+        return [
+          const _CareAction(icon: Icons.directions_walk, label: '산책하기'),
+          const _CareAction(icon: Icons.sports_tennis, label: '공 놀이'),
+          const _CareAction(icon: Icons.camera_alt_outlined, label: '사진 찍기'),
+        ];
+      case 'calm':
+        return [
+          const _CareAction(icon: Icons.self_improvement, label: '함께 휴식'),
+          const _CareAction(icon: Icons.music_note, label: '잔잔한 음악'),
+          const _CareAction(icon: Icons.brush, label: '브러싱'),
+        ];
+      case 'excitement':
+        return [
+          const _CareAction(icon: Icons.directions_run, label: '활동 놀이'),
+          const _CareAction(icon: Icons.park, label: '공원 산책'),
+          const _CareAction(icon: Icons.extension, label: '노즈워크'),
+        ];
+      case 'curiosity':
+        return [
+          const _CareAction(icon: Icons.explore, label: '새 장난감'),
+          const _CareAction(icon: Icons.search, label: '탐색 놀이'),
+          const _CareAction(icon: Icons.home_outlined, label: '집 탐험'),
+        ];
+      case 'anxiety':
+        return [
+          const _CareAction(icon: Icons.spa, label: '스킨십'),
+          const _CareAction(icon: Icons.volume_off, label: '조용한 환경'),
+          const _CareAction(icon: Icons.favorite_border, label: '안아주기'),
+        ];
+      case 'fear':
+        return [
+          const _CareAction(icon: Icons.shield_outlined, label: '안전 공간'),
+          const _CareAction(icon: Icons.remove_circle_outline, label: '자극 제거'),
+          const _CareAction(icon: Icons.cookie_outlined, label: '간식 달래기'),
+        ];
+      case 'sadness':
+        return [
+          const _CareAction(icon: Icons.favorite, label: '스킨십'),
+          const _CareAction(icon: Icons.restaurant, label: '좋아하는 간식'),
+          const _CareAction(icon: Icons.toys, label: '좋아하는 장난감'),
+        ];
+      case 'discomfort':
+        return [
+          const _CareAction(icon: Icons.medical_services_outlined, label: '신체 점검'),
+          const _CareAction(icon: Icons.local_hospital_outlined, label: '수의사 상담'),
+          const _CareAction(icon: Icons.monitor_heart_outlined, label: '증상 기록'),
+        ];
+      default:
+        return [
+          const _CareAction(icon: Icons.pets, label: '산책'),
+          const _CareAction(icon: Icons.favorite_border, label: '스킨십'),
+          const _CareAction(icon: Icons.restaurant, label: '간식'),
+        ];
+    }
+  }
+
   // ── 이론 출처 ──
   Widget _buildTheoryAttribution() {
     return Padding(

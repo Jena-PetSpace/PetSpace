@@ -23,17 +23,21 @@ class UserListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: CircleAvatar(
-        radius: 20.r,
-        backgroundImage: userProfileImage != null
-            ? CachedNetworkImageProvider(userProfileImage!)
-            : null,
-        child: userProfileImage == null
-            ? Text(
-                userName.isNotEmpty ? userName[0].toUpperCase() : '?',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
-              )
-            : null,
+      leading: Semantics(
+        label: '$userName 프로필 사진',
+        image: true,
+        child: CircleAvatar(
+          radius: 20.r,
+          backgroundImage: userProfileImage != null
+              ? CachedNetworkImageProvider(userProfileImage!)
+              : null,
+          child: userProfileImage == null
+              ? Text(
+                  userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+                )
+              : null,
+        ),
       ),
       title: Text(
         userName,

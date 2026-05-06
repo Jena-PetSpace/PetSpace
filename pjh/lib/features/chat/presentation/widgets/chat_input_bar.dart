@@ -109,6 +109,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
           IconButton(
             onPressed: _showImageSourceSheet,
             icon: Icon(Icons.add_photo_alternate_outlined, size: 24.w),
+            tooltip: '사진 선택',
             color: Colors.grey[600],
           ),
           Expanded(
@@ -148,6 +149,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 )
               : IconButton(
                   onPressed: _hasText ? _handleSendText : null,
+                  tooltip: '메시지 전송',
                   icon: Icon(
                     Icons.send_rounded,
                     size: 24.w,

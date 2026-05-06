@@ -51,17 +51,21 @@ class CommentListItem extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: isReply ? 12.r : 16.r,
-            backgroundImage: c.authorProfileImage != null
-                ? CachedNetworkImageProvider(c.authorProfileImage!)
-                : null,
-            child: c.authorProfileImage == null
-                ? Text(
-                    c.authorName.isNotEmpty ? c.authorName[0] : '?',
-                    style: TextStyle(fontSize: isReply ? 10.sp : 12.sp),
-                  )
-                : null,
+          Semantics(
+            label: '${c.authorName} 프로필 사진',
+            image: true,
+            child: CircleAvatar(
+              radius: isReply ? 12.r : 16.r,
+              backgroundImage: c.authorProfileImage != null
+                  ? CachedNetworkImageProvider(c.authorProfileImage!)
+                  : null,
+              child: c.authorProfileImage == null
+                  ? Text(
+                      c.authorName.isNotEmpty ? c.authorName[0] : '?',
+                      style: TextStyle(fontSize: isReply ? 10.sp : 12.sp),
+                    )
+                  : null,
+            ),
           ),
           SizedBox(width: 10.w),
           Expanded(

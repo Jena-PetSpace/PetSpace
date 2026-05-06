@@ -319,6 +319,7 @@ extension _EmotionResultCardsC on _EmotionResultPageState {
   // ── 9. 추천 카드 ──
   Widget _buildRecommendCard(String dominant, Color color) {
     final rec = _getSingleRecommendation(dominant);
+    final actions = _getCareActions(dominant);
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -334,42 +335,75 @@ extension _EmotionResultCardsC on _EmotionResultPageState {
         border: Border.all(color: color.withValues(alpha: 0.2)),
         borderRadius: BorderRadius.circular(20.r),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40.w,
-            height: 40.w,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10.r),
-            ),
-            child: Icon(rec.icon, size: 22.w, color: color),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40.w,
+                height: 40.w,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Icon(rec.icon, size: 22.w, color: color),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      rec.title,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTextColor,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      rec.body,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.grey[600],
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  rec.title,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryTextColor,
+          SizedBox(height: 12.h),
+          Wrap(
+            spacing: 8.w,
+            runSpacing: 6.h,
+            children: actions.map((action) => Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(color: color.withValues(alpha: 0.25)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(action.icon, size: 14.w, color: color),
+                  SizedBox(width: 4.w),
+                  Text(
+                    action.label,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  rec.body,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.grey[600],
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            )).toList(),
           ),
         ],
       ),

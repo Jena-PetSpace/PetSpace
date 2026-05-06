@@ -466,15 +466,6 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
         'isSleepy: $isSleepy, stress: $stressLevel',
         name: 'GeminiAI');
 
-    // EmotionScoresModel에 isSleepy를 직접 담을 수 없으므로
-    // gemini_ai_service에서는 EmotionScoresModel만 반환하고
-    // isSleepy는 별도 처리를 위해 breedInsight 필드 대신 호출부에서 처리.
-    // → analyzeEmotionFromImage/Images 에서 EmotionAnalysisModel로 래핑 시 isSleepy 전달.
-    // 임시로 breedInsight 필드에 isSleepy 정보를 전달하는 대신
-    // EmotionScoresModel을 반환 후 호출부에서 isSleepy를 별도 파싱하도록
-    // _lastIsSleepy 에 캐시한다.
-    _lastIsSleepy = isSleepy;
-
     return EmotionScoresModel(
       happiness:   happiness,
       calm:        calm,
@@ -484,6 +475,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       fear:        fear,
       sadness:     sadness,
       discomfort:  discomfort,
+      isSleepy:    isSleepy,
       stressLevel:   stressLevel,
       activityLevel: activityLevel,
       healthSignal:  healthSignal,
@@ -493,10 +485,6 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       breedInsight:  breedInsight,
     );
   }
-
-  // isSleepy를 호출부(EmotionAnalysisBloc 등)에서 읽을 수 있도록 캐시
-  bool _lastIsSleepy = false;
-  bool get lastIsSleepy => _lastIsSleepy;
 
   AnalysisException _handleDioException(DioException e) {
     log('DioException: ${e.type} - ${e.message}', name: 'GeminiAI');

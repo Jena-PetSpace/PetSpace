@@ -72,6 +72,18 @@ class _OnboardingPetRegistrationPageState
               fontWeight: FontWeight.bold,
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: _skip,
+              child: Text(
+                '건너뛰기',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ),
+          ],
         ),
         body: SafeArea(
           child: Padding(
@@ -557,7 +569,7 @@ class _OnboardingPetRegistrationPageState
   Widget _buildBottomButtons() {
     return Column(
       children: [
-        if (_registeredPets.isNotEmpty)
+        if (_registeredPets.isNotEmpty) ...[
           SizedBox(
             width: double.infinity,
             height: 50.h,
@@ -571,8 +583,18 @@ class _OnboardingPetRegistrationPageState
                 ),
               ),
             ),
-          )
-        else
+          ),
+          TextButton(
+            onPressed: _skip,
+            child: Text(
+              '나중에 등록하기',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+          ),
+        ] else
           SizedBox(
             width: double.infinity,
             height: 50.h,

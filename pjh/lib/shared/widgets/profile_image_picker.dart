@@ -24,39 +24,43 @@ class ProfileImagePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showImageSourceDialog(context),
-      child: Stack(
-        children: [
-          CircleAvatar(
-            radius: radius,
-            backgroundColor: Colors.grey[300],
-            backgroundImage: _getImageProvider(),
-            child: _getImageProvider() == null
-                ? Icon(Icons.person, size: radius, color: Colors.grey[600])
-                : null,
-          ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                shape: BoxShape.circle,
-                border: Border.all(
+    return Semantics(
+      label: '프로필 사진 변경',
+      button: true,
+      child: GestureDetector(
+        onTap: () => _showImageSourceDialog(context),
+        child: Stack(
+          children: [
+            CircleAvatar(
+              radius: radius,
+              backgroundColor: Colors.grey[300],
+              backgroundImage: _getImageProvider(),
+              child: _getImageProvider() == null
+                  ? Icon(Icons.person, size: radius, color: Colors.grey[600])
+                  : null,
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 2.w,
+                  ),
+                ),
+                padding: EdgeInsets.all(8.w),
+                child: Icon(
+                  Icons.camera_alt,
+                  size: 20.w,
                   color: Colors.white,
-                  width: 2.w,
                 ),
               ),
-              padding: EdgeInsets.all(8.w),
-              child: Icon(
-                Icons.camera_alt,
-                size: 20.w,
-                color: Colors.white,
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

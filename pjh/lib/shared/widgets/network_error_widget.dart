@@ -17,7 +17,7 @@ class NetworkErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: const Color(0xFFFFF0F0),
+      color: AppTheme.errorColor.withValues(alpha: 0.08),
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(
         children: [
@@ -33,20 +33,25 @@ class NetworkErrorBanner extends StatelessWidget {
               ),
             ),
           ),
-          GestureDetector(
-            onTap: isRetrying ? null : onRetry,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
-              decoration: BoxDecoration(
-                color: AppTheme.errorColor,
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: Text(
-                isRetrying ? '연결 중...' : '재시도',
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+          Semantics(
+            label: isRetrying ? '연결 중' : '재시도',
+            button: true,
+            enabled: !isRetrying,
+            child: GestureDetector(
+              onTap: isRetrying ? null : onRetry,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+                decoration: BoxDecoration(
+                  color: AppTheme.errorColor,
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Text(
+                  isRetrying ? '연결 중...' : '재시도',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),

@@ -138,22 +138,26 @@ class PetCard extends StatelessWidget {
         ),
       ),
       child: pet.avatarUrl != null
-          ? ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: pet.avatarUrl!,
-                width: 70.w,
-                height: 70.w,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.w,
+          ? Semantics(
+              label: '${pet.name} 프로필 사진',
+              image: true,
+              child: ClipOval(
+                child: CachedNetworkImage(
+                  imageUrl: pet.avatarUrl!,
+                  width: 70.w,
+                  height: 70.w,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.w,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Icon(
+                    pet.type == PetType.dog ? Icons.pets : Icons.pets,
+                    size: 32.w,
                     color: AppTheme.primaryColor,
                   ),
-                ),
-                errorWidget: (context, url, error) => Icon(
-                  pet.type == PetType.dog ? Icons.pets : Icons.pets,
-                  size: 32.w,
-                  color: AppTheme.primaryColor,
                 ),
               ),
             )

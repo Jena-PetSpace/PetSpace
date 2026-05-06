@@ -123,6 +123,7 @@ class EmotionScoresModel extends EmotionScores {
     super.discomfort  = 0.0,
     // ignore: deprecated_member_use_from_same_package
     super.sleepiness  = 0.0,
+    super.isSleepy    = false,
     super.stressLevel,
     super.activityLevel,
     super.healthSignal,
@@ -144,6 +145,7 @@ class EmotionScoresModel extends EmotionScores {
       discomfort:  scores.discomfort,
       // ignore: deprecated_member_use_from_same_package
       sleepiness:  scores.sleepiness,
+      isSleepy:    scores.isSleepy,
       stressLevel:   scores.stressLevel,
       activityLevel: scores.activityLevel,
       healthSignal:  scores.healthSignal,
@@ -183,6 +185,7 @@ class EmotionScoresModel extends EmotionScores {
       discomfort:  (map['discomfort'] as num?)?.toDouble() ?? 0.0,
       // ignore: deprecated_member_use_from_same_package
       sleepiness:  (map['sleepiness'] as num?)?.toDouble() ?? 0.0, // 하위 호환
+      isSleepy:    map['is_sleepy'] as bool? ?? false,
       stressLevel: (map['stress_level']   as num?)?.toInt() ?? 0,
       activityLevel: (map['activity_level'] as num?)?.toInt() ?? 0,
       healthSignal: map['health_signal'] as String? ?? 'normal',
@@ -204,6 +207,7 @@ class EmotionScoresModel extends EmotionScores {
       'fear':       fear,
       'sadness':    sadness,
       'discomfort': discomfort,
+      'is_sleepy':      isSleepy,
       'stress_level':   stressLevel,
       'activity_level': activityLevel,
       'health_signal':  healthSignal,
@@ -233,6 +237,7 @@ class EmotionScoresModel extends EmotionScores {
     double? sadness,
     double? discomfort,
     double? sleepiness,
+    bool? isSleepy,
     int? stressLevel,
     int? activityLevel,
     String? healthSignal,
@@ -252,6 +257,7 @@ class EmotionScoresModel extends EmotionScores {
       discomfort:  discomfort  ?? this.discomfort,
       // ignore: deprecated_member_use_from_same_package
       sleepiness:  sleepiness  ?? this.sleepiness,
+      isSleepy:    isSleepy    ?? this.isSleepy,
       stressLevel:   stressLevel   ?? this.stressLevel,
       activityLevel: activityLevel ?? this.activityLevel,
       healthSignal:  healthSignal  ?? this.healthSignal,

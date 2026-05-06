@@ -91,6 +91,7 @@ class _ProfilePageState extends State<ProfilePage>
             ? [
                 IconButton(
                   icon: const Icon(Icons.settings_outlined),
+                  tooltip: '설정',
                   onPressed: () => context.push('/settings'),
                 ),
               ]

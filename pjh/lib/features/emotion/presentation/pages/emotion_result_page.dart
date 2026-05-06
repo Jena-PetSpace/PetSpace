@@ -53,6 +53,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
   final TextEditingController _memoController = TextEditingController();
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
+  late Animation<Offset> _heroSlideAnim;
+  late Animation<double> _heroScaleAnim;
 
   // 더보기 모드: none / radar / facial
   _ChartMode _chartMode = _ChartMode.none;
@@ -83,10 +85,23 @@ class _EmotionResultPageState extends State<EmotionResultPage>
   void initState() {
     super.initState();
     _animController = AnimationController(
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _heroSlideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic),
+    ));
+    _heroScaleAnim = Tween<double>(begin: 0.94, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic),
+      ),
+    );
     _animController.forward();
     log('[ResultPage] imageUrl="${widget.analysis.imageUrl}" imagePaths=${widget.imagePaths.length}장 fromHistory=${widget.fromHistory}', name: 'EmotionResult');
     _loadPreviousAnalysis();
@@ -265,9 +280,15 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
                   child: Column(
                     children: [
-                      // 1. HeroCard
-                      _buildHeroCard(dominant, dominantName, dominantIcon,
-                          dominantValue, emotionColor),
+                      // 1. HeroCard — 슬라이드+스케일 입장 애니메이션
+                      SlideTransition(
+                        position: _heroSlideAnim,
+                        child: ScaleTransition(
+                          scale: _heroScaleAnim,
+                          child: _buildHeroCard(dominant, dominantName,
+                              dominantIcon, dominantValue, emotionColor),
+                        ),
+                      ),
                       SizedBox(height: 14.h),
 
                       // 2. 이전 분석 대비

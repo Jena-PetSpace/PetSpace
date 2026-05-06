@@ -69,19 +69,23 @@ class NotificationCard extends StatelessWidget {
   Widget _buildNotificationIcon() {
     return Stack(
       children: [
-        CircleAvatar(
-          radius: 20.r,
-          backgroundImage: notification.senderProfileImage != null
-              ? CachedNetworkImageProvider(notification.senderProfileImage!)
-              : null,
-          child: notification.senderProfileImage == null
-              ? Text(
-                  notification.senderName.isNotEmpty
-                      ? notification.senderName[0]
-                      : '?',
-                  style: TextStyle(fontSize: 14.sp),
-                )
-              : null,
+        Semantics(
+          label: '${notification.senderName} 프로필 사진',
+          image: true,
+          child: CircleAvatar(
+            radius: 20.r,
+            backgroundImage: notification.senderProfileImage != null
+                ? CachedNetworkImageProvider(notification.senderProfileImage!)
+                : null,
+            child: notification.senderProfileImage == null
+                ? Text(
+                    notification.senderName.isNotEmpty
+                        ? notification.senderName[0]
+                        : '?',
+                    style: TextStyle(fontSize: 14.sp),
+                  )
+                : null,
+          ),
         ),
         Positioned(
           bottom: 0,

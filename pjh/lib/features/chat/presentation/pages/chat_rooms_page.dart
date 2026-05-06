@@ -45,6 +45,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_square),
+            tooltip: '새로운 채팅',
             onPressed: () => context.push('/chat/new'),
           ),
         ],

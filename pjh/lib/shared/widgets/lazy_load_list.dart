@@ -364,6 +364,7 @@ class LazyGridView<T> extends StatefulWidget {
   final double crossAxisSpacing;
   final double childAspectRatio;
   final EdgeInsets? padding;
+  final Widget? emptyWidget;
 
   const LazyGridView({
     super.key,
@@ -375,6 +376,7 @@ class LazyGridView<T> extends StatefulWidget {
     this.crossAxisSpacing = 8,
     this.childAspectRatio = 1,
     this.padding,
+    this.emptyWidget,
   });
 
   @override
@@ -456,6 +458,10 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
   Widget build(BuildContext context) {
     if (_isLoading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (!_isLoading && _items.isEmpty && widget.emptyWidget != null) {
+      return widget.emptyWidget!;
     }
 
     return RefreshIndicator(

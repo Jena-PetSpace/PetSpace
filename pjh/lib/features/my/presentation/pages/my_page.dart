@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
+import '../../../../shared/widgets/lazy_load_list.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 import '../widgets/my_profile_header.dart';
@@ -32,16 +33,19 @@ class MyPage extends StatefulWidget {
 
 class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<Map<String, dynamic>> _myPosts = [];
-  List<Map<String, dynamic>> _savedPosts = [];
-  bool _postsLoading = true;
   int _statsRefreshKey = 0;
+  // 내 게시글 커서 (커서 기반 페이지네이션)
+  String? _myPostsCursor;
+  bool _myPostsHasMore = true;
+  // 저장 게시글은 전체 로드 후 클라이언트 페이지네이션
+  List<Map<String, dynamic>>? _allSavedPosts;
+  int _savedOffset = 0;
+  static const int _pageSize = 30;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadPosts();
     MyPageStatsNotifier.instance.addListener(_onStatsRefresh);
   }
 
@@ -53,35 +57,66 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   }
 
   void _onStatsRefresh() {
-    if (mounted) {
-      setState(() => _statsRefreshKey++);
-    }
+    if (mounted) setState(() => _statsRefreshKey++);
   }
 
-  Future<void> _loadPosts() async {
+  Future<List<Map<String, dynamic>>> _loadMyPostsInitial() async {
+    _myPostsCursor = null;
+    _myPostsHasMore = true;
+    return _fetchMyPostsPage();
+  }
+
+  Future<List<Map<String, dynamic>>> _loadMyPostsMore() async {
+    if (!_myPostsHasMore) return [];
+    return _fetchMyPostsPage();
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchMyPostsPage() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return;
+    if (userId == null) return [];
     final repo = sl<SocialRepository>();
-    final results = await Future.wait([
-      repo.getUserPostsFiltered(authorId: userId, limit: 100),
-      repo.getSavedPostsRaw(userId),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _myPosts = results[0].fold(
-          (failure) {
-            dev.log('내 게시글 로드 실패: ${failure.message}', name: 'MyPage');
-            return <Map<String, dynamic>>[];
-          },
-          (list) => list);
-      _savedPosts = results[1].fold(
-          (failure) {
-            dev.log('저장 게시글 로드 실패: ${failure.message}', name: 'MyPage');
-            return <Map<String, dynamic>>[];
-          },
-          (list) => list);
-      _postsLoading = false;
+    final result = await repo.getUserPostsFiltered(
+      authorId: userId,
+      limit: _pageSize,
+      beforeCreatedAt: _myPostsCursor,
+    );
+    return result.fold((failure) {
+      dev.log('내 게시글 로드 실패: ${failure.message}', name: 'MyPage');
+      return [];
+    }, (list) {
+      if (list.isNotEmpty) {
+        _myPostsCursor = list.last['created_at'] as String?;
+      }
+      if (list.length < _pageSize) _myPostsHasMore = false;
+      return list;
     });
+  }
+
+  Future<List<Map<String, dynamic>>> _loadSavedPostsInitial() async {
+    _savedOffset = 0;
+    _allSavedPosts = null;
+    return _fetchSavedPostsPage();
+  }
+
+  Future<List<Map<String, dynamic>>> _loadSavedPostsMore() async {
+    return _fetchSavedPostsPage();
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchSavedPostsPage() async {
+    if (_allSavedPosts == null) {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return [];
+      final repo = sl<SocialRepository>();
+      final result = await repo.getSavedPostsRaw(userId);
+      _allSavedPosts = result.fold((failure) {
+        dev.log('저장 게시글 로드 실패: ${failure.message}', name: 'MyPage');
+        return [];
+      }, (list) => list);
+    }
+    final all = _allSavedPosts!;
+    final page = all.skip(_savedOffset).take(_pageSize).toList();
+    _savedOffset += page.length;
+    return page;
   }
 
   @override
@@ -127,8 +162,16 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildGrid(_myPosts, _postsLoading, isMyPosts: true),
-                    _buildGrid(_savedPosts, false, isMyPosts: false),
+                    _buildLazyGrid(
+                      onLoadInitial: _loadMyPostsInitial,
+                      onLoadMore: _loadMyPostsMore,
+                      isMyPosts: true,
+                    ),
+                    _buildLazyGrid(
+                      onLoadInitial: _loadSavedPostsInitial,
+                      onLoadMore: _loadSavedPostsMore,
+                      isMyPosts: false,
+                    ),
                   ],
                 ),
               ),
@@ -140,32 +183,27 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
     );
   }
 
-  Widget _buildGrid(List<Map<String, dynamic>> posts, bool loading,
-      {required bool isMyPosts}) {
-    if (loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (posts.isEmpty) {
-      return _buildEmptyState(isMyPosts);
-    }
-    return GridView.builder(
+  Widget _buildLazyGrid({
+    required Future<List<Map<String, dynamic>>> Function() onLoadInitial,
+    required Future<List<Map<String, dynamic>>> Function() onLoadMore,
+    required bool isMyPosts,
+  }) {
+    return LazyGridView<Map<String, dynamic>>(
+      onLoadInitial: onLoadInitial,
+      onLoadMore: onLoadMore,
+      crossAxisCount: 3,
+      mainAxisSpacing: 1.5,
+      crossAxisSpacing: 1.5,
+      childAspectRatio: 1.0,
       padding: EdgeInsets.zero,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 1.5.h,
-        crossAxisSpacing: 1.5.w,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: posts.length,
-      itemBuilder: (context, i) {
-        final post = posts[i];
+      emptyWidget: _buildEmptyState(isMyPosts),
+      itemBuilder: (context, post, i) {
         final postId = post['id'] as String;
         final caption = post['caption'] as String? ?? '';
         final postType = post['post_type'] as String? ?? '';
         final isEmotion = postType == 'emotion';
         final isMulti = postType == 'photo';
 
-        // image_urls 배열 우선, 없으면 image_url 단일 필드 폴백
         final rawUrls = post['image_urls'];
         String? thumbUrl;
         int imageCount = 0;
@@ -190,7 +228,6 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                           _buildColorBlock(postId, caption),
                     )
                   : _buildColorBlock(postId, caption),
-              // 감정분석 배지
               if (isEmotion)
                 Positioned(
                   left: 4,
@@ -211,7 +248,6 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                     ),
                   ),
                 ),
-              // 다중 이미지 표시
               if (isMulti && imageCount > 1)
                 Positioned(
                   right: 4,

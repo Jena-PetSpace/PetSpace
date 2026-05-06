@@ -101,3 +101,9 @@ class _Recommendation {
   _Recommendation(
       {required this.icon, required this.title, required this.body});
 }
+
+class _CareAction {
+  final IconData icon;
+  final String label;
+  const _CareAction({required this.icon, required this.label});
+}

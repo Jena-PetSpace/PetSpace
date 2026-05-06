@@ -583,6 +583,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 IconButton(
                     onPressed: () => _submitComment(ctx),
                     icon: Icon(Icons.send_rounded, size: 24.w),
+                    tooltip: '댓글 전송',
                     color: AppTheme.primaryColor),
               ]),
             ],

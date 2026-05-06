@@ -108,35 +108,39 @@ class MultiImagePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (images.isEmpty) {
-      return GestureDetector(
-        onTap: () => _pickImages(context),
-        child: Container(
-          height: 220.h,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add_photo_alternate,
-                  size: 52.w, color: Colors.grey[400]),
-              SizedBox(height: 10.h),
-              Text(
-                '사진 추가하기',
-                style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w500),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                '최대 $maxImages장 선택 가능',
-                style: TextStyle(color: Colors.grey[400], fontSize: 12.sp),
-              ),
-            ],
+      return Semantics(
+        label: '사진 추가하기',
+        button: true,
+        child: GestureDetector(
+          onTap: () => _pickImages(context),
+          child: Container(
+            height: 220.h,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_photo_alternate,
+                    size: 52.w, color: Colors.grey[400]),
+                SizedBox(height: 10.h),
+                Text(
+                  '사진 추가하기',
+                  style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  '최대 $maxImages장 선택 가능',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12.sp),
+                ),
+              ],
+            ),
           ),
         ),
       );

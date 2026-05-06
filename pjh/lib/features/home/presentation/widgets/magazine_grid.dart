@@ -1,4 +1,5 @@
 import 'dart:developer' as dev;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -94,6 +95,7 @@ class _MagazineGridState extends State<MagazineGrid> {
                   tag: tag['label']!,
                   tagColor: _getTagColor(tag['label']!),
                   title: post.content ?? '',
+                  imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
                 );
               }).toList(),
             ),
@@ -127,12 +129,23 @@ class _MagazineGridState extends State<MagazineGrid> {
     }
   }
 
+  Widget _buildImagePlaceholder(Color tagColor) {
+    return Container(
+      height: 72.h,
+      color: tagColor.withValues(alpha: 0.08),
+      child: Center(
+        child: Icon(Icons.article_outlined, size: 32.w, color: tagColor.withValues(alpha: 0.4)),
+      ),
+    );
+  }
+
   Widget _buildMagazineItem({
     required BuildContext context,
     required String postId,
     required String tag,
     required Color tagColor,
     required String title,
+    String? imageUrl,
   }) {
     return GestureDetector(
       onTap: () => context.push('/post/$postId'),
@@ -151,16 +164,17 @@ class _MagazineGridState extends State<MagazineGrid> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 72.h,
-              decoration: BoxDecoration(
-                color: tagColor.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(14.r)),
-              ),
-              child: Center(
-                child: Icon(Icons.article_outlined,
-                    size: 32.w, color: tagColor.withValues(alpha: 0.4)),
-              ),
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(14.r)),
+              child: imageUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      height: 72.h,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _buildImagePlaceholder(tagColor),
+                    )
+                  : _buildImagePlaceholder(tagColor),
             ),
             Padding(
               padding: EdgeInsets.all(10.w),
