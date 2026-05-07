@@ -103,7 +103,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # generate: true  # P2-1 영어 지원 시작 시 활성화 (l10n.yaml + ARB → 코드 자동 생성)
+  generate: true
 
   assets:
     - assets/images/
