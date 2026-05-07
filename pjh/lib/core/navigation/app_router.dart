@@ -39,6 +39,7 @@ import '../../features/onboarding/presentation/pages/onboarding_profile_setup_pa
 import '../../features/onboarding/presentation/pages/onboarding_pet_registration_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_tutorial_page.dart';
 import '../../features/onboarding/presentation/pages/splash_page.dart';
+import '../../features/profile/presentation/pages/community_guidelines_page.dart';
 import '../../features/profile/presentation/pages/privacy_policy_page.dart';
 import '../../features/my/presentation/pages/reward_store_page.dart';
 import '../../features/emotion/presentation/pages/emotion_calendar_page.dart';
@@ -140,6 +141,10 @@ class AppRouter {
         GoRoute(
           path: '/privacy',
           builder: (context, state) => const PrivacyPolicyPage(),
+        ),
+        GoRoute(
+          path: '/community-guidelines',
+          builder: (context, state) => const CommunityGuidelinesPage(),
         ),
         GoRoute(
           path: '/reward',

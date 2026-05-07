@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../shared/widgets/haptic_refresh_indicator.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/feed_bloc.dart';
 import '../widgets/post_card.dart';
@@ -112,7 +113,7 @@ class _FeedPageState extends State<FeedPage> {
         if (state is FeedLoading) {
           return const FeedShimmerLoading();
         } else if (state is FeedRecommendedLoaded) {
-          return RefreshIndicator(
+          return HapticRefreshIndicator(
             onRefresh: () async {
               final uid = _effectiveUserId;
               if (uid != null) {
@@ -123,7 +124,7 @@ class _FeedPageState extends State<FeedPage> {
             child: _buildRecommendedList(state),
           );
         } else if (state is FeedLoaded) {
-          return RefreshIndicator(
+          return HapticRefreshIndicator(
             onRefresh: () async {
               context.read<FeedBloc>().add(RefreshFeedRequested(
                   userId: widget.userId, followingOnly: widget.followingOnly));

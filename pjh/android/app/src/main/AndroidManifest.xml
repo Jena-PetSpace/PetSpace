@@ -20,7 +20,7 @@
         android:label="펫페이스"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
-        android:usesCleartextTraffic="true">
+        android:networkSecurityConfig="@xml/network_security_config">
 
         <!-- Kakao SDK Native App Key -->
         <meta-data

@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/services/content_filter.dart';
 import '../../../../core/utils/back_press_handler.dart';
 import '../../../../core/utils/hashtag_utils.dart';
 import '../../../../shared/themes/app_theme.dart';
@@ -222,7 +223,11 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
               ),
             ],
           ),
-          body: SingleChildScrollView(
+          // P2-3: 키보드 외부 영역 탭 시 자동 닫기 (한국 모바일 표준 UX)
+          body: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            child: SingleChildScrollView(
             child: Padding(
               padding: EdgeInsets.all(16.w),
               child: Column(
@@ -247,6 +252,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
             ),
           ),
         ),
+          ), // GestureDetector
       ),
     );
   }
@@ -528,6 +534,18 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       return;
     }
 
+    // 1차 콘텐츠 필터 — 비속어/혐오/성적 표현 차단 (커뮤니티 가이드라인)
+    if (ContentFilter.hasBannedKeyword(contentText) ||
+        _hashtags.any(ContentFilter.hasBannedKeyword)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('커뮤니티 가이드라인에 어긋나는 표현이 포함되어 있습니다.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -571,9 +589,19 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
   }
 
   Future<void> _updatePost() async {
-    if (_contentController.text.trim().isEmpty) {
+    final trimmed = _contentController.text.trim();
+    if (trimmed.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('내용을 입력해주세요.')),
+      );
+      return;
+    }
+    if (ContentFilter.hasBannedKeyword(trimmed)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('커뮤니티 가이드라인에 어긋나는 표현이 포함되어 있습니다.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }

@@ -1,0 +1,12 @@
+# P2-1 다국어 지원 골격.
+# 현재 출시(v1.0.0)는 한국어 단일이며 본 설정은 비활성 상태.
+# 영어 번역 추가 시작 시:
+#   1. pubspec.yaml 의 flutter_localizations 의존성 활성화
+#   2. pubspec.yaml 의 generate: true 활성화
+#   3. flutter gen-l10n 실행 → lib/l10n/generated/app_localizations.dart 생성
+#   4. main.dart MaterialApp 에 delegates/supportedLocales 추가
+arb-dir: lib/l10n
+template-arb-file: app_ko.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+output-dir: lib/l10n/generated

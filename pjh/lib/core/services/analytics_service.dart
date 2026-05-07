@@ -6,6 +6,12 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 ///
 /// Firebase가 초기화되지 않은 환경(iOS 개발, 미지원 플랫폼)에서는
 /// 에러 없이 조용히 스킵합니다.
+///
+/// [iOS App Tracking Transparency 정책 — P1-8]
+/// 본 서비스는 광고 식별자(IDFA) / 광고 SDK / 크로스앱 트래킹을 사용하지 않으며,
+/// Firebase Analytics 기본 설정만으로 동작합니다. 따라서 `NSUserTrackingUsageDescription`
+/// 미선언 + ATT 프롬프트 미호출이 정상이며, Apple 심사 시에도 트래킹 답변을 "아니오" 로
+/// 제출합니다. PrivacyInfo.xcprivacy 의 `NSPrivacyTracking = false` 와 동기화 유지.
 class AnalyticsService {
   AnalyticsService._();
   static final AnalyticsService instance = AnalyticsService._();

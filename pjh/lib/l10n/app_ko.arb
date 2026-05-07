@@ -1,0 +1,28 @@
+{
+  "@@locale": "ko",
+  "appName": "펫페이스",
+  "@appName": {
+    "description": "앱 이름"
+  },
+
+  "commonOk": "확인",
+  "commonCancel": "취소",
+  "commonRetry": "다시 시도",
+  "commonClose": "닫기",
+  "commonSave": "저장",
+  "commonDelete": "삭제",
+
+  "authLoginTitle": "로그인",
+  "authSignupTitle": "회원가입",
+  "authSignInWithApple": "Apple로 로그인",
+  "authSignInWithGoogle": "Google 계정으로 로그인하기",
+  "authSignInWithKakao": "카카오톡 계정으로 로그인하기",
+
+  "feedEmptyTitle": "아직 게시물이 없어요",
+  "feedEmptyAction": "첫 게시물 작성",
+
+  "emotionDisclaimer": "본 분석은 AI가 사진을 기반으로 추정한 결과로, 수의학적 진단을 대체하지 않습니다.",
+
+  "communityGuidelinesTitle": "커뮤니티 가이드라인",
+  "privacyPolicyTitle": "개인정보처리방침"
+}

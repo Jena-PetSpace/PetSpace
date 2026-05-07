@@ -13,6 +13,7 @@ import '../core/network/network_info.dart';
 // Features - Auth
 import '../features/auth/data/repositories/auth_repository_impl.dart';
 import '../features/auth/domain/repositories/auth_repository.dart';
+import '../features/auth/domain/usecases/sign_in_with_apple.dart';
 import '../features/auth/domain/usecases/sign_in_with_google.dart';
 import '../features/auth/domain/usecases/sign_in_with_kakao.dart';
 import '../features/auth/domain/usecases/sign_out.dart';
@@ -136,6 +137,7 @@ Future<void> _initAuth() async {
   // Use Cases
   sl.registerLazySingleton(() => SignInWithGoogle(sl()));
   sl.registerLazySingleton(() => SignInWithKakao(sl()));
+  sl.registerLazySingleton(() => SignInWithApple(sl()));
   sl.registerLazySingleton(() => SignOut(sl()));
 
   // BLoC
@@ -144,6 +146,7 @@ Future<void> _initAuth() async {
       authRepository: sl(),
       signInWithGoogle: sl(),
       signInWithKakao: sl(),
+      signInWithApple: sl(),
       signOut: sl(),
     ),
   );

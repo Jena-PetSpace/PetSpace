@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:meong_nyang_diary/core/error/failures.dart';
 import 'package:meong_nyang_diary/features/auth/domain/entities/user.dart';
 import 'package:meong_nyang_diary/features/auth/domain/repositories/auth_repository.dart';
+import 'package:meong_nyang_diary/features/auth/domain/usecases/sign_in_with_apple.dart';
 import 'package:meong_nyang_diary/features/auth/domain/usecases/sign_in_with_google.dart';
 import 'package:meong_nyang_diary/features/auth/domain/usecases/sign_in_with_kakao.dart';
 import 'package:meong_nyang_diary/features/auth/domain/usecases/sign_out.dart';
@@ -19,6 +20,8 @@ class MockAuthRepository extends Mock implements AuthRepository {}
 class MockSignInWithGoogle extends Mock implements SignInWithGoogle {}
 
 class MockSignInWithKakao extends Mock implements SignInWithKakao {}
+
+class MockSignInWithApple extends Mock implements SignInWithApple {}
 
 class MockSignOut extends Mock implements SignOut {}
 
@@ -46,6 +49,7 @@ void main() {
   late MockAuthRepository mockRepo;
   late MockSignInWithGoogle mockGoogle;
   late MockSignInWithKakao mockKakao;
+  late MockSignInWithApple mockApple;
   late MockSignOut mockSignOut;
   late StreamController<User?> authStreamController;
 
@@ -53,6 +57,7 @@ void main() {
     mockRepo = MockAuthRepository();
     mockGoogle = MockSignInWithGoogle();
     mockKakao = MockSignInWithKakao();
+    mockApple = MockSignInWithApple();
     mockSignOut = MockSignOut();
     authStreamController = StreamController<User?>.broadcast();
 
@@ -63,6 +68,7 @@ void main() {
       authRepository: mockRepo,
       signInWithGoogle: mockGoogle,
       signInWithKakao: mockKakao,
+      signInWithApple: mockApple,
       signOut: mockSignOut,
     );
   });
@@ -90,6 +96,7 @@ void main() {
           authRepository: mockRepo,
           signInWithGoogle: mockGoogle,
           signInWithKakao: mockKakao,
+          signInWithApple: mockApple,
           signOut: mockSignOut,
         );
       },
@@ -109,6 +116,7 @@ void main() {
           authRepository: mockRepo,
           signInWithGoogle: mockGoogle,
           signInWithKakao: mockKakao,
+          signInWithApple: mockApple,
           signOut: mockSignOut,
         );
       },

@@ -45,11 +45,14 @@ class PostCard extends StatefulWidget {
 final Map<String, int> _streakCache = {};
 
 class _PostCardState extends State<PostCard> {
+  static const int _contentTruncateThreshold = 150;
+
   int _currentImageIndex = 0;
   Timer? _likeDebounce;
   Timer? _commentDebounce;
   bool _isSaved = false;
   bool _showHeart = false;
+  bool _isContentExpanded = false;
 
   Post get post => widget.post;
 
@@ -207,12 +210,34 @@ class _PostCardState extends State<PostCard> {
   }
 
   Widget _buildContent() {
+    final content = post.content!;
+    final isLong = content.length > _contentTruncateThreshold;
+    final displayText = (!_isContentExpanded && isLong)
+        ? content.substring(0, _contentTruncateThreshold)
+        : content;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTextWithHashtags(post.content!),
+          _buildTextWithHashtags(displayText),
+          if (isLong && !_isContentExpanded)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _isContentExpanded = true),
+              child: Padding(
+                padding: EdgeInsets.only(top: 4.h),
+                child: Text(
+                  '... 더보기',
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
           if (post.tags.isNotEmpty) ...[
             SizedBox(height: 8.h),
             Wrap(
@@ -646,35 +671,45 @@ class _PostCardState extends State<PostCard> {
             ),
           ),
           SizedBox(width: 16.w),
-          InkWell(
-            onTap: widget.onShare,
-            borderRadius: BorderRadius.circular(20.r),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              child: Icon(Icons.share_outlined, size: 20.w),
+          Semantics(
+            label: '공유',
+            button: true,
+            child: InkWell(
+              onTap: widget.onShare,
+              borderRadius: BorderRadius.circular(20.r),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                child: Icon(Icons.share_outlined, size: 20.w),
+              ),
             ),
           ),
           const Spacer(),
           // 북마크 버튼 (단탭=저장토글, 롱프레스=컬렉션 선택)
-          SizedBox(
-            width: 44.w,
-            height: 44.w,
-            child: GestureDetector(
-              onTap: _toggleSave,
-              onLongPress: () {
-                if (widget.currentUserId.isEmpty) return;
-                CollectionPickerSheet.show(
-                  context,
-                  postId: post.id,
-                  userId: widget.currentUserId,
-                );
-              },
-              child: Icon(
-                _isSaved
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_outlined,
-                size: 22.w,
-                color: _isSaved ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+          Semantics(
+            label: _isSaved ? '저장 해제' : '저장',
+            hint: '길게 누르면 컬렉션 선택',
+            button: true,
+            toggled: _isSaved,
+            child: SizedBox(
+              width: 44.w,
+              height: 44.w,
+              child: GestureDetector(
+                onTap: _toggleSave,
+                onLongPress: () {
+                  if (widget.currentUserId.isEmpty) return;
+                  CollectionPickerSheet.show(
+                    context,
+                    postId: post.id,
+                    userId: widget.currentUserId,
+                  );
+                },
+                child: Icon(
+                  _isSaved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_outlined,
+                  size: 22.w,
+                  color: _isSaved ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                ),
               ),
             ),
           ),

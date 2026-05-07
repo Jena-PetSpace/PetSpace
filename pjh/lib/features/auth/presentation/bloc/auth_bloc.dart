@@ -8,6 +8,7 @@ import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/entities/user_profile.dart';
+import '../../domain/usecases/sign_in_with_apple.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
 import '../../domain/usecases/sign_in_with_kakao.dart';
 import '../../domain/usecases/sign_out.dart';
@@ -20,6 +21,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
   final SignInWithGoogle _signInWithGoogle;
   final SignInWithKakao _signInWithKakao;
+  final SignInWithApple _signInWithApple;
   final SignOut _signOut;
 
   StreamSubscription<User?>? _authStateSubscription;
@@ -28,16 +30,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required AuthRepository authRepository,
     required SignInWithGoogle signInWithGoogle,
     required SignInWithKakao signInWithKakao,
+    required SignInWithApple signInWithApple,
     required SignOut signOut,
   })  : _authRepository = authRepository,
         _signInWithGoogle = signInWithGoogle,
         _signInWithKakao = signInWithKakao,
+        _signInWithApple = signInWithApple,
         _signOut = signOut,
         super(AuthInitial()) {
     on<AuthStarted>(_onAuthStarted);
     on<AuthUserChanged>(_onAuthUserChanged);
     on<AuthSignInWithGoogleRequested>(_onSignInWithGoogleRequested);
     on<AuthSignInWithKakaoRequested>(_onSignInWithKakaoRequested);
+    on<AuthSignInWithAppleRequested>(_onSignInWithAppleRequested);
     on<AuthSignInWithEmailRequested>(_onSignInWithEmailRequested);
     on<AuthSignUpWithEmailRequested>(_onSignUpWithEmailRequested);
     on<AuthSignOutRequested>(_onSignOutRequested);
@@ -117,6 +122,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(AuthError(failure.message)),
       (user) {
         AnalyticsService.instance.logLogin(method: 'kakao');
+        NotificationService().registerToken(user.id);
+        emit(AuthAuthenticated(user));
+      },
+    );
+  }
+
+  Future<void> _onSignInWithAppleRequested(
+    AuthSignInWithAppleRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await _signInWithApple();
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (user) {
+        AnalyticsService.instance.logLogin(method: 'apple');
         NotificationService().registerToken(user.id);
         emit(AuthAuthenticated(user));
       },
