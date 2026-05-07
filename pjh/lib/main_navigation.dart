@@ -146,17 +146,19 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   // FAB 직경
-  static const double _fabSize = 58.0;
-  // 바 위로 돌출되는 높이 (FAB 절반 + 여유)
-  static const double _fabOverlap = 28.0;
+  static const double _fabSize = 70.0;
+  // FAB 중심이 바 상단 기준으로 위로 나오는 양 (양수=위, 음수=바 안으로)
+  static const double _fabProtrude = -16.0;
   // 바 자체 높이
-  static const double _barHeight = 62.0;
+  static const double _barHeight = 58.0;
 
   Widget _buildCustomBottomNav() {
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    // FAB bottom: 바 하단(bottomPad)에서 바 높이 절반 + 돌출량
+    final fabBottom = bottomPad + _barHeight / 2 + _fabProtrude;
 
     return SizedBox(
-      height: _fabOverlap + _barHeight + bottomPad,
+      height: _barHeight + bottomPad,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -201,9 +203,9 @@ class _MainNavigationState extends State<MainNavigation> {
             ),
           ),
 
-          // ── 중앙 FAB (바 위로 돌출, 수평 정확히 center) ─────
+          // ── 중앙 FAB (바 위로 돌출) ─────────────────────────
           Positioned(
-            bottom: bottomPad + (_barHeight - _fabSize) / 2 + _fabOverlap / 2,
+            bottom: fabBottom,
             left: 0,
             right: 0,
             child: Center(
@@ -217,17 +219,21 @@ class _MainNavigationState extends State<MainNavigation> {
                     height: _fabSize.w,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppTheme.primaryColor,
-                      border: Border.all(color: Colors.white, width: 3.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.45),
-                          blurRadius: 16,
-                          offset: const Offset(0, 5),
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        ClipOval(
+                          child: SvgPicture.asset(
+                            'assets/svg/icon_fab_bg.svg',
+                            width: _fabSize.w,
+                            height: _fabSize.w,
+                          ),
                         ),
+                        Icon(Icons.pets, color: Colors.white, size: 39.w),
                       ],
                     ),
-                    child: Icon(Icons.pets, color: Colors.white, size: 26.w),
                   ),
                 ),
               ),
