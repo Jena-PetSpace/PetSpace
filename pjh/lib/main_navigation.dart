@@ -148,7 +148,7 @@ class _MainNavigationState extends State<MainNavigation> {
   // FAB 직경
   static const double _fabSize = 70.0;
   // FAB 중심이 바 상단 기준으로 위로 나오는 양 (양수=위, 음수=바 안으로)
-  static const double _fabProtrude = -16.0;
+  static const double _fabProtrude = -14.0;
   // 바 자체 높이
   static const double _barHeight = 58.0;
 
@@ -231,7 +231,12 @@ class _MainNavigationState extends State<MainNavigation> {
                             height: _fabSize.w,
                           ),
                         ),
-                        Icon(Icons.pets, color: Colors.white, size: 39.w),
+                        SvgPicture.asset(
+                          'assets/svg/icon_paw.svg',
+                          width: 39.w,
+                          height: 39.w,
+                          fit: BoxFit.contain,
+                        ),
                       ],
                     ),
                   ),
