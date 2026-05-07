@@ -3,6 +3,7 @@ import 'dart:developer' as dev;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
+import '../../../../core/services/content_filter.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -149,6 +150,15 @@ class _PostDetailPageState extends State<PostDetailPage> {
   void _submitComment(BuildContext ctx) {
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
+    if (ContentFilter.hasBannedKeyword(content)) {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(
+          content: Text('커뮤니티 가이드라인에 어긋나는 표현이 포함되어 있습니다.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
     final authState = ctx.read<AuthBloc>().state;
     final senderName =
         authState is AuthAuthenticated ? authState.user.displayName : '사용자';

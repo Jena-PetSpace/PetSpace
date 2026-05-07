@@ -14,6 +14,7 @@ import 'package:kakao_maps_flutter/kakao_maps_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_performance/firebase_performance.dart';
 
 // Config
 import 'config/injection_container.dart' as di;
@@ -122,6 +123,13 @@ Future<void> _initBackground() async {
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
       AnalyticsService.instance.initialize();
+      // P2-6: Firebase Performance — 자동 추적(앱 시작 시간, HTTP 요청)
+      try {
+        await FirebasePerformance.instance
+            .setPerformanceCollectionEnabled(true);
+      } catch (e) {
+        log('⚠️ Firebase Performance 초기화 실패: $e', name: 'main.firebase');
+      }
       firebaseInitialized = true;
       log('✅ Firebase 초기화 완료', name: 'main.firebase');
     } catch (e) {

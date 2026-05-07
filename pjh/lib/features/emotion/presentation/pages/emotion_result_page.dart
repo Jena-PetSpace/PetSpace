@@ -20,6 +20,7 @@ import '../../domain/repositories/emotion_repository.dart';
 import '../../data/services/emotion_insights_service.dart';
 import '../../data/services/emotion_diary_service.dart';
 import '../bloc/emotion_analysis_bloc.dart';
+import '../widgets/emotion_disclaimer_banner.dart';
 import '../widgets/emotion_radar_chart.dart';
 import '../widgets/multi_image_gallery_widget.dart';
 import '../widgets/result/emotion_share_card.dart';
@@ -289,6 +290,8 @@ class _EmotionResultPageState extends State<EmotionResultPage>
                               dominantIcon, dominantValue, emotionColor),
                         ),
                       ),
+                      // AI 면책 안내 (App Store 의료/심리 진단 우려 대응)
+                      const EmotionDisclaimerBanner(),
                       SizedBox(height: 14.h),
 
                       // 2. 이전 분석 대비

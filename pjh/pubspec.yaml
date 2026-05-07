@@ -24,10 +24,12 @@ dependencies:
   firebase_messaging: ^15.1.5
   firebase_crashlytics: ^4.1.3
   firebase_analytics: ^11.3.3
+  firebase_performance: ^0.10.0+11
 
   # Authentication
   google_sign_in: ^6.2.1
   kakao_flutter_sdk: ^1.9.7
+  sign_in_with_apple: ^6.1.4
 
   # Image Handling
   image_picker: ^1.1.2
@@ -46,6 +48,15 @@ dependencies:
 
   # Utilities
   intl: ^0.19.0
+  # flutter_localizations: 출시 후 영어 지원 시작 시 활성화.
+  # 활성화 절차:
+  #   1. intl 을 ^0.20.x 로 업그레이드 (다른 의존성 호환성 검증 필요)
+  #   2. 아래 의존성 주석 해제
+  #   3. pubspec 하단 generate: true 주석 해제
+  #   4. flutter gen-l10n 실행
+  #   5. main.dart 의 MaterialApp 에 localizationsDelegates / supportedLocales 추가
+  # flutter_localizations:
+  #   sdk: flutter
   http: ^1.2.1
   dio: ^5.6.0
   equatable: ^2.0.5
@@ -92,6 +103,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # generate: true  # P2-1 영어 지원 시작 시 활성화 (l10n.yaml + ARB → 코드 자동 생성)
 
   assets:
     - assets/images/

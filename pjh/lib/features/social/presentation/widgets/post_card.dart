@@ -50,11 +50,14 @@ class PostCard extends StatefulWidget {
 final Map<String, int> _streakCache = {};
 
 class _PostCardState extends State<PostCard> {
+  static const int _contentTruncateThreshold = 150;
+
   int _currentImageIndex = 0;
   Timer? _likeDebounce;
   Timer? _commentDebounce;
   bool _isSaved = false;
   bool _showHeart = false;
+  bool _isContentExpanded = false;
 
   Post get post => widget.post;
 
@@ -110,12 +113,26 @@ class _PostCardState extends State<PostCard> {
   }
 
   Widget _buildContent() {
+    final content = post.content!;
+    final isLong = content.length > _contentTruncateThreshold;
+    final displayText = (!_isContentExpanded && isLong)
+        ? content.substring(0, _contentTruncateThreshold)
+        : content;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTextWithHashtags(post.content!),
+          _buildTextWithHashtags(displayText),
+          if (isLong && !_isContentExpanded)
+            GestureDetector(
+              onTap: () => setState(() => _isContentExpanded = true),
+              child: Text(
+                '... 더보기',
+                style: TextStyle(fontSize: 14.sp, color: AppTheme.primaryColor),
+              ),
+            ),
           if (post.tags.isNotEmpty) ...[
             SizedBox(height: 8.h),
             Wrap(

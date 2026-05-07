@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart' as kakao;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../../config/secrets.dart';
 import '../../../../core/error/failures.dart';
@@ -128,6 +129,118 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       return Left(
           GeneralFailure(message: '구글 로그인 중 오류가 발생했습니다: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, user_entity.User>> signInWithApple() async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+    }
+
+    // Apple 로그인은 iOS 13+ / macOS 10.15+ 에서만 동작.
+    // Android 는 web flow 가 가능하지만 본 앱은 iOS 전용으로 노출.
+    if (!Platform.isIOS && !Platform.isMacOS) {
+      return const Left(
+        AuthFailure(message: 'Apple 로그인은 iOS 기기에서만 사용할 수 있습니다.'),
+      );
+    }
+
+    try {
+      // Supabase 가 nonce 검증에 사용 — 평문은 Apple 에 전달하고
+      // 해시본은 Supabase signInWithIdToken 의 nonce 파라미터로 전달.
+      final rawNonce = supabaseClient.auth.generateRawNonce();
+      final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+
+      final idToken = credential.identityToken;
+      if (idToken == null || idToken.isEmpty) {
+        return const Left(
+            AuthFailure(message: 'Apple 로그인 토큰을 가져오지 못했습니다. 다시 시도해주세요.'));
+      }
+
+      final response = await supabaseClient.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+
+      final supabaseUser = response.user;
+      if (supabaseUser == null) {
+        return const Left(AuthFailure(message: 'Apple 로그인에 실패했습니다.'));
+      }
+
+      // handle_new_user 트리거가 프로필을 생성할 시간 대기
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final userResponse = await supabaseClient
+          .from('users')
+          .select()
+          .eq('id', supabaseUser.id)
+          .maybeSingle();
+
+      UserModel user;
+      if (userResponse != null) {
+        user = UserModel.fromJson(userResponse);
+      } else {
+        // Apple 은 첫 로그인에서만 fullName/email 을 반환함.
+        // 이후엔 비어 있으므로 Supabase userMetadata 또는 임의 닉네임 사용.
+        final fullName = [
+          credential.givenName,
+          credential.familyName,
+        ].where((s) => s != null && s.isNotEmpty).join(' ').trim();
+
+        final displayName = fullName.isNotEmpty
+            ? fullName
+            : (supabaseUser.userMetadata?['full_name'] as String?) ??
+                (supabaseUser.userMetadata?['name'] as String?) ??
+                '사용자';
+
+        final email = supabaseUser.email ??
+            credential.email ??
+            'apple_${supabaseUser.id}@apple.user';
+
+        user = UserModel(
+          uid: supabaseUser.id,
+          email: email,
+          displayName: displayName,
+          photoURL: supabaseUser.userMetadata?['avatar_url'] as String?,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          pets: const [],
+          following: const [],
+          followers: const [],
+          settings: const UserSettingsModel(
+            notificationsEnabled: true,
+            privacyLevel: user_entity.PrivacyLevel.public,
+            showEmotionAnalysisToPublic: true,
+          ),
+        );
+
+        await supabaseClient
+            .from('users')
+            .upsert(user.toMap(), onConflict: 'id');
+      }
+
+      return Right(user);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // 사용자 취소 / 권한 거부 등 — 빈 메시지로 SnackBar 노출 억제
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return const Left(AuthFailure(message: ''));
+      }
+      return Left(AuthFailure(message: 'Apple 로그인 실패: ${e.message}'));
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
+    } catch (e) {
+      return Left(
+          GeneralFailure(message: 'Apple 로그인 중 오류가 발생했습니다: ${e.toString()}'));
     }
   }
 

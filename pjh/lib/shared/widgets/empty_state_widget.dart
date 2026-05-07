@@ -28,6 +28,55 @@ class EmptyStateWidget extends StatelessWidget {
     this.onSecondary,
   });
 
+  /// 검색 결과가 없을 때 사용하는 표준 EmptyState.
+  factory EmptyStateWidget.searchNoResult({
+    Key? key,
+    String? query,
+  }) {
+    return EmptyStateWidget(
+      key: key,
+      icon: Icons.search_off,
+      emoji: '🔍',
+      title: '검색 결과가 없어요',
+      subtitle: query != null && query.isNotEmpty
+          ? '"$query" 와(과) 일치하는 결과가 없습니다.\n다른 단어로 다시 검색해보세요.'
+          : '다른 키워드로 다시 검색해보세요.',
+    );
+  }
+
+  /// 네트워크 오류 시 사용하는 표준 EmptyState.
+  factory EmptyStateWidget.networkError({
+    Key? key,
+    required VoidCallback onRetry,
+  }) {
+    return EmptyStateWidget(
+      key: key,
+      icon: Icons.wifi_off,
+      emoji: '📡',
+      title: '연결이 불안정해요',
+      subtitle: '인터넷 연결을 확인하고 다시 시도해주세요.',
+      actionLabel: '다시 시도',
+      onAction: onRetry,
+    );
+  }
+
+  /// 일반 오류 시 사용하는 표준 EmptyState.
+  factory EmptyStateWidget.error({
+    Key? key,
+    String? message,
+    VoidCallback? onRetry,
+  }) {
+    return EmptyStateWidget(
+      key: key,
+      icon: Icons.error_outline,
+      emoji: '⚠️',
+      title: '문제가 발생했어요',
+      subtitle: message ?? '잠시 후 다시 시도해주세요.',
+      actionLabel: onRetry != null ? '다시 시도' : null,
+      onAction: onRetry,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;

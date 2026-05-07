@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/services/permission_helper.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 
@@ -17,7 +18,8 @@ class NotificationSettingsPage extends StatefulWidget {
       _NotificationSettingsPageState();
 }
 
-class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
+class _NotificationSettingsPageState extends State<NotificationSettingsPage>
+    with WidgetsBindingObserver {
   bool _pushEnabled = true;
   bool _likeNotification = true;
   bool _commentNotification = true;
@@ -27,11 +29,36 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   bool _systemNotification = true;
 
   bool _loading = true;
+  bool _systemPermissionGranted = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSettings();
+    _checkSystemPermission();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// 앱이 백그라운드 → 포그라운드로 돌아올 때 시스템 권한을 다시 확인.
+  /// 사용자가 설정 앱에서 권한을 토글하고 돌아왔을 가능성이 있음.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _checkSystemPermission();
+    }
+  }
+
+  Future<void> _checkSystemPermission() async {
+    final granted = await PermissionHelper.isNotificationGranted();
+    if (!mounted) return;
+    setState(() => _systemPermissionGranted = granted);
   }
 
   /// 서버 우선 로드 — 서버 실패 시 SharedPreferences fallback
@@ -147,6 +174,16 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
       ),
       body: ListView(
         children: [
+          if (!_systemPermissionGranted) _SystemPermissionWarning(
+            onTap: () async {
+              await PermissionHelper.showSettingsBottomSheet(
+                context,
+                permissionName: '알림',
+                reason: '푸시 알림을 받으려면 시스템 알림 권한이 필요합니다.',
+              );
+              await _checkSystemPermission();
+            },
+          ),
           SwitchListTile(
             title: Text('푸시 알림', style: TextStyle(fontSize: 14.sp)),
             subtitle:
@@ -260,6 +297,69 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                             setState(() => _systemNotification = !value));
                   }
                 : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SystemPermissionWarning extends StatelessWidget {
+  const _SystemPermissionWarning({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4E5),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFFFB266), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.notifications_off_outlined,
+              size: 22.sp, color: const Color(0xFFD97706)),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '시스템 알림이 꺼져 있어요',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF7A4500),
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  '아래 알림을 모두 켜더라도 시스템 권한이 꺼져 있으면 알림이 오지 않습니다.',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: const Color(0xFF7A4500),
+                    height: 1.4,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                GestureDetector(
+                  onTap: onTap,
+                  child: Text(
+                    '설정에서 켜기 →',
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFD97706),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

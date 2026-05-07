@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -26,6 +27,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   bool _isSigningUp = false; // 회원가입 진행 중인지 추적
   bool _isKakaoLoginInProgress = false; // 카카오 로그인 중
   bool _isGoogleLoginInProgress = false; // 구글 로그인 중
+  bool _isAppleLoginInProgress = false; // 애플 로그인 중
   bool _isEmailLoginInProgress = false; // 이메일 로그인 중
   Duration? _rateLimitDuration; // Rate limit 남은 시간
 
@@ -56,6 +58,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
             // 로딩 상태 초기화
             _isKakaoLoginInProgress = false;
             _isGoogleLoginInProgress = false;
+            _isAppleLoginInProgress = false;
             _isEmailLoginInProgress = false;
           });
           final route =
@@ -67,6 +70,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
           setState(() {
             _isKakaoLoginInProgress = false;
             _isGoogleLoginInProgress = false;
+            _isAppleLoginInProgress = false;
             _isEmailLoginInProgress = false;
           });
           // 로그인 완료 시 GoRouter의 redirect 로직이 자동으로 처리
@@ -78,6 +82,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
             // 로딩 상태 초기화
             _isKakaoLoginInProgress = false;
             _isGoogleLoginInProgress = false;
+            _isAppleLoginInProgress = false;
             _isEmailLoginInProgress = false;
             // Rate limit 에러인 경우 카운트다운 시작
             if (state.retryAfter != null) {
@@ -136,6 +141,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
             // 로딩 오버레이
             if (_isKakaoLoginInProgress ||
                 _isGoogleLoginInProgress ||
+                _isAppleLoginInProgress ||
                 _isEmailLoginInProgress)
               Container(
                 color: Colors.black.withValues(alpha: 0.3),
@@ -181,8 +187,20 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
       return const SizedBox.shrink();
     }
 
+    // iOS HIG: 타사 소셜 로그인을 제공할 경우 Apple 로그인을
+    // 동일 위계에서 가장 상단에 배치 (App Store Guideline 4.8)
     return Column(
       children: [
+        if (Platform.isIOS) ...[
+          _buildSocialButton(
+            icon: Icons.apple,
+            text: 'Apple로 로그인',
+            color: Colors.black,
+            textColor: Colors.white,
+            onPressed: _appleLogin,
+          ),
+          SizedBox(height: 12.h),
+        ],
         _buildSocialButton(
           icon: Icons.account_circle,
           text: 'Google 계정으로 로그인하기',
@@ -436,6 +454,13 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
       _isGoogleLoginInProgress = true;
     });
     context.read<AuthBloc>().add(AuthSignInWithGoogleRequested());
+  }
+
+  void _appleLogin() {
+    setState(() {
+      _isAppleLoginInProgress = true;
+    });
+    context.read<AuthBloc>().add(AuthSignInWithAppleRequested());
   }
 
   void _emailLogin() {

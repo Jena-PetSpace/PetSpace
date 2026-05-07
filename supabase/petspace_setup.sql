@@ -669,6 +669,15 @@ BEGIN
             SELECT user_uuid
         ) OR user_uuid IS NULL
     )
+    -- D-5: 차단 양방향 필터링 (UGC 정책)
+    AND (
+        user_uuid IS NULL
+        OR NOT EXISTS (
+            SELECT 1 FROM user_blocks ub
+            WHERE (ub.blocker_id = user_uuid AND ub.blocked_id = p.author_id)
+               OR (ub.blocker_id = p.author_id AND ub.blocked_id = user_uuid)
+        )
+    )
     ORDER BY p.created_at DESC
     LIMIT limit_count OFFSET offset_count;
 END;
@@ -1968,6 +1977,15 @@ BEGIN
     p.deleted_at IS NULL
     AND p.is_private = FALSE
     AND p.hashtags && ARRAY[p_hashtag]
+    -- D-5: 차단 양방향 필터링 (UGC 정책)
+    AND (
+      p_user_id IS NULL
+      OR NOT EXISTS (
+        SELECT 1 FROM user_blocks ub
+        WHERE (ub.blocker_id = p_user_id AND ub.blocked_id = p.author_id)
+           OR (ub.blocker_id = p.author_id AND ub.blocked_id = p_user_id)
+      )
+    )
   ORDER BY
     CASE WHEN p_sort = 'popular' THEN p.likes_count ELSE 0 END DESC,
     p.created_at DESC
@@ -2026,6 +2044,15 @@ BEGIN
     AND p.location_lng IS NOT NULL
     AND p.location_lat BETWEEN (p_lat - v_lat_delta) AND (p_lat + v_lat_delta)
     AND p.location_lng BETWEEN (p_lng - v_lng_delta) AND (p_lng + v_lng_delta)
+    -- D-5: 차단 양방향 필터링 (UGC 정책)
+    AND (
+      p_user_id IS NULL
+      OR NOT EXISTS (
+        SELECT 1 FROM user_blocks ub
+        WHERE (ub.blocker_id = p_user_id AND ub.blocked_id = p.author_id)
+           OR (ub.blocker_id = p.author_id AND ub.blocked_id = p_user_id)
+      )
+    )
   ORDER BY p.created_at DESC
   LIMIT p_limit OFFSET p_offset;
 END;

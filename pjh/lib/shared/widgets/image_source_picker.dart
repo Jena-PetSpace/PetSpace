@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+import '../../core/services/permission_helper.dart';
 
 class ImageSourcePicker {
   /// Shows a BottomSheet to select camera or gallery, then picks image(s)
@@ -13,6 +16,10 @@ class ImageSourcePicker {
   }) async {
     final source = await _showSourceSheet(context);
     if (source == null) return null;
+
+    if (!context.mounted) return null;
+    final granted = await _ensurePermission(context, source);
+    if (!granted) return null;
 
     final picker = ImagePicker();
     return picker.pickImage(
@@ -34,6 +41,10 @@ class ImageSourcePicker {
     final source = await _showSourceSheet(context);
     if (source == null) return null;
 
+    if (!context.mounted) return null;
+    final granted = await _ensurePermission(context, source);
+    if (!granted) return null;
+
     final picker = ImagePicker();
     if (source == ImageSource.camera) {
       final file = await picker.pickImage(
@@ -52,6 +63,28 @@ class ImageSourcePicker {
       limit: limit,
     );
     return files.isNotEmpty ? files : null;
+  }
+
+  /// 카메라/사진 권한을 사전 체크. 영구 거부 시 시스템 설정 진입 BottomSheet 노출.
+  static Future<bool> _ensurePermission(
+    BuildContext context,
+    ImageSource source,
+  ) async {
+    if (source == ImageSource.camera) {
+      return PermissionHelper.ensureGranted(
+        context,
+        permission: Permission.camera,
+        permissionName: '카메라',
+        reason: '반려동물 사진을 촬영하려면 카메라 권한이 필요합니다.',
+      );
+    }
+    // gallery
+    return PermissionHelper.ensureGranted(
+      context,
+      permission: Permission.photos,
+      permissionName: '사진',
+      reason: '갤러리에서 사진을 가져오려면 사진 접근 권한이 필요합니다.',
+    );
   }
 
   static Future<ImageSource?> _showSourceSheet(BuildContext context) {

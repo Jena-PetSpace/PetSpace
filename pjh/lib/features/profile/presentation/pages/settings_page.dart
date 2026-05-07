@@ -161,6 +161,12 @@ class SettingsPage extends StatelessWidget {
             onTap: () => context.push('/privacy'),
           ),
           ListTile(
+            leading: Icon(Icons.shield_outlined, size: 24.w),
+            title: Text('커뮤니티 가이드라인', style: TextStyle(fontSize: 14.sp)),
+            trailing: Icon(Icons.chevron_right, size: 20.w),
+            onTap: () => context.push('/community-guidelines'),
+          ),
+          ListTile(
             leading: Icon(Icons.help, size: 24.w),
             title: Text('도움말', style: TextStyle(fontSize: 14.sp)),
             trailing: Icon(Icons.chevron_right, size: 20.w),

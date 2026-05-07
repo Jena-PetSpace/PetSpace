@@ -22,6 +22,8 @@ class AuthSignInWithGoogleRequested extends AuthEvent {}
 
 class AuthSignInWithKakaoRequested extends AuthEvent {}
 
+class AuthSignInWithAppleRequested extends AuthEvent {}
+
 class AuthSignInWithEmailRequested extends AuthEvent {
   final String email;
   final String password;

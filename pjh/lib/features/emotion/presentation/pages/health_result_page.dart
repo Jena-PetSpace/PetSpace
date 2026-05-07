@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import '../widgets/emotion_disclaimer_banner.dart';
 import '../widgets/multi_image_gallery_widget.dart';
 import '../widgets/result/emotion_share_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
@@ -393,6 +394,8 @@ class _HealthResultPageState extends State<HealthResultPage> {
                 ),
                 SizedBox(height: 12.h),
               ],
+              // P1-7: AI 면책 안내 (수의학적 진단 대체 불가 명시)
+              const EmotionDisclaimerBanner(),
               // risk_alert 배너
               if (r.riskAlert) ...[
                 Container(

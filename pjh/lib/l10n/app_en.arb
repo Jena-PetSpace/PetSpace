@@ -1,0 +1,25 @@
+{
+  "@@locale": "en",
+  "appName": "PetSpace",
+
+  "commonOk": "OK",
+  "commonCancel": "Cancel",
+  "commonRetry": "Retry",
+  "commonClose": "Close",
+  "commonSave": "Save",
+  "commonDelete": "Delete",
+
+  "authLoginTitle": "Sign in",
+  "authSignupTitle": "Sign up",
+  "authSignInWithApple": "Sign in with Apple",
+  "authSignInWithGoogle": "Sign in with Google",
+  "authSignInWithKakao": "Sign in with Kakao",
+
+  "feedEmptyTitle": "No posts yet",
+  "feedEmptyAction": "Create your first post",
+
+  "emotionDisclaimer": "This analysis is an AI-based estimation and does not replace veterinary diagnosis.",
+
+  "communityGuidelinesTitle": "Community Guidelines",
+  "privacyPolicyTitle": "Privacy Policy"
+}
