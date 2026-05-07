@@ -32,8 +32,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       label: '건강관리',
     ),
     const NavigationItem(
-      icon: Icons.psychology_outlined,
-      selectedIcon: Icons.psychology,
+      icon: Icons.pets,
+      selectedIcon: Icons.pets,
       label: 'AI분석',
     ),
     const NavigationItem(
@@ -64,6 +64,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: _getCurrentPage(),
       bottomNavigationBar: CustomBottomNavigationBar(
         currentIndex: _currentIndex,
