@@ -104,11 +104,8 @@ class _MainNavigationState extends State<MainNavigation> {
         await _handleBackPress();
       },
       child: Scaffold(
-        extendBody: true,
         body: widget.child,
         bottomNavigationBar: _buildCustomBottomNav(),
-        floatingActionButton: _buildCenterFab(),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       ),
     );
   }
@@ -148,72 +145,95 @@ class _MainNavigationState extends State<MainNavigation> {
     if (shouldExit) BackPressHandler.exitApp();
   }
 
-  Widget _buildCenterFab() {
-    return Semantics(
-      label: 'AI 감정 분석',
-      button: true,
-      child: GestureDetector(
-        onTap: () => _onTabTapped(2),
-        child: Container(
-          width: 62.w,
-          height: 62.w,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF046DA7), Color(0xFF1B426B)],
-            ),
-            border: Border.all(color: Colors.white, width: 3),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.4),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Icon(Icons.pets, color: Colors.white, size: 28.w),
-        ),
-      ),
-    );
-  }
+  // FAB 직경
+  static const double _fabSize = 58.0;
+  // 바 위로 돌출되는 높이 (FAB 절반 + 여유)
+  static const double _fabOverlap = 28.0;
+  // 바 자체 높이
+  static const double _barHeight = 62.0;
 
   Widget _buildCustomBottomNav() {
-    return BottomAppBar(
-      color: Colors.white,
-      elevation: 8,
-      notchMargin: 8,
-      shape: const CircularNotchedRectangle(),
-      padding: EdgeInsets.zero,
-      child: SizedBox(
-        height: 60.h,
-        child: Row(
-          children: [
-            // 왼쪽: 홈, 건강관리
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(0),
-                  _buildNavItem(1),
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
+    return SizedBox(
+      height: _fabOverlap + _barHeight + bottomPad,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // ── 흰 바 (하단 고정) ──────────────────────────────
+          Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: Container(
+              height: _barHeight + bottomPad,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE8E8E8), width: 1),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x14000000),
+                    blurRadius: 12,
+                    offset: Offset(0, -3),
+                  ),
                 ],
               ),
-            ),
-            // FAB 공간
-            SizedBox(width: 72.w),
-            // 오른쪽: 피드, MY
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(3),
-                  _buildNavItem(4),
-                ],
+              child: Padding(
+                padding: EdgeInsets.only(bottom: bottomPad),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [_buildNavItem(0), _buildNavItem(1)],
+                      ),
+                    ),
+                    const SizedBox(width: _fabSize + 16),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [_buildNavItem(3), _buildNavItem(4)],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+
+          // ── 중앙 FAB (바 위로 돌출, 수평 정확히 center) ─────
+          Positioned(
+            bottom: bottomPad + (_barHeight - _fabSize) / 2 + _fabOverlap / 2,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Semantics(
+                label: 'AI 감정 분석',
+                button: true,
+                child: GestureDetector(
+                  onTap: () => _onTabTapped(2),
+                  child: Container(
+                    width: _fabSize.w,
+                    height: _fabSize.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.primaryColor,
+                      border: Border.all(color: Colors.white, width: 3.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.45),
+                          blurRadius: 16,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Icon(Icons.pets, color: Colors.white, size: 26.w),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
