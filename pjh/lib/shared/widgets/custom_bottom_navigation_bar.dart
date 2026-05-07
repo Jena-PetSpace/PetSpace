@@ -16,80 +16,47 @@ class CustomBottomNavigationBar extends StatelessWidget {
     required this.onTap,
   });
 
-  // AI 버튼이 바 위로 돌출되는 높이
-  static const double _fabOverflow = 20.0;
-  // 바 자체 높이 (SafeArea 제외)
-  static const double _barHeight = 56.0;
-
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      // 돌출분 + 바 높이 + SafeArea 하단
-      height: _fabOverflow + _barHeight + MediaQuery.of(context).padding.bottom,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // 바 본체 (하단 정렬)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: _barHeight + MediaQuery.of(context).padding.bottom,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).padding.bottom,
-                ),
-                child: Row(
-                  children: [
-                    // 왼쪽 2개 탭 (홈, 건강관리)
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildTabItem(0),
-                          _buildTabItem(1),
-                        ],
-                      ),
-                    ),
-                    // 중앙 FAB 자리 확보 (버튼 너비만큼)
-                    SizedBox(width: 72.w),
-                    // 오른쪽 2개 탭 (피드, MY)
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildTabItem(3),
-                          _buildTabItem(4),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+    return BottomAppBar(
+      color: Colors.white,
+      elevation: 8,
+      notchMargin: 6,
+      shape: const CircularNotchAndBar(),
+      padding: EdgeInsets.zero,
+      child: SizedBox(
+        height: 60.h,
+        child: Row(
+          children: [
+            // 왼쪽 2탭 (홈, 건강관리)
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildTabItem(context, 0),
+                  _buildTabItem(context, 1),
+                ],
               ),
             ),
-          ),
-          // 중앙 AI 분석 FAB — 정확히 수평 중앙, 바 위로 돌출
-          Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + (_barHeight - 64.w) / 2,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: _buildFabButton(),
+            // 중앙 notch 공간
+            SizedBox(width: 72.w),
+            // 오른쪽 2탭 (피드, MY)
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildTabItem(context, 3),
+                  _buildTabItem(context, 4),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTabItem(int index) {
+  Widget _buildTabItem(BuildContext context, int index) {
     final item = items[index];
     final isSelected = currentIndex == index;
 
@@ -100,28 +67,24 @@ class CustomBottomNavigationBar extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onTap(index),
         behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          height: _barHeight,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 isSelected ? item.selectedIcon : item.icon,
-                color: isSelected
-                    ? AppTheme.primaryColor
-                    : const Color(0xFFBDBDBD),
+                color: isSelected ? AppTheme.primaryColor : const Color(0xFFBDBDBD),
                 size: 24.w,
               ),
-              SizedBox(height: 4.h),
+              SizedBox(height: 3.h),
               Text(
                 item.label,
                 style: TextStyle(
                   fontSize: 10.sp,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected
-                      ? AppTheme.primaryColor
-                      : const Color(0xFFBDBDBD),
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? AppTheme.primaryColor : const Color(0xFFBDBDBD),
                 ),
               ),
             ],
@@ -130,42 +93,46 @@ class CustomBottomNavigationBar extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildFabButton() {
-    final isSelected = currentIndex == 2;
+// centerDocked notch 형태
+class CircularNotchAndBar extends NotchedShape {
+  const CircularNotchAndBar();
 
-    return Semantics(
-      label: 'AI 분석',
-      button: true,
-      child: GestureDetector(
-        onTap: () => onTap(2),
-        child: Container(
-          width: 64.w,
-          height: 64.w,
-          decoration: BoxDecoration(
-            color: AppTheme.primaryColor,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.35),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-            border: Border.all(
-              color: Colors.white,
-              width: 3,
-            ),
-          ),
-          child: Icon(
-            Icons.pets,
-            size: 28.w,
-            color: isSelected
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.9),
-          ),
-        ),
-      ),
-    );
+  @override
+  Path getOuterPath(Rect host, Rect? guest) {
+    if (guest == null || !host.overlaps(guest)) {
+      return Path()..addRect(host);
+    }
+
+    final notchRadius = guest.width / 2.0 + 6.0;
+    const s1 = 15.0;
+    const s2 = 1.0;
+
+    final cx = guest.center.dx;
+    final cy = host.top;
+
+    return Path()
+      ..moveTo(host.left, host.top)
+      ..lineTo(cx - notchRadius - s1, host.top)
+      ..arcToPoint(
+        Offset(cx - notchRadius, cy + s2),
+        radius: const Radius.circular(s1),
+        clockwise: false,
+      )
+      ..arcToPoint(
+        Offset(cx + notchRadius, cy + s2),
+        radius: Radius.circular(notchRadius),
+        clockwise: true,
+      )
+      ..arcToPoint(
+        Offset(cx + notchRadius + s1, host.top),
+        radius: const Radius.circular(s1),
+        clockwise: false,
+      )
+      ..lineTo(host.right, host.top)
+      ..lineTo(host.right, host.bottom)
+      ..lineTo(host.left, host.bottom)
+      ..close();
   }
 }
