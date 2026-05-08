@@ -52,7 +52,7 @@ import '../../features/emotion/presentation/pages/emotion_timeline_page.dart';
 import '../../features/emotion/presentation/pages/emotion_loading_page.dart';
 import '../../features/emotion/presentation/pages/emotion_result_page.dart';
 import '../../features/emotion/domain/entities/emotion_analysis.dart';
-import '../../features/emotion/presentation/widgets/emotion_loading_widget.dart';
+import '../../features/emotion/presentation/widgets/ai_analysis_loading_widget.dart';
 import '../../features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../features/health/presentation/pages/health_alert_settings_page.dart';
 import '../../features/emotion/presentation/pages/health_result_page.dart';
@@ -100,7 +100,7 @@ class AppRouter {
             final event = extra['event'] as EmotionAnalysisEvent?;
             if (bloc == null) {
               return const Scaffold(
-                body: SizedBox.expand(child: EmotionLoadingWidget()),
+                body: SizedBox.expand(child: AiAnalysisLoadingWidget()),
               );
             }
             return BlocProvider.value(

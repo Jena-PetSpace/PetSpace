@@ -1,15 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import '../bloc/emotion_analysis_bloc.dart';
-import '../widgets/emotion_loading_widget.dart';
-import 'emotion_result_page.dart';
+import '../widgets/ai_analysis_loading_widget.dart';
 
-/// ShellRoute 밖에 위치 → 하단 네비바 완전히 없음
-/// EmotionAnalysisBloc stream을 구독해서 완료/에러 시 자동 전환
+/// 풀스크린 로딩 페이지 — rootNavigator로 push하면 ShellRoute 위에 떠 하단
+/// 네비바를 가린다.
+///
+/// 분석 완료 + 진행바 100% 도달 시점에 [Navigator.pop]으로 결과를 반환한다.
+/// 호출자(emotion_analysis_page)가 await로 받아 결과 페이지로 push한다.
+///
+/// pop 결과 타입:
+/// - [EmotionAnalysisSuccess] : 분석 성공
+/// - [EmotionAnalysisError]   : 분석 실패
+/// - null                     : 사용자가 뒤로가기로 취소
 class EmotionLoadingPage extends StatefulWidget {
-  /// 감정분석: imagePaths 전달 (결과 페이지에 필요)
   final List<String> imagePaths;
 
   /// 로딩 페이지 진입 후 dispatch할 이벤트 (race condition 방지)
@@ -27,7 +32,10 @@ class EmotionLoadingPage extends StatefulWidget {
 
 class _EmotionLoadingPageState extends State<EmotionLoadingPage> {
   StreamSubscription? _sub;
-  bool _navigated = false;
+  bool _popped = false;
+  bool _analysisDone = false;
+  EmotionAnalysisSuccess? _pendingSuccess;
+  EmotionAnalysisError? _pendingError;
 
   @override
   void initState() {
@@ -36,35 +44,35 @@ class _EmotionLoadingPageState extends State<EmotionLoadingPage> {
       if (!mounted) return;
       final bloc = context.read<EmotionAnalysisBloc>();
 
-      // stream 구독 먼저 등록
       _sub = bloc.stream.listen((state) {
-        if (!mounted || _navigated) return;
+        if (!mounted || _popped) return;
         if (state is EmotionAnalysisSuccess) {
-          _navigated = true;
-          // MaterialPageRoute로 결과 페이지 열기
-          // → GoRouter 스택과 분리되므로 Navigator.pop()으로 히스토리로 돌아갈 수 있음
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: bloc,
-                child: EmotionResultPage(
-                  analysis: state.analysis,
-                  imagePaths: List<String>.from(widget.imagePaths),
-                ),
-              ),
-            ),
-          );
+          setState(() {
+            _pendingSuccess = state;
+            _analysisDone = true;
+          });
         } else if (state is EmotionAnalysisError) {
-          _navigated = true;
-          context.pop(); // 로딩 페이지 닫기
+          setState(() {
+            _pendingError = state;
+            _analysisDone = true;
+          });
         }
       });
 
-      // 구독 후 이벤트 발송 (race condition 방지)
       if (widget.event != null) {
         bloc.add(widget.event!);
       }
     });
+  }
+
+  void _handleProgressComplete() {
+    if (!mounted || _popped) return;
+    _popped = true;
+    if (_pendingSuccess != null) {
+      Navigator.of(context).pop(_pendingSuccess);
+    } else if (_pendingError != null) {
+      Navigator.of(context).pop(_pendingError);
+    }
   }
 
   @override
@@ -75,8 +83,13 @@ class _EmotionLoadingPageState extends State<EmotionLoadingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SizedBox.expand(child: EmotionLoadingWidget()),
+    return Scaffold(
+      body: SizedBox.expand(
+        child: AiAnalysisLoadingWidget(
+          analysisCompleted: _analysisDone,
+          onProgressComplete: _handleProgressComplete,
+        ),
+      ),
     );
   }
 }

@@ -15,7 +15,10 @@ import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import 'analysis_guide_page.dart';
 import 'emotion_loading_page.dart';
+import 'emotion_result_page.dart';
 import 'health_loading_page.dart';
+import 'health_result_page.dart';
+import '../../data/models/health_analysis_model.dart';
 
 class EmotionAnalysisPage extends StatefulWidget {
   final String? initialPetId;
@@ -1224,28 +1227,59 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       return;
     }
 
-    // 감정분석: Navigator.push(MaterialPageRoute)로 로딩 페이지 이동
-    // GoRouter와 분리하여 Navigator.pop()으로 호출 화면(/ai-history-page 등)으로 바로 복귀 가능
+    _runEmotionAnalysis(petType: petType, breed: breed);
+  }
+
+  /// 감정분석: rootNavigator로 로딩 페이지 push → 풀스크린(하단 네비바 가림).
+  /// 로딩 페이지가 결과/에러를 pop으로 반환하면 ShellRoute 내부 navigator에 결과
+  /// 페이지를 push (결과 화면에서는 네비바 표시).
+  Future<void> _runEmotionAnalysis({
+    String? petType,
+    String? breed,
+  }) async {
     final bloc = context.read<EmotionAnalysisBloc>();
+    final imagePathsCopy = List<String>.from(_imagePaths);
     final event = AnalyzeEmotionRequested(
       imagePaths: List.from(_imagePaths),
       petId: _analyzeWithoutPet ? null : _selectedPet?.id,
       petType: petType,
       breed: breed,
     );
-    Navigator.of(context).push(
+
+    final result = await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
           value: bloc,
           child: EmotionLoadingPage(
-            imagePaths: List<String>.from(_imagePaths),
+            imagePaths: imagePathsCopy,
             event: event,
           ),
         ),
       ),
     );
+
+    if (!mounted) return;
+
+    if (result is EmotionAnalysisSuccess) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => BlocProvider.value(
+            value: bloc,
+            child: EmotionResultPage(
+              analysis: result.analysis,
+              imagePaths: imagePathsCopy,
+            ),
+          ),
+        ),
+      );
+    } else if (result is EmotionAnalysisError) {
+      _showErrorDialog(result.message);
+    }
   }
 
+  /// 건강분석: rootNavigator로 로딩 페이지 push (풀스크린).
+  /// 성공 시 ShellRoute 내부에 HealthResultPage push (네비바 표시).
+  /// 실패 시 에러 다이얼로그.
   Future<void> _startHealthAnalysis({
     String? petName,
     String? petType,
@@ -1257,7 +1291,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
 
-    final error = await Navigator.of(context).push<String>(
+    final result = await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (_) => HealthLoadingPage(
           imagePaths: List.from(_imagePaths),
@@ -1274,9 +1308,16 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       ),
     );
 
-    // HealthLoadingPage가 에러 문자열을 pop result로 전달한 경우
-    if (error != null && mounted) {
-      _showErrorDialog(error);
+    if (!mounted) return;
+
+    if (result is HealthAnalysisModel) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => HealthResultPage(result: result),
+        ),
+      );
+    } else if (result is String) {
+      _showErrorDialog(result);
     }
   }
 

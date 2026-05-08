@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import '../widgets/emotion_loading_widget.dart';
+import '../../data/models/health_analysis_model.dart';
+import '../widgets/ai_analysis_loading_widget.dart';
 import '../../data/services/gemini_ai_service.dart';
-import 'health_result_page.dart';
 
-/// 건강분석 전용 로딩 페이지
-/// Navigator.push로 열리며, 분석 완료 시 pushReplacement로 결과 페이지로 이동
+/// 풀스크린 건강분석 로딩 페이지.
+///
+/// 분석 완료 + 진행바 100% 도달 시점에 [Navigator.pop]으로 결과를 반환한다.
+/// pop 결과 타입:
+/// - [HealthAnalysisModel] : 분석 성공
+/// - [String]              : 에러 메시지
+/// - null                  : 사용자가 뒤로가기로 취소
 class HealthLoadingPage extends StatefulWidget {
   final List<String> imagePaths;
   final String selectedArea;
@@ -36,6 +41,11 @@ class HealthLoadingPage extends StatefulWidget {
 }
 
 class _HealthLoadingPageState extends State<HealthLoadingPage> {
+  bool _analysisDone = false;
+  bool _popped = false;
+  HealthAnalysisModel? _pendingResult;
+  Object? _pendingError;
+
   @override
   void initState() {
     super.initState();
@@ -58,20 +68,37 @@ class _HealthLoadingPageState extends State<HealthLoadingPage> {
         petId: widget.petId,
       );
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HealthResultPage(result: result)),
-      );
+      setState(() {
+        _pendingResult = result;
+        _analysisDone = true;
+      });
     } catch (e) {
       if (!mounted) return;
-      Navigator.of(context).pop(e.toString()); // 에러 메시지를 pop result로 전달
+      setState(() {
+        _pendingError = e;
+        _analysisDone = true;
+      });
+    }
+  }
+
+  void _handleProgressComplete() {
+    if (!mounted || _popped) return;
+    _popped = true;
+    if (_pendingResult != null) {
+      Navigator.of(context).pop(_pendingResult);
+    } else if (_pendingError != null) {
+      Navigator.of(context).pop(_pendingError.toString());
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: SizedBox.expand(
-        child: EmotionLoadingWidget(message: 'AI가 건강을 분석 중입니다...'),
+        child: AiAnalysisLoadingWidget(
+          analysisCompleted: _analysisDone,
+          onProgressComplete: _handleProgressComplete,
+        ),
       ),
     );
   }

@@ -1,0 +1,42 @@
+<svg viewBox="0 0 200 180" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cat (peeking from behind right) -->
+  <ellipse cx="148" cy="115" rx="26" ry="34" fill="#000"/>
+  <circle cx="152" cy="86" r="22" fill="#000"/>
+  <polygon points="135,73 132,57 146,67" fill="#000"/>
+  <polygon points="168,72 171,56 156,66" fill="#000"/>
+  <circle cx="146" cy="86" r="2.2" fill="#fff"/>
+  <circle cx="159" cy="86" r="2.2" fill="#fff"/>
+  <path d="M 149 94 q 3 2.5 6 0" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M 162 138 q 18 -8 22 -27" stroke="#000" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+  <!-- Dog fluff bumps (back layer) -->
+  <circle cx="38" cy="68" r="11" fill="#fff" stroke="#000" stroke-width="2.2"/>
+  <circle cx="55" cy="58" r="11" fill="#fff" stroke="#000" stroke-width="2.2"/>
+  <circle cx="73" cy="55" r="11" fill="#fff" stroke="#000" stroke-width="2.2"/>
+  <circle cx="93" cy="62" r="11" fill="#fff" stroke="#000" stroke-width="2.2"/>
+
+  <!-- Dog body -->
+  <ellipse cx="65" cy="105" rx="48" ry="42" fill="#fff" stroke="#000" stroke-width="2.5"/>
+  <ellipse cx="28" cy="92" rx="11" ry="16" fill="#fff" stroke="#000" stroke-width="2.2" transform="rotate(-15 28 92)"/>
+  <ellipse cx="103" cy="90" rx="11" ry="16" fill="#fff" stroke="#000" stroke-width="2.2" transform="rotate(15 103 90)"/>
+
+  <!-- Pink cheeks -->
+  <ellipse cx="48" cy="100" rx="8" ry="5.5" fill="#F4C0D1"/>
+  <ellipse cx="84" cy="100" rx="8" ry="5.5" fill="#F4C0D1"/>
+
+  <!-- Eyes / nose / mouth -->
+  <circle cx="55" cy="92" r="2.8" fill="#000"/>
+  <circle cx="78" cy="92" r="2.8" fill="#000"/>
+  <ellipse cx="66" cy="104" rx="2.5" ry="1.8" fill="#000"/>
+  <path d="M 66 106 q -3 4 -6 4 M 66 106 q 3 4 6 4" stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Raised waving paw -->
+  <ellipse cx="14" cy="116" rx="8" ry="11" fill="#fff" stroke="#000" stroke-width="2.2" transform="rotate(-22 14 116)"/>
+  <circle cx="14" cy="119" r="3.5" fill="#F4C0D1"/>
+
+  <!-- Sitting paws (bottom) -->
+  <ellipse cx="48" cy="142" rx="11" ry="7" fill="#fff" stroke="#000" stroke-width="2.2"/>
+  <circle cx="48" cy="142" r="4" fill="#F4C0D1"/>
+  <ellipse cx="84" cy="142" rx="11" ry="7" fill="#fff" stroke="#000" stroke-width="2.2"/>
+  <circle cx="84" cy="142" r="4" fill="#F4C0D1"/>
+</svg>
