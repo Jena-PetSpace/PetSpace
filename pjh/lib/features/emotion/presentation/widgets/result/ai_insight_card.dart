@@ -4,20 +4,44 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../domain/entities/emotion_analysis.dart';
 import '../../theme/emotion_result_tokens.dart';
 
+/// AiInsightCard 모드.
+/// - emotion: 기본. analysis를 받아 내부에서 텍스트 생성. 행동 박스가 코랄.
+/// - health:  외부에서 basisText/actionText 주입. 행동 박스가 그린.
+enum AiInsightMode { emotion, health }
+
 /// AI가 본 신호 카드.
 /// 3개 블록:
 ///   1) 헤더 (sparkles + "AI가 본 신호")
 ///   2) 분석 근거 (네이비 톤 인용 박스, facialFeatures에서 상위 신호 조합)
-///   3) 행동 한 줄 (코랄 톤 박스, 다음에 할 행동)
+///   3) 행동 한 줄 (모드별 톤 박스, 다음에 할 행동)
+///
+/// 기존 emotion 호출처(`AiInsightCard(analysis: ...)`)는 변경 없이 동작.
+/// health 호출처는 `AiInsightCard.health(basisText: ..., actionText: ...)` 사용.
 class AiInsightCard extends StatelessWidget {
-  final EmotionAnalysis analysis;
+  final AiInsightMode mode;
+  final EmotionAnalysis? analysis;
+  final String? basisText;
+  final String? actionText;
 
-  const AiInsightCard({super.key, required this.analysis});
+  const AiInsightCard({
+    super.key,
+    required EmotionAnalysis this.analysis,
+  })  : mode = AiInsightMode.emotion,
+        basisText = null,
+        actionText = null;
+
+  /// 건강 페이지용 생성자. summary를 분석 근거로, recommendations[0]을 행동으로.
+  const AiInsightCard.health({
+    super.key,
+    this.basisText,
+    required String this.actionText,
+  })  : mode = AiInsightMode.health,
+        analysis = null;
 
   /// 부위별 분석 중 비어있지 않은 항목을 최대 3개 골라 자연어로 합성.
-  /// 형식: "{부위A의 state}고, {부위B의 state}이며, {부위C의 state}."
+  /// (emotion 모드 전용)
   String? _buildBasisSentence() {
-    final features = analysis.emotions.facialFeatures;
+    final features = analysis?.emotions.facialFeatures;
     if (features == null || features.isEmpty) return null;
 
     final states = features.values
@@ -32,9 +56,9 @@ class AiInsightCard extends StatelessWidget {
     return '${states[0]}, ${states[1]}, ${states[2]}.';
   }
 
-  /// 주감정/스트레스 기반 행동 한 줄.
+  /// 주감정/스트레스 기반 행동 한 줄. (emotion 모드 전용)
   String _buildActionLine() {
-    final e = analysis.emotions;
+    final e = analysis!.emotions;
     final stress = e.stressLevel;
     final negSum = e.anxiety + e.sadness + e.fear;
     final posSum = e.happiness + e.calm;
@@ -104,11 +128,23 @@ class AiInsightCard extends StatelessWidget {
   }
 
   Widget _buildActionBox(String action) {
+    // 모드별 톤 분기 — emotion=코랄, health=그린.
+    final isHealth = mode == AiInsightMode.health;
+    final bg = isHealth
+        ? EmotionResultTokens.greenLight
+        : EmotionResultTokens.coralLight;
+    final iconColor = isHealth
+        ? EmotionResultTokens.green
+        : EmotionResultTokens.coral;
+    final textColor = isHealth
+        ? EmotionResultTokens.greenDark
+        : EmotionResultTokens.coralDark;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: EmotionResultTokens.coralLight,
+        color: bg,
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Row(
@@ -117,7 +153,7 @@ class AiInsightCard extends StatelessWidget {
           Icon(
             Icons.lightbulb_outline,
             size: 16.r,
-            color: EmotionResultTokens.coral,
+            color: iconColor,
           ),
           SizedBox(width: 8.w),
           Expanded(
@@ -126,7 +162,7 @@ class AiInsightCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w500,
-                color: EmotionResultTokens.coralDark,
+                color: textColor,
                 height: 1.5,
               ),
             ),
@@ -138,8 +174,12 @@ class AiInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final basis = _buildBasisSentence();
-    final action = _buildActionLine();
+    final String? basis = mode == AiInsightMode.health
+        ? (basisText != null && basisText!.trim().isNotEmpty ? basisText : null)
+        : _buildBasisSentence();
+    final String action = mode == AiInsightMode.health
+        ? (actionText ?? '')
+        : _buildActionLine();
 
     return Container(
       width: double.infinity,
@@ -156,8 +196,10 @@ class AiInsightCard extends StatelessWidget {
             SizedBox(height: 10.h),
             _buildBasisBox(basis),
           ],
-          SizedBox(height: 10.h),
-          _buildActionBox(action),
+          if (action.isNotEmpty) ...[
+            SizedBox(height: 10.h),
+            _buildActionBox(action),
+          ],
         ],
       ),
     );

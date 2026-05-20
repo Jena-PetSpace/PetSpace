@@ -5,20 +5,25 @@ import '../../../domain/entities/emotion_analysis.dart';
 import '../../theme/emotion_result_tokens.dart';
 
 /// 수의사 상담 권장 카드 (조건부).
-/// - 노출 조건: stressLevel >= 80  OR  (anxiety + sadness + fear + discomfort) >= 0.6
+/// - 노출 조건 판정은 호출 측 책임. 위젯 자체는 표시 여부에 관여하지 않음.
+///   - emotion: `VetConsultCard.shouldShow(analysis)` 헬퍼 사용
+///   - health:  `analysis.riskAlert || analysis.overallScore < 70` 직접 판정
 /// - 코랄 톤 (즉시 행동 키)
 /// - "병원 찾기" 버튼 → KakaoMap 라우팅. 미구현시 SnackBar
+///
+/// `analysis`는 노출 조건 판정에만 쓰였으나 위젯 본문이 사용하지 않으므로
+/// 옵셔널. health 페이지처럼 외부에서 직접 조건 판정하는 경우 생략 가능.
 class VetConsultCard extends StatelessWidget {
-  final EmotionAnalysis analysis;
+  final EmotionAnalysis? analysis;
   final VoidCallback onFindVet;
 
   const VetConsultCard({
     super.key,
-    required this.analysis,
+    this.analysis,
     required this.onFindVet,
   });
 
-  /// 외부에서 노출 여부 판별용. page 통합부에서 if (VetConsultCard.shouldShow(analysis)) ... 형태로 사용.
+  /// emotion 페이지에서 노출 여부 판별. health 페이지는 자체 조건 사용.
   static bool shouldShow(EmotionAnalysis analysis) {
     final e = analysis.emotions;
     final negSum = e.anxiety + e.sadness + e.fear + e.discomfort;
