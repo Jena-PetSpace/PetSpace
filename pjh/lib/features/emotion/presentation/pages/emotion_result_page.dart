@@ -117,7 +117,7 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
     }
     // 신규 분석 진입에서 히스토리로 이동
     try {
-      context.go('/emotion/history');
+      context.push('/ai-history-page');
     } catch (_) {
       Navigator.of(context).pop();
     }

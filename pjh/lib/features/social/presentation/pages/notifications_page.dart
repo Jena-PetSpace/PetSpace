@@ -139,7 +139,7 @@ class NotificationsPage extends StatelessWidget {
         }
         break;
       case app.NotificationType.emotionAnalysis:
-        context.push('/emotion/history');
+        context.push('/ai-history-page');
         break;
     }
   }

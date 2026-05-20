@@ -66,7 +66,15 @@ class _AreaStatus {
 }
 
 class AiHistoryPage extends StatefulWidget {
-  const AiHistoryPage({super.key});
+  /// 게시글 작성 등에서 분석 결과를 골라 반환받기 위한 모드.
+  /// true 일 때:
+  ///   - 3-tab 헤더 숨김. "전체이력" 탭 본문만 표시
+  ///   - 헤더 타이틀이 "감정 분석 선택"
+  ///   - 감정 카드 탭 시 Navigator.pop(context, emotionAnalysis) 반환
+  ///   - 건강 카드는 비활성 (게시글 첨부 호환을 위해 감정만)
+  final bool selectMode;
+
+  const AiHistoryPage({super.key, this.selectMode = false});
 
   @override
   State<AiHistoryPage> createState() => _AiHistoryPageState();
@@ -90,12 +98,19 @@ class _AiHistoryPageState extends State<AiHistoryPage>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    // selectMode 에서는 "전체이력" 한 탭만 표시. 일반 모드는 3-tab.
+    _tabCtrl = TabController(
+      length: widget.selectMode ? 1 : 3,
+      vsync: this,
+    );
     _tabCtrl.addListener(() => setState(() {}));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initSelectedPet();
-      _loadDashboard();
-      _loadHealthHistory();
+      // selectMode 에서는 히스토리만 필요. 대시보드 로딩 스킵.
+      if (!widget.selectMode) {
+        _loadDashboard();
+        _loadHealthHistory();
+      }
       _loadEmotionHistory();
     });
   }
@@ -199,7 +214,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                   ),
                   Expanded(
                     child: Text(
-                      'AI분석 히스토리',
+                      widget.selectMode ? '감정 분석 선택' : 'AI분석 히스토리',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 15.sp,
@@ -211,22 +226,24 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                   SizedBox(width: 48.w),
                 ]),
               ),
-              TabBar(
-                controller: _tabCtrl,
-                indicatorColor: AppTheme.highlightColor,
-                indicatorWeight: 2.5,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white54,
-                labelStyle: TextStyle(
-                    fontSize: 13.sp, fontWeight: FontWeight.w600),
-                unselectedLabelStyle: TextStyle(
-                    fontSize: 13.sp, fontWeight: FontWeight.w400),
-                tabs: const [
-                  Tab(text: '현황'),
-                  Tab(text: '리포트'),
-                  Tab(text: '전체이력'),
-                ],
-              ),
+              // selectMode 에서는 TabBar 숨김 (탭 1개라 의미 없음)
+              if (!widget.selectMode)
+                TabBar(
+                  controller: _tabCtrl,
+                  indicatorColor: AppTheme.highlightColor,
+                  indicatorWeight: 2.5,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white54,
+                  labelStyle: TextStyle(
+                      fontSize: 13.sp, fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: TextStyle(
+                      fontSize: 13.sp, fontWeight: FontWeight.w400),
+                  tabs: const [
+                    Tab(text: '현황'),
+                    Tab(text: '리포트'),
+                    Tab(text: '전체이력'),
+                  ],
+                ),
             ]),
           ),
         ),
@@ -234,11 +251,13 @@ class _AiHistoryPageState extends State<AiHistoryPage>
         Expanded(
           child: TabBarView(
             controller: _tabCtrl,
-            children: [
-              _buildStatusTab(),
-              _buildReportTab(),
-              _buildHistoryTab(),
-            ],
+            children: widget.selectMode
+                ? [_buildHistoryTab()]
+                : [
+                    _buildStatusTab(),
+                    _buildReportTab(),
+                    _buildHistoryTab(),
+                  ],
           ),
         ),
       ]),
@@ -1023,26 +1042,42 @@ class _AiHistoryPageState extends State<AiHistoryPage>
     final (bgColor, textColor) =
         colors[item.badgeType] ?? (Colors.grey.shade100, Colors.grey);
 
-    return GestureDetector(
-      onTap: () {
-        if (item.isEmotion && item.emotionData != null) {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => BlocProvider(
-              create: (_) => sl<EmotionAnalysisBloc>(),
-              // previousAnalysis: 히스토리 진입은 delta 칩 불필요
-              child: EmotionResultPage(
-                analysis: item.emotionData!,
-                previousAnalysis: null,
-                fromHistory: true,
+    final isDisabledInSelectMode = widget.selectMode && !item.isEmotion;
+    return Opacity(
+      opacity: isDisabledInSelectMode ? 0.4 : 1.0,
+      child: GestureDetector(
+        onTap: () {
+          // selectMode: 감정 카드만 선택 가능. 건강 카드는 안내.
+          if (widget.selectMode) {
+            if (item.isEmotion && item.emotionData != null) {
+              Navigator.of(context).pop(item.emotionData);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('감정 분석만 선택할 수 있어요')),
+              );
+            }
+            return;
+          }
+          // 일반 모드: 결과 페이지로 진입
+          if (item.isEmotion && item.emotionData != null) {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => BlocProvider(
+                create: (_) => sl<EmotionAnalysisBloc>(),
+                // previousAnalysis: 히스토리 진입은 delta 칩 불필요
+                child: EmotionResultPage(
+                  analysis: item.emotionData!,
+                  previousAnalysis: null,
+                  fromHistory: true,
+                ),
               ),
-            ),
-          ));
-        } else if (!item.isEmotion && item.healthData != null) {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => HealthResultPage(result: item.healthData!, fromHistory: true),
-          ));
-        }
-      },
+            ));
+          } else if (!item.isEmotion && item.healthData != null) {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) =>
+                  HealthResultPage(result: item.healthData!, fromHistory: true),
+            ));
+          }
+        },
       child: Container(
         margin: EdgeInsets.only(bottom: 7.h),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -1105,6 +1140,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
           Icon(Icons.chevron_right,
               size: 14.w, color: AppTheme.secondaryTextColor),
         ]),
+      ),
       ),
     );
   }

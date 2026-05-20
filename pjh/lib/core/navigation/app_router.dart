@@ -12,7 +12,6 @@ import '../../features/social/presentation/bloc/notifications_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/emotion/presentation/pages/emotion_analysis_page.dart';
 import '../../features/emotion/presentation/pages/emotion_result_loader_page.dart';
-import '../../features/emotion/presentation/pages/emotion_history_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/profile_edit_page.dart';
 import '../../features/profile/presentation/pages/settings_page.dart';
@@ -540,16 +539,12 @@ class AppRouter {
                     analysisId: state.pathParameters['analysisId']!,
                   ),
                 ),
+                // /emotion/history → /ai-history-page 리다이렉트.
+                // 외부 딥링크·기존 푸시 알림 호환을 위해 라우트는 유지하고 redirect만 처리.
                 GoRoute(
                   path: '/history',
                   name: 'emotion-history',
-                  builder: (context, state) {
-                    final authState = authBloc.state;
-                    final userId = authState is AuthAuthenticated
-                        ? authState.user.uid
-                        : '';
-                    return EmotionHistoryPage(userId: userId);
-                  },
+                  redirect: (_, __) => '/ai-history-page',
                 ),
                 GoRoute(
                   path: 'calendar',

@@ -107,9 +107,8 @@ class _HealthResultPageState extends State<HealthResultPage> {
       Navigator.of(context).pop();
       return;
     }
-    // TODO(action): 건강 히스토리 페이지 라우트 — ai_history_page로 통합되어 있어 그쪽으로 이동
     try {
-      context.go('/emotion/history');
+      context.push('/ai-history-page');
     } catch (_) {
       Navigator.of(context).pop();
     }
@@ -263,7 +262,6 @@ class _HealthResultPageState extends State<HealthResultPage> {
         ),
       ),
       bottomNavigationBar: BottomActionBar(
-        mode: BottomBarMode.health,
         onShare: _onShare,
         onSave: _onSave,
         onHistory: _onHistoryOrClose,

@@ -421,7 +421,7 @@ class HomeDashboardHeader extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => context.push('/emotion/history'),
+                  onTap: () => context.push('/ai-history-page'),
                   child: Text(
                     '기록 보기 >',
                     style: TextStyle(

@@ -5,7 +5,7 @@ import '../../../../shared/widgets/image_source_picker.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../emotion/domain/entities/emotion_analysis.dart';
-import '../../../emotion/presentation/pages/emotion_history_page.dart';
+import '../../../emotion/presentation/pages/ai_history_page.dart';
 import '../../domain/entities/post.dart';
 
 class CreatePostBottomSheet extends StatefulWidget {
@@ -363,10 +363,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
     final result = await Navigator.push<EmotionAnalysis>(
       context,
       MaterialPageRoute(
-        builder: (_) => EmotionHistoryPage(
-          userId: widget.currentUserId,
-          selectMode: true,
-        ),
+        builder: (_) => const AiHistoryPage(selectMode: true),
       ),
     );
     if (result != null && mounted) {

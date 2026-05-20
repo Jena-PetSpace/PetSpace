@@ -20,7 +20,7 @@ class RecentEmotionCard extends StatelessWidget {
 
     return Card(
       child: InkWell(
-        onTap: () => context.push('/emotion/history'),
+        onTap: () => context.push('/ai-history-page'),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),

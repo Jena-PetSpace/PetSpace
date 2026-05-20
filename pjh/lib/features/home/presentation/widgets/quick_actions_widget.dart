@@ -52,7 +52,7 @@ class QuickActionsWidget extends StatelessWidget {
                   icon: Icons.history,
                   label: '히스토리',
                   color: Colors.purple,
-                  onTap: () => context.push('/emotion/history'),
+                  onTap: () => context.push('/ai-history-page'),
                 ),
               ],
             ),

@@ -50,7 +50,7 @@ class FCMService {
         }
         break;
       case 'emotion_analysis':
-        router.push('/emotion/history');
+        router.push('/ai-history-page');
         break;
       default:
         router.push('/notifications?userId=$userId');
