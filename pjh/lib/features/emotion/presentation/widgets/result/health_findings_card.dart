@@ -60,7 +60,6 @@ class _HealthFindingsCardState extends State<HealthFindingsCard> {
             borderRadius: BorderRadius.circular(4.r),
           ),
           child: Text(
-            // TODO(copy): HealthFindingsCard 작은 라벨
             'AI가 살펴본 항목',
             style: TextStyle(
               fontSize: 10.sp,
@@ -71,7 +70,6 @@ class _HealthFindingsCardState extends State<HealthFindingsCard> {
         ),
         SizedBox(width: 8.w),
         Text(
-          // TODO(copy): HealthFindingsCard 메인 라벨
           '발견 사항 ${widget.findings.length}개',
           style: TextStyle(
             fontSize: 15.sp,
@@ -170,7 +168,6 @@ class _HealthFindingsCardState extends State<HealthFindingsCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  // TODO(copy): HealthFindingsCard 접기/펴기 라벨
                   _expanded ? '접기' : '전체 보기 ($hiddenCount개 더)',
                   style: TextStyle(
                     fontSize: 12.sp,

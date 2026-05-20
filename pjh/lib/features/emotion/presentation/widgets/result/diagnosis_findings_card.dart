@@ -25,7 +25,6 @@ class DiagnosisFindingsCard extends StatelessWidget {
         ),
         SizedBox(width: 6.w),
         Text(
-          // TODO(copy): DiagnosisFindingsCard 헤더
           '진단 소견',
           style: TextStyle(
             fontSize: 13.sp,

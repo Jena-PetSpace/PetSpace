@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import '../../../../config/injection_container.dart';
 import '../../data/models/health_analysis_model.dart';
+import '../../domain/entities/health_analysis.dart' show HealthArea;
 import '../../domain/repositories/emotion_repository.dart';
 import '../theme/emotion_result_tokens.dart';
 import '../widgets/result/ai_insight_card.dart';
@@ -124,11 +125,16 @@ class _HealthResultPageState extends State<HealthResultPage> {
     }
   }
 
-  void _onMonthlyRecheck() {
-    // TODO(action): v1.1에서 알림 예약 시스템 연결
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('한 달 뒤 알림은 준비 중이에요')),
-    );
+  /// "다른 부위도 분석하기" — AI 분석 페이지 건강 탭으로 이동.
+  /// area prefill은 v1.1 (현재 area를 제외하고 시작하려면 입력 페이지가 받아야 함).
+  void _onOtherArea() {
+    try {
+      context.push('/emotion?tab=health');
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('분석 페이지로 이동할 수 없어요')),
+      );
+    }
   }
 
   void _onFindVet() {
@@ -179,14 +185,13 @@ class _HealthResultPageState extends State<HealthResultPage> {
 
   /// AiInsightCard.health에 줄 기본 행동 라인.
   /// recommendations[0]을 우선 사용. 없으면 점수 기반 fallback.
-  /// TODO(copy): HealthAiInsight 행동 fallback 카피
   String _resolveActionText() {
     final recs = widget.result.recommendations;
     if (recs.isNotEmpty) return recs.first;
     final score = widget.result.overallScore;
-    if (score >= 90) return '지금 상태를 유지해 주세요.';
-    if (score >= 70) return '아래 발견 사항을 확인해 주세요.';
-    return '수의사 상담을 권장해요.';
+    if (score >= 90) return '지금 컨디션을 그대로 유지해 주세요.';
+    if (score >= 70) return '아래 발견 사항을 한 번 확인해 주세요.';
+    return '수의사와 상담해보시는 게 좋아요.';
   }
 
   @override
@@ -237,8 +242,10 @@ class _HealthResultPageState extends State<HealthResultPage> {
             _gap(),
             _section(HealthNextActionCard(
               onEmotionAnalysis: _onEmotionAnalysis,
-              onMonthlyRecheck: _onMonthlyRecheck,
+              onOtherArea: _onOtherArea,
               onMemo: _onSave,
+              // 종합(overall) 분석한 경우엔 "다른 부위" 슬롯 hide.
+              showOtherArea: analysis.area != HealthArea.overall,
             )),
             _gap(),
             // TODO(breed): pets 테이블에서 breed/ageMonths 조회 후 주입 — 별도 PR
@@ -247,7 +254,10 @@ class _HealthResultPageState extends State<HealthResultPage> {
             _section(const HealthDisclaimerCard()),
             if (showVet) ...[
               _gap(),
-              _section(VetConsultCard(onFindVet: _onFindVet)),
+              _section(VetConsultCard(
+                mode: VetConsultMode.health,
+                onFindVet: _onFindVet,
+              )),
             ],
           ],
         ),

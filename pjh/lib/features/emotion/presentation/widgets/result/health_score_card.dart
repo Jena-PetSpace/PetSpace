@@ -19,7 +19,6 @@ class HealthScoreCard extends StatelessWidget {
   int get _score => analysis.overallScore;
 
   /// 점수 기반 본문 메시지. petName + 받침 분기.
-  /// TODO(copy): 카피 일괄 교체 단계에서 검토
   String _buildBody() {
     final name = analysis.petName;
     final subject = withSubject(name);
@@ -27,9 +26,9 @@ class HealthScoreCard extends StatelessWidget {
       return '$subject 건강한 상태예요.\n좋은 컨디션을 유지해 주세요.';
     }
     if (_score >= 70) {
-      return '$subject 약간 주의가 필요해 보여요.\n아래 발견 사항을 확인해 주세요.';
+      return '$subject 살짝 신경 써볼 부분이 있어요.\n아래 발견 사항을 확인해 주세요.';
     }
-    return '$subject 건강 신호에 변화가 있어요.\n수의사 상담을 권장합니다.';
+    return '$subject 건강 신호에 변화가 있어요.\n수의사와 한번 상담해보시는 게 좋아요.';
   }
 
   Widget _buildDonut() {
@@ -74,7 +73,6 @@ class HealthScoreCard extends StatelessWidget {
 
   Widget _buildAreaLabel() {
     return Text(
-      // TODO(copy): "선택 부위" prefix
       '선택 부위 · ${EmotionResultTokens.areaHeroLabel(analysis.area)}',
       style: TextStyle(
         fontSize: 10.sp,

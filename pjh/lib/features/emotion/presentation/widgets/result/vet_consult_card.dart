@@ -4,6 +4,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../domain/entities/emotion_analysis.dart';
 import '../../theme/emotion_result_tokens.dart';
 
+/// VetConsultCard 모드 — 본문 카피가 모드별로 다르다.
+/// - emotion: 스트레스 신호 컨텍스트
+/// - health:  건강 신호 컨텍스트
+enum VetConsultMode { emotion, health }
+
 /// 수의사 상담 권장 카드 (조건부).
 /// - 노출 조건 판정은 호출 측 책임. 위젯 자체는 표시 여부에 관여하지 않음.
 ///   - emotion: `VetConsultCard.shouldShow(analysis)` 헬퍼 사용
@@ -16,11 +21,13 @@ import '../../theme/emotion_result_tokens.dart';
 class VetConsultCard extends StatelessWidget {
   final EmotionAnalysis? analysis;
   final VoidCallback onFindVet;
+  final VetConsultMode mode;
 
   const VetConsultCard({
     super.key,
     this.analysis,
     required this.onFindVet,
+    this.mode = VetConsultMode.emotion,
   });
 
   /// emotion 페이지에서 노출 여부 판별. health 페이지는 자체 조건 사용.
@@ -28,6 +35,16 @@ class VetConsultCard extends StatelessWidget {
     final e = analysis.emotions;
     final negSum = e.anxiety + e.sadness + e.fear + e.discomfort;
     return e.stressLevel >= 80 || negSum >= 0.6;
+  }
+
+  /// 모드별 본문 카피.
+  String get _body {
+    switch (mode) {
+      case VetConsultMode.emotion:
+        return '지속되는 스트레스 신호가 감지됐어요.\n수의사와 상담해 보시는 게 좋아요.';
+      case VetConsultMode.health:
+        return '건강 신호에 변화가 보여요.\n수의사와 상담해 보시는 게 좋아요.';
+    }
   }
 
   @override
@@ -81,7 +98,7 @@ class VetConsultCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  '지속되는 스트레스 신호가 감지됐어요.\n수의사와 상담해보시는 게 좋아요.',
+                  _body,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: EmotionResultTokens.textPrimary,

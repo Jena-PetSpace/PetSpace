@@ -4,18 +4,26 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../theme/emotion_result_tokens.dart';
 
 /// 건강 결과 페이지의 "다음에 해볼 것" 카드.
-/// - 3액션: 감정 분석 해보기 (네이비) / 한 달 뒤 재검사 (그린) / 기록 남기기 (그레이)
-/// - 모든 콜백 외부 주입
+/// - 슬롯 1: 감정 분석 해보기 (네이비, 항상 표시)
+/// - 슬롯 2: 다른 부위도 분석하기 (그린, `showOtherArea=true` 일 때만 표시)
+///   - 부분 분석(area != overall) 케이스에서 다음 행동 유도
+///   - 종합 분석(area == overall)에서는 슬롯 자체 hide → 카드 안에 2개 액션만
+/// - 슬롯 3: 이 순간 기록하기 (그레이, 항상 표시)
 class HealthNextActionCard extends StatelessWidget {
   final VoidCallback onEmotionAnalysis;
-  final VoidCallback onMonthlyRecheck;
+  final VoidCallback onOtherArea;
   final VoidCallback onMemo;
+
+  /// false면 "다른 부위도 분석하기" 슬롯이 숨겨진다.
+  /// 종합(overall) 분석을 이미 한 경우 false로 두는 게 자연스럽다.
+  final bool showOtherArea;
 
   const HealthNextActionCard({
     super.key,
     required this.onEmotionAnalysis,
-    required this.onMonthlyRecheck,
+    required this.onOtherArea,
     required this.onMemo,
+    this.showOtherArea = true,
   });
 
   Widget _buildItem({
@@ -91,7 +99,6 @@ class HealthNextActionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            // TODO(copy): HealthNextActionCard 헤더
             '다음에 해볼 것',
             style: TextStyle(
               fontSize: 13.sp,
@@ -104,25 +111,23 @@ class HealthNextActionCard extends StatelessWidget {
             icon: Icons.psychology_outlined,
             bgColor: EmotionResultTokens.navyLight,
             iconColor: EmotionResultTokens.navy,
-            // TODO(copy): 감정 분석 액션 라벨/힌트
             label: '감정 분석도 해보기',
-            hint: '오늘 컨디션의 마음 상태도 확인해요',
+            hint: '오늘의 마음 상태도 함께 살펴봐요',
             onTap: onEmotionAnalysis,
           ),
-          _buildItem(
-            icon: Icons.event_repeat,
-            bgColor: EmotionResultTokens.greenLight,
-            iconColor: EmotionResultTokens.green,
-            // TODO(copy): 한 달 뒤 재검사 라벨/힌트
-            label: '한 달 뒤 재검사',
-            hint: '정기적인 관찰이 큰 변화를 막아요',
-            onTap: onMonthlyRecheck,
-          ),
+          if (showOtherArea)
+            _buildItem(
+              icon: Icons.dashboard_customize_outlined,
+              bgColor: EmotionResultTokens.greenLight,
+              iconColor: EmotionResultTokens.green,
+              label: '다른 부위도 분석하기',
+              hint: '눈·귀, 피부·털 등 다른 부위도 점검해요',
+              onTap: onOtherArea,
+            ),
           _buildItem(
             icon: Icons.edit_outlined,
             bgColor: const Color(0xFFF1EFE8),
             iconColor: EmotionResultTokens.grayDark,
-            // TODO(copy): 기록 남기기 라벨/힌트
             label: '이 순간 기록하기',
             hint: '한 줄 메모로 남겨두세요',
             onTap: onMemo,

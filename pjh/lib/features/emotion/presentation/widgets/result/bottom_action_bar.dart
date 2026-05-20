@@ -31,7 +31,6 @@ class BottomActionBar extends StatelessWidget {
 
   String get _mainButtonLabel {
     if (fromHistory) return '닫기';
-    // TODO(copy): BottomActionBar 메인 버튼 라벨 (모드별)
     switch (mode) {
       case BottomBarMode.emotion:
         return '분석 기록 모아보기';
