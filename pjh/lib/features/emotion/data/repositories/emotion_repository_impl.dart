@@ -31,6 +31,7 @@ class EmotionRepositoryImpl implements EmotionRepository {
     String? petId,
     String? petType,
     String? breed,
+    String? contextNote,
   }) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
@@ -50,10 +51,17 @@ class EmotionRepositoryImpl implements EmotionRepository {
       }
 
       // AI 감정 분석 (여러 이미지를 한 번의 API 호출로)
+      // contextNote는 GeminiAIService._buildPrompt의 additionalContext로 주입된다.
+      // null/빈 문자열이면 프롬프트에 아무 줄도 추가되지 않으므로 기존 동작과 동일.
+      final trimmedContext = contextNote?.trim();
       final emotionScores = await aiService.analyzeEmotionFromImages(
         processedImages,
         petType: petType,
         breed: breed,
+        additionalContext:
+            (trimmedContext != null && trimmedContext.isNotEmpty)
+                ? trimmedContext
+                : null,
       );
 
       // 대표 이미지(첫 번째)를 Supabase Storage에 업로드
@@ -85,6 +93,10 @@ class EmotionRepositoryImpl implements EmotionRepository {
         memo: null,
         tags: const [],
         isSleepy: emotionScores.isSleepy,
+        contextNote:
+            (trimmedContext != null && trimmedContext.isNotEmpty)
+                ? trimmedContext
+                : null,
       );
 
       return Right(analysis);

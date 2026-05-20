@@ -13,6 +13,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
     super.memo,
     required super.tags,
     super.isSleepy = false,
+    super.contextNote,
   });
 
   factory EmotionAnalysisModel.fromEntity(EmotionAnalysis analysis) {
@@ -28,6 +29,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
       memo: analysis.memo,
       tags: analysis.tags,
       isSleepy: analysis.isSleepy,
+      contextNote: analysis.contextNote,
     );
   }
 
@@ -49,6 +51,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
           ? List<String>.from(data['tags'] as List)
           : const [],
       isSleepy: emotionMap['is_sleepy'] as bool? ?? false,
+      contextNote: data['context_note'] as String?,
     );
   }
 
@@ -67,17 +70,22 @@ class EmotionAnalysisModel extends EmotionAnalysis {
       memo: map['memo'],
       tags: List<String>.from(map['tags'] ?? []),
       isSleepy: map['is_sleepy'] as bool? ?? false,
+      contextNote: map['context_note'] as String?,
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {
+    final map = <String, dynamic>{
       'user_id': userId,
       'pet_id': petId,
       'image_url': imageUrl,
       'emotion_analysis': (emotions as EmotionScoresModel).toMap(),
       'memo': memo,
     };
+    if (contextNote != null && contextNote!.isNotEmpty) {
+      map['context_note'] = contextNote;
+    }
+    return map;
   }
 
   @override
@@ -94,6 +102,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
     String? memo,
     List<String>? tags,
     bool? isSleepy,
+    String? contextNote,
   }) {
     return EmotionAnalysisModel(
       id: id ?? this.id,
@@ -107,6 +116,7 @@ class EmotionAnalysisModel extends EmotionAnalysis {
       memo: memo ?? this.memo,
       tags: tags ?? this.tags,
       isSleepy: isSleepy ?? this.isSleepy,
+      contextNote: contextNote ?? this.contextNote,
     );
   }
 }

@@ -12,6 +12,7 @@ abstract class EmotionRepository {
     String? petId,
     String? petType,
     String? breed,
+    String? contextNote,
   });
 
   // 히스토리 관리

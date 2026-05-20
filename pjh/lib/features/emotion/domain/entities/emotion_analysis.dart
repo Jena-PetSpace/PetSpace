@@ -15,6 +15,8 @@ class EmotionAnalysis extends Equatable {
   final List<String> tags;
   // 생리지표: 졸림 (감정 점수에서 분리)
   final bool isSleepy;
+  // 분석 요청 시 사용자가 입력한 추가 맥락 (장소·상황 등). AI 프롬프트에 주입되고 결과 ContextCard에 노출.
+  final String? contextNote;
 
   const EmotionAnalysis({
     required this.id,
@@ -29,6 +31,7 @@ class EmotionAnalysis extends Equatable {
     this.memo,
     required this.tags,
     this.isSleepy = false,
+    this.contextNote,
   });
 
   factory EmotionAnalysis.empty() {
@@ -76,6 +79,7 @@ class EmotionAnalysis extends Equatable {
       memo: json['memo'] as String?,
       tags: json['tags'] != null ? List<String>.from(json['tags'] as List) : [],
       isSleepy: json['is_sleepy'] as bool? ?? false,
+      contextNote: json['context_note'] as String?,
     );
   }
 
@@ -93,6 +97,7 @@ class EmotionAnalysis extends Equatable {
       'memo': memo,
       'tags': tags,
       'is_sleepy': isSleepy,
+      'context_note': contextNote,
     };
   }
 
@@ -109,6 +114,7 @@ class EmotionAnalysis extends Equatable {
     String? memo,
     List<String>? tags,
     bool? isSleepy,
+    String? contextNote,
   }) {
     return EmotionAnalysis(
       id: id ?? this.id,
@@ -123,6 +129,7 @@ class EmotionAnalysis extends Equatable {
       memo: memo ?? this.memo,
       tags: tags ?? this.tags,
       isSleepy: isSleepy ?? this.isSleepy,
+      contextNote: contextNote ?? this.contextNote,
     );
   }
 
@@ -131,7 +138,7 @@ class EmotionAnalysis extends Equatable {
         id, userId, petId, petName,
         imageUrl, localImagePath,
         emotions, confidence, analyzedAt,
-        memo, tags, isSleepy,
+        memo, tags, isSleepy, contextNote,
       ];
 }
 

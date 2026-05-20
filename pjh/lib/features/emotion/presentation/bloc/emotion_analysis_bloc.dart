@@ -56,16 +56,22 @@ class EmotionAnalysisBloc
       petId: event.petId,
       petType: event.petType,
       breed: event.breed,
+      contextNote: event.contextNote,
     ));
 
     result.fold(
       (failure) => emit(EmotionAnalysisError(failure.message)),
       (analysis) {
+        // contextNote는 분석 시점 입력값 — 결과 엔티티에 보존해 ContextCard에서 노출.
+        final withContext = (event.contextNote != null &&
+                event.contextNote!.trim().isNotEmpty)
+            ? analysis.copyWith(contextNote: event.contextNote!.trim())
+            : analysis;
         AnalyticsService.instance.logEmotionAnalysisComplete(
-          dominantEmotion: analysis.emotions.dominantEmotion,
+          dominantEmotion: withContext.emotions.dominantEmotion,
           imageCount: event.imagePaths.length,
         );
-        emit(EmotionAnalysisSuccess(analysis));
+        emit(EmotionAnalysisSuccess(withContext));
       },
     );
   }

@@ -12,16 +12,19 @@ class AnalyzeEmotionRequested extends EmotionAnalysisEvent {
   final String? petId;
   final String? petType;
   final String? breed;
+  /// 분석 요청 시 사용자가 입력한 추가 맥락. AI 프롬프트에 주입되고 결과에 보존된다.
+  final String? contextNote;
 
   const AnalyzeEmotionRequested({
     required this.imagePaths,
     this.petId,
     this.petType,
     this.breed,
+    this.contextNote,
   });
 
   @override
-  List<Object?> get props => [imagePaths, petId, petType, breed];
+  List<Object?> get props => [imagePaths, petId, petType, breed, contextNote];
 }
 
 class SaveAnalysisRequested extends EmotionAnalysisEvent {

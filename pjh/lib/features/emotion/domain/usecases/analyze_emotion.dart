@@ -20,6 +20,7 @@ class AnalyzeEmotion implements UseCase<EmotionAnalysis, AnalyzeEmotionParams> {
       petId: params.petId,
       petType: params.petType,
       breed: params.breed,
+      contextNote: params.contextNote,
     );
   }
 }
@@ -29,14 +30,16 @@ class AnalyzeEmotionParams extends Equatable {
   final String? petId;
   final String? petType;
   final String? breed;
+  final String? contextNote;
 
   const AnalyzeEmotionParams({
     required this.imagePaths,
     this.petId,
     this.petType,
     this.breed,
+    this.contextNote,
   });
 
   @override
-  List<Object?> get props => [imagePaths, petId, petType, breed];
+  List<Object?> get props => [imagePaths, petId, petType, breed, contextNote];
 }

@@ -8,11 +8,13 @@ abstract class EmotionAIService {
     File imageFile, {
     String? petType,
     String? breed,
+    String? additionalContext,
   });
   Future<EmotionScoresModel> analyzeEmotionFromImages(
     List<File> imageFiles, {
     String? petType,
     String? breed,
+    String? additionalContext,
   });
 }
 
@@ -28,11 +30,13 @@ class EmotionAIServiceImpl implements EmotionAIService {
     File imageFile, {
     String? petType,
     String? breed,
+    String? additionalContext,
   }) async {
     return await _geminiService.analyzeEmotionFromImage(
       imageFile,
       petType: petType,
       breed: breed,
+      additionalContext: additionalContext,
     );
   }
 
@@ -41,11 +45,13 @@ class EmotionAIServiceImpl implements EmotionAIService {
     List<File> imageFiles, {
     String? petType,
     String? breed,
+    String? additionalContext,
   }) async {
     return await _geminiService.analyzeEmotionFromImages(
       imageFiles,
       petType: petType,
       breed: breed,
+      additionalContext: additionalContext,
     );
   }
 }
