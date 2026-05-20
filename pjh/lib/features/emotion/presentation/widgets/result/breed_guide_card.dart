@@ -30,24 +30,22 @@ class BreedGuideCard extends StatelessWidget {
   String _bodyText() {
     final hasBreed = breed != null && breed!.trim().isNotEmpty;
     final stage = _ageStage();
-    // TODO(copy): BreedGuideCard 본문 — 정현님 카피라이팅 확정 후 교체
     if (hasBreed && stage.isNotEmpty) {
-      return '$breed $stage 특성: 환경 변화에 민감할 수 있어요.\n새로운 사람·소리에 천천히 노출해주세요.';
+      return '$breed는 $stage에 환경 변화에 민감한 시기예요.\n새로운 사람·소리에 천천히 적응시켜 주세요.';
     }
     if (hasBreed) {
-      return '$breed 특성: 품종 평균 데이터는 곧 추가됩니다.';
+      return '$breed의 특성을 반영한 가이드는 곧 추가될 예정이에요.';
     }
     if (stage.isNotEmpty) {
-      return '$stage: 일관된 일과와 충분한 수면이 안정에 도움이 돼요.';
+      return '$stage에는 일관된 일과와 충분한 수면이 안정에 큰 도움이 돼요.';
     }
-    return '품종·나이를 등록하면 더 정확한 가이드를 받을 수 있어요.';
+    return '품종과 나이를 등록하면 더 정확한 가이드를 받을 수 있어요.';
   }
 
   Widget _buildLabel() {
     final hasBreed = breed != null && breed!.trim().isNotEmpty;
     return Text(
-      // TODO(copy): BreedGuideCard 상단 라벨
-      hasBreed ? '$breed · 가이드' : '일반 가이드',
+      hasBreed ? '$breed 가이드' : '일반 가이드',
       style: TextStyle(
         fontSize: 11.sp,
         fontWeight: FontWeight.w500,

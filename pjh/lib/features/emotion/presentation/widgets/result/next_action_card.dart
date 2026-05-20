@@ -30,7 +30,6 @@ class NextActionCard extends StatelessWidget {
 
   Widget _buildHeader() {
     return Text(
-      // TODO(copy): NextActionCard 헤더
       '다음에 해볼 것',
       style: TextStyle(
         fontSize: 13.sp,
@@ -119,27 +118,24 @@ class NextActionCard extends StatelessWidget {
               icon: Icons.refresh,
               bgColor: EmotionResultTokens.coralLight,
               iconColor: EmotionResultTokens.coral,
-              // TODO(copy): 재분석 라벨/힌트
-              label: '10분 후 재분석',
-              hint: '안정된 뒤 다시 확인',
+              label: '10분 뒤 다시 분석하기',
+              hint: '안정된 모습인지 확인해보세요',
               onTap: onReanalyze,
             ),
           _buildItem(
             icon: Icons.medical_services_outlined,
             bgColor: EmotionResultTokens.navyLight,
             iconColor: EmotionResultTokens.navy,
-            // TODO(copy): 건강 분석 라벨/힌트
-            label: '건강 분석 해보기',
-            hint: '눈·귀·코·입 등 부위별 진단',
+            label: '건강 분석도 해보기',
+            hint: '눈·귀·코·입 부위별로 살펴봐요',
             onTap: onHealthCheck,
           ),
           _buildItem(
             icon: Icons.edit_outlined,
             bgColor: const Color(0xFFF1EFE8),
             iconColor: EmotionResultTokens.grayDark,
-            // TODO(copy): 기록 남기기 라벨/힌트
-            label: '기록 남기기',
-            hint: '이 순간 메모 저장',
+            label: '이 순간 기록하기',
+            hint: '한 줄 메모로 남겨두세요',
             onTap: onMemo,
           ),
         ],

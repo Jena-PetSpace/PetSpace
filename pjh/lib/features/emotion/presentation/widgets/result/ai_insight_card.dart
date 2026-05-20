@@ -33,7 +33,6 @@ class AiInsightCard extends StatelessWidget {
   }
 
   /// 주감정/스트레스 기반 행동 한 줄.
-  /// TODO(copy): 5가지 분기 멘트
   String _buildActionLine() {
     final e = analysis.emotions;
     final stress = e.stressLevel;
@@ -41,23 +40,18 @@ class AiInsightCard extends StatelessWidget {
     final posSum = e.happiness + e.calm;
 
     if (stress >= 80 || negSum > 0.5) {
-      // TODO(copy): 고스트레스/부정 행동 권장
       return '조용한 공간에서 잠시 쉬게 해주세요.';
     }
     if (posSum > 0.6) {
-      // TODO(copy): 긍정 행동 권장
-      return '이 상태를 유지할 수 있는 짧은 산책이 좋아요.';
+      return '가벼운 산책으로 이 컨디션을 이어가요.';
     }
     if (e.excitement > 0.5) {
-      // TODO(copy): 흥분 행동 권장
-      return '에너지 발산을 도울 가벼운 놀이가 적당해요.';
+      return '짧은 놀이로 에너지를 풀어주세요.';
     }
     if (e.curiosity > 0.5) {
-      // TODO(copy): 호기심 행동 권장
-      return '새로운 장난감이나 냄새 자극을 시도해보세요.';
+      return '새로운 장난감이나 향기로 호기심을 채워주세요.';
     }
-    // TODO(copy): 평온 행동 권장
-    return '평소처럼 차분히 곁에 있어주세요.';
+    return '평소처럼 곁에서 함께해주세요.';
   }
 
   Widget _buildHeader() {
@@ -70,7 +64,6 @@ class AiInsightCard extends StatelessWidget {
         ),
         SizedBox(width: 6.w),
         Text(
-          // TODO(copy): AiInsightCard 헤더
           'AI가 본 신호',
           style: TextStyle(
             fontSize: 13.sp,

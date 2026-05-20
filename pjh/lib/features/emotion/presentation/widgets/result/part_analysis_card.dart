@@ -97,8 +97,7 @@ class _PartAnalysisCardState extends State<PartAnalysisCard> {
                 borderRadius: BorderRadius.circular(4.r),
               ),
               child: Text(
-                // TODO(copy): PartAnalysisCard 상단 작은 라벨
-                'AI가 분석한 부위',
+                'AI가 살펴본 부위',
                 style: TextStyle(
                   fontSize: 10.sp,
                   fontWeight: FontWeight.w500,
@@ -108,7 +107,6 @@ class _PartAnalysisCardState extends State<PartAnalysisCard> {
             ),
             SizedBox(width: 8.w),
             Text(
-              // TODO(copy): PartAnalysisCard 메인 라벨
               '부위별 신호 4곳',
               style: TextStyle(
                 fontSize: 15.sp,

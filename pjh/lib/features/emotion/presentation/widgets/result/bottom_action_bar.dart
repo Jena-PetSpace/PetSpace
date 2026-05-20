@@ -69,15 +69,13 @@ class BottomActionBar extends StatelessWidget {
               _iconButton(
                 icon: Icons.share_outlined,
                 onTap: onShare,
-                // TODO(copy): BottomActionBar 공유 툴팁
-                tooltip: '공유',
+                tooltip: '공유하기',
               ),
               SizedBox(width: 8.w),
               _iconButton(
                 icon: Icons.bookmark_outline,
                 onTap: onSave,
-                // TODO(copy): BottomActionBar 저장 툴팁
-                tooltip: '메모 저장',
+                tooltip: '메모 남기기',
               ),
               SizedBox(width: 8.w),
               Expanded(
@@ -99,8 +97,7 @@ class BottomActionBar extends StatelessWidget {
                           ),
                           SizedBox(width: 6.w),
                           Text(
-                            // TODO(copy): BottomActionBar 메인 버튼 라벨
-                            fromHistory ? '닫기' : '히스토리 이동',
+                            fromHistory ? '닫기' : '분석 기록 모아보기',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 13.sp,

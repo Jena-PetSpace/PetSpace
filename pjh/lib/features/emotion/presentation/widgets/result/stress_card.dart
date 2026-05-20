@@ -45,7 +45,6 @@ class StressCard extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          // TODO(copy): StressCard 헤더
           '스트레스 지수',
           style: TextStyle(
             fontSize: 13.sp,
@@ -122,14 +121,12 @@ class StressCard extends StatelessWidget {
   }
 
   String get _bodyText {
-    // TODO(copy): 스트레스 구간별 본문
-    if (_isHigh) return '지금 강한 스트레스 신호가 보여요. 자극을 줄여주세요.';
-    if (_isMid) return '약간의 긴장 상태예요. 잠시 차분한 환경이 도움이 돼요.';
-    return '편안한 상태예요. 평소 루틴을 유지해주세요.';
+    if (_isHigh) return '강한 스트레스 신호가 보여요. 지금 바로 자극을 줄여주세요.';
+    if (_isMid) return '약간 긴장한 상태예요. 차분한 환경을 만들어 주세요.';
+    return '편안한 상태예요. 평소 루틴을 그대로 유지해 주세요.';
   }
 
-  /// 행동요령 4가지 (80+ 케이스에서만 노출).
-  /// TODO(copy): 50~79 / 50 미만 케이스 행동요령 정현님 확정 후 추가.
+  /// 高(>=80) 케이스 행동요령 4가지.
   static const List<_StressAction> _highActions = [
     _StressAction(
       icon: Icons.block,
@@ -153,12 +150,81 @@ class StressCard extends StatelessWidget {
     ),
   ];
 
+  /// 中(50~79) 케이스 행동요령 4가지.
+  static const List<_StressAction> _midActions = [
+    _StressAction(
+      icon: Icons.volume_off_outlined,
+      label: '자극 줄이기',
+      hint: 'TV 소리·사람 왕래',
+    ),
+    _StressAction(
+      icon: Icons.air,
+      label: '느린 호흡',
+      hint: '옆에 앉아 호흡 맞추기',
+    ),
+    _StressAction(
+      icon: Icons.pan_tool_outlined,
+      label: '부드러운 쓰다듬',
+      hint: '등·가슴 가볍게',
+    ),
+    _StressAction(
+      icon: Icons.home_outlined,
+      label: '익숙한 환경',
+      hint: '좋아하는 자리로',
+    ),
+  ];
+
+  /// 低(<50) 케이스 행동요령 4가지 — 평소 루틴 유지 가이드.
+  static const List<_StressAction> _lowActions = [
+    _StressAction(
+      icon: Icons.bedtime_outlined,
+      label: '충분한 휴식',
+      hint: '깊은 잠을 위한 어두운 공간',
+    ),
+    _StressAction(
+      icon: Icons.directions_walk,
+      label: '규칙적 산책',
+      hint: '매일 같은 시간대',
+    ),
+    _StressAction(
+      icon: Icons.restaurant_outlined,
+      label: '균형 잡힌 식사',
+      hint: '정해진 양·시간',
+    ),
+    _StressAction(
+      icon: Icons.favorite_outline,
+      label: '함께하는 시간',
+      hint: '눈 맞춤·짧은 대화',
+    ),
+  ];
+
+  /// 현재 stressLevel에 해당하는 행동요령 4개.
+  List<_StressAction> get _currentActions {
+    if (_isHigh) return _highActions;
+    if (_isMid) return _midActions;
+    return _lowActions;
+  }
+
+  /// 구간별 액션 카드 보더 색.
+  Color get _actionBorderColor {
+    if (_isHigh) return EmotionResultTokens.coralBorder;
+    if (_isMid) return EmotionResultTokens.amberMid;
+    return EmotionResultTokens.dividerLight;
+  }
+
+  /// 구간별 액션 카드 아이콘 배경.
+  Color get _actionIconBg {
+    if (_isHigh) return EmotionResultTokens.coralLight;
+    if (_isMid) return EmotionResultTokens.amberLight;
+    return EmotionResultTokens.navyLight;
+  }
+
   Widget _buildActionItem(_StressAction a) {
     return Container(
       padding: EdgeInsets.all(10.r),
       decoration: BoxDecoration(
         color: EmotionResultTokens.cardSurface,
-        border: Border.all(color: EmotionResultTokens.coralBorder),
+        border: Border.all(color: _actionBorderColor),
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Row(
@@ -167,11 +233,11 @@ class StressCard extends StatelessWidget {
             width: 28.r,
             height: 28.r,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: EmotionResultTokens.coralLight,
+            decoration: BoxDecoration(
+              color: _actionIconBg,
               shape: BoxShape.circle,
             ),
-            child: Icon(a.icon, size: 16.r, color: EmotionResultTokens.coral),
+            child: Icon(a.icon, size: 16.r, color: _gaugeFill),
           ),
           SizedBox(width: 8.w),
           Expanded(
@@ -211,7 +277,7 @@ class StressCard extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       childAspectRatio: 2.6,
-      children: _highActions.map(_buildActionItem).toList(),
+      children: _currentActions.map(_buildActionItem).toList(),
     );
   }
 
@@ -241,10 +307,8 @@ class StressCard extends StatelessWidget {
               height: 1.5,
             ),
           ),
-          if (_isHigh) ...[
-            SizedBox(height: 12.h),
-            _buildActions(),
-          ],
+          SizedBox(height: 12.h),
+          _buildActions(),
         ],
       ),
     );

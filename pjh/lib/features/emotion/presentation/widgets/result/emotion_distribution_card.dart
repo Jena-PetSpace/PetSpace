@@ -56,7 +56,6 @@ class _EmotionDistributionCardState extends State<EmotionDistributionCard> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          // TODO(copy): EmotionDistributionCard 헤더
           '감정 분포',
           style: TextStyle(
             fontSize: 13.sp,

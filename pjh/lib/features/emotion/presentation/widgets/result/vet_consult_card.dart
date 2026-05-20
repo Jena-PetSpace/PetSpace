@@ -65,8 +65,7 @@ class VetConsultCard extends StatelessWidget {
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      // TODO(copy): VetConsultCard 상단 라벨
-                      '상담 권장',
+                      '수의사 상담 권장',
                       style: TextStyle(
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w500,
@@ -77,8 +76,7 @@ class VetConsultCard extends StatelessWidget {
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  // TODO(copy): VetConsultCard 본문 — 조건별 분기 가능
-                  '강한 스트레스 신호가 보여요.\n수의사 상담을 권장합니다.',
+                  '지속되는 스트레스 신호가 감지됐어요.\n수의사와 상담해보시는 게 좋아요.',
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: EmotionResultTokens.textPrimary,
@@ -98,8 +96,7 @@ class VetConsultCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(
-                // TODO(copy): VetConsultCard 버튼 라벨
-                '병원 찾기',
+                '가까운 병원 찾기',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 11.sp,

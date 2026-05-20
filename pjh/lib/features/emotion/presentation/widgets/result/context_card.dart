@@ -43,8 +43,7 @@ class ContextCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  // TODO(copy): ContextCard 상단 라벨
-                  '입력하신 정보 · 분석에 반영됨',
+                  '입력하신 정보 · AI 분석에 반영됐어요',
                   style: TextStyle(
                     fontSize: 10.sp,
                     fontWeight: FontWeight.w500,

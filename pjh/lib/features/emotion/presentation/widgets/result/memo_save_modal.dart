@@ -77,7 +77,6 @@ class _MemoSaveModalState extends State<MemoSaveModal> {
             ),
             SizedBox(height: 14.h),
             Text(
-              // TODO(copy): MemoSaveModal 제목
               '이 순간 기록하기',
               style: TextStyle(
                 fontSize: 16.sp,
@@ -94,7 +93,6 @@ class _MemoSaveModalState extends State<MemoSaveModal> {
                 LengthLimitingTextInputFormatter(_maxLen),
               ],
               decoration: InputDecoration(
-                // TODO(copy): MemoSaveModal placeholder
                 hintText: '오늘 어땠는지 짧게 남겨주세요',
                 hintStyle: TextStyle(
                   color: EmotionResultTokens.grayText,
@@ -130,7 +128,6 @@ class _MemoSaveModalState extends State<MemoSaveModal> {
                       ),
                     ),
                     child: Text(
-                      // TODO(copy): MemoSaveModal 건너뛰기 버튼
                       '건너뛰기',
                       style: TextStyle(
                         fontSize: 13.sp,
@@ -157,8 +154,7 @@ class _MemoSaveModalState extends State<MemoSaveModal> {
                       ),
                     ),
                     child: Text(
-                      // TODO(copy): MemoSaveModal 저장 버튼
-                      '저장',
+                      '저장하기',
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w600,

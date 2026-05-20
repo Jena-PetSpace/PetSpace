@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../shared/themes/app_theme.dart';
 import '../../../domain/entities/emotion_analysis.dart';
+import '../../../utils/korean_particle.dart';
 import '../../theme/emotion_result_tokens.dart';
 
 /// HeroCard — 결과 페이지 최상단 요약 카드.
@@ -44,39 +45,35 @@ class EmotionSummaryCard extends StatelessWidget {
 
   /// 결과 요약 멘트.
   /// 우선순위: 강한 부정 > 강한 긍정 > 강한 흥분 > 강한 호기심 > 평온.
+  /// 펫 이름 + 주격 조사(이/가)는 [withSubject] 헬퍼로 받침 자동 분기.
   String _buildMessage(String name) {
     final e = analysis.emotions;
     final negSum = e.anxiety + e.sadness + e.fear;
     final posSum = e.happiness + e.calm;
+    final subject = withSubject(name); // "토토가" / "초롱이"
 
     if (negSum > 0.5) {
       // 부정 케이스
       final k = _dominantKey();
       final feel = switch (k) {
-        // TODO(copy): 부정 dominant별 단어 — 무서워하고/불안해/시무룩해/불편해
         'fear' => '무서워하고',
-        'anxiety' => '불안해',
-        'sadness' => '시무룩해',
-        'discomfort' => '불편해',
-        _ => '힘들어',
+        'anxiety' => '불안해하고',
+        'sadness' => '시무룩해하고',
+        'discomfort' => '불편해하고',
+        _ => '힘들어하고',
       };
-      // TODO(copy): 부정 케이스 멘트
-      return '지금 $name이 $feel 하고 있어요.\n차분히 안심시켜 주세요.';
+      return '지금 $subject $feel 있어요.\n곁에서 차분히 안심시켜 주세요.';
     }
     if (posSum > 0.6) {
-      // TODO(copy): 긍정 케이스 멘트
-      return '오늘 $name이 행복해 보여요.';
+      return '오늘 $subject 편안하고 행복해 보여요.\n이 분위기를 함께 즐겨주세요.';
     }
     if (e.excitement > 0.5) {
-      // TODO(copy): 흥분 케이스 멘트
-      return '$name이 들떠 있어요.\n차분히 다독여 주세요.';
+      return '$subject 한껏 들떠 있어요.\n에너지를 차분히 풀어주세요.';
     }
     if (e.curiosity > 0.5) {
-      // TODO(copy): 호기심 케이스 멘트
-      return '$name이 호기심 가득한 상태예요.';
+      return '$subject 호기심 가득한 상태예요.';
     }
-    // TODO(copy): 중립 케이스 멘트
-    return '$name이 잔잔한 하루를 보내고 있어요.';
+    return '$subject 잔잔한 하루를 보내고 있어요.';
   }
 
   /// 이전 분석 대비 변화 칩 데이터. delta 5% 미만은 제외.
