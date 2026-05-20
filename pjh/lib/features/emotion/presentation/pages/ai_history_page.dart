@@ -1029,8 +1029,10 @@ class _AiHistoryPageState extends State<AiHistoryPage>
           Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => BlocProvider(
               create: (_) => sl<EmotionAnalysisBloc>(),
+              // previousAnalysis: 히스토리 진입은 delta 칩 불필요
               child: EmotionResultPage(
                 analysis: item.emotionData!,
+                previousAnalysis: null,
                 fromHistory: true,
               ),
             ),

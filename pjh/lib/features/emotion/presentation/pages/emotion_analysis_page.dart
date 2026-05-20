@@ -1227,15 +1227,23 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       return;
     }
 
-    _runEmotionAnalysis(petType: petType, breed: breed);
+    _runEmotionAnalysis(
+      petType: petType,
+      breed: breed,
+      contextNote: additional,
+    );
   }
 
   /// 감정분석: rootNavigator로 로딩 페이지 push → 풀스크린(하단 네비바 가림).
   /// 로딩 페이지가 결과/에러를 pop으로 반환하면 ShellRoute 내부 navigator에 결과
   /// 페이지를 push (결과 화면에서는 네비바 표시).
+  ///
+  /// [contextNote]: 사용자가 "추가 정보 입력 (선택)"에 적은 맥락. AI 프롬프트
+  /// 주입 + 결과 ContextCard 노출용. null/빈 문자열이면 기존 동작과 동일.
   Future<void> _runEmotionAnalysis({
     String? petType,
     String? breed,
+    String? contextNote,
   }) async {
     final bloc = context.read<EmotionAnalysisBloc>();
     final imagePathsCopy = List<String>.from(_imagePaths);
@@ -1244,6 +1252,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       petId: _analyzeWithoutPet ? null : _selectedPet?.id,
       petType: petType,
       breed: breed,
+      contextNote: contextNote,
     );
 
     final result = await Navigator.of(context, rootNavigator: true).push(
@@ -1265,9 +1274,11 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         MaterialPageRoute(
           builder: (_) => BlocProvider.value(
             value: bloc,
+            // TODO(previousAnalysis): 직전 분석 1건 조회해서 채우기 (별도 PR)
             child: EmotionResultPage(
               analysis: result.analysis,
               imagePaths: imagePathsCopy,
+              previousAnalysis: null,
             ),
           ),
         ),

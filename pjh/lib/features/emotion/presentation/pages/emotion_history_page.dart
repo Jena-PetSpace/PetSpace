@@ -835,9 +835,11 @@ class _EmotionHistoryPageState extends State<EmotionHistoryPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
+        // previousAnalysis: 히스토리 진입은 delta 칩 불필요
         builder: (context) => EmotionResultPage(
           analysis: analysis,
           imagePaths: const [],
+          previousAnalysis: null,
           fromHistory: true,
         ),
       ),

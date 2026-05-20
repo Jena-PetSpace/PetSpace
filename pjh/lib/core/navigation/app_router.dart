@@ -118,9 +118,11 @@ class AppRouter {
             final imagePaths = (extra['imagePaths'] as List<String>?) ?? [];
             final bloc = extra['bloc'] as EmotionAnalysisBloc?;
             if (analysis == null) return const SizedBox.shrink();
+            // previousAnalysis: 라우팅 진입은 컨텍스트 불명 — null 유지
             final page = EmotionResultPage(
               analysis: analysis,
               imagePaths: imagePaths,
+              previousAnalysis: null,
             );
             if (bloc != null) {
               return BlocProvider.value(value: bloc, child: page);

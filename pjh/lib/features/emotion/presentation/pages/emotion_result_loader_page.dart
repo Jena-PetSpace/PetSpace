@@ -107,6 +107,10 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
       );
     }
 
-    return EmotionResultPage(analysis: _analysis!);
+    // TODO(previousAnalysis): 직전 분석 1건 조회해서 채우기 (별도 PR)
+    return EmotionResultPage(
+      analysis: _analysis!,
+      previousAnalysis: null,
+    );
   }
 }
