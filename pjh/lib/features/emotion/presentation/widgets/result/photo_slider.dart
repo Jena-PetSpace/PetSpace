@@ -64,6 +64,8 @@ class _PhotoSliderState extends State<PhotoSlider> {
       return Image.network(
         path,
         fit: BoxFit.cover,
+        // 펫 사진은 얼굴이 상단에 있는 구도가 많아 상단 우선 노출 (귀·눈 잘림 방지)
+        alignment: Alignment.topCenter,
         width: double.infinity,
         height: heightPx,
         loadingBuilder: (_, child, progress) {
@@ -85,6 +87,7 @@ class _PhotoSliderState extends State<PhotoSlider> {
     return Image.file(
       File(path),
       fit: BoxFit.cover,
+      alignment: Alignment.topCenter,
       width: double.infinity,
       height: heightPx,
       errorBuilder: (_, __, ___) => fallback,

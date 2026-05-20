@@ -23,11 +23,14 @@ import '../../data/models/health_analysis_model.dart';
 class EmotionAnalysisPage extends StatefulWidget {
   final String? initialPetId;
   final String? initialPetName;
+  /// 진입 시 미리 선택할 서브탭. 0=감정분석(기본), 1=건강분석.
+  final int initialTab;
 
   const EmotionAnalysisPage({
     super.key,
     this.initialPetId,
     this.initialPetName,
+    this.initialTab = 0,
   });
 
   @override
@@ -87,7 +90,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   // 전체 화면 가이드 표시 여부
   bool _showFullGuide = false;
 
-  // 서브탭: 0=감정분석, 1=건강분석
+  // 서브탭: 0=감정분석, 1=건강분석. initState에서 widget.initialTab으로 덮어씀.
   int _tabIndex = 0;
 
   // 건강분석 선택 부위
@@ -101,6 +104,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   @override
   void initState() {
     super.initState();
+    _tabIndex = widget.initialTab.clamp(0, 1);
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       context.read<PetBloc>().add(LoadUserPets());

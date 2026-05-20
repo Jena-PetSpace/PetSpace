@@ -523,9 +523,13 @@ class AppRouter {
               builder: (context, state) {
                 final petId = state.uri.queryParameters['petId'];
                 final petName = state.uri.queryParameters['petName'];
+                // tab=health → 건강분석 서브탭으로 진입, 기본은 감정분석
+                final tabParam = state.uri.queryParameters['tab'];
+                final initialTab = tabParam == 'health' ? 1 : 0;
                 return EmotionAnalysisPage(
                   initialPetId: petId,
                   initialPetName: petName,
+                  initialTab: initialTab,
                 );
               },
               routes: [

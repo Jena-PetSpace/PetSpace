@@ -131,8 +131,12 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
   }
 
   void _onHealthCheck() {
+    // 통합 분석 페이지로 이동하면서 건강분석 탭으로 진입.
+    // EmotionAnalysisPage(initialTab: 1) — 라우터에서 ?tab=health 파싱.
+    final petId = widget.analysis.petId;
+    final petQuery = (petId != null && petId.isNotEmpty) ? '&petId=$petId' : '';
     try {
-      context.go('/health/analysis');
+      context.push('/emotion?tab=health$petQuery');
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('건강 분석 페이지로 이동할 수 없어요')),
@@ -141,10 +145,14 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
   }
 
   void _onFindVet() {
-    // TODO(action): KakaoMap 동물병원 검색 라우팅
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('병원 찾기는 준비 중입니다')),
-    );
+    // KakaoMap 기반 동물병원 검색 페이지로 이동.
+    try {
+      context.push('/hospital');
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('병원 찾기 페이지로 이동할 수 없어요')),
+      );
+    }
   }
 
   // ── UI ─────────────────────────────────────────────────────
