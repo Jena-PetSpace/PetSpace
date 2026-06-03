@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../pets/presentation/bloc/pet_bloc.dart';
+import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../data/datasources/mbti_content_data_source.dart';
 import '../../domain/entities/mbti_content.dart';
 import '../../domain/entities/pet_mbti_result.dart';
@@ -10,6 +13,7 @@ import '../../domain/services/mbti_scorer.dart';
 import '../theme/mbti_theme.dart';
 import '../widgets/mbti_axis_bar.dart';
 import '../widgets/mbti_compatibility_card.dart';
+import '../widgets/mbti_share_helper.dart';
 
 /// 결과 화면. 저장된 [PetMbtiResult] + 해당 content_version 의 [MbtiContent] 를
 /// 결합해 별명/소개/성격/강점/주의/추천/궁합/면책을 표시한다.
@@ -376,7 +380,29 @@ class _ResultContent extends StatelessWidget {
         ],
       );
 
-  // 공유/다시검사 — 자리만(공유 동작은 작업 6 에서 연결).
+  /// 공유 — PetBloc 에서 result.petId 의 이름/아바타를 찾아 공유 헬퍼 호출.
+  void _onShare(BuildContext context) {
+    String? name = petName;
+    String? avatarUrl;
+    final petState = context.read<PetBloc>().state;
+    if (petState is PetLoaded) {
+      for (final p in petState.pets) {
+        if (p.id == result.petId) {
+          name ??= p.name;
+          avatarUrl = p.avatarUrl;
+          break;
+        }
+      }
+    }
+    MbtiShareHelper.share(
+      context,
+      result: result,
+      content: content,
+      petName: name,
+      petAvatarUrl: avatarUrl,
+    );
+  }
+
   Widget _bottomActions(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
@@ -393,13 +419,7 @@ class _ResultContent extends StatelessWidget {
             child: SizedBox(
               height: 50.h,
               child: OutlinedButton.icon(
-                onPressed: () {
-                  // 작업 6: 공유 카드 생성/공유 연결 예정.
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(const SnackBar(
-                        content: Text('공유 기능은 곧 추가될 예정이에요.')));
-                },
+                onPressed: () => _onShare(context),
                 icon: Icon(Icons.share_outlined, size: 18.w),
                 label: Text('공유하기',
                     style: TextStyle(
