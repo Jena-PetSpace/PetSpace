@@ -16,6 +16,7 @@ import '../../../emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../../home/presentation/widgets/home_dashboard_header.dart';
 import '../../../home/presentation/widgets/home_quick_actions.dart';
 import '../../../home/presentation/widgets/home_quest_card.dart';
+import '../../../mbti/presentation/widgets/home_mbti_card.dart';
 import '../../../home/presentation/widgets/category_filter_chips.dart';
 import '../../../home/presentation/widgets/hot_topic_banner.dart';
 import '../../../home/presentation/widgets/magazine_grid.dart';
@@ -130,6 +131,14 @@ class _HomePageState extends State<HomePage> {
               child: Padding(
                 padding: EdgeInsets.only(top: 16.h),
                 child: HomeQuestCard(checkNotifier: _questCheckNotifier),
+              ),
+            ),
+
+            // ── 반려동물 MBTI 카드 (결과 유무 분기) ──────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 16.h),
+                child: const HomeMbtiCard(),
               ),
             ),
 

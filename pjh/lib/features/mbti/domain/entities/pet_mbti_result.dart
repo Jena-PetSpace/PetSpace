@@ -20,6 +20,10 @@ extension MbtiSpeciesX on MbtiSpecies {
         return MbtiSpecies.etc;
     }
   }
+
+  /// 반려동물 프로필 종 문자열('dog'/'cat'/...)을 MbtiSpecies 로 매핑.
+  /// 모르는 값/없음 → etc 폴백. (PetType enum 과 분리된 매핑 레이어)
+  static MbtiSpecies fromPetTypeString(String? petType) => fromKey(petType);
 }
 
 /// 한 응답: 문항 id 와 선택지(A/B).

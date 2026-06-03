@@ -17,6 +17,11 @@ class Pet extends Equatable {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// MBTI 최신 결과 type_code 캐시(pets.current_mbti_type). 빠른 표시용.
+  /// null 이면 "검사 안 함"으로 간주(홈/MY 에서 CTA 노출).
+  final String? currentMbtiType;
+  final DateTime? currentMbtiUpdatedAt;
+
   const Pet({
     required this.id,
     required this.userId,
@@ -29,6 +34,8 @@ class Pet extends Equatable {
     this.description,
     required this.createdAt,
     required this.updatedAt,
+    this.currentMbtiType,
+    this.currentMbtiUpdatedAt,
   });
 
   Pet copyWith({
@@ -43,6 +50,8 @@ class Pet extends Equatable {
     String? description,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? currentMbtiType,
+    DateTime? currentMbtiUpdatedAt,
   }) {
     return Pet(
       id: id ?? this.id,
@@ -56,6 +65,8 @@ class Pet extends Equatable {
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      currentMbtiType: currentMbtiType ?? this.currentMbtiType,
+      currentMbtiUpdatedAt: currentMbtiUpdatedAt ?? this.currentMbtiUpdatedAt,
     );
   }
 
@@ -114,5 +125,7 @@ class Pet extends Equatable {
         description,
         createdAt,
         updatedAt,
+        currentMbtiType,
+        currentMbtiUpdatedAt,
       ];
 }

@@ -15,6 +15,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 import '../widgets/my_profile_header.dart';
 import '../widgets/user_badges_section.dart';
+import '../../../mbti/presentation/widgets/my_mbti_badge_section.dart';
 
 /// MY탭 stats 갱신 신호를 보내는 싱글톤 notifier
 class MyPageStatsNotifier extends ChangeNotifier {
@@ -141,6 +142,8 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                 statsRefreshKey: _statsRefreshKey,
               ),
               UserBadgesSection(userId: user.uid),
+              // MBTI 성격 유형 뱃지 (결과 있는 pet 만, 없으면 자동 숨김)
+              const MyMbtiBadgeSection(),
               // 탭 바 (고정)
               Container(
                 color: Colors.white,
