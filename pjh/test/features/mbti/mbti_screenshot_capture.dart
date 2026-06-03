@@ -6,8 +6,11 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:meong_nyang_diary/config/injection_container.dart' show sl;
 import 'package:meong_nyang_diary/features/mbti/data/datasources/mbti_content_data_source.dart';
 import 'package:meong_nyang_diary/features/mbti/domain/entities/mbti_content.dart';
+import 'package:meong_nyang_diary/features/mbti/domain/entities/pet_mbti_result.dart';
+import 'package:meong_nyang_diary/features/mbti/presentation/pages/mbti_result_page.dart';
 import 'package:meong_nyang_diary/features/mbti/presentation/theme/mbti_theme.dart';
 import 'package:meong_nyang_diary/features/mbti/presentation/widgets/mbti_choice_card.dart';
 import 'package:meong_nyang_diary/features/mbti/presentation/widgets/mbti_progress_bar.dart';
@@ -188,6 +191,10 @@ void main() {
     Directory(outDir).createSync(recursive: true);
     File('$outDir/04_scoring.png')
         .writeAsBytesSync(bytes!.buffer.asUint8List());
+
+    // MbtiScoringView 의 무한 애니메이션/타이머를 dispose 시켜 pending timer 제거
+    // (그대로 두면 테스트가 타임아웃됨).
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('capture: 인트로(etc 칩 포함)', (tester) async {
@@ -283,5 +290,102 @@ void main() {
       ),
     ));
     await capture(tester, '01_intro');
+  });
+
+  // ── 결과 화면 (390 폭 레이아웃 검증 + 톤) ─────────────────────
+  // MbtiResultPage 는 sl<MbtiContentDataSource> 를 읽으므로 테스트용 등록.
+  AxisScore axis(String p, String n, int pc, int nc) => AxisScore(
+        positivePole: p, negativePole: n, positiveCount: pc, negativeCount: nc,
+      );
+
+  Future<void> captureResult(
+    WidgetTester tester,
+    String name,
+    PetMbtiResult result, {
+    String? petName,
+  }) async {
+    if (!sl.isRegistered<MbtiContentDataSource>()) {
+      sl.registerLazySingleton<MbtiContentDataSource>(
+          () => MbtiContentDataSourceImpl());
+    }
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        minTextAdapt: true,
+        builder: (context, _) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(fontFamily: 'Pretendard'),
+          home: RepaintBoundary(
+            child: MbtiResultPage(result: result, petName: petName),
+          ),
+        ),
+      ),
+    );
+    // FutureBuilder(콘텐츠 로드) 완료 대기.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    final boundary = tester.firstRenderObject<RenderRepaintBoundary>(
+      find.byType(RepaintBoundary),
+    );
+    final image = await boundary.toImage(pixelRatio: 2.0);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    Directory(outDir).createSync(recursive: true);
+    File('$outDir/$name.png').writeAsBytesSync(bytes!.buffer.asUint8List());
+  }
+
+  testWidgets('capture: 결과 ENFP 강아지(외교관/coral)', (tester) async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    tester.view.physicalSize = const Size(390 * 2, 844 * 2);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+
+    await captureResult(
+      tester,
+      '05_result_enfp_dog',
+      PetMbtiResult(
+        id: 's1',
+        petId: 'p1',
+        species: MbtiSpecies.dog,
+        typeCode: 'ENFP',
+        axisScores: {
+          'EI': axis('E', 'I', 4, 1),
+          'SN': axis('S', 'N', 1, 4),
+          'TF': axis('T', 'F', 2, 3),
+          'JP': axis('J', 'P', 0, 5),
+        },
+        answers: const [],
+        contentVersion: 1,
+        createdAt: DateTime(2026, 6, 3),
+      ),
+      petName: '초코',
+    );
+  });
+
+  testWidgets('capture: 결과 ISTJ etc(관리자/navy + etc 칩)', (tester) async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    tester.view.physicalSize = const Size(390 * 2, 844 * 2);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+
+    await captureResult(
+      tester,
+      '06_result_istj_etc',
+      PetMbtiResult(
+        id: 's2',
+        petId: 'p2',
+        species: MbtiSpecies.etc,
+        typeCode: 'ISTJ',
+        axisScores: {
+          'EI': axis('E', 'I', 1, 4),
+          'SN': axis('S', 'N', 5, 0),
+          'TF': axis('T', 'F', 3, 2),
+          'JP': axis('J', 'P', 4, 1),
+        },
+        answers: const [],
+        contentVersion: 1,
+        createdAt: DateTime(2026, 6, 3),
+      ),
+    );
   });
 }
