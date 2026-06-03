@@ -96,6 +96,13 @@ import '../features/chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 import '../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
 
+// Features - MBTI (반려동물 성격 유형 검사)
+import '../features/mbti/data/repositories/mbti_repository_impl.dart';
+import '../features/mbti/domain/repositories/mbti_repository.dart';
+import '../features/mbti/domain/usecases/save_mbti_result.dart';
+import '../features/mbti/domain/usecases/get_latest_mbti_result.dart';
+import '../features/mbti/domain/usecases/get_mbti_history.dart';
+
 // Core Services
 import '../core/services/image_upload_service.dart';
 import '../core/services/notification_service.dart';
@@ -120,6 +127,7 @@ Future<void> init() async {
   await _initPets();
   await _initHealth();
   await _initChat();
+  await _initMbti();
 }
 
 Future<void> _initAuth() async {
@@ -400,6 +408,25 @@ Future<void> _initChat() async {
       updateLastRead: sl<UpdateLastRead>(),
     ),
   );
+}
+
+Future<void> _initMbti() async {
+  // MBTI feature dependencies (반려동물 성격 유형 검사)
+
+  // Repository
+  sl.registerLazySingleton<MbtiRepository>(
+    () => MbtiRepositoryImpl(
+      supabaseClient: sl(),
+      networkInfo: sl(),
+    ),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => SaveMbtiResult(sl()));
+  sl.registerLazySingleton(() => GetLatestMbtiResult(sl()));
+  sl.registerLazySingleton(() => GetMbtiHistory(sl()));
+
+  // BLoC: 검사 플로우/결과 BLoC 은 작업 2~3 단계에서 등록.
 }
 
 Future<void> _initCore() async {

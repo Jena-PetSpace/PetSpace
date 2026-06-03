@@ -88,6 +88,11 @@ class ErrorMessages {
   static const String profileNotFound = '사용자 프로필을 찾을 수 없습니다.';
   static const String profileUpdateFailed = '프로필 업데이트에 실패했습니다.\n다시 시도해주세요.';
 
+  // MBTI(성격 유형 검사) 에러
+  static const String mbtiResultSaveFailed = '검사 결과 저장에 실패했습니다.\n다시 시도해주세요.';
+  static const String mbtiResultLoadFailed = '검사 결과를 불러오지 못했습니다.\n다시 시도해주세요.';
+  static const String mbtiResultDeleteFailed = '검사 결과 삭제에 실패했습니다.\n다시 시도해주세요.';
+
   // 데이터베이스 에러
   static const String databaseError = '데이터베이스 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
   static const String uniqueConstraintViolation = '이미 존재하는 데이터입니다.';

@@ -105,6 +105,7 @@ flutter:
     - assets/icons/map/
     - assets/lottie/
     - assets/svg/
+    - assets/data/
 
   fonts:
     - family: Pretendard
