@@ -55,6 +55,8 @@ import '../../features/emotion/presentation/widgets/ai_analysis_loading_widget.d
 import '../../features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../features/health/presentation/pages/health_alert_settings_page.dart';
 import '../../features/emotion/presentation/pages/health_result_page.dart';
+import '../../features/mbti/presentation/pages/mbti_test_page.dart';
+import '../../features/mbti/domain/entities/pet_mbti_result.dart';
 import '../../features/emotion/data/models/health_analysis_model.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
@@ -516,6 +518,31 @@ class AppRouter {
                 return HealthResultPage(result: result);
               },
             ),
+            // 반려동물 MBTI 검사 플로우 진입
+            GoRoute(
+              path: '/mbti',
+              name: 'mbti',
+              builder: (context, state) {
+                final petId = state.uri.queryParameters['petId'] ?? '';
+                final petName = state.uri.queryParameters['petName'];
+                final species = MbtiSpeciesX.fromKey(
+                    state.uri.queryParameters['species']);
+                return MbtiTestPage(
+                  petId: petId,
+                  species: species,
+                  petName: petName,
+                );
+              },
+            ),
+            // 결과 화면 — 작업 4 에서 실제 결과 페이지로 교체.
+            GoRoute(
+              path: '/mbti/result',
+              name: 'mbti-result',
+              builder: (context, state) {
+                final result = state.extra as PetMbtiResult?;
+                return _MbtiResultPlaceholder(result: result);
+              },
+            ),
             GoRoute(
               path: '/emotion',
               name: 'emotion',
@@ -769,5 +796,49 @@ class GoRouterRefreshStream extends ChangeNotifier {
   void dispose() {
     _subscription.cancel();
     super.dispose();
+  }
+}
+
+/// 작업 3 임시 결과 확인용 플레이스홀더. 작업 4 에서 실제 결과 화면으로 교체.
+class _MbtiResultPlaceholder extends StatelessWidget {
+  final PetMbtiResult? result;
+
+  const _MbtiResultPlaceholder({this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final r = result;
+    return Scaffold(
+      appBar: AppBar(title: const Text('검사 완료')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🎉', style: TextStyle(fontSize: 56)),
+              const SizedBox(height: 16),
+              Text(
+                r == null
+                    ? '결과를 불러오지 못했어요.'
+                    : '유형: ${r.typeCode}\n종: ${r.species.key}\n저장 id: ${r.id}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16, height: 1.6),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '(작업 4에서 정식 결과 화면으로 교체됩니다)',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => context.go('/home'),
+                child: const Text('홈으로'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

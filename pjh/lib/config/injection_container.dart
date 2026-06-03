@@ -98,12 +98,14 @@ import '../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
 
 // Features - MBTI (반려동물 성격 유형 검사)
 import '../features/mbti/data/datasources/mbti_content_data_source.dart';
+import '../features/mbti/data/datasources/mbti_draft_local_data_source.dart';
 import '../features/mbti/data/repositories/mbti_repository_impl.dart';
 import '../features/mbti/domain/repositories/mbti_repository.dart';
 import '../features/mbti/domain/services/mbti_scorer.dart';
 import '../features/mbti/domain/usecases/save_mbti_result.dart';
 import '../features/mbti/domain/usecases/get_latest_mbti_result.dart';
 import '../features/mbti/domain/usecases/get_mbti_history.dart';
+import '../features/mbti/presentation/bloc/mbti_test_bloc.dart';
 
 // Core Services
 import '../core/services/image_upload_service.dart';
@@ -420,6 +422,11 @@ Future<void> _initMbti() async {
     () => MbtiContentDataSourceImpl(),
   );
 
+  // Data Source (검사 임시저장 — shared_preferences)
+  sl.registerLazySingleton<MbtiDraftLocalDataSource>(
+    () => MbtiDraftLocalDataSourceImpl(prefs: sl()),
+  );
+
   // Domain Service (채점기 — 외부 의존 없음)
   sl.registerLazySingleton(() => const MbtiScorer());
 
@@ -436,7 +443,15 @@ Future<void> _initMbti() async {
   sl.registerLazySingleton(() => GetLatestMbtiResult(sl()));
   sl.registerLazySingleton(() => GetMbtiHistory(sl()));
 
-  // BLoC: 검사 플로우/결과 BLoC 은 작업 3 단계에서 등록.
+  // BLoC — factory (페이지마다 새 인스턴스)
+  sl.registerFactory(
+    () => MbtiTestBloc(
+      contentDataSource: sl(),
+      draftDataSource: sl(),
+      scorer: sl(),
+      saveMbtiResult: sl(),
+    ),
+  );
 }
 
 Future<void> _initCore() async {
