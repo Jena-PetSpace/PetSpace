@@ -28,6 +28,9 @@ class MbtiTestState extends Equatable {
   /// 채점 완료 결과(저장된 서버 결과). completed 단계에서 채워짐.
   final PetMbtiResult? result;
 
+  /// 이번 완료가 그 pet 의 첫 검사라 보상(포인트+뱃지)이 지급됐는지.
+  final bool rewardGranted;
+
   final String? errorMessage;
 
   const MbtiTestState({
@@ -39,6 +42,7 @@ class MbtiTestState extends Equatable {
     this.currentIndex = 0,
     this.pendingDraft,
     this.result,
+    this.rewardGranted = false,
     this.errorMessage,
   });
 
@@ -76,6 +80,7 @@ class MbtiTestState extends Equatable {
     MbtiDraft? pendingDraft,
     bool clearPendingDraft = false,
     PetMbtiResult? result,
+    bool? rewardGranted,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -89,6 +94,7 @@ class MbtiTestState extends Equatable {
       pendingDraft:
           clearPendingDraft ? null : (pendingDraft ?? this.pendingDraft),
       result: result ?? this.result,
+      rewardGranted: rewardGranted ?? this.rewardGranted,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -103,6 +109,7 @@ class MbtiTestState extends Equatable {
         currentIndex,
         pendingDraft,
         result,
+        rewardGranted,
         errorMessage,
       ];
 }

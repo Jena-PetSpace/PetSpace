@@ -307,6 +307,26 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
     });
   }
 
+  /// 뱃지 멱등 지급. 이미 보유면 false, 신규 지급이면 true.
+  Future<bool> _awardBadgeIfAbsent({
+    required String userId,
+    required String badgeId,
+  }) async {
+    final existing = await supabaseClient
+        .from('user_badges')
+        .select('badge_id')
+        .eq('user_id', userId)
+        .eq('badge_id', badgeId)
+        .limit(1);
+    if ((existing as List).isNotEmpty) return false;
+    await supabaseClient.from('user_badges').insert({
+      'user_id': userId,
+      'badge_id': badgeId,
+      'earned_at': DateTime.now().toIso8601String(),
+    });
+    return true;
+  }
+
   Future<int> _getUserStreak(String userId) async {
     try {
       final res = await supabaseClient

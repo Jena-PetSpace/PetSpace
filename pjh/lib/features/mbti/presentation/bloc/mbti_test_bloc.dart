@@ -1,15 +1,23 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/services/analytics_service.dart';
+import '../../../social/domain/repositories/social_repository.dart';
 import '../../data/datasources/mbti_content_data_source.dart';
 import '../../data/datasources/mbti_draft_local_data_source.dart';
 import '../../domain/entities/mbti_content.dart';
 import '../../domain/entities/pet_mbti_result.dart';
+import '../../domain/repositories/mbti_repository.dart';
 import '../../domain/services/mbti_scorer.dart';
 import '../../domain/usecases/save_mbti_result.dart';
 
 part 'mbti_test_event.dart';
 part 'mbti_test_state.dart';
+
+/// 첫 검사 완료 보상.
+const int kMbtiFirstTestPoints = 30;
+const String kMbtiExplorerBadgeId = 'mbti_explorer';
 
 /// 검사 플로우 BLoC.
 ///
@@ -20,12 +28,16 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
   final MbtiDraftLocalDataSource draftDataSource;
   final MbtiScorer scorer;
   final SaveMbtiResult saveMbtiResult;
+  final MbtiRepository mbtiRepository;
+  final SocialRepository socialRepository;
 
   MbtiTestBloc({
     required this.contentDataSource,
     required this.draftDataSource,
     required this.scorer,
     required this.saveMbtiResult,
+    required this.mbtiRepository,
+    required this.socialRepository,
   }) : super(const MbtiTestState()) {
     on<MbtiTestStarted>(_onStarted);
     on<MbtiTestResumed>(_onResumed);
@@ -83,7 +95,18 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
     }
   }
 
+  // 분석: 검사 시작/완주/이탈 판정용 플래그.
+  bool _startLogged = false;
+  bool _completedOrAbandonLogged = false;
+
+  void _logStartOnce() {
+    if (_startLogged) return;
+    _startLogged = true;
+    AnalyticsService.instance.logMbtiStart(species: state.species.key);
+  }
+
   void _onResumed(MbtiTestResumed event, Emitter<MbtiTestState> emit) {
+    _logStartOnce();
     final draft = state.pendingDraft;
     if (draft == null) {
       emit(state.copyWith(status: MbtiTestStatus.inProgress));
@@ -104,6 +127,7 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
 
   Future<void> _onRestarted(
       MbtiTestRestarted event, Emitter<MbtiTestState> emit) async {
+    _logStartOnce();
     // "처음부터 다시" → 스냅샷 삭제(엉뚱한 이어하기 방지) 후 첫 문항부터.
     await draftDataSource.clearDraft(state.petId);
     emit(state.copyWith(
@@ -168,6 +192,13 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
     emit(state.copyWith(status: MbtiTestStatus.scoring, clearError: true));
 
     final scored = outcome.scored!;
+
+    // 보상 게이팅: "그 pet 의 첫 결과일 때만" 지급.
+    // 저장 전에 기존 결과 유무를 확인(insert 누적 구조라 저장 후엔 항상 ≥1).
+    // 조회 실패 시 보수적으로 첫 검사 아님으로 간주(중복 적립 방지 우선).
+    final priorResult = await mbtiRepository.getLatestResult(state.petId);
+    final isFirstForPet = priorResult.fold((_) => false, (r) => r == null);
+
     final entity = PetMbtiResult(
       id: '', // 서버 생성
       petId: state.petId,
@@ -192,13 +223,66 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
       (saved) async {
         // 결과 저장 성공 → 임시 스냅샷 정리(다음에 엉뚱한 이어하기 방지).
         await draftDataSource.clearDraft(state.petId);
+
+        // 완주 분석(익명 집계) — 저장 성공 후 1회.
+        if (!_completedOrAbandonLogged) {
+          _completedOrAbandonLogged = true;
+          AnalyticsService.instance.logMbtiComplete(
+            species: state.species.key,
+            typeCode: saved.typeCode,
+          );
+        }
+
+        // 보상: pet 첫 결과일 때만(저장 성공 후). 둘째 검사부턴 결과만 갱신.
+        bool granted = false;
+        if (isFirstForPet) {
+          granted = await _grantFirstTestReward();
+        }
+
         emit(state.copyWith(
           status: MbtiTestStatus.completed,
           result: saved,
+          rewardGranted: granted,
           clearPendingDraft: true,
         ));
       },
     );
+  }
+
+  /// 첫 검사 보상 지급(포인트 + 뱃지). 실패해도 결과 완료를 막지 않는다.
+  /// 뱃지는 멱등(이미 있으면 중복 안 됨). 반환: 포인트 지급 시도 성공 여부.
+  Future<bool> _grantFirstTestReward() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return false;
+      await socialRepository.incrementUserPoints(
+        userId: userId,
+        points: kMbtiFirstTestPoints,
+      );
+      await socialRepository.awardBadgeIfAbsent(
+        userId: userId,
+        badgeId: kMbtiExplorerBadgeId,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<void> close() {
+    // 완주/실패 없이 검사 화면을 떠나면 이탈로 집계(시작했고, 아직 미완료일 때).
+    if (_startLogged &&
+        !_completedOrAbandonLogged &&
+        state.status == MbtiTestStatus.inProgress) {
+      _completedOrAbandonLogged = true;
+      AnalyticsService.instance.logMbtiAbandon(
+        species: state.species.key,
+        answered: state.answers.length,
+        total: state.totalQuestions,
+      );
+    }
+    return super.close();
   }
 
   Future<void> _persistDraft({

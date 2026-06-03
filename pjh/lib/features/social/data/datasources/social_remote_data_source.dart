@@ -61,6 +61,10 @@ abstract class SocialRemoteDataSource {
     required String userId,
     required int points,
   });
+  Future<bool> awardBadgeIfAbsent({
+    required String userId,
+    required String badgeId,
+  });
   Future<int> getUserStreak(String userId);
   Future<Map<String, dynamic>?> getNotificationPreferences(String userId);
   Future<void> upsertNotificationPreference({
@@ -197,6 +201,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _hasQuestActivityToday(userId: userId, questType: questType);
   @override Future<void> incrementUserPoints({required String userId, required int points}) =>
       _incrementUserPoints(userId: userId, points: points);
+  @override Future<bool> awardBadgeIfAbsent({required String userId, required String badgeId}) =>
+      _awardBadgeIfAbsent(userId: userId, badgeId: badgeId);
   @override Future<int> getUserStreak(String userId) => _getUserStreak(userId);
   @override Future<Map<String, dynamic>?> getNotificationPreferences(String userId) =>
       _getNotificationPreferences(userId);

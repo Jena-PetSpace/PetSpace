@@ -125,4 +125,44 @@ class AnalyticsService {
   // ── 12. 알림 허용 ───────────────────────────────────────
   Future<void> logNotificationPermissionGranted() =>
       _log('notification_permission_granted');
+
+  // ── 13. 반려동물 MBTI (익명 집계 전용) ─────────────────────
+  // ⚠️ 개인정보 최소화: pet 이름·사진 등 식별 정보는 파라미터에 넣지 않는다.
+  //    species(dog/cat/etc), 유형코드, 문항 인덱스, 완주 여부 등 집계용만.
+
+  /// 검사 시작
+  Future<void> logMbtiStart({required String species}) =>
+      _log('mbti_start', {'species': species});
+
+  /// 문항 이탈(중간에 검사 화면을 떠남). answered: 응답한 문항 수.
+  Future<void> logMbtiAbandon({
+    required String species,
+    required int answered,
+    required int total,
+  }) =>
+      _log('mbti_abandon', {
+        'species': species,
+        'answered': answered,
+        'total': total,
+      });
+
+  /// 완주(채점 성공). 완주율 집계용. type_code 로 유형 분포도 집계.
+  Future<void> logMbtiComplete({
+    required String species,
+    required String typeCode,
+  }) =>
+      _log('mbti_complete', {
+        'species': species,
+        'type_code': typeCode,
+      });
+
+  /// 결과 공유 완료. include_photo: 사진 포함 여부(집계용 bool→int).
+  Future<void> logMbtiShare({
+    required String typeCode,
+    required bool includePhoto,
+  }) =>
+      _log('mbti_share', {
+        'type_code': typeCode,
+        'include_photo': includePhoto ? 1 : 0,
+      });
 }

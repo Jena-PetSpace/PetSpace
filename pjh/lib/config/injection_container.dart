@@ -450,6 +450,8 @@ Future<void> _initMbti() async {
       draftDataSource: sl(),
       scorer: sl(),
       saveMbtiResult: sl(),
+      mbtiRepository: sl(),
+      socialRepository: sl(),
     ),
   );
 }

@@ -96,6 +96,13 @@ abstract class SocialRepository {
     required int points,
   });
 
+  /// 뱃지 지급(멱등). 이미 보유 시 중복 지급하지 않는다.
+  /// 반환값: 이번 호출로 새로 지급되었으면 true, 이미 보유였으면 false.
+  Future<Either<Failure, bool>> awardBadgeIfAbsent({
+    required String userId,
+    required String badgeId,
+  });
+
   // Like operations
   Future<Either<Failure, void>> likePost(String postId, String userId);
   Future<Either<Failure, void>> unlikePost(String postId, String userId);
