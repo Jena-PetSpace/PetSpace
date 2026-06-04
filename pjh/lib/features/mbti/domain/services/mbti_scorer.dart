@@ -71,9 +71,13 @@ class MbtiScorer {
   }) {
     final questions = content.questionsFor(species);
     final questionById = {for (final q in questions) q.id: q};
+    // 강도 모드 여부(콘텐츠에 answerIntensities 정의가 있으면 강도 응답 요구).
+    final usesIntensity = content.answerIntensities.isNotEmpty;
+    final validIntensityIds =
+        content.answerIntensities.map((i) => i.id).toSet();
 
     // 응답을 q_id 로 정리(마지막 응답 우선). 중복/미지의 id 검출.
-    final answerByQid = <String, String>{};
+    final answerByQid = <String, MbtiAnswer>{};
     for (final a in answers) {
       if (!questionById.containsKey(a.questionId)) {
         return MbtiScoringOutcome.failure(
@@ -87,7 +91,15 @@ class MbtiScorer {
           '잘못된 선택: ${a.questionId}=${a.choice}',
         );
       }
-      answerByQid[a.questionId] = a.choice;
+      // 강도 모드면 intensity 가 정의된 값('strong'/'mild')이어야 한다.
+      if (usesIntensity &&
+          (a.intensity == null || !validIntensityIds.contains(a.intensity))) {
+        return MbtiScoringOutcome.failure(
+          MbtiScoringError.invalidAnswer,
+          '잘못된 강도: ${a.questionId}=${a.intensity}',
+        );
+      }
+      answerByQid[a.questionId] = a;
     }
 
     // 가드: 모든 문항이 정확히 응답되었는지(20문항 전부).
@@ -98,7 +110,7 @@ class MbtiScorer {
       );
     }
 
-    // 축별 극 카운트 집계.
+    // 축별 가중 점수 집계.
     final axisScores = <String, AxisScore>{};
     final codeBuffer = StringBuffer();
 
@@ -112,37 +124,53 @@ class MbtiScorer {
       }
       final pos = axis.posCode;
       final neg = axis.negCode;
-      int posCount = 0;
-      int negCount = 0;
+      // 가중 점수(weight 합산) + 문항 수(동점 폴백용 다수결).
+      int posScore = 0;
+      int negScore = 0;
+      int posVotes = 0;
+      int negVotes = 0;
 
       for (final q in questions.where((q) => q.axis == axisKey)) {
-        final choice = answerByQid[q.id]!;
-        final pole = q.poleForChoice(choice);
+        final ans = answerByQid[q.id]!;
+        final pole = q.poleForChoice(ans.choice);
+        final weight = content.weightForIntensity(ans.intensity);
         if (pole == pos) {
-          posCount++;
+          posScore += weight;
+          posVotes++;
         } else if (pole == neg) {
-          negCount++;
+          negScore += weight;
+          negVotes++;
         }
       }
 
-      if (posCount + negCount == 0) {
+      if (posScore + negScore == 0) {
         return MbtiScoringOutcome.failure(
           MbtiScoringError.emptyAxis,
           '축 $axisKey 에 응답 없음',
         );
       }
 
+      // axis_scores 에는 극별 가중 점수를 보존(예: {"EI":{"E":7,"I":3}}).
       final score = AxisScore(
         positivePole: pos,
         negativePole: neg,
-        positiveCount: posCount,
-        negativeCount: negCount,
+        positiveCount: posScore,
+        negativeCount: negScore,
       );
       axisScores[axisKey] = score;
 
-      // type_code: 단순 다수결(우세 극). 동점은 5문항 홀수라 불가하나
-      // 방어적으로 positive(앞 글자) 우선.
-      codeBuffer.write(score.dominantPole);
+      // type_code 우세 극 결정:
+      //  1순위 가중 점수 → 2순위(동점 시) 문항 수 다수결 →
+      //  3순위(그래도 동점) 축 기본극(neg = I/N/F/P).
+      final String dominant;
+      if (posScore != negScore) {
+        dominant = posScore > negScore ? pos : neg;
+      } else if (posVotes != negVotes) {
+        dominant = posVotes > negVotes ? pos : neg;
+      } else {
+        dominant = neg; // 기본극 폴백 (I·N·F·P)
+      }
+      codeBuffer.write(dominant);
     }
 
     // 퍼센트는 표시 전용으로 별도 산출 (type_code 결정과 분리).

@@ -26,15 +26,23 @@ extension MbtiSpeciesX on MbtiSpecies {
   static MbtiSpecies fromPetTypeString(String? petType) => fromKey(petType);
 }
 
-/// 한 응답: 문항 id 와 선택지(A/B).
+/// 한 응답: 문항 id + 선택지(A/B) + 강도(strong/mild).
+///
+/// [intensity] 는 4지선다(강도 가중) 모드에서 'strong'|'mild'. 강도 미사용
+/// (구버전 2지선다)이면 null — 채점 시 가중 1로 취급된다.
 class MbtiAnswer extends Equatable {
   final String questionId;
   final String choice; // 'A' | 'B'
+  final String? intensity; // 'strong' | 'mild' | null
 
-  const MbtiAnswer({required this.questionId, required this.choice});
+  const MbtiAnswer({
+    required this.questionId,
+    required this.choice,
+    this.intensity,
+  });
 
   @override
-  List<Object?> get props => [questionId, choice];
+  List<Object?> get props => [questionId, choice, intensity];
 }
 
 /// 한 축의 양 극 카운트(축당 합 = 5).
@@ -56,15 +64,16 @@ class AxisScore extends Equatable {
 
   int get total => positiveCount + negativeCount;
 
-  /// 우세 극 코드. 동점은 채점 단계에서 불가(5문항 홀수)하지만,
-  /// 방어적으로 동점이면 positive 를 반환한다.
+  /// 우세 극 코드. 가중 점수(positiveCount/negativeCount)가 큰 쪽.
+  /// 동점이면 축 기본극(negative = I/N/F/P)으로 폴백 — 채점기 type_code 와 일치.
   String get dominantPole =>
-      positiveCount >= negativeCount ? positivePole : negativePole;
+      positiveCount > negativeCount ? positivePole : negativePole;
 
   int get dominantCount =>
-      positiveCount >= negativeCount ? positiveCount : negativeCount;
+      positiveCount > negativeCount ? positiveCount : negativeCount;
 
-  /// 우세 극 퍼센트 (5문항 기준 60·80·100 / 열세 40·20·0 단계).
+  /// 우세 극 퍼센트 = 우세 점수 / 두 극 합 × 100, 반올림. (예: E7 I3 → 70%)
+  /// 표시 전용. type_code 결정과 분리.
   int get dominantPercent =>
       total == 0 ? 0 : ((dominantCount / total) * 100).round();
 

@@ -126,19 +126,19 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // ── 일일 퀘스트 카드 ─────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 16.h),
-                child: HomeQuestCard(checkNotifier: _questCheckNotifier),
-              ),
-            ),
-
             // ── 반려동물 MBTI 카드 (결과 유무 분기) ──────
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.only(top: 16.h),
                 child: const HomeMbtiCard(),
+              ),
+            ),
+
+            // ── 일일 퀘스트 카드 ─────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 16.h),
+                child: HomeQuestCard(checkNotifier: _questCheckNotifier),
               ),
             ),
 

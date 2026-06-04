@@ -35,6 +35,22 @@ class MbtiOption extends Equatable {
   List<Object?> get props => [label, pole];
 }
 
+/// 응답 강도 단계 (meta.answerIntensities). 예: strong(가중 2), mild(1).
+class MbtiIntensity extends Equatable {
+  final String id; // 'strong' | 'mild'
+  final String label; // '확실히 그래요' 등
+  final int weight; // 가중치
+
+  const MbtiIntensity({
+    required this.id,
+    required this.label,
+    required this.weight,
+  });
+
+  @override
+  List<Object?> get props => [id, label, weight];
+}
+
 /// 한 문항.
 class MbtiQuestion extends Equatable {
   final String id; // 예: 'dog_01'
@@ -153,6 +169,9 @@ class MbtiContent extends Equatable {
   final Map<String, MbtiTypeInfo> types; // key: 'ENFP' ...
   final Map<String, MbtiCompatibility> compatibility; // key: 'ENFP' ...
 
+  /// 응답 강도 단계(strong/mild). 비어있으면 단일 강도(가중 1) 2지선다로 동작.
+  final List<MbtiIntensity> answerIntensities;
+
   const MbtiContent({
     required this.version,
     required this.disclaimer,
@@ -162,7 +181,24 @@ class MbtiContent extends Equatable {
     required this.questions,
     required this.types,
     required this.compatibility,
+    this.answerIntensities = const [],
   });
+
+  /// 강도 id('strong'/'mild')의 가중치. 모르는 id 거나 강도 미사용이면 1.
+  int weightForIntensity(String? intensityId) {
+    if (intensityId == null) return 1;
+    for (final i in answerIntensities) {
+      if (i.id == intensityId) return i.weight;
+    }
+    return 1;
+  }
+
+  MbtiIntensity? intensityById(String id) {
+    for (final i in answerIntensities) {
+      if (i.id == id) return i;
+    }
+    return null;
+  }
 
   List<MbtiQuestion> questionsFor(MbtiSpecies species) =>
       questions[species] ?? const [];
@@ -184,5 +220,6 @@ class MbtiContent extends Equatable {
         questions,
         types,
         compatibility,
+        answerIntensities,
       ];
 }

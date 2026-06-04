@@ -35,6 +35,17 @@ void main() {
       expect(content.questionsPerAxis, 5);
     });
 
+    test('answerIntensities: strong=2 / mild=1 (4지선다 강도)', () {
+      expect(content.answerIntensities.length, 2);
+      expect(content.weightForIntensity('strong'), 2);
+      expect(content.weightForIntensity('mild'), 1);
+      expect(content.weightForIntensity(null), 1); // 미지정 → 1
+      expect(content.weightForIntensity('unknown'), 1);
+      // 라벨 존재
+      expect(content.intensityById('strong')?.label.trim(), isNotEmpty);
+      expect(content.intensityById('mild')?.label.trim(), isNotEmpty);
+    });
+
     test('종별 문항 20개, 축당 5개, A/B pole 이 해당 axis 와 일치', () {
       for (final species in MbtiSpecies.values) {
         final qs = content.questionsFor(species);
@@ -137,8 +148,8 @@ void main() {
               negativeCount: 3),
         },
         answers: const [
-          MbtiAnswer(questionId: 'dog_01', choice: 'A'),
-          MbtiAnswer(questionId: 'dog_02', choice: 'B'),
+          MbtiAnswer(questionId: 'dog_01', choice: 'A', intensity: 'strong'),
+          MbtiAnswer(questionId: 'dog_02', choice: 'B', intensity: 'mild'),
         ],
         contentVersion: 1,
         createdAt: _fixedDate,
@@ -162,10 +173,12 @@ void main() {
       expect(restored.axisScores['EI']!.negativeCount, 1);
       expect(restored.axisScores['SN']!.negativeCount, 3);
       expect(restored.axisScores['TF']!.negativeCount, 4);
-      // answers 보존
+      // answers 보존 (choice + intensity)
       expect(restored.answers.length, 2);
       expect(restored.answers.first.questionId, 'dog_01');
       expect(restored.answers.first.choice, 'A');
+      expect(restored.answers.first.intensity, 'strong');
+      expect(restored.answers[1].intensity, 'mild');
     });
 
     test('axisScoresToJson 형태 = {"EI":{"E":4,"I":1}}', () {

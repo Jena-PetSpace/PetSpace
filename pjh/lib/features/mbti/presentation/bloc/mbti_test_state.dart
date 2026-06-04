@@ -3,6 +3,7 @@ part of 'mbti_test_bloc.dart';
 enum MbtiTestStatus {
   initial,
   loading, // 콘텐츠 로딩
+  intro, // 인트로(검사 시작 전, 저장된 스냅샷 없음)
   resumePrompt, // 이어하기 제안 (저장된 스냅샷 있음)
   inProgress, // 문항 진행 중
   scoring, // 계산 연출 중
@@ -16,8 +17,8 @@ class MbtiTestState extends Equatable {
   final MbtiSpecies species;
   final MbtiContent? content;
 
-  /// q_id → choice('A'/'B'). 진행 중 응답 누적.
-  final Map<String, String> answers;
+  /// q_id → 응답(choice + intensity). 진행 중 응답 누적.
+  final Map<String, MbtiAnswer> answers;
 
   /// 현재 보고 있는 문항 인덱스(0-based).
   final int currentIndex;
@@ -55,8 +56,8 @@ class MbtiTestState extends Equatable {
           ? questions[currentIndex]
           : null;
 
-  /// 현재 문항에 이미 선택한 답(있으면).
-  String? get currentChoice {
+  /// 현재 문항에 이미 선택한 답(있으면). choice + intensity.
+  MbtiAnswer? get currentAnswer {
     final q = currentQuestion;
     if (q == null) return null;
     return answers[q.id];
@@ -75,7 +76,7 @@ class MbtiTestState extends Equatable {
     String? petId,
     MbtiSpecies? species,
     MbtiContent? content,
-    Map<String, String>? answers,
+    Map<String, MbtiAnswer>? answers,
     int? currentIndex,
     MbtiDraft? pendingDraft,
     bool clearPendingDraft = false,

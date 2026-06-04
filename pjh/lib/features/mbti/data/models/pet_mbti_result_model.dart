@@ -71,10 +71,15 @@ class PetMbtiResultModel extends PetMbtiResult {
     return out;
   }
 
-  /// answers → [{"q_id":"dog_01","choice":"A"}, ...]
+  /// answers → [{"q_id":"dog_01","choice":"A","intensity":"strong"}, ...]
+  /// (intensity 는 강도 모드에서만 존재. null 이면 키 생략)
   List<Map<String, dynamic>> answersToJson() {
     return answers
-        .map((a) => {'q_id': a.questionId, 'choice': a.choice})
+        .map((a) => {
+              'q_id': a.questionId,
+              'choice': a.choice,
+              if (a.intensity != null) 'intensity': a.intensity,
+            })
         .toList();
   }
 
@@ -104,6 +109,7 @@ class PetMbtiResultModel extends PetMbtiResult {
         .map((m) => MbtiAnswer(
               questionId: m['q_id'] as String? ?? '',
               choice: m['choice'] as String? ?? '',
+              intensity: m['intensity'] as String?,
             ))
         .where((a) => a.questionId.isNotEmpty)
         .toList();

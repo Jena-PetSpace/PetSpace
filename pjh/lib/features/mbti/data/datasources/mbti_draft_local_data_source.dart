@@ -27,8 +27,13 @@ class MbtiDraft {
         'species': species.key,
         'content_version': contentVersion,
         'current_index': currentIndex,
-        'answers':
-            answers.map((a) => {'q_id': a.questionId, 'choice': a.choice}).toList(),
+        'answers': answers
+            .map((a) => {
+                  'q_id': a.questionId,
+                  'choice': a.choice,
+                  if (a.intensity != null) 'intensity': a.intensity,
+                })
+            .toList(),
       };
 
   factory MbtiDraft.fromJson(Map<String, dynamic> json) {
@@ -42,6 +47,7 @@ class MbtiDraft {
           .map((m) => MbtiAnswer(
                 questionId: m['q_id'] as String? ?? '',
                 choice: m['choice'] as String? ?? '',
+                intensity: m['intensity'] as String?,
               ))
           .where((a) => a.questionId.isNotEmpty)
           .toList(),

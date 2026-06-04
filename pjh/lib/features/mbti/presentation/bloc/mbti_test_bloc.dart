@@ -79,8 +79,9 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
           pendingDraft: usableDraft,
         ));
       } else {
+        // 인트로 노출(검사 시작 전). "검사 시작하기" 누르면 inProgress 로 전환.
         emit(state.copyWith(
-          status: MbtiTestStatus.inProgress,
+          status: MbtiTestStatus.intro,
           content: content,
           answers: const {},
           currentIndex: 0,
@@ -112,7 +113,7 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
       emit(state.copyWith(status: MbtiTestStatus.inProgress));
       return;
     }
-    final answers = {for (final a in draft.answers) a.questionId: a.choice};
+    final answers = {for (final a in draft.answers) a.questionId: a};
     final total = state.questions.length;
     // 이어하기 진입 위치: 저장된 인덱스(범위 보정).
     final idx = draft.currentIndex.clamp(0, total > 0 ? total - 1 : 0);
@@ -143,8 +144,12 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
     final q = state.currentQuestion;
     if (q == null) return;
 
-    final answers = Map<String, String>.from(state.answers)
-      ..[q.id] = event.choice;
+    final answers = Map<String, MbtiAnswer>.from(state.answers)
+      ..[q.id] = MbtiAnswer(
+        questionId: q.id,
+        choice: event.choice,
+        intensity: event.intensity,
+      );
 
     final isLast = state.currentIndex >= state.totalQuestions - 1;
     final nextIndex =
@@ -169,9 +174,7 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
     final content = state.content;
     if (content == null) return;
 
-    final answerList = state.answers.entries
-        .map((e) => MbtiAnswer(questionId: e.key, choice: e.value))
-        .toList();
+    final answerList = state.answers.values.toList();
 
     // 가드: 채점기가 "20문항 전부 응답" 충족 여부를 판정. 미충족이면 채점 안 함.
     final outcome = scorer.score(
@@ -286,7 +289,7 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
   }
 
   Future<void> _persistDraft({
-    required Map<String, String> answers,
+    required Map<String, MbtiAnswer> answers,
     required int currentIndex,
   }) async {
     final content = state.content;
@@ -296,9 +299,7 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
       species: state.species,
       contentVersion: content.version,
       currentIndex: currentIndex,
-      answers: answers.entries
-          .map((e) => MbtiAnswer(questionId: e.key, choice: e.value))
-          .toList(),
+      answers: answers.values.toList(),
     );
     await draftDataSource.saveDraft(draft);
   }

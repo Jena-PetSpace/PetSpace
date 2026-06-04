@@ -61,7 +61,20 @@ class MbtiContentDataSourceImpl implements MbtiContentDataSource {
       questions: _parseQuestions(json['questions']),
       types: _parseTypes(json['types']),
       compatibility: _parseCompatibility(json['compatibility']),
+      answerIntensities: _parseIntensities(meta['answerIntensities']),
     );
+  }
+
+  List<MbtiIntensity> _parseIntensities(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((m) => MbtiIntensity(
+              id: m['id'] as String,
+              label: m['label'] as String? ?? '',
+              weight: (m['weight'] as num?)?.toInt() ?? 1,
+            ))
+        .toList();
   }
 
   Map<String, MbtiAxis> _parseAxes(dynamic raw) {

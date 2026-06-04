@@ -71,6 +71,12 @@ class _MbtiTestView extends StatelessWidget {
                 MbtiTestStatus.loading ||
                 MbtiTestStatus.initial =>
                   const Center(child: CircularProgressIndicator()),
+                MbtiTestStatus.intro => _IntroView(
+                    petName: petName,
+                    species: state.species,
+                    disclaimer: state.content?.disclaimer ?? '',
+                    hasDraft: false,
+                  ),
                 MbtiTestStatus.resumePrompt => _IntroView(
                     petName: petName,
                     species: state.species,
@@ -80,15 +86,7 @@ class _MbtiTestView extends StatelessWidget {
                         state.pendingDraft?.answers.length ?? 0,
                     totalCount: state.totalQuestions,
                   ),
-                MbtiTestStatus.inProgress =>
-                  state.answers.isEmpty && state.currentIndex == 0
-                      ? _IntroView(
-                          petName: petName,
-                          species: state.species,
-                          disclaimer: state.content?.disclaimer ?? '',
-                          hasDraft: false,
-                        )
-                      : _QuestionView(state: state),
+                MbtiTestStatus.inProgress => _QuestionView(state: state),
                 MbtiTestStatus.scoring => MbtiScoringView(
                     onComplete: () {
                       // 연출 종료 시점: 결과가 준비되어 있으면 listener 가 이동 처리.
@@ -116,8 +114,7 @@ class _MbtiTestView extends StatelessWidget {
     // 계산 연출 중에는 앱바 없이 몰입.
     if (state.status == MbtiTestStatus.scoring) return null;
 
-    final isQuestion = state.status == MbtiTestStatus.inProgress &&
-        !(state.answers.isEmpty && state.currentIndex == 0);
+    final isQuestion = state.status == MbtiTestStatus.inProgress;
 
     return AppBar(
       backgroundColor: Colors.white,
@@ -388,8 +385,31 @@ class _QuestionView extends StatelessWidget {
     if (q == null) return const SizedBox.shrink();
 
     final number = state.currentIndex + 1;
-    final selected = state.currentChoice;
+    final selected = state.currentAnswer; // choice + intensity
     final isLast = state.currentIndex >= state.totalQuestions - 1;
+
+    // 4지선다 구성: (A·확실히)(A·약간)(B·약간)(B·확실히).
+    // 강도 라벨/가중은 콘텐츠 meta.answerIntensities 에서. 강도 미정의(구버전)면
+    // 강도 없는 A/B 2지선다로 폴백.
+    final intensities = state.content?.answerIntensities ?? const [];
+    final strong = intensities.isNotEmpty ? intensities.first : null; // weight 2
+    final mild = intensities.length > 1 ? intensities[1] : null; // weight 1
+
+    final List<_ChoiceOption> options;
+    if (strong != null && mild != null) {
+      options = [
+        _ChoiceOption('A', strong.id, q.optionA.label, strong.label),
+        _ChoiceOption('A', mild.id, q.optionA.label, mild.label),
+        _ChoiceOption('B', mild.id, q.optionB.label, mild.label),
+        _ChoiceOption('B', strong.id, q.optionB.label, strong.label),
+      ];
+    } else {
+      // 폴백: 강도 없는 2지선다.
+      options = [
+        _ChoiceOption('A', null, q.optionA.label, null),
+        _ChoiceOption('B', null, q.optionB.label, null),
+      ];
+    }
 
     return Column(
       children: [
@@ -422,22 +442,22 @@ class _QuestionView extends StatelessWidget {
                     color: MbtiTheme.textPrimary,
                   ),
                 ),
-                SizedBox(height: 28.h),
-                MbtiChoiceCard(
-                  badge: 'A',
-                  label: q.optionA.label,
-                  selected: selected == 'A',
-                  onTap: () =>
-                      context.read<MbtiTestBloc>().add(const MbtiAnswered('A')),
-                ),
-                SizedBox(height: 14.h),
-                MbtiChoiceCard(
-                  badge: 'B',
-                  label: q.optionB.label,
-                  selected: selected == 'B',
-                  onTap: () =>
-                      context.read<MbtiTestBloc>().add(const MbtiAnswered('B')),
-                ),
+                SizedBox(height: 24.h),
+                for (int i = 0; i < options.length; i++) ...[
+                  if (i > 0) SizedBox(height: 12.h),
+                  MbtiChoiceCard(
+                    badge: options[i].choice,
+                    label: options[i].label,
+                    intensityLabel: options[i].intensityLabel,
+                    selected: selected != null &&
+                        selected.choice == options[i].choice &&
+                        selected.intensity == options[i].intensityId,
+                    onTap: () => context.read<MbtiTestBloc>().add(
+                          MbtiAnswered(options[i].choice,
+                              intensity: options[i].intensityId),
+                        ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -511,4 +531,15 @@ class _FailureView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 4지선다 한 칸: 선택지(A/B) + 강도(strong/mild) + 표시 라벨.
+class _ChoiceOption {
+  final String choice; // 'A' | 'B'
+  final String? intensityId; // 'strong' | 'mild' | null
+  final String label; // 행동 라벨(문항 A/B label)
+  final String? intensityLabel; // '확실히 그래요' 등
+
+  const _ChoiceOption(
+      this.choice, this.intensityId, this.label, this.intensityLabel);
 }
