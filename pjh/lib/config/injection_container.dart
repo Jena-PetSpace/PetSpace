@@ -112,6 +112,11 @@ import '../features/fortune/data/datasources/fortune_content_data_source.dart';
 import '../features/fortune/data/datasources/fortune_seen_local_data_source.dart';
 import '../features/fortune/domain/services/fortune_generator.dart';
 
+// Features - Quiz (O/X 퀴즈)
+import '../features/quiz/data/datasources/quiz_content_data_source.dart';
+import '../features/quiz/data/datasources/quiz_local_data_source.dart';
+import '../features/quiz/domain/services/quiz_session_builder.dart';
+
 // Core Services
 import '../core/services/image_upload_service.dart';
 import '../core/services/notification_service.dart';
@@ -138,6 +143,7 @@ Future<void> init() async {
   await _initChat();
   await _initMbti();
   await _initFortune();
+  await _initQuiz();
 }
 
 Future<void> _initAuth() async {
@@ -476,6 +482,28 @@ Future<void> _initFortune() async {
   // Data Source (오늘 확인 여부 — shared_preferences)
   sl.registerLazySingleton<FortuneSeenLocalDataSource>(
     () => FortuneSeenLocalDataSourceImpl(prefs: sl()),
+  );
+}
+
+Future<void> _initQuiz() async {
+  // Quiz feature dependencies (O/X 퀴즈 — 외부 호출·DB 0, 로컬 prefs만)
+
+  // Data Source (앱 번들 JSON 콘텐츠 로더)
+  sl.registerLazySingleton<QuizContentDataSource>(
+    () => QuizContentDataSourceImpl(),
+  );
+
+  // Data Source (시드·커서·완료·스트릭 — shared_preferences)
+  sl.registerLazySingleton<QuizLocalDataSource>(
+    () => QuizLocalDataSourceImpl(prefs: sl()),
+  );
+
+  // Domain Service (출제 코디네이터 — 외부 의존 없음)
+  sl.registerLazySingleton(
+    () => QuizSessionBuilder(
+      contentDataSource: sl(),
+      localDataSource: sl(),
+    ),
   );
 }
 
