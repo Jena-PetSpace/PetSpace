@@ -59,6 +59,7 @@ import '../../features/mbti/presentation/pages/mbti_test_page.dart';
 import '../../features/mbti/presentation/pages/mbti_result_page.dart';
 import '../../features/mbti/domain/entities/pet_mbti_result.dart';
 import '../../features/fortune/presentation/pages/fortune_detail_page.dart';
+import '../../features/quiz/presentation/pages/quiz_play_page.dart';
 import '../../features/emotion/data/models/health_analysis_model.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
@@ -549,6 +550,13 @@ class AppRouter {
                 }
                 return MbtiResultPage(result: result);
               },
+            ),
+            // O/X 퀴즈 진행 (개인 순열·커서 출제 — 로컬 prefs만)
+            // 결과 라우트(/quiz/result)는 작업 3에서 추가 — 마지막 [다음]에서 이동.
+            GoRoute(
+              path: '/quiz/play',
+              name: 'quiz_play',
+              builder: (context, state) => const QuizPlayPage(),
             ),
             // 오늘의 운세 상세 (결정적 생성 — 서버 저장 없음)
             GoRoute(
