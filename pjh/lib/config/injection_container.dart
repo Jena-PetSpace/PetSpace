@@ -107,6 +107,10 @@ import '../features/mbti/domain/usecases/get_latest_mbti_result.dart';
 import '../features/mbti/domain/usecases/get_mbti_history.dart';
 import '../features/mbti/presentation/bloc/mbti_test_bloc.dart';
 
+// Features - Fortune (반려동물 운세)
+import '../features/fortune/data/datasources/fortune_content_data_source.dart';
+import '../features/fortune/domain/services/fortune_generator.dart';
+
 // Core Services
 import '../core/services/image_upload_service.dart';
 import '../core/services/notification_service.dart';
@@ -132,6 +136,7 @@ Future<void> init() async {
   await _initHealth();
   await _initChat();
   await _initMbti();
+  await _initFortune();
 }
 
 Future<void> _initAuth() async {
@@ -454,6 +459,18 @@ Future<void> _initMbti() async {
       socialRepository: sl(),
     ),
   );
+}
+
+Future<void> _initFortune() async {
+  // Fortune feature dependencies (반려동물 운세 — 외부 호출·DB 0)
+
+  // Data Source (앱 번들 JSON 콘텐츠 로더)
+  sl.registerLazySingleton<FortuneContentDataSource>(
+    () => FortuneContentDataSourceImpl(),
+  );
+
+  // Domain Service (결정적 생성기 — 외부 의존 없음)
+  sl.registerLazySingleton(() => const FortuneGenerator());
 }
 
 Future<void> _initCore() async {
