@@ -59,7 +59,7 @@ class MbtiAxisBar extends StatelessWidget {
                   Text(
                     '$posPercent%',
                     style: TextStyle(
-                      fontSize: 14.sp,
+                      fontSize: 9.8.sp,
                       fontWeight: FontWeight.w800,
                       color: posDominant ? groupColor : inactive,
                     ),
@@ -67,7 +67,7 @@ class MbtiAxisBar extends StatelessWidget {
                   Text(
                     '$negPercent%',
                     style: TextStyle(
-                      fontSize: 14.sp,
+                      fontSize: 9.8.sp,
                       fontWeight: FontWeight.w800,
                       color: !posDominant ? groupColor : inactive,
                     ),
