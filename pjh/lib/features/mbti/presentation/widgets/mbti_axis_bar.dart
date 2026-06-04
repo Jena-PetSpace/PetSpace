@@ -24,22 +24,51 @@ class MbtiAxisBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dominant = score.dominantPole; // 'E' 등
-    final percent = score.dominantPercent; // 60/80/100
+    final percent = score.dominantPercent; // 가중 퍼센트
     final posDominant = dominant == axis.posCode;
+    final domLabel = posDominant ? axis.posLabel : axis.negLabel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 축 이름 (예: 사교성)
-        Text(
-          axis.name,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-            color: MbtiTheme.textSecondary,
-          ),
+        // 헤더: 축 이름 + 우세 극 퍼센트(그룹색, 크게)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              axis.name,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+                color: MbtiTheme.textSecondary,
+              ),
+            ),
+            // 예: "외향 76%"
+            RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$domLabel ',
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
+                      color: MbtiTheme.textPrimary,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '$percent%',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      color: groupColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 8.h),
+        SizedBox(height: 10.h),
         Row(
           children: [
             _poleLabel(
@@ -69,7 +98,7 @@ class MbtiAxisBar extends StatelessWidget {
     bool alignEnd = false,
   }) {
     return SizedBox(
-      width: 56.w,
+      width: 52.w,
       child: Column(
         crossAxisAlignment:
             alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -77,16 +106,17 @@ class MbtiAxisBar extends StatelessWidget {
           Text(
             code,
             style: TextStyle(
-              fontSize: 15.sp,
+              fontSize: 17.sp,
               fontWeight: active ? FontWeight.w800 : FontWeight.w600,
               color: active ? groupColor : MbtiTheme.textSecondary,
             ),
           ),
-          SizedBox(height: 1.h),
+          SizedBox(height: 2.h),
           Text(
             label,
             style: TextStyle(
-              fontSize: 10.sp,
+              fontSize: 11.sp,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w400,
               color: active ? groupColor : MbtiTheme.textSecondary,
             ),
           ),
@@ -103,7 +133,7 @@ class MbtiAxisBar extends StatelessWidget {
       child: Stack(
         children: [
           Container(
-            height: 10.h,
+            height: 12.h,
             decoration: BoxDecoration(
               color: groupColor.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(100.r),
@@ -116,7 +146,7 @@ class MbtiAxisBar extends StatelessWidget {
             child: FractionallySizedBox(
               widthFactor: (percent / 100).clamp(0.0, 1.0),
               child: Container(
-                height: 10.h,
+                height: 12.h,
                 decoration: BoxDecoration(
                   color: groupColor,
                   borderRadius: BorderRadius.circular(100.r),

@@ -388,8 +388,9 @@ class _QuestionView extends StatelessWidget {
     final selected = state.currentAnswer; // choice + intensity
     final isLast = state.currentIndex >= state.totalQuestions - 1;
 
-    // 4지선다 구성: (A·확실히)(A·약간)(B·약간)(B·확실히).
-    // 강도 라벨/가중은 콘텐츠 meta.answerIntensities 에서. 강도 미정의(구버전)면
+    // 4지선다 구성(강도 가중). 화면 배지는 A·B·C·D, 내부 채점은 choice(A/B)+강도.
+    //   A(=A·강함) · B(=A·약함) · C(=B·약함) · D(=B·강함)
+    // 강도 라벨 문구는 노출하지 않고 행동 라벨만 표시. 강도 미정의(구버전)면
     // 강도 없는 A/B 2지선다로 폴백.
     final intensities = state.content?.answerIntensities ?? const [];
     final strong = intensities.isNotEmpty ? intensities.first : null; // weight 2
@@ -398,16 +399,16 @@ class _QuestionView extends StatelessWidget {
     final List<_ChoiceOption> options;
     if (strong != null && mild != null) {
       options = [
-        _ChoiceOption('A', strong.id, q.optionA.label, strong.label),
-        _ChoiceOption('A', mild.id, q.optionA.label, mild.label),
-        _ChoiceOption('B', mild.id, q.optionB.label, mild.label),
-        _ChoiceOption('B', strong.id, q.optionB.label, strong.label),
+        _ChoiceOption('A', 'A', strong.id, q.optionA.label),
+        _ChoiceOption('B', 'A', mild.id, q.optionA.label),
+        _ChoiceOption('C', 'B', mild.id, q.optionB.label),
+        _ChoiceOption('D', 'B', strong.id, q.optionB.label),
       ];
     } else {
       // 폴백: 강도 없는 2지선다.
       options = [
-        _ChoiceOption('A', null, q.optionA.label, null),
-        _ChoiceOption('B', null, q.optionB.label, null),
+        _ChoiceOption('A', 'A', null, q.optionA.label),
+        _ChoiceOption('B', 'B', null, q.optionB.label),
       ];
     }
 
@@ -446,9 +447,8 @@ class _QuestionView extends StatelessWidget {
                 for (int i = 0; i < options.length; i++) ...[
                   if (i > 0) SizedBox(height: 12.h),
                   MbtiChoiceCard(
-                    badge: options[i].choice,
+                    badge: options[i].badge,
                     label: options[i].label,
-                    intensityLabel: options[i].intensityLabel,
                     selected: selected != null &&
                         selected.choice == options[i].choice &&
                         selected.intensity == options[i].intensityId,
@@ -533,13 +533,16 @@ class _FailureView extends StatelessWidget {
   }
 }
 
-/// 4지선다 한 칸: 선택지(A/B) + 강도(strong/mild) + 표시 라벨.
+/// 4지선다 한 칸.
+/// - badge: 화면 표시용 A·B·C·D
+/// - choice: 채점용 선택지 'A'|'B'
+/// - intensityId: 'strong'|'mild'|null
+/// - label: 행동 라벨(문항 A/B label)
 class _ChoiceOption {
-  final String choice; // 'A' | 'B'
-  final String? intensityId; // 'strong' | 'mild' | null
-  final String label; // 행동 라벨(문항 A/B label)
-  final String? intensityLabel; // '확실히 그래요' 등
+  final String badge;
+  final String choice;
+  final String? intensityId;
+  final String label;
 
-  const _ChoiceOption(
-      this.choice, this.intensityId, this.label, this.intensityLabel);
+  const _ChoiceOption(this.badge, this.choice, this.intensityId, this.label);
 }

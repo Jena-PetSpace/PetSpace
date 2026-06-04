@@ -10,16 +10,12 @@ class MbtiChoiceCard extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  /// 강도 라벨('확실히 그래요' 등). 4지선다에서만. null 이면 미표시.
-  final String? intensityLabel;
-
   const MbtiChoiceCard({
     super.key,
     required this.badge,
     required this.label,
     required this.selected,
     required this.onTap,
-    this.intensityLabel,
   });
 
   @override
@@ -85,33 +81,14 @@ class MbtiChoiceCard extends StatelessWidget {
                 ),
                 SizedBox(width: 14.w),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          height: 1.35,
-                          fontWeight:
-                              selected ? FontWeight.w600 : FontWeight.w500,
-                          color: MbtiTheme.textPrimary,
-                        ),
-                      ),
-                      if (intensityLabel != null) ...[
-                        SizedBox(height: 3.h),
-                        Text(
-                          intensityLabel!,
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w600,
-                            color: selected
-                                ? MbtiTheme.navy
-                                : MbtiTheme.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      height: 1.35,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      color: MbtiTheme.textPrimary,
+                    ),
                   ),
                 ),
                 if (selected)
