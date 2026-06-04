@@ -116,6 +116,7 @@ import '../features/fortune/domain/services/fortune_generator.dart';
 import '../features/quiz/data/datasources/quiz_content_data_source.dart';
 import '../features/quiz/data/datasources/quiz_local_data_source.dart';
 import '../features/quiz/domain/services/quiz_session_builder.dart';
+import '../features/quiz/domain/services/quiz_reward_hook.dart';
 
 // Core Services
 import '../core/services/image_upload_service.dart';
@@ -505,6 +506,9 @@ Future<void> _initQuiz() async {
       localDataSource: sl(),
     ),
   );
+
+  // 보상 연계 훅 (1차 no-op — 리워드스토어 구현 시 교체)
+  sl.registerLazySingleton<QuizRewardHook>(() => const QuizRewardHookNoop());
 }
 
 Future<void> _initCore() async {
