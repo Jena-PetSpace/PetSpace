@@ -7,8 +7,12 @@ import '../theme/mbti_theme.dart';
 
 /// 4축 퍼센트 바 1개.
 ///
-/// 목업 기준: 양쪽 극 라벨(E 외향 / I 내향) + 우세 극 퍼센트 + 우세 쪽에서
-/// 채워지는 막대 + 그룹색. 0%/100% 도 그대로 노출.
+/// 레이아웃(레퍼런스 기준):
+///   [좌극 코드]  좌% ────바──── 우%  [우극 코드]
+///    외향        56%  [그룹색|연회색]  44%   내향
+/// - 좌측 극 = posCode(E/S/T/J), 우측 극 = negCode(I/N/F/P).
+/// - 막대는 좌측 극 점유율(posCount/total)만큼 채우고 나머지는 연회색.
+/// - 우세 극 쪽(코드·라벨·%·막대)은 그룹색으로 강조, 열세 쪽은 연회색.
 class MbtiAxisBar extends StatelessWidget {
   final MbtiAxis axis;
   final AxisScore score;
@@ -23,69 +27,66 @@ class MbtiAxisBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dominant = score.dominantPole; // 'E' 등
-    final percent = score.dominantPercent; // 가중 퍼센트
-    final posDominant = dominant == axis.posCode;
-    final domLabel = posDominant ? axis.posLabel : axis.negLabel;
+    final total = score.total;
+    // 좌측(pos) 점유율. 가중 점수 기준.
+    final posRatio = total == 0 ? 0.5 : score.positiveCount / total;
+    final posPercent = (posRatio * 100).round();
+    final negPercent = 100 - posPercent;
+    final posDominant = score.positiveCount > score.negativeCount;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    const inactive = MbtiTheme.textSecondary;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 헤더: 축 이름 + 우세 극 퍼센트(그룹색, 크게)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              axis.name,
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: MbtiTheme.textSecondary,
-              ),
-            ),
-            // 예: "외향 76%"
-            RichText(
-              text: TextSpan(
+        // 좌측 극 코드 + 라벨
+        _poleLabel(
+          code: axis.posCode,
+          label: axis.posLabel,
+          active: posDominant,
+          alignEnd: false,
+          inactive: inactive,
+        ),
+        SizedBox(width: 12.w),
+        // 가운데: 퍼센트(좌/우) + 막대
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  TextSpan(
-                    text: '$domLabel ',
+                  Text(
+                    '$posPercent%',
                     style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w700,
-                      color: MbtiTheme.textPrimary,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                      color: posDominant ? groupColor : inactive,
                     ),
                   ),
-                  TextSpan(
-                    text: '$percent%',
+                  Text(
+                    '$negPercent%',
                     style: TextStyle(
-                      fontSize: 16.sp,
+                      fontSize: 14.sp,
                       fontWeight: FontWeight.w800,
-                      color: groupColor,
+                      color: !posDominant ? groupColor : inactive,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              SizedBox(height: 6.h),
+              _bar(posRatio.toDouble(), posDominant),
+            ],
+          ),
         ),
-        SizedBox(height: 10.h),
-        Row(
-          children: [
-            _poleLabel(
-              code: axis.posCode,
-              label: axis.posLabel,
-              active: posDominant,
-            ),
-            SizedBox(width: 10.w),
-            Expanded(child: _bar(posDominant, percent)),
-            SizedBox(width: 10.w),
-            _poleLabel(
-              code: axis.negCode,
-              label: axis.negLabel,
-              active: !posDominant,
-              alignEnd: true,
-            ),
-          ],
+        SizedBox(width: 12.w),
+        // 우측 극 코드 + 라벨
+        _poleLabel(
+          code: axis.negCode,
+          label: axis.negLabel,
+          active: !posDominant,
+          alignEnd: true,
+          inactive: inactive,
         ),
       ],
     );
@@ -95,10 +96,11 @@ class MbtiAxisBar extends StatelessWidget {
     required String code,
     required String label,
     required bool active,
-    bool alignEnd = false,
+    required bool alignEnd,
+    required Color inactive,
   }) {
     return SizedBox(
-      width: 52.w,
+      width: 36.w,
       child: Column(
         crossAxisAlignment:
             alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -106,18 +108,18 @@ class MbtiAxisBar extends StatelessWidget {
           Text(
             code,
             style: TextStyle(
-              fontSize: 17.sp,
-              fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-              color: active ? groupColor : MbtiTheme.textSecondary,
+              fontSize: 22.sp,
+              fontWeight: FontWeight.w800,
+              color: active ? groupColor : inactive,
             ),
           ),
           SizedBox(height: 2.h),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11.sp,
-              fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-              color: active ? groupColor : MbtiTheme.textSecondary,
+              fontSize: 12.sp,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: active ? groupColor : inactive,
             ),
           ),
         ],
@@ -125,61 +127,29 @@ class MbtiAxisBar extends StatelessWidget {
     );
   }
 
-  /// 우세 쪽에서 채워지는 막대. 가운데 기준이 아니라, 우세 극 방향으로
-  /// percent 만큼 그룹색으로 채운다.
-  Widget _bar(bool posDominant, int percent) {
+  /// 좌측 극 점유율만큼 채우는 막대. 우세 쪽은 그룹색, 열세 쪽은 연회색.
+  Widget _bar(double posRatio, bool posDominant) {
+    final fillColor = groupColor;
+    final emptyColor = groupColor.withValues(alpha: 0.12);
+    final leftColor = posDominant ? fillColor : emptyColor;
+    final rightColor = posDominant ? emptyColor : fillColor;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(100.r),
-      child: Stack(
-        children: [
-          Container(
-            height: 12.h,
-            decoration: BoxDecoration(
-              color: groupColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(100.r),
+      child: SizedBox(
+        height: 14.h,
+        child: Row(
+          children: [
+            Expanded(
+              flex: (posRatio * 1000).round().clamp(1, 999),
+              child: Container(color: leftColor),
             ),
-          ),
-          // 우세 퍼센트 + 우세 극 퍼센트 라벨
-          Align(
-            alignment:
-                posDominant ? Alignment.centerLeft : Alignment.centerRight,
-            child: FractionallySizedBox(
-              widthFactor: (percent / 100).clamp(0.0, 1.0),
-              child: Container(
-                height: 12.h,
-                decoration: BoxDecoration(
-                  color: groupColor,
-                  borderRadius: BorderRadius.circular(100.r),
-                ),
-              ),
+            Expanded(
+              flex: ((1 - posRatio) * 1000).round().clamp(1, 999),
+              child: Container(color: rightColor),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 우세 극 퍼센트 텍스트(막대 위 보조 표기용). 결과 페이지에서 축 행 우측에
-/// 함께 노출할 수 있도록 분리.
-class MbtiAxisPercentText extends StatelessWidget {
-  final AxisScore score;
-  final Color groupColor;
-
-  const MbtiAxisPercentText({
-    super.key,
-    required this.score,
-    required this.groupColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      '${score.dominantPole} ${score.dominantPercent}%',
-      style: TextStyle(
-        fontSize: 12.sp,
-        fontWeight: FontWeight.w700,
-        color: groupColor,
+          ],
+        ),
       ),
     );
   }

@@ -290,7 +290,7 @@ class _ResultContent extends StatelessWidget {
                 score: result.axisScores[axisOrder[i]]!,
                 groupColor: groupColor,
               ),
-            if (i < axisOrder.length - 1) SizedBox(height: 18.h),
+            if (i < axisOrder.length - 1) SizedBox(height: 22.h),
           ],
         ],
       ),
