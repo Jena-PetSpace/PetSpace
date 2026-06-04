@@ -58,6 +58,7 @@ import '../../features/emotion/presentation/pages/health_result_page.dart';
 import '../../features/mbti/presentation/pages/mbti_test_page.dart';
 import '../../features/mbti/presentation/pages/mbti_result_page.dart';
 import '../../features/mbti/domain/entities/pet_mbti_result.dart';
+import '../../features/fortune/presentation/pages/fortune_detail_page.dart';
 import '../../features/emotion/data/models/health_analysis_model.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
@@ -547,6 +548,24 @@ class AppRouter {
                   );
                 }
                 return MbtiResultPage(result: result);
+              },
+            ),
+            // 오늘의 운세 상세 (결정적 생성 — 서버 저장 없음)
+            GoRoute(
+              path: '/fortune',
+              name: 'fortune',
+              builder: (context, state) {
+                final q = state.uri.queryParameters;
+                final petId = q['petId'] ?? '';
+                final species = MbtiSpeciesX.fromKey(q['species']);
+                final dateKey = q['dateKey'] ?? '';
+                return FortuneDetailPage(
+                  petId: petId,
+                  species: species,
+                  dateKey: dateKey,
+                  petName: q['petName'],
+                  mbtiTypeCode: q['mbtiType'],
+                );
               },
             ),
             GoRoute(
