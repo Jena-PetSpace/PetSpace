@@ -109,6 +109,7 @@ import '../features/mbti/presentation/bloc/mbti_test_bloc.dart';
 
 // Features - Fortune (반려동물 운세)
 import '../features/fortune/data/datasources/fortune_content_data_source.dart';
+import '../features/fortune/data/datasources/fortune_seen_local_data_source.dart';
 import '../features/fortune/domain/services/fortune_generator.dart';
 
 // Core Services
@@ -471,6 +472,11 @@ Future<void> _initFortune() async {
 
   // Domain Service (결정적 생성기 — 외부 의존 없음)
   sl.registerLazySingleton(() => const FortuneGenerator());
+
+  // Data Source (오늘 확인 여부 — shared_preferences)
+  sl.registerLazySingleton<FortuneSeenLocalDataSource>(
+    () => FortuneSeenLocalDataSourceImpl(prefs: sl()),
+  );
 }
 
 Future<void> _initCore() async {

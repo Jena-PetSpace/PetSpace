@@ -17,6 +17,7 @@ import '../../../home/presentation/widgets/home_dashboard_header.dart';
 import '../../../home/presentation/widgets/home_quick_actions.dart';
 import '../../../home/presentation/widgets/home_quest_card.dart';
 import '../../../mbti/presentation/widgets/home_mbti_card.dart';
+import '../../../fortune/presentation/widgets/home_fortune_card.dart';
 import '../../../home/presentation/widgets/category_filter_chips.dart';
 import '../../../home/presentation/widgets/hot_topic_banner.dart';
 import '../../../home/presentation/widgets/magazine_grid.dart';
@@ -131,6 +132,14 @@ class _HomePageState extends State<HomePage> {
               child: Padding(
                 padding: EdgeInsets.only(top: 16.h),
                 child: const HomeMbtiCard(),
+              ),
+            ),
+
+            // ── 오늘의 운세 카드 (확인 여부 분기) ─────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 16.h),
+                child: const HomeFortuneCard(),
               ),
             ),
 

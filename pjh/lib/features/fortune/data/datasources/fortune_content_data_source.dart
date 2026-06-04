@@ -14,6 +14,11 @@ abstract class FortuneContentDataSource {
   Future<FortuneContent> loadContent(
       {int version = FortuneContentDataSource.currentVersion});
 
+  /// 이미 로드(캐시)된 콘텐츠를 동기 반환. 아직 로드 전이면 null.
+  /// (홈 카드 미리보기처럼 동기 렌더가 필요한 곳에서 사용 — 없으면 loadContent 선행.)
+  FortuneContent? tryCached(
+      {int version = FortuneContentDataSource.currentVersion});
+
   /// 현재 앱이 사용하는 최신 운세 콘텐츠 버전.
   static const int currentVersion = 1;
 }
@@ -44,6 +49,11 @@ class FortuneContentDataSourceImpl implements FortuneContentDataSource {
     _cache[version] = content;
     return content;
   }
+
+  @override
+  FortuneContent? tryCached(
+          {int version = FortuneContentDataSource.currentVersion}) =>
+      _cache[version];
 
   // ── 파싱 ────────────────────────────────────────────────
 
