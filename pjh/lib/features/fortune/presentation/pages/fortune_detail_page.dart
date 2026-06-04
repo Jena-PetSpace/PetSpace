@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../mbti/domain/entities/pet_mbti_result.dart' show MbtiSpecies;
 import '../../../mbti/presentation/theme/mbti_theme.dart';
+import '../../../pets/presentation/bloc/pet_bloc.dart';
+import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../data/datasources/fortune_content_data_source.dart';
 import '../../domain/entities/daily_fortune.dart';
 import '../../domain/entities/fortune_content.dart';
 import '../../domain/services/fortune_generator.dart';
+import '../widgets/fortune_share_helper.dart';
 import '../widgets/fortune_stars.dart';
 
 /// 운세 상세 화면.
@@ -376,7 +380,7 @@ class _FortuneContent extends StatelessWidget {
         ],
       );
 
-  // ── 공유 버튼 자리 (동작은 작업 4) ─────────────────────────
+  // ── 공유 버튼 → 바텀시트(사진 토글) + 캡처 공유 ────────────
   Widget _bottomActions(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
@@ -391,15 +395,7 @@ class _FortuneContent extends StatelessWidget {
         width: double.infinity,
         height: 50.h,
         child: OutlinedButton.icon(
-          // TODO(작업 4): 공유 카드 캡처/공유 연결. 지금은 버튼 자리만.
-          onPressed: () {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(const SnackBar(
-                content: Text('공유 기능은 곧 추가돼요 🐾'),
-                duration: Duration(seconds: 2),
-              ));
-          },
+          onPressed: () => _onShare(context),
           icon: Icon(Icons.share_outlined, size: 18.w),
           label: Text('운세 공유하기',
               style:
@@ -412,6 +408,30 @@ class _FortuneContent extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// 공유 — PetBloc 에서 이 운세 pet 의 이름/아바타를 찾아 공유 헬퍼 호출.
+  /// (pet 이름·사진은 화면 표시·카드 렌더용일 뿐 분석 파라미터엔 넣지 않는다.)
+  void _onShare(BuildContext context) {
+    String? name;
+    String? avatarUrl;
+    final petState = context.read<PetBloc>().state;
+    if (petState is PetLoaded) {
+      for (final p in petState.pets) {
+        if (p.id == f.petId) {
+          name = p.name;
+          avatarUrl = p.avatarUrl;
+          break;
+        }
+      }
+    }
+    FortuneShareHelper.share(
+      context,
+      fortune: f,
+      petName: name,
+      petAvatarUrl: avatarUrl,
+      // 분석 이벤트(fortune_share)는 작업 5 에서 onShared 로 연결.
     );
   }
 
