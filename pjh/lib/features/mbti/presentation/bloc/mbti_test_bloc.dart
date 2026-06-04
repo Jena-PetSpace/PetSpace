@@ -147,8 +147,7 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
     final answers = Map<String, MbtiAnswer>.from(state.answers)
       ..[q.id] = MbtiAnswer(
         questionId: q.id,
-        choice: event.choice,
-        intensity: event.intensity,
+        optionIndex: event.optionIndex,
       );
 
     final isLast = state.currentIndex >= state.totalQuestions - 1;

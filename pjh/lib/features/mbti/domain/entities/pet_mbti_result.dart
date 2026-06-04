@@ -26,23 +26,21 @@ extension MbtiSpeciesX on MbtiSpecies {
   static MbtiSpecies fromPetTypeString(String? petType) => fromKey(petType);
 }
 
-/// 한 응답: 문항 id + 선택지(A/B) + 강도(strong/mild).
+/// 한 응답: 문항 id + 선택한 옵션 인덱스(0~3).
 ///
-/// [intensity] 는 4지선다(강도 가중) 모드에서 'strong'|'mild'. 강도 미사용
-/// (구버전 2지선다)이면 null — 채점 시 가중 1로 취급된다.
+/// 채점·복기는 저장된 content_version 의 questions[].options[optionIndex] 에서
+/// pole/weight 를 읽어 해석한다.
 class MbtiAnswer extends Equatable {
   final String questionId;
-  final String choice; // 'A' | 'B'
-  final String? intensity; // 'strong' | 'mild' | null
+  final int optionIndex; // 0~3 (4지선다)
 
   const MbtiAnswer({
     required this.questionId,
-    required this.choice,
-    this.intensity,
+    required this.optionIndex,
   });
 
   @override
-  List<Object?> get props => [questionId, choice, intensity];
+  List<Object?> get props => [questionId, optionIndex];
 }
 
 /// 한 축의 양 극 카운트(축당 합 = 5).

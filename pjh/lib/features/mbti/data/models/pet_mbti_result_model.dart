@@ -71,14 +71,13 @@ class PetMbtiResultModel extends PetMbtiResult {
     return out;
   }
 
-  /// answers → [{"q_id":"dog_01","choice":"A","intensity":"strong"}, ...]
-  /// (intensity 는 강도 모드에서만 존재. null 이면 키 생략)
+  /// answers → [{"q_id":"dog_01","option_index":0}, ...]
+  /// 해석은 저장된 content_version 의 questions[].options[option_index] 기준.
   List<Map<String, dynamic>> answersToJson() {
     return answers
         .map((a) => {
               'q_id': a.questionId,
-              'choice': a.choice,
-              if (a.intensity != null) 'intensity': a.intensity,
+              'option_index': a.optionIndex,
             })
         .toList();
   }
@@ -108,10 +107,9 @@ class PetMbtiResultModel extends PetMbtiResult {
         .whereType<Map>()
         .map((m) => MbtiAnswer(
               questionId: m['q_id'] as String? ?? '',
-              choice: m['choice'] as String? ?? '',
-              intensity: m['intensity'] as String?,
+              optionIndex: (m['option_index'] as num?)?.toInt() ?? -1,
             ))
-        .where((a) => a.questionId.isNotEmpty)
+        .where((a) => a.questionId.isNotEmpty && a.optionIndex >= 0)
         .toList();
   }
 }

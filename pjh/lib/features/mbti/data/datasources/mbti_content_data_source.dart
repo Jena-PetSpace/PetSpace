@@ -61,20 +61,7 @@ class MbtiContentDataSourceImpl implements MbtiContentDataSource {
       questions: _parseQuestions(json['questions']),
       types: _parseTypes(json['types']),
       compatibility: _parseCompatibility(json['compatibility']),
-      answerIntensities: _parseIntensities(meta['answerIntensities']),
     );
-  }
-
-  List<MbtiIntensity> _parseIntensities(dynamic raw) {
-    if (raw is! List) return const [];
-    return raw
-        .whereType<Map>()
-        .map((m) => MbtiIntensity(
-              id: m['id'] as String,
-              label: m['label'] as String? ?? '',
-              weight: (m['weight'] as num?)?.toInt() ?? 1,
-            ))
-        .toList();
   }
 
   Map<String, MbtiAxis> _parseAxes(dynamic raw) {
@@ -123,16 +110,20 @@ class MbtiContentDataSourceImpl implements MbtiContentDataSource {
   }
 
   MbtiQuestion _parseQuestion(Map<String, dynamic> m) {
-    final a = (m['A'] as Map).cast<String, dynamic>();
-    final b = (m['B'] as Map).cast<String, dynamic>();
+    final rawOptions = (m['options'] as List?) ?? const [];
+    final options = rawOptions
+        .whereType<Map>()
+        .map((o) => MbtiOption(
+              label: o['label'] as String? ?? '',
+              pole: o['pole'] as String,
+              weight: (o['weight'] as num?)?.toInt() ?? 1,
+            ))
+        .toList();
     return MbtiQuestion(
       id: m['id'] as String,
       axis: m['axis'] as String,
       text: m['text'] as String? ?? '',
-      optionA: MbtiOption(
-          label: a['label'] as String? ?? '', pole: a['pole'] as String),
-      optionB: MbtiOption(
-          label: b['label'] as String? ?? '', pole: b['pole'] as String),
+      options: options,
     );
   }
 

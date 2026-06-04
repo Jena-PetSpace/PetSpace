@@ -71,32 +71,21 @@ class MbtiScorer {
   }) {
     final questions = content.questionsFor(species);
     final questionById = {for (final q in questions) q.id: q};
-    // 강도 모드 여부(콘텐츠에 answerIntensities 정의가 있으면 강도 응답 요구).
-    final usesIntensity = content.answerIntensities.isNotEmpty;
-    final validIntensityIds =
-        content.answerIntensities.map((i) => i.id).toSet();
 
-    // 응답을 q_id 로 정리(마지막 응답 우선). 중복/미지의 id 검출.
+    // 응답을 q_id 로 정리(마지막 응답 우선). 중복/미지의 id, 범위 밖 인덱스 검출.
     final answerByQid = <String, MbtiAnswer>{};
     for (final a in answers) {
-      if (!questionById.containsKey(a.questionId)) {
+      final q = questionById[a.questionId];
+      if (q == null) {
         return MbtiScoringOutcome.failure(
           MbtiScoringError.invalidAnswer,
           '알 수 없는 문항: ${a.questionId}',
         );
       }
-      if (a.choice != 'A' && a.choice != 'B') {
+      if (a.optionIndex < 0 || a.optionIndex >= q.options.length) {
         return MbtiScoringOutcome.failure(
           MbtiScoringError.invalidAnswer,
-          '잘못된 선택: ${a.questionId}=${a.choice}',
-        );
-      }
-      // 강도 모드면 intensity 가 정의된 값('strong'/'mild')이어야 한다.
-      if (usesIntensity &&
-          (a.intensity == null || !validIntensityIds.contains(a.intensity))) {
-        return MbtiScoringOutcome.failure(
-          MbtiScoringError.invalidAnswer,
-          '잘못된 강도: ${a.questionId}=${a.intensity}',
+          '잘못된 옵션 인덱스: ${a.questionId}=${a.optionIndex}',
         );
       }
       answerByQid[a.questionId] = a;
@@ -132,13 +121,12 @@ class MbtiScorer {
 
       for (final q in questions.where((q) => q.axis == axisKey)) {
         final ans = answerByQid[q.id]!;
-        final pole = q.poleForChoice(ans.choice);
-        final weight = content.weightForIntensity(ans.intensity);
-        if (pole == pos) {
-          posScore += weight;
+        final opt = q.options[ans.optionIndex];
+        if (opt.pole == pos) {
+          posScore += opt.weight;
           posVotes++;
-        } else if (pole == neg) {
-          negScore += weight;
+        } else if (opt.pole == neg) {
+          negScore += opt.weight;
           negVotes++;
         }
       }

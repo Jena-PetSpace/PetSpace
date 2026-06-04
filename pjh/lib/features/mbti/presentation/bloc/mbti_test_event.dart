@@ -28,15 +28,14 @@ class MbtiTestRestarted extends MbtiTestEvent {
   const MbtiTestRestarted();
 }
 
-/// 현재 문항에 답함(A/B + 강도). 자동 다음 문항 이동 + 임시저장.
+/// 현재 문항에 답함(옵션 인덱스 0~3). 자동 다음 문항 이동 + 임시저장.
 class MbtiAnswered extends MbtiTestEvent {
-  final String choice; // 'A' | 'B'
-  final String? intensity; // 'strong' | 'mild' | null(강도 미사용)
+  final int optionIndex;
 
-  const MbtiAnswered(this.choice, {this.intensity});
+  const MbtiAnswered(this.optionIndex);
 
   @override
-  List<Object?> get props => [choice, intensity];
+  List<Object?> get props => [optionIndex];
 }
 
 /// 이전 문항으로.

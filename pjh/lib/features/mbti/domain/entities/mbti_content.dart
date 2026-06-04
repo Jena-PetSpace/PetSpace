@@ -24,55 +24,39 @@ class MbtiAxis extends Equatable {
   List<Object?> get props => [key, name, posCode, posLabel, negCode, negLabel];
 }
 
-/// 문항 선택지(A/B).
+/// 문항 선택지 1개. 각 옵션이 극(pole)과 가중치(weight)를 직접 가진다.
+/// 4지선다 규칙: A=한 극 강함(2) · B=한 극 약함(1) · C=반대 극 약함(1) · D=반대 극 강함(2).
 class MbtiOption extends Equatable {
   final String label;
-  final String pole; // 단일 글자 극 코드
+  final String pole; // 단일 글자 극 코드 (E/I/S/N/T/F/J/P)
+  final int weight; // 가중치 (강함 2 / 약함 1)
 
-  const MbtiOption({required this.label, required this.pole});
-
-  @override
-  List<Object?> get props => [label, pole];
-}
-
-/// 응답 강도 단계 (meta.answerIntensities). 예: strong(가중 2), mild(1).
-class MbtiIntensity extends Equatable {
-  final String id; // 'strong' | 'mild'
-  final String label; // '확실히 그래요' 등
-  final int weight; // 가중치
-
-  const MbtiIntensity({
-    required this.id,
+  const MbtiOption({
     required this.label,
-    required this.weight,
+    required this.pole,
+    this.weight = 1,
   });
 
   @override
-  List<Object?> get props => [id, label, weight];
+  List<Object?> get props => [label, pole, weight];
 }
 
-/// 한 문항.
+/// 한 문항. 선택지는 options 배열(4지선다).
 class MbtiQuestion extends Equatable {
   final String id; // 예: 'dog_01'
   final String axis; // 'EI' | 'SN' | 'TF' | 'JP'
   final String text;
-  final MbtiOption optionA;
-  final MbtiOption optionB;
+  final List<MbtiOption> options;
 
   const MbtiQuestion({
     required this.id,
     required this.axis,
     required this.text,
-    required this.optionA,
-    required this.optionB,
+    required this.options,
   });
 
-  /// 선택('A'/'B')에 해당하는 극 코드.
-  String poleForChoice(String choice) =>
-      choice == 'A' ? optionA.pole : optionB.pole;
-
   @override
-  List<Object?> get props => [id, axis, text, optionA, optionB];
+  List<Object?> get props => [id, axis, text, options];
 }
 
 /// 종별 유형 상세 (nickname·summary·desc·strength·caution·activity).
@@ -169,9 +153,6 @@ class MbtiContent extends Equatable {
   final Map<String, MbtiTypeInfo> types; // key: 'ENFP' ...
   final Map<String, MbtiCompatibility> compatibility; // key: 'ENFP' ...
 
-  /// 응답 강도 단계(strong/mild). 비어있으면 단일 강도(가중 1) 2지선다로 동작.
-  final List<MbtiIntensity> answerIntensities;
-
   const MbtiContent({
     required this.version,
     required this.disclaimer,
@@ -181,24 +162,7 @@ class MbtiContent extends Equatable {
     required this.questions,
     required this.types,
     required this.compatibility,
-    this.answerIntensities = const [],
   });
-
-  /// 강도 id('strong'/'mild')의 가중치. 모르는 id 거나 강도 미사용이면 1.
-  int weightForIntensity(String? intensityId) {
-    if (intensityId == null) return 1;
-    for (final i in answerIntensities) {
-      if (i.id == intensityId) return i.weight;
-    }
-    return 1;
-  }
-
-  MbtiIntensity? intensityById(String id) {
-    for (final i in answerIntensities) {
-      if (i.id == id) return i;
-    }
-    return null;
-  }
 
   List<MbtiQuestion> questionsFor(MbtiSpecies species) =>
       questions[species] ?? const [];
@@ -220,6 +184,5 @@ class MbtiContent extends Equatable {
         questions,
         types,
         compatibility,
-        answerIntensities,
       ];
 }

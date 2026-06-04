@@ -35,18 +35,7 @@ void main() {
       expect(content.questionsPerAxis, 5);
     });
 
-    test('answerIntensities: strong=2 / mild=1 (4지선다 강도)', () {
-      expect(content.answerIntensities.length, 2);
-      expect(content.weightForIntensity('strong'), 2);
-      expect(content.weightForIntensity('mild'), 1);
-      expect(content.weightForIntensity(null), 1); // 미지정 → 1
-      expect(content.weightForIntensity('unknown'), 1);
-      // 라벨 존재
-      expect(content.intensityById('strong')?.label.trim(), isNotEmpty);
-      expect(content.intensityById('mild')?.label.trim(), isNotEmpty);
-    });
-
-    test('종별 문항 20개, 축당 5개, A/B pole 이 해당 axis 와 일치', () {
+    test('종별 문항 20개, 축당 5개, 4옵션, pole/weight 규칙', () {
       for (final species in MbtiSpecies.values) {
         final qs = content.questionsFor(species);
         expect(qs.length, 20, reason: '$species 문항 수');
@@ -59,14 +48,28 @@ void main() {
               reason: '${q.id} axis ${q.axis}');
           perAxis[q.axis] = perAxis[q.axis]! + 1;
 
-          final poles = _axisPoles[q.axis]!.toSet();
-          expect({q.optionA.pole, q.optionB.pole}, poles,
-              reason: '${q.id} A/B poles 가 axis ${q.axis} 와 불일치');
+          // 4옵션, weight [2,1,1,2], 극이 axis 두 극과 일치
+          expect(q.options.length, 4, reason: '${q.id} 옵션 4개');
+          final weights = q.options.map((o) => o.weight).toList();
+          expect(weights, [2, 1, 1, 2], reason: '${q.id} weights');
+          final poles = q.options.map((o) => o.pole).toList();
+          final axisPoles = _axisPoles[q.axis]!;
+          // A,B 같은 극 / C,D 같은 극, 두 극이 axis 와 일치
+          expect(poles[0] == poles[1], isTrue, reason: '${q.id} A/B 극 동일');
+          expect(poles[2] == poles[3], isTrue, reason: '${q.id} C/D 극 동일');
+          expect({poles[0], poles[2]}, axisPoles.toSet(),
+              reason: '${q.id} 옵션 극이 axis ${q.axis} 와 불일치');
         }
         for (final a in _axisOrder) {
           expect(perAxis[a], 5, reason: '$species $a 문항 수');
         }
       }
+    });
+
+    test('answerIntensities 메타 제거됨 (옵션 weight 직접 사용)', () {
+      // 강도 꼬리표 방식 제거 — 옵션이 weight 를 직접 가짐
+      final firstOpt = content.questionsFor(MbtiSpecies.dog).first.options.first;
+      expect(firstOpt.weight, anyOf(1, 2));
     });
 
     test('16유형 × 3종, 6필드 전부 보유 + group 존재', () {
@@ -148,8 +151,8 @@ void main() {
               negativeCount: 3),
         },
         answers: const [
-          MbtiAnswer(questionId: 'dog_01', choice: 'A', intensity: 'strong'),
-          MbtiAnswer(questionId: 'dog_02', choice: 'B', intensity: 'mild'),
+          MbtiAnswer(questionId: 'dog_01', optionIndex: 0),
+          MbtiAnswer(questionId: 'dog_02', optionIndex: 3),
         ],
         contentVersion: 1,
         createdAt: _fixedDate,
@@ -173,12 +176,11 @@ void main() {
       expect(restored.axisScores['EI']!.negativeCount, 1);
       expect(restored.axisScores['SN']!.negativeCount, 3);
       expect(restored.axisScores['TF']!.negativeCount, 4);
-      // answers 보존 (choice + intensity)
+      // answers 보존 (optionIndex)
       expect(restored.answers.length, 2);
       expect(restored.answers.first.questionId, 'dog_01');
-      expect(restored.answers.first.choice, 'A');
-      expect(restored.answers.first.intensity, 'strong');
-      expect(restored.answers[1].intensity, 'mild');
+      expect(restored.answers.first.optionIndex, 0);
+      expect(restored.answers[1].optionIndex, 3);
     });
 
     test('axisScoresToJson 형태 = {"EI":{"E":4,"I":1}}', () {

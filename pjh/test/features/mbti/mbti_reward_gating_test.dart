@@ -98,7 +98,7 @@ void main() {
     await Future.delayed(const Duration(milliseconds: 20));
     // 20문항 A 응답
     for (var i = 0; i < content.questionsFor(MbtiSpecies.dog).length; i++) {
-      bloc.add(const MbtiAnswered('A', intensity: 'strong'));
+      bloc.add(const MbtiAnswered(0));
       await Future.delayed(const Duration(milliseconds: 2));
     }
     return bloc;

@@ -30,8 +30,7 @@ class MbtiDraft {
         'answers': answers
             .map((a) => {
                   'q_id': a.questionId,
-                  'choice': a.choice,
-                  if (a.intensity != null) 'intensity': a.intensity,
+                  'option_index': a.optionIndex,
                 })
             .toList(),
       };
@@ -46,10 +45,9 @@ class MbtiDraft {
           .whereType<Map>()
           .map((m) => MbtiAnswer(
                 questionId: m['q_id'] as String? ?? '',
-                choice: m['choice'] as String? ?? '',
-                intensity: m['intensity'] as String?,
+                optionIndex: (m['option_index'] as num?)?.toInt() ?? -1,
               ))
-          .where((a) => a.questionId.isNotEmpty)
+          .where((a) => a.questionId.isNotEmpty && a.optionIndex >= 0)
           .toList(),
     );
   }
