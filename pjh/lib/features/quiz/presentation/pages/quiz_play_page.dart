@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
 import '../../data/datasources/quiz_local_data_source.dart';
 import '../../domain/entities/quiz_content.dart';
+import '../../domain/entities/quiz_result_snapshot.dart';
 import '../../domain/entities/quiz_set.dart';
 import '../../domain/services/quiz_session_builder.dart';
 import '../theme/quiz_theme.dart';
@@ -67,25 +68,44 @@ class _QuizPlayPageState extends State<QuizPlayPage> {
     setState(() => _selected[_index] = value);
   }
 
-  void _next(_PlayVM vm) {
+  Future<void> _next(_PlayVM vm) async {
     final isLast = _index >= vm.set.length - 1;
     if (isLast) {
-      _goResult(vm);
+      await _goResult(vm);
     } else {
       setState(() => _index += 1);
     }
   }
 
-  void _goResult(_PlayVM vm) {
-    final correct = _correctCount(vm.set);
+  /// 마지막 [다음]: 결과 복기 스냅샷을 저장하고 결과 화면으로 이동.
+  ///
+  /// 정답 수는 저장하지 않는다는 원칙은 유지하되, "오늘 1건 복기"를 위해
+  /// 스냅샷(quiz_today_result_<오늘>)만 남긴다(누적 전적 아님 — 오늘 키만 보존).
+  /// 커밋(커서·done·스트릭)은 결과 화면이 멱등으로 1회 수행.
+  Future<void> _goResult(_PlayVM vm) async {
     final dateKey = quizDateKey();
-    // 결과 화면이 커밋(커서 전진·done·스트릭)을 담당 — 여기선 넘기기만.
-    context.pushReplacement(
-      '/quiz/result'
-      '?correct=$correct'
-      '&total=${vm.set.length}'
-      '&dateKey=$dateKey',
+    final answers = <QuizAnswerSnapshot>[];
+    for (var i = 0; i < vm.set.questions.length; i++) {
+      final q = vm.set.questions[i];
+      answers.add(QuizAnswerSnapshot(
+        qId: q.id,
+        statement: q.statement,
+        chosen: _selected[i] ?? '',
+        answer: q.answer,
+        explain: q.explain,
+      ));
+    }
+    final snapshot = QuizResultSnapshot(
+      dateKey: dateKey,
+      correctCount: _correctCount(vm.set),
+      total: vm.set.length,
+      answers: answers,
     );
+    await sl<QuizLocalDataSource>().saveResultSnapshot(snapshot);
+
+    if (!mounted) return;
+    // 결과 화면은 스냅샷에서 점수·복기를 읽는다(querystring 으로 dateKey 만).
+    context.pushReplacement('/quiz/result?dateKey=$dateKey');
   }
 
   @override

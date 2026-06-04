@@ -18,6 +18,7 @@ import '../../../home/presentation/widgets/home_quick_actions.dart';
 import '../../../home/presentation/widgets/home_quest_card.dart';
 import '../../../mbti/presentation/widgets/home_mbti_card.dart';
 import '../../../fortune/presentation/widgets/home_fortune_card.dart';
+import '../../../quiz/presentation/widgets/home_quiz_card.dart';
 import '../../../home/presentation/widgets/category_filter_chips.dart';
 import '../../../home/presentation/widgets/hot_topic_banner.dart';
 import '../../../home/presentation/widgets/magazine_grid.dart';
@@ -140,6 +141,14 @@ class _HomePageState extends State<HomePage> {
               child: Padding(
                 padding: EdgeInsets.only(top: 16.h),
                 child: const HomeFortuneCard(),
+              ),
+            ),
+
+            // ── 오늘의 O/X 퀴즈 카드 (완료 여부 분기) — 운세와 나란히 ──
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 16.h),
+                child: const HomeQuizCard(),
               ),
             ),
 

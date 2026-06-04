@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:math' show Random;
 
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../domain/entities/quiz_result_snapshot.dart';
 
 /// 로컬 날짜(자정 경계) 기준 'YYYYMMDD' 키. done 게이팅·스트릭이 모두 이 값을
 /// 단일 출처로 써야 자정 후 자동으로 "오늘 미완료"로 전환된다.
@@ -67,9 +70,15 @@ abstract class QuizLocalDataSource {
     required Future<void> Function(int solvedCount) advanceCursor,
   });
 
-  /// 과거 `quiz_done_*` 키 정리(오늘 [todayKey] 로 끝나는 키는 보존).
+  /// 과거 `quiz_done_*` · `quiz_today_result_*` 키 정리(오늘 [todayKey] 만 보존).
   /// 반환 = 삭제한 키 수.
   Future<int> purgePastDoneKeys(String todayKey);
+
+  /// 오늘 결과 복기 스냅샷 저장(완료 카드 탭 시 재계산 없이 복기용).
+  Future<void> saveResultSnapshot(QuizResultSnapshot snapshot);
+
+  /// 오늘([dateKey]) 결과 스냅샷 조회. 없으면 null.
+  Future<QuizResultSnapshot?> getResultSnapshot(String dateKey);
 
   /// 커서를 [value] 로 설정(재셔플 로직에서 사용).
   Future<void> setCursor(int value);
@@ -91,8 +100,10 @@ class QuizLocalDataSourceImpl implements QuizLocalDataSource {
   static const String _kStreak = 'quiz_streak';
   static const String _kLastDone = 'quiz_last_done_date';
   static const String _kDonePrefix = 'quiz_done_';
+  static const String _kResultPrefix = 'quiz_today_result_';
 
   String _doneKey(String dateKey) => '$_kDonePrefix$dateKey';
+  String _resultKey(String dateKey) => '$_kResultPrefix$dateKey';
 
   @override
   Future<int> getOrCreateSeed() async {
@@ -170,13 +181,35 @@ class QuizLocalDataSourceImpl implements QuizLocalDataSource {
   @override
   Future<int> purgePastDoneKeys(String todayKey) async {
     final todayDone = _doneKey(todayKey);
+    final todayResult = _resultKey(todayKey);
+    // 과거 done · result 스냅샷 키를 함께 정리(오늘 키만 보존).
     final stale = prefs
         .getKeys()
-        .where((k) => k.startsWith(_kDonePrefix) && k != todayDone)
+        .where((k) =>
+            (k.startsWith(_kDonePrefix) && k != todayDone) ||
+            (k.startsWith(_kResultPrefix) && k != todayResult))
         .toList();
     for (final k in stale) {
       await prefs.remove(k);
     }
     return stale.length;
+  }
+
+  @override
+  Future<void> saveResultSnapshot(QuizResultSnapshot snapshot) async {
+    await prefs.setString(
+        _resultKey(snapshot.dateKey), jsonEncode(snapshot.toJson()));
+  }
+
+  @override
+  Future<QuizResultSnapshot?> getResultSnapshot(String dateKey) async {
+    final raw = prefs.getString(_resultKey(dateKey));
+    if (raw == null) return null;
+    try {
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      return QuizResultSnapshot.fromJson(json);
+    } catch (_) {
+      return null; // 손상된 스냅샷은 무시(복기 불가 → 카드가 폴백 처리).
+    }
   }
 }

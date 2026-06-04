@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:meong_nyang_diary/features/quiz/data/datasources/quiz_content_data_source.dart';
 import 'package:meong_nyang_diary/features/quiz/data/datasources/quiz_local_data_source.dart';
+import 'package:meong_nyang_diary/features/quiz/domain/entities/quiz_result_snapshot.dart';
 import 'package:meong_nyang_diary/features/quiz/domain/services/quiz_session_builder.dart';
 
 void main() {
@@ -215,6 +216,59 @@ void main() {
       // 270 도달 → 재셔플(새 시드) + 커서 0.
       expect(await store.getCursor(), 0);
       expect(prefs.getInt('quiz_seed'), isNot(seedBefore));
+    });
+  });
+
+  group('결과 스냅샷 — 저장/조회/정리', () {
+    QuizResultSnapshot sample(String date) => QuizResultSnapshot(
+          dateKey: date,
+          correctCount: 3,
+          total: 4,
+          answers: const [
+            QuizAnswerSnapshot(
+                qId: 'behavior_01',
+                statement: '진술1',
+                chosen: 'O',
+                answer: 'O',
+                explain: '해설1'),
+            QuizAnswerSnapshot(
+                qId: 'behavior_03',
+                statement: '진술2',
+                chosen: 'O',
+                answer: 'X',
+                explain: '해설2'),
+          ],
+        );
+
+    test('저장 후 조회 — 라운드트립 동등', () async {
+      final store = makeStore();
+      await store.saveResultSnapshot(sample('20260604'));
+      final loaded = await store.getResultSnapshot('20260604');
+      expect(loaded, sample('20260604')); // Equatable 전체 동등
+      expect(loaded!.answers.first.isCorrect, isTrue);
+      expect(loaded.answers[1].isCorrect, isFalse);
+    });
+
+    test('없으면 null', () async {
+      expect(await makeStore().getResultSnapshot('20260604'), isNull);
+    });
+
+    test('손상된 JSON → null(폴백)', () async {
+      await prefs.setString('quiz_today_result_20260604', '{not json');
+      expect(await makeStore().getResultSnapshot('20260604'), isNull);
+    });
+
+    test('purge 가 과거 result 스냅샷도 정리(오늘 보존)', () async {
+      final store = makeStore();
+      await store.saveResultSnapshot(sample('20260601')); // 과거
+      await store.saveResultSnapshot(sample('20260604')); // 오늘
+      await prefs.setBool('quiz_done_20260602', true); // 과거 done
+
+      final removed = await store.purgePastDoneKeys('20260604');
+      // 과거 result 1 + 과거 done 1 = 2 삭제.
+      expect(removed, 2);
+      expect(await store.getResultSnapshot('20260604'), isNotNull); // 오늘 보존
+      expect(await store.getResultSnapshot('20260601'), isNull); // 과거 삭제
     });
   });
 }

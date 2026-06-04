@@ -559,18 +559,13 @@ class AppRouter {
               name: 'quiz_play',
               builder: (context, state) => const QuizPlayPage(),
             ),
-            // O/X 퀴즈 결과 (완주 1회당 로컬 커밋·멱등 — 작업3)
+            // O/X 퀴즈 결과·복기 (스냅샷 기반 — 완주 1회당 멱등 커밋. 작업3·4)
             GoRoute(
               path: '/quiz/result',
               name: 'quiz_result',
-              builder: (context, state) {
-                final q = state.uri.queryParameters;
-                return QuizResultPage(
-                  correct: int.tryParse(q['correct'] ?? '') ?? 0,
-                  total: int.tryParse(q['total'] ?? '') ?? 0,
-                  dateKey: q['dateKey'] ?? '',
-                );
-              },
+              builder: (context, state) => QuizResultPage(
+                dateKey: state.uri.queryParameters['dateKey'] ?? '',
+              ),
             ),
             // 오늘의 운세 상세 (결정적 생성 — 서버 저장 없음)
             GoRoute(
