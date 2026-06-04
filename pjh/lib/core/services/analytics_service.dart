@@ -165,4 +165,28 @@ class AnalyticsService {
         'type_code': typeCode,
         'include_photo': includePhoto ? 1 : 0,
       });
+
+  // ── 14. 반려동물 운세 (익명 집계 전용) ──────────────────────
+  // ⚠️ 개인정보 최소화: pet 이름·사진·petId 등 식별 정보는 파라미터 금지.
+  //    species(dog/cat/etc), has_mbti/include_photo(0/1) 등 집계용만.
+
+  /// 운세 상세 조회. has_mbti: MBTI 캐시 유무(그룹 분기 사용 여부, bool→int).
+  Future<void> logFortuneView({
+    required String species,
+    required bool hasMbti,
+  }) =>
+      _log('fortune_view', {
+        'species': species,
+        'has_mbti': hasMbti ? 1 : 0,
+      });
+
+  /// 운세 공유 완료. include_photo: 사진 포함 여부(bool→int).
+  Future<void> logFortuneShare({
+    required String species,
+    required bool includePhoto,
+  }) =>
+      _log('fortune_share', {
+        'species': species,
+        'include_photo': includePhoto ? 1 : 0,
+      });
 }

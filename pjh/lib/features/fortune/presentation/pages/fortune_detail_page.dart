@@ -4,7 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
-import '../../../mbti/domain/entities/pet_mbti_result.dart' show MbtiSpecies;
+import '../../../../core/services/analytics_service.dart';
+import '../../../mbti/domain/entities/pet_mbti_result.dart'
+    show MbtiSpecies, MbtiSpeciesX;
 import '../../../mbti/presentation/theme/mbti_theme.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
@@ -50,6 +52,12 @@ class _FortuneDetailPageState extends State<FortuneDetailPage> {
   void initState() {
     super.initState();
     _future = _load();
+    // 상세 조회 집계(익명) — 화면 진입 1회. 식별 정보 미포함.
+    AnalyticsService.instance.logFortuneView(
+      species: widget.species.key,
+      hasMbti: widget.mbtiTypeCode != null &&
+          widget.mbtiTypeCode!.trim().isNotEmpty,
+    );
   }
 
   Future<_FortuneVM> _load() async {
@@ -431,7 +439,11 @@ class _FortuneContent extends StatelessWidget {
       fortune: f,
       petName: name,
       petAvatarUrl: avatarUrl,
-      // 분석 이벤트(fortune_share)는 작업 5 에서 onShared 로 연결.
+      // 공유 완료 집계(익명) — species + 사진 포함 여부만. 식별 정보 미포함.
+      onShared: (includePhoto) => AnalyticsService.instance.logFortuneShare(
+        species: f.species.key,
+        includePhoto: includePhoto,
+      ),
     );
   }
 
