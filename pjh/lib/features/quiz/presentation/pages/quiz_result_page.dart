@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../data/datasources/quiz_content_data_source.dart';
 import '../../data/datasources/quiz_local_data_source.dart';
 import '../../domain/entities/quiz_result_snapshot.dart';
@@ -57,8 +58,15 @@ class _QuizResultPageState extends State<QuizResultPage> {
         dateKey: widget.dateKey,
         solvedCount: total,
       );
+      final correct = snapshot?.correctCount ?? 0;
       await sl<QuizRewardHook>().onQuizCompleted(
-        correctCount: snapshot?.correctCount ?? 0,
+        correctCount: correct,
+        total: total,
+        streak: streak,
+      );
+      // 완주 집계(익명) — 신규 완주 1회만(멱등이라 복기 재진입에선 미발생).
+      AnalyticsService.instance.logQuizComplete(
+        correctCount: correct,
         total: total,
         streak: streak,
       );

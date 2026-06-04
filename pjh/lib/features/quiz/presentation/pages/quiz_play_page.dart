@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../data/datasources/quiz_local_data_source.dart';
 import '../../domain/entities/quiz_content.dart';
 import '../../domain/entities/quiz_result_snapshot.dart';
@@ -40,6 +41,8 @@ class _QuizPlayPageState extends State<QuizPlayPage> {
   void initState() {
     super.initState();
     _future = _load();
+    // 세트 시작 집계(익명) — 진입 1회. 식별 정보 미포함.
+    AnalyticsService.instance.logQuizStart();
   }
 
   Future<_PlayVM> _load() async {

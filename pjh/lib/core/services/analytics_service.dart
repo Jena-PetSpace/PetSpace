@@ -189,4 +189,26 @@ class AnalyticsService {
         'species': species,
         'include_photo': includePhoto ? 1 : 0,
       });
+
+  // ── 15. O/X 퀴즈 (익명 집계 전용) ──────────────────────────
+  // ⚠️ 개인정보 최소화: pet 이름·사진·petId 등 식별 정보는 파라미터 금지.
+  //    정답 수·총 문항·스트릭 등 익명 집계값만.
+  // TODO(공유): 점수/스트릭 자랑 공유 훅 확정 시 운세 공유 패턴(logFortuneShare)을
+  //   재사용해 logQuizShare 를 2차로 추가.
+
+  /// 퀴즈 진행 화면 진입(세트 시작). 진입 1회.
+  Future<void> logQuizStart() => _log('quiz_start');
+
+  /// 세트 완주 완료. **신규 완주 1회만**(멱등 커밋이라 복기 재진입에선 미발생).
+  /// 익명 집계: 정답 수·총 문항·스트릭.
+  Future<void> logQuizComplete({
+    required int correctCount,
+    required int total,
+    required int streak,
+  }) =>
+      _log('quiz_complete', {
+        'correct_count': correctCount,
+        'total': total,
+        'streak': streak,
+      });
 }
