@@ -8,7 +8,6 @@ import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../../social/domain/entities/post.dart';
 import '../../../social/domain/repositories/social_repository.dart';
-import '../../../../shared/widgets/section_header.dart';
 
 class MagazineGrid extends StatefulWidget {
   const MagazineGrid({super.key});
@@ -30,7 +29,7 @@ class _MagazineGridState extends State<MagazineGrid> {
   Future<void> _loadPosts() async {
     try {
       final repo = di.sl<SocialRepository>();
-      final result = await repo.searchPostsByHashtag(hashtag: 'magazine', limit: 4);
+      final result = await repo.searchPostsByHashtag(hashtag: 'magazine', limit: 3);
       result.fold(
         (failure) {
           dev.log('매거진 로드 실패: \${failure.message}', name: 'MagazineGrid');
@@ -57,11 +56,7 @@ class _MagazineGridState extends State<MagazineGrid> {
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
-          SectionHeader(
-            title: '📰 꿀팁 매거진',
-            onMore: () => context.go('/feed?tab=community&category=magazine'),
-          ),
-          SizedBox(height: 12.h),
+          // 섹션 헤더는 홈 페이지에서 제공 (매거진 + 더보기)
           if (_loading)
             SizedBox(
               height: 120.h,
@@ -79,25 +74,23 @@ class _MagazineGridState extends State<MagazineGrid> {
               ),
             )
           else
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12.w,
-              mainAxisSpacing: 12.h,
-              childAspectRatio: 0.85,
-              children: _posts.map((post) {
-                final hashtags = post.tags;
-                final tag = _getTag(hashtags);
-                return _buildMagazineItem(
-                  context: context,
-                  postId: post.id,
-                  tag: tag['label']!,
-                  tagColor: _getTagColor(tag['label']!),
-                  title: post.content ?? '',
-                  imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
+            Column(
+              children: List.generate(_posts.length, (i) {
+                final post = _posts[i];
+                final tag = _getTag(post.tags);
+                return Padding(
+                  padding: EdgeInsets.only(bottom: i == _posts.length - 1 ? 0 : 16.h),
+                  child: _buildMagazineItem(
+                    context: context,
+                    postId: post.id,
+                    tag: tag['label']!,
+                    tagColor: _getTagColor(tag['label']!),
+                    title: post.content ?? '',
+                    date: _formatDate(post.createdAt),
+                    imageUrl: post.imageUrls.isNotEmpty ? post.imageUrls.first : null,
+                  ),
                 );
-              }).toList(),
+              }),
             ),
         ],
       ),
@@ -131,90 +124,95 @@ class _MagazineGridState extends State<MagazineGrid> {
 
   Widget _buildImagePlaceholder(Color tagColor) {
     return Container(
-      height: 72.h,
       color: tagColor.withValues(alpha: 0.08),
       child: Center(
-        child: Icon(Icons.article_outlined, size: 32.w, color: tagColor.withValues(alpha: 0.4)),
+        child: Icon(Icons.article_outlined, size: 28.w, color: tagColor.withValues(alpha: 0.4)),
       ),
     );
   }
 
+  // 시안 매거진 행: [썸네일] + [태그·제목 / 날짜] 가로 레이아웃
   Widget _buildMagazineItem({
     required BuildContext context,
     required String postId,
     required String tag,
     required Color tagColor,
     required String title,
+    required String date,
     String? imageUrl,
   }) {
     return GestureDetector(
       onTap: () => context.push('/post/$postId'),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14.r),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 6,
-              offset: Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(14.r)),
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12.r),
+            child: SizedBox(
+              width: 96.w,
+              height: 80.h,
               child: imageUrl != null
                   ? CachedNetworkImage(
                       imageUrl: imageUrl,
-                      height: 72.h,
-                      width: double.infinity,
                       fit: BoxFit.cover,
                       errorWidget: (_, __, ___) => _buildImagePlaceholder(tagColor),
                     )
                   : _buildImagePlaceholder(tagColor),
             ),
-            Padding(
-              padding: EdgeInsets.all(10.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                    decoration: BoxDecoration(
-                      color: tagColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4.r),
-                    ),
-                    child: Text(
-                      tag,
-                      style: TextStyle(
-                        fontSize: 8.sp,
-                        fontWeight: FontWeight.w600,
-                        color: tagColor,
-                      ),
-                    ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: tagColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4.r),
                   ),
-                  SizedBox(height: 6.h),
-                  Text(
-                    title,
+                  child: Text(
+                    tag,
                     style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryTextColor,
-                      height: 1.3,
+                      fontSize: 9.sp,
+                      fontWeight: FontWeight.w600,
+                      color: tagColor,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
+                ),
+                SizedBox(height: 6.h),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryTextColor,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  date,
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _formatDate(DateTime d) {
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y.$m.$day.';
   }
 }

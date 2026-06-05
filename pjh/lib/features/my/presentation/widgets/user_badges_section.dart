@@ -74,6 +74,13 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
       desc: '레벨 10 달성',
       color: Color(0xFFEEEDFE),
     ),
+    BadgeDefinition(
+      id: 'mbti_explorer',
+      emoji: '🧬',
+      name: '성격 탐구가',
+      desc: '처음으로 반려동물 MBTI 검사 완료',
+      color: Color(0xFFE9E3F5),
+    ),
   ];
 
   Set<String> _earnedIds = {};

@@ -1,0 +1,2213 @@
+{
+  "version": 1,
+  "meta": {
+    "dailyCount": 4,
+    "categories": [
+      {
+        "key": "behavior",
+        "label": "행동·습성"
+      },
+      {
+        "key": "bodylang",
+        "label": "보디랭귀지"
+      },
+      {
+        "key": "senses",
+        "label": "신체·감각"
+      },
+      {
+        "key": "breed",
+        "label": "품종 상식"
+      },
+      {
+        "key": "sound",
+        "label": "의사소통·소리"
+      },
+      {
+        "key": "sleep",
+        "label": "수면·휴식"
+      },
+      {
+        "key": "training",
+        "label": "놀이·훈련 상식"
+      },
+      {
+        "key": "history",
+        "label": "역사·문화"
+      },
+      {
+        "key": "trivia",
+        "label": "잡학·트리비아"
+      },
+      {
+        "key": "care",
+        "label": "생활·돌봄 상식"
+      }
+    ],
+    "disclaimer": "이 퀴즈는 재미와 일반 상식을 위한 콘텐츠예요. 반려동물의 건강·이상 징후가 의심되면 수의사와 상담하세요.",
+    "rewardNote": "1차에서는 포인트·뱃지를 적립하지 않습니다. 정답 수·스트릭은 보유하되 리워드스토어 구현 시 onQuizCompleted 훅으로 연계합니다.",
+    "categoryScope": "안전 카테고리만(행동·신체·품종·문화·돌봄 등). 의학·응급·중독 등 위험 카테고리는 2차."
+  },
+  "questions": [
+    {
+      "id": "behavior_01",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지가 빙글빙글 돌다 눕는 건 야생 시절 잠자리를 다지던 습성의 흔적이다.",
+      "answer": "O",
+      "explain": "풀밭을 다지고 안전을 확인하던 본능이 남은 것으로 봅니다."
+    },
+    {
+      "id": "behavior_02",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 앞발로 꾹꾹 누르는 행동은 어릴 때 젖을 먹던 행동의 흔적이다.",
+      "answer": "O",
+      "explain": "편안함을 느낄 때 자주 나타납니다."
+    },
+    {
+      "id": "behavior_03",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지가 풀을 뜯어 먹는 건 100% 영양 부족 때문이다.",
+      "answer": "X",
+      "explain": "속이 불편하거나 호기심 등 이유가 다양해 단정할 수 없습니다."
+    },
+    {
+      "id": "behavior_04",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 높은 곳을 좋아하는 건 영역을 살피고 안전을 느끼기 위해서다.",
+      "answer": "O",
+      "explain": "높은 곳에서 주변을 통제한다고 느낍니다."
+    },
+    {
+      "id": "behavior_05",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지가 꼬리를 흔들면 항상 기쁘다는 뜻이다.",
+      "answer": "X",
+      "explain": "흥분·경계·긴장일 때도 흔듭니다."
+    },
+    {
+      "id": "behavior_06",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 꼬리를 곧게 세우고 다가오면 우호적인 인사다.",
+      "answer": "O",
+      "explain": "친근함의 신호로 봅니다."
+    },
+    {
+      "id": "behavior_07",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지가 몸을 부르르 터는 건 물기를 털 때만 한다.",
+      "answer": "X",
+      "explain": "긴장 해소·전환 신호로도 합니다."
+    },
+    {
+      "id": "behavior_08",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 갑자기 우다다 뛰는 건 사냥 본능과 에너지 발산이다.",
+      "answer": "O",
+      "explain": "쌓인 에너지를 푸는 자연스러운 행동입니다."
+    },
+    {
+      "id": "behavior_09",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "개가 다른 개의 엉덩이 냄새를 맡는 건 정보를 얻는 인사다.",
+      "answer": "O",
+      "explain": "냄새로 상대를 파악합니다."
+    },
+    {
+      "id": "behavior_10",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이의 골골 소리는 만족할 때만 낸다.",
+      "answer": "X",
+      "explain": "불안하거나 아플 때 스스로 진정하려 내기도 합니다."
+    },
+    {
+      "id": "behavior_11",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지가 배를 보이면 항상 복종의 표현이다.",
+      "answer": "X",
+      "explain": "편안함이나 놀이 요청일 수도 있습니다."
+    },
+    {
+      "id": "behavior_12",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 박스를 좋아하는 건 좁고 안전한 공간에서 안정을 느끼기 때문이다.",
+      "answer": "O",
+      "explain": "은신 본능과 관련됩니다."
+    },
+    {
+      "id": "behavior_13",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지의 하품은 졸릴 때만 한다.",
+      "answer": "X",
+      "explain": "긴장을 누그러뜨리는 신호로도 합니다."
+    },
+    {
+      "id": "behavior_14",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 천천히 눈을 깜빡이는 건 신뢰와 애정의 표현이다.",
+      "answer": "O",
+      "explain": "'고양이 키스'로도 불립니다."
+    },
+    {
+      "id": "behavior_15",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "개가 자기 꼬리를 쫓는 건 늘 즐거운 놀이일 뿐이다.",
+      "answer": "X",
+      "explain": "지루함·강박 행동일 수도 있습니다."
+    },
+    {
+      "id": "behavior_16",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이는 낯선 냄새가 묻으면 다시 자기 냄새로 덮으려 한다.",
+      "answer": "O",
+      "explain": "그루밍·비비기로 영역 냄새를 회복합니다."
+    },
+    {
+      "id": "behavior_17",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지가 보호자 물건을 물고 가는 건 냄새에서 안정감을 느끼기 때문일 수 있다.",
+      "answer": "O",
+      "explain": "보호자 냄새가 진정 효과를 줍니다."
+    },
+    {
+      "id": "behavior_18",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 사냥감(장난감)을 사람에게 가져오는 건 공유·선물 행동으로 본다.",
+      "answer": "O",
+      "explain": "무리와 나누는 본능과 연결됩니다."
+    },
+    {
+      "id": "behavior_19",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "개가 한쪽 앞발을 드는 건 집중하거나 망설일 때 나오는 행동이다.",
+      "answer": "O",
+      "explain": "대상을 살필 때 자주 보입니다."
+    },
+    {
+      "id": "behavior_20",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 그루밍을 자주 하는 건 청결뿐 아니라 안정을 위한 행동이기도 하다.",
+      "answer": "O",
+      "explain": "스트레스를 달래는 기능도 합니다."
+    },
+    {
+      "id": "bodylang_01",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지의 귀가 뒤로 납작하게 젖혀지면 불안하거나 겁먹은 신호일 수 있다.",
+      "answer": "O",
+      "explain": "위축·긴장 상태에서 자주 보입니다."
+    },
+    {
+      "id": "bodylang_02",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 귀를 옆으로 납작 눕히면(비행기 귀) 경계·불안 상태다.",
+      "answer": "O",
+      "explain": "위협을 느낄 때 나타납니다."
+    },
+    {
+      "id": "bodylang_03",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 꼬리를 빠르게 좌우로 휙휙 치면 기분이 좋다는 뜻이다.",
+      "answer": "X",
+      "explain": "짜증·흥분의 신호인 경우가 많습니다."
+    },
+    {
+      "id": "bodylang_04",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지의 플레이 바우(앞다리 뻗고 엉덩이 들기)는 놀자는 신호다.",
+      "answer": "O",
+      "explain": "놀이를 청하는 대표 자세입니다."
+    },
+    {
+      "id": "bodylang_05",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 털을 부풀리고 등을 둥글게 세우면 크게 보이려는 위협 반응이다.",
+      "answer": "O",
+      "explain": "공포·방어 상태에서 나옵니다."
+    },
+    {
+      "id": "bodylang_06",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지가 시선을 피하고 몸을 돌리는 건 갈등을 피하려는 신호일 수 있다.",
+      "answer": "O",
+      "explain": "'카밍 시그널'의 하나로 봅니다."
+    },
+    {
+      "id": "bodylang_07",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "개가 이빨을 드러내면 항상 공격 직전이다.",
+      "answer": "X",
+      "explain": "일부는 복종·'미소'처럼 보이기도 합니다."
+    },
+    {
+      "id": "bodylang_08",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 수염을 앞으로 모으면 호기심·집중 상태다.",
+      "answer": "O",
+      "explain": "관심 대상에 집중할 때 그렇습니다."
+    },
+    {
+      "id": "bodylang_09",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지가 꼬리를 다리 사이로 말면 두려움·복종의 신호다.",
+      "answer": "O",
+      "explain": "위축된 감정을 나타냅니다."
+    },
+    {
+      "id": "bodylang_10",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 배를 보이며 누우면 무조건 만져달라는 뜻이다.",
+      "answer": "X",
+      "explain": "신뢰의 표현이지만 배는 민감해 만지면 싫어할 수 있습니다."
+    },
+    {
+      "id": "bodylang_11",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "개의 등줄기 털이 곤두서면(해클) 흥분·경계 상태일 수 있다.",
+      "answer": "O",
+      "explain": "감정이 고조됐다는 신호입니다."
+    },
+    {
+      "id": "bodylang_12",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 사람 다리에 몸을 비비는 건 냄새를 묻혀 친밀감을 표현하는 것이다.",
+      "answer": "O",
+      "explain": "영역 표시 겸 인사입니다."
+    },
+    {
+      "id": "bodylang_13",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지가 빠르게 꼬리를 흔들수록 무조건 더 행복한 것이다.",
+      "answer": "X",
+      "explain": "흥분·긴장도 빠른 흔들림으로 나타납니다."
+    },
+    {
+      "id": "bodylang_14",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이의 동공이 크게 확장되면 흥분·공포 때문일 수도 있다.",
+      "answer": "O",
+      "explain": "어둠 외에 감정 상태로도 커집니다."
+    },
+    {
+      "id": "bodylang_15",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지가 보호자에게 등을 기대고 앉는 건 신뢰의 표현일 수 있다.",
+      "answer": "O",
+      "explain": "안심하고 의지하는 행동입니다."
+    },
+    {
+      "id": "bodylang_16",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 머리로 사람을 들이받는(번팅) 건 애정·표시 행동이다.",
+      "answer": "O",
+      "explain": "냄새를 묻혀 친밀감을 나타냅니다."
+    },
+    {
+      "id": "bodylang_17",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지가 입맛을 다시거나 코를 핥는 건 진정·긴장 신호일 수 있다.",
+      "answer": "O",
+      "explain": "스트레스를 달래는 행동입니다."
+    },
+    {
+      "id": "bodylang_18",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 꼬리 끝만 살짝 까딱이는 건 가벼운 관심·집중의 표시다.",
+      "answer": "O",
+      "explain": "약한 반응으로 봅니다."
+    },
+    {
+      "id": "bodylang_19",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지가 한 발을 들고 몸이 굳으면 무언가를 포착·경계하는 자세일 수 있다.",
+      "answer": "O",
+      "explain": "포인팅 자세와 비슷합니다."
+    },
+    {
+      "id": "bodylang_20",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 눈을 크게 뜨고 노려보며 꼬리를 부풀리면 공격적 경계 상태다.",
+      "answer": "O",
+      "explain": "방어·위협 신호입니다."
+    },
+    {
+      "id": "senses_01",
+      "category": "senses",
+      "species": "dog",
+      "statement": "개의 후각은 사람보다 수만 배 뛰어나다.",
+      "answer": "O",
+      "explain": "후각 세포 수가 사람보다 훨씬 많습니다."
+    },
+    {
+      "id": "senses_02",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이는 어둠 속에서 사람보다 훨씬 잘 본다.",
+      "answer": "O",
+      "explain": "적은 빛에서도 잘 보도록 눈이 발달했습니다."
+    },
+    {
+      "id": "senses_03",
+      "category": "senses",
+      "species": "dog",
+      "statement": "개는 색을 전혀 구분하지 못하고 흑백으로만 본다.",
+      "answer": "X",
+      "explain": "청·황 계열은 어느 정도 구분합니다."
+    },
+    {
+      "id": "senses_04",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이의 수염은 장식일 뿐 기능이 없다.",
+      "answer": "X",
+      "explain": "공간·거리 감지에 중요한 감각 기관입니다."
+    },
+    {
+      "id": "senses_05",
+      "category": "senses",
+      "species": "dog",
+      "statement": "강아지의 코 무늬(비문)는 사람 지문처럼 개체마다 다르다.",
+      "answer": "O",
+      "explain": "식별에 쓰일 만큼 고유합니다."
+    },
+    {
+      "id": "senses_06",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이는 단맛을 잘 느끼지 못한다.",
+      "answer": "O",
+      "explain": "단맛 수용체가 거의 기능하지 않습니다."
+    },
+    {
+      "id": "senses_07",
+      "category": "senses",
+      "species": "dog",
+      "statement": "개는 귀를 여러 방향으로 움직여 소리 위치를 잡는다.",
+      "answer": "O",
+      "explain": "많은 근육으로 귀를 조절합니다."
+    },
+    {
+      "id": "senses_08",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이의 청력은 사람보다 높은 초음파 영역까지 듣는다.",
+      "answer": "O",
+      "explain": "쥐 같은 작은 동물의 소리를 잡습니다."
+    },
+    {
+      "id": "senses_09",
+      "category": "senses",
+      "species": "dog",
+      "statement": "강아지는 발바닥(육구)에 땀샘이 있다.",
+      "answer": "O",
+      "explain": "주로 발바닥으로 땀을 냅니다."
+    },
+    {
+      "id": "senses_10",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이는 후각이 사람보다 약하다.",
+      "answer": "X",
+      "explain": "사람보다 훨씬 뛰어납니다."
+    },
+    {
+      "id": "senses_11",
+      "category": "senses",
+      "species": "dog",
+      "statement": "개는 사람이 못 듣는 고주파 소리를 들을 수 있다.",
+      "answer": "O",
+      "explain": "가청 범위가 더 넓습니다."
+    },
+    {
+      "id": "senses_12",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이의 혀에는 까끌한 돌기가 있어 그루밍과 고기 발라먹기에 쓰인다.",
+      "answer": "O",
+      "explain": "역방향 돌기가 빗 역할을 합니다."
+    },
+    {
+      "id": "senses_13",
+      "category": "senses",
+      "species": "dog",
+      "statement": "강아지는 입천장에 후각을 돕는 보조 기관이 있다.",
+      "answer": "O",
+      "explain": "야콥슨 기관으로 냄새를 분석합니다."
+    },
+    {
+      "id": "senses_14",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이는 정지된 물체보다 움직이는 물체를 잘 인식한다.",
+      "answer": "O",
+      "explain": "사냥 본능과 관련됩니다."
+    },
+    {
+      "id": "senses_15",
+      "category": "senses",
+      "species": "dog",
+      "statement": "개는 사람처럼 온몸 땀샘으로 체온을 식힌다.",
+      "answer": "X",
+      "explain": "주로 헥헥거림으로 열을 식힙니다."
+    },
+    {
+      "id": "senses_16",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이의 수염 길이는 대략 몸 폭과 비슷해 틈 통과를 가늠한다.",
+      "answer": "O",
+      "explain": "좁은 공간 진입을 판단합니다."
+    },
+    {
+      "id": "senses_17",
+      "category": "senses",
+      "species": "dog",
+      "statement": "개는 냄새로 사람의 감정 변화를 어느 정도 감지할 수 있다.",
+      "answer": "O",
+      "explain": "호르몬·체취 변화를 포착합니다."
+    },
+    {
+      "id": "senses_18",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이는 맛보다 냄새로 음식을 더 판단하는 경향이 있다.",
+      "answer": "O",
+      "explain": "후각 의존도가 높습니다."
+    },
+    {
+      "id": "senses_19",
+      "category": "senses",
+      "species": "dog",
+      "statement": "개의 시야각은 사람보다 넓은 편이다.",
+      "answer": "O",
+      "explain": "눈 위치 덕에 시야가 넓습니다."
+    },
+    {
+      "id": "senses_20",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이는 높은 곳에서 떨어져도 몸을 비틀어 자세를 잡는 능력이 있다.",
+      "answer": "O",
+      "explain": "공중 자세 교정 반사가 있습니다."
+    },
+    {
+      "id": "breed_01",
+      "category": "breed",
+      "species": "dog",
+      "statement": "닥스훈트는 원래 굴속 사냥을 위해 길러진 품종이다.",
+      "answer": "O",
+      "explain": "오소리 등 굴 사냥에 적합한 체형입니다."
+    },
+    {
+      "id": "breed_02",
+      "category": "breed",
+      "species": "cat",
+      "statement": "샴고양이는 얼굴·귀·발·꼬리 색이 진한 포인트 무늬가 특징이다.",
+      "answer": "O",
+      "explain": "온도에 따라 색이 발현됩니다."
+    },
+    {
+      "id": "breed_03",
+      "category": "breed",
+      "species": "dog",
+      "statement": "보더콜리는 지능이 높고 목양견으로 유명하다.",
+      "answer": "O",
+      "explain": "작업 능력이 뛰어난 견종입니다."
+    },
+    {
+      "id": "breed_04",
+      "category": "breed",
+      "species": "cat",
+      "statement": "페르시안 고양이는 짧은 털이 특징이다.",
+      "answer": "X",
+      "explain": "대표적인 장모종입니다."
+    },
+    {
+      "id": "breed_05",
+      "category": "breed",
+      "species": "dog",
+      "statement": "시베리안 허스키는 추운 지역에서 썰매를 끌던 품종이다.",
+      "answer": "O",
+      "explain": "극지 환경에 적응했습니다."
+    },
+    {
+      "id": "breed_06",
+      "category": "breed",
+      "species": "cat",
+      "statement": "메인쿤은 대형 묘종에 속한다.",
+      "answer": "O",
+      "explain": "큰 체구로 유명합니다."
+    },
+    {
+      "id": "breed_07",
+      "category": "breed",
+      "species": "dog",
+      "statement": "치와와는 세계에서 가장 작은 견종 중 하나다.",
+      "answer": "O",
+      "explain": "초소형견으로 분류됩니다."
+    },
+    {
+      "id": "breed_08",
+      "category": "breed",
+      "species": "cat",
+      "statement": "스코티시폴드는 접힌 귀가 특징인 고양이다.",
+      "answer": "O",
+      "explain": "유전적 특성으로 귀가 접힙니다."
+    },
+    {
+      "id": "breed_09",
+      "category": "breed",
+      "species": "dog",
+      "statement": "리트리버는 사냥감을 물어오는 역할에서 이름이 유래했다.",
+      "answer": "O",
+      "explain": "retrieve(회수)에서 왔습니다."
+    },
+    {
+      "id": "breed_10",
+      "category": "breed",
+      "species": "cat",
+      "statement": "스핑크스 고양이는 털이 거의 없는 것이 특징이다.",
+      "answer": "O",
+      "explain": "무모에 가까운 품종입니다."
+    },
+    {
+      "id": "breed_11",
+      "category": "breed",
+      "species": "dog",
+      "statement": "푸들은 원래 물에서 사냥감을 회수하던 워터독이었다.",
+      "answer": "O",
+      "explain": "수렵견 기원을 가집니다."
+    },
+    {
+      "id": "breed_12",
+      "category": "breed",
+      "species": "cat",
+      "statement": "러시안블루는 검은 단모가 특징이다.",
+      "answer": "X",
+      "explain": "회청색 털이 특징입니다."
+    },
+    {
+      "id": "breed_13",
+      "category": "breed",
+      "species": "dog",
+      "statement": "진돗개는 한국의 천연기념물로 지정된 토종견이다.",
+      "answer": "O",
+      "explain": "대한민국 천연기념물입니다."
+    },
+    {
+      "id": "breed_14",
+      "category": "breed",
+      "species": "cat",
+      "statement": "뱅갈고양이는 야생 고양이 교배에서 비롯된 무늬가 특징이다.",
+      "answer": "O",
+      "explain": "야생 느낌의 반점이 있습니다."
+    },
+    {
+      "id": "breed_15",
+      "category": "breed",
+      "species": "dog",
+      "statement": "웰시코기는 다리가 짧고 원래 목축견이었다.",
+      "answer": "O",
+      "explain": "소·양을 몰던 견종입니다."
+    },
+    {
+      "id": "breed_16",
+      "category": "breed",
+      "species": "cat",
+      "statement": "아메리칸 숏헤어는 대표적인 장모종이다.",
+      "answer": "X",
+      "explain": "이름처럼 단모종입니다."
+    },
+    {
+      "id": "breed_17",
+      "category": "breed",
+      "species": "dog",
+      "statement": "그레이트데인은 초대형 견종에 속한다.",
+      "answer": "O",
+      "explain": "매우 큰 체구로 유명합니다."
+    },
+    {
+      "id": "breed_18",
+      "category": "breed",
+      "species": "cat",
+      "statement": "먼치킨 고양이는 다리가 짧은 것이 특징이다.",
+      "answer": "O",
+      "explain": "짧은 다리가 특징입니다."
+    },
+    {
+      "id": "breed_19",
+      "category": "breed",
+      "species": "dog",
+      "statement": "비글은 후각이 뛰어나 탐지에 활용된다.",
+      "answer": "O",
+      "explain": "검역·탐지견으로도 쓰입니다."
+    },
+    {
+      "id": "breed_20",
+      "category": "breed",
+      "species": "cat",
+      "statement": "노르웨이숲 고양이는 추운 기후에 적응한 두꺼운 털을 가졌다.",
+      "answer": "O",
+      "explain": "북유럽 환경에 적응했습니다."
+    },
+    {
+      "id": "sound_01",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이는 주로 사람과 소통하려고 '야옹' 소리를 발달시켰다고 본다.",
+      "answer": "O",
+      "explain": "성묘끼리는 야옹을 잘 쓰지 않습니다."
+    },
+    {
+      "id": "sound_02",
+      "category": "sound",
+      "species": "cat",
+      "statement": "다 자란 고양이끼리는 사람에게 하듯 자주 야옹거리며 대화한다.",
+      "answer": "X",
+      "explain": "주로 사람을 대상으로 야옹합니다."
+    },
+    {
+      "id": "sound_03",
+      "category": "sound",
+      "species": "dog",
+      "statement": "강아지의 짖음은 상황에 따라 다른 의미를 가진다.",
+      "answer": "O",
+      "explain": "경계·요구·흥분 등을 나타냅니다."
+    },
+    {
+      "id": "sound_04",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이의 골골 소리는 진동으로 진정 효과가 있다고도 여겨진다.",
+      "answer": "O",
+      "explain": "스스로를 안정시키는 기능이 있습니다."
+    },
+    {
+      "id": "sound_05",
+      "category": "sound",
+      "species": "dog",
+      "statement": "개는 하울링으로 멀리 있는 대상과 소통하기도 한다.",
+      "answer": "O",
+      "explain": "원거리 신호로 씁니다."
+    },
+    {
+      "id": "sound_06",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이가 창밖 새를 보며 '캭캭'대는(채터링) 소리를 낸다.",
+      "answer": "O",
+      "explain": "사냥 욕구와 관련됩니다."
+    },
+    {
+      "id": "sound_07",
+      "category": "sound",
+      "species": "dog",
+      "statement": "강아지의 낑낑거림은 항상 아프다는 신호다.",
+      "answer": "X",
+      "explain": "요구·흥분의 표현일 수도 있습니다."
+    },
+    {
+      "id": "sound_08",
+      "category": "sound",
+      "species": "dog",
+      "statement": "개는 사람 목소리 톤에서 감정을 어느 정도 구별한다.",
+      "answer": "O",
+      "explain": "억양에 반응합니다."
+    },
+    {
+      "id": "sound_09",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이의 하악질(하악)은 위협·경고의 신호다.",
+      "answer": "O",
+      "explain": "불쾌·방어 표현입니다."
+    },
+    {
+      "id": "sound_10",
+      "category": "sound",
+      "species": "dog",
+      "statement": "강아지가 잠결에 낑낑대거나 다리를 떠는 건 꿈을 꾸는 것으로 추정된다.",
+      "answer": "O",
+      "explain": "수면 중 뇌 활동과 관련됩니다."
+    },
+    {
+      "id": "sound_11",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이는 기분이 좋을 때만 골골거린다.",
+      "answer": "X",
+      "explain": "불안·통증 때도 골골댑니다."
+    },
+    {
+      "id": "sound_12",
+      "category": "sound",
+      "species": "dog",
+      "statement": "개의 으르렁 소리는 항상 공격 의도다.",
+      "answer": "X",
+      "explain": "놀이 중에도 으르렁댑니다."
+    },
+    {
+      "id": "sound_13",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이가 사람에게 짧게 내는 트릴 소리는 친근한 인사다.",
+      "answer": "O",
+      "explain": "어미가 새끼를 부를 때도 씁니다."
+    },
+    {
+      "id": "sound_14",
+      "category": "sound",
+      "species": "dog",
+      "statement": "강아지는 짖음의 높낮이로도 감정을 표현한다.",
+      "answer": "O",
+      "explain": "톤에 따라 의미가 다릅니다."
+    },
+    {
+      "id": "sound_15",
+      "category": "sound",
+      "species": "cat",
+      "statement": "새끼 고양이는 어미를 찾을 때 높은 소리로 운다.",
+      "answer": "O",
+      "explain": "의존 신호입니다."
+    },
+    {
+      "id": "sound_16",
+      "category": "sound",
+      "species": "dog",
+      "statement": "개의 한숨 같은 소리는 만족·이완의 표현일 수 있다.",
+      "answer": "O",
+      "explain": "편안할 때 나오기도 합니다."
+    },
+    {
+      "id": "sound_17",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이가 밤에 우는 건 무조건 배고픔 때문이다.",
+      "answer": "X",
+      "explain": "관심 요구·환경 변화 등 이유가 다양합니다."
+    },
+    {
+      "id": "sound_18",
+      "category": "sound",
+      "species": "dog",
+      "statement": "개는 다른 개의 짖음을 듣고 따라 짖기도 한다.",
+      "answer": "O",
+      "explain": "사회적 반응입니다."
+    },
+    {
+      "id": "sound_19",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이의 울음 톤·빈도는 개체마다 다르다.",
+      "answer": "O",
+      "explain": "성격·환경에 따라 다릅니다."
+    },
+    {
+      "id": "sound_20",
+      "category": "sound",
+      "species": "dog",
+      "statement": "개는 초인종 등 특정 소리에 학습된 반응으로 짖기도 한다.",
+      "answer": "O",
+      "explain": "연관 학습의 결과입니다."
+    },
+    {
+      "id": "sleep_01",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "강아지는 사람보다 하루 수면 시간이 긴 편이다.",
+      "answer": "O",
+      "explain": "성견도 사람보다 많이 잡니다."
+    },
+    {
+      "id": "sleep_02",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이는 하루 대부분을 자거나 쉬며 보낸다.",
+      "answer": "O",
+      "explain": "수면 시간이 매우 깁니다."
+    },
+    {
+      "id": "sleep_03",
+      "category": "sleep",
+      "species": "common",
+      "statement": "새끼 강아지·고양이는 성체보다 더 많이 잔다.",
+      "answer": "O",
+      "explain": "성장에 많은 수면이 필요합니다."
+    },
+    {
+      "id": "sleep_04",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이는 야행성이라 밤에만 자고 낮엔 늘 깨어 있다.",
+      "answer": "X",
+      "explain": "주로 새벽·해질녘에 활동하는 박명박모성입니다."
+    },
+    {
+      "id": "sleep_05",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "강아지도 사람처럼 꿈을 꾸는 것으로 추정된다.",
+      "answer": "O",
+      "explain": "수면 중 뇌파 활동이 관찰됩니다."
+    },
+    {
+      "id": "sleep_06",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이가 몸을 동그랗게 말고 자는 건 체온 보호와 관련 있다.",
+      "answer": "O",
+      "explain": "열 손실을 줄입니다."
+    },
+    {
+      "id": "sleep_07",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "개가 배를 보이고 늘어져 자는 건 안전하다고 느끼는 신호일 수 있다.",
+      "answer": "O",
+      "explain": "편안함의 표시입니다."
+    },
+    {
+      "id": "sleep_08",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이는 깊은 잠과 얕은 잠을 오가며 잔다.",
+      "answer": "O",
+      "explain": "경계와 휴식을 병행합니다."
+    },
+    {
+      "id": "sleep_09",
+      "category": "sleep",
+      "species": "common",
+      "statement": "나이 든 반려동물은 어릴 때보다 잠이 늘어나는 경향이 있다.",
+      "answer": "O",
+      "explain": "활동량 감소와 관련됩니다."
+    },
+    {
+      "id": "sleep_10",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "강아지는 잠자리를 빙글 돌고 눕는 습성이 있다.",
+      "answer": "O",
+      "explain": "자리를 다지던 본능입니다."
+    },
+    {
+      "id": "sleep_11",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이가 사람 곁에 붙어 자는 건 신뢰·애정의 표현일 수 있다.",
+      "answer": "O",
+      "explain": "안심하는 상대 곁을 택합니다."
+    },
+    {
+      "id": "sleep_12",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "강아지는 시끄러운 곳에서도 사람보다 더 깊이 잔다.",
+      "answer": "X",
+      "explain": "얕은 잠 비중이 커 쉽게 깹니다."
+    },
+    {
+      "id": "sleep_13",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이는 따뜻한 곳을 찾아 자는 경향이 있다.",
+      "answer": "O",
+      "explain": "온기를 선호합니다."
+    },
+    {
+      "id": "sleep_14",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "개도 코를 골 수 있다.",
+      "answer": "O",
+      "explain": "품종·자세에 따라 코를 곱니다."
+    },
+    {
+      "id": "sleep_15",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이의 식빵 자세는 편안한 휴식 자세다.",
+      "answer": "O",
+      "explain": "발을 모으고 쉬는 자세입니다."
+    },
+    {
+      "id": "sleep_16",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "강아지가 보호자 발치에서 자는 건 무리 본능과 관련 있을 수 있다.",
+      "answer": "O",
+      "explain": "곁을 지키려는 습성입니다."
+    },
+    {
+      "id": "sleep_17",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이는 잘 때도 귀로 주변 소리를 감지한다.",
+      "answer": "O",
+      "explain": "경계를 늦추지 않습니다."
+    },
+    {
+      "id": "sleep_18",
+      "category": "sleep",
+      "species": "common",
+      "statement": "반려동물의 수면의 질은 환경에 따라 달라진다.",
+      "answer": "O",
+      "explain": "조용하고 편안할수록 좋습니다."
+    },
+    {
+      "id": "sleep_19",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "강아지는 더울 때 시원한 바닥을 찾아 눕기도 한다.",
+      "answer": "O",
+      "explain": "체온을 낮추려는 행동입니다."
+    },
+    {
+      "id": "sleep_20",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이가 높은 곳에서 자는 건 안전하다고 느끼는 자리를 택하는 것이다.",
+      "answer": "O",
+      "explain": "안정감을 줍니다."
+    },
+    {
+      "id": "training_01",
+      "category": "training",
+      "species": "common",
+      "statement": "잘한 행동에 보상을 주는 긍정 강화는 효과적인 훈련 방법이다.",
+      "answer": "O",
+      "explain": "원하는 행동을 늘리는 데 효과적입니다."
+    },
+    {
+      "id": "training_02",
+      "category": "training",
+      "species": "dog",
+      "statement": "강아지 훈련은 짧고 자주 반복하는 편이 효과적이다.",
+      "answer": "O",
+      "explain": "집중력 유지에 좋습니다."
+    },
+    {
+      "id": "training_03",
+      "category": "training",
+      "species": "cat",
+      "statement": "고양이는 전혀 훈련이 되지 않는 동물이다.",
+      "answer": "X",
+      "explain": "간식·클리커로 학습이 가능합니다."
+    },
+    {
+      "id": "training_04",
+      "category": "training",
+      "species": "common",
+      "statement": "일관된 신호(명령어)를 쓰는 것이 훈련에 도움이 된다.",
+      "answer": "O",
+      "explain": "혼란을 줄입니다."
+    },
+    {
+      "id": "training_05",
+      "category": "training",
+      "species": "common",
+      "statement": "잘못한 지 한참 지나서 혼내면 이유를 잘 연결하지 못한다.",
+      "answer": "O",
+      "explain": "즉각적 피드백이 중요합니다."
+    },
+    {
+      "id": "training_06",
+      "category": "training",
+      "species": "dog",
+      "statement": "강아지 사회화는 어린 시기에 다양한 경험을 시키는 것이 좋다.",
+      "answer": "O",
+      "explain": "적응력을 키웁니다."
+    },
+    {
+      "id": "training_07",
+      "category": "training",
+      "species": "cat",
+      "statement": "고양이도 클리커·간식으로 간단한 행동을 학습할 수 있다.",
+      "answer": "O",
+      "explain": "보상 기반 학습이 가능합니다."
+    },
+    {
+      "id": "training_08",
+      "category": "training",
+      "species": "common",
+      "statement": "놀이는 반려동물의 스트레스 해소와 운동에 도움이 된다.",
+      "answer": "O",
+      "explain": "정신·신체 건강에 좋습니다."
+    },
+    {
+      "id": "training_09",
+      "category": "training",
+      "species": "dog",
+      "statement": "강아지는 보상 없이 오래 반복할수록 더 빨리 배운다.",
+      "answer": "X",
+      "explain": "보상이 학습 동기를 높입니다."
+    },
+    {
+      "id": "training_10",
+      "category": "training",
+      "species": "cat",
+      "statement": "고양이에게 스크래처를 주면 가구 긁기를 줄이는 데 도움이 된다.",
+      "answer": "O",
+      "explain": "발톱 욕구를 해소합니다."
+    },
+    {
+      "id": "training_11",
+      "category": "training",
+      "species": "common",
+      "statement": "반려동물 이름은 혼낼 때 자주 부르는 게 좋다.",
+      "answer": "X",
+      "explain": "이름이 부정 신호가 되면 안 됩니다."
+    },
+    {
+      "id": "training_12",
+      "category": "training",
+      "species": "dog",
+      "statement": "강아지가 무서워할 때 억지로 밀어붙이면 공포가 커질 수 있다.",
+      "answer": "O",
+      "explain": "점진적 적응이 필요합니다."
+    },
+    {
+      "id": "training_13",
+      "category": "training",
+      "species": "common",
+      "statement": "짧은 성공 경험을 반복하면 학습 동기가 올라간다.",
+      "answer": "O",
+      "explain": "성취감이 동기를 줍니다."
+    },
+    {
+      "id": "training_14",
+      "category": "training",
+      "species": "cat",
+      "statement": "고양이는 낚싯대 장난감 등 사냥 놀이로 본능을 충족할 수 있다.",
+      "answer": "O",
+      "explain": "사냥 욕구를 풀어줍니다."
+    },
+    {
+      "id": "training_15",
+      "category": "training",
+      "species": "common",
+      "statement": "훈련 중 보상은 행동 직후에 주는 것이 효과적이다.",
+      "answer": "O",
+      "explain": "행동과 보상을 연결시킵니다."
+    },
+    {
+      "id": "training_16",
+      "category": "training",
+      "species": "dog",
+      "statement": "같은 명령어를 사람마다 다르게 쓰면 강아지가 혼란스러울 수 있다.",
+      "answer": "O",
+      "explain": "일관성이 중요합니다."
+    },
+    {
+      "id": "training_17",
+      "category": "training",
+      "species": "cat",
+      "statement": "고양이는 화장실 위치·청결에 민감하다.",
+      "answer": "O",
+      "explain": "불결하면 다른 곳을 찾습니다."
+    },
+    {
+      "id": "training_18",
+      "category": "training",
+      "species": "common",
+      "statement": "훈련에 체벌을 쓰면 신뢰를 해칠 수 있다.",
+      "answer": "O",
+      "explain": "공포·회피를 유발합니다."
+    },
+    {
+      "id": "training_19",
+      "category": "training",
+      "species": "dog",
+      "statement": "강아지 산책은 냄새 탐색으로도 만족감을 준다.",
+      "answer": "O",
+      "explain": "후각 자극이 풍부합니다."
+    },
+    {
+      "id": "training_20",
+      "category": "training",
+      "species": "common",
+      "statement": "노령 반려동물은 새로운 것을 전혀 배울 수 없다.",
+      "answer": "X",
+      "explain": "속도는 느려도 학습은 가능합니다."
+    },
+    {
+      "id": "history_01",
+      "category": "history",
+      "species": "dog",
+      "statement": "개는 인류가 가축화한 가장 오래된 동물 중 하나로 여겨진다.",
+      "answer": "O",
+      "explain": "오랜 공존의 역사가 있습니다."
+    },
+    {
+      "id": "history_02",
+      "category": "history",
+      "species": "cat",
+      "statement": "고대 이집트에서 고양이는 신성하게 여겨지기도 했다.",
+      "answer": "O",
+      "explain": "숭배의 대상이 되기도 했습니다."
+    },
+    {
+      "id": "history_03",
+      "category": "history",
+      "species": "dog",
+      "statement": "개의 가축화는 늑대와 공통 조상에서 비롯됐다고 본다.",
+      "answer": "O",
+      "explain": "늑대 계통에서 갈라졌습니다."
+    },
+    {
+      "id": "history_04",
+      "category": "history",
+      "species": "cat",
+      "statement": "고양이 울음 표현은 모든 언어에서 똑같이 통일돼 있다.",
+      "answer": "X",
+      "explain": "나라마다 의성어가 다릅니다."
+    },
+    {
+      "id": "history_05",
+      "category": "history",
+      "species": "cat",
+      "statement": "일본의 마네키네코는 복을 부른다는 의미로 쓰인다.",
+      "answer": "O",
+      "explain": "행운의 상징입니다."
+    },
+    {
+      "id": "history_06",
+      "category": "history",
+      "species": "dog",
+      "statement": "세인트버나드는 알프스에서 조난자 구조에 활용된 역사가 있다.",
+      "answer": "O",
+      "explain": "구조견으로 유명합니다."
+    },
+    {
+      "id": "history_07",
+      "category": "history",
+      "species": "cat",
+      "statement": "검은 고양이는 모든 문화권에서 불운의 상징으로만 여겨진다.",
+      "answer": "X",
+      "explain": "행운으로 보는 문화도 있습니다."
+    },
+    {
+      "id": "history_08",
+      "category": "history",
+      "species": "dog",
+      "statement": "우주에 간 동물 중에는 개도 있었다.",
+      "answer": "O",
+      "explain": "라이카가 잘 알려져 있습니다."
+    },
+    {
+      "id": "history_09",
+      "category": "history",
+      "species": "cat",
+      "statement": "고양이는 곡식을 노리는 쥐를 잡아 농경 사회에서 환영받았다.",
+      "answer": "O",
+      "explain": "해충 방제에 기여했습니다."
+    },
+    {
+      "id": "history_10",
+      "category": "history",
+      "species": "dog",
+      "statement": "달마시안은 과거 마차를 호위·동행하던 역할로 알려져 있다.",
+      "answer": "O",
+      "explain": "마차견으로 유명했습니다."
+    },
+    {
+      "id": "history_11",
+      "category": "history",
+      "species": "dog",
+      "statement": "진돗개는 천연기념물로 지정돼 있다.",
+      "answer": "O",
+      "explain": "대한민국 천연기념물입니다."
+    },
+    {
+      "id": "history_12",
+      "category": "history",
+      "species": "cat",
+      "statement": "고양이는 배에 태워 쥐를 잡게 한 기록이 있다.",
+      "answer": "O",
+      "explain": "선박의 쥐 방제에 쓰였습니다."
+    },
+    {
+      "id": "history_13",
+      "category": "history",
+      "species": "dog",
+      "statement": "셰퍼드 계열은 군견·경찰견으로 오래 활용돼 왔다.",
+      "answer": "O",
+      "explain": "작업견으로 신뢰받습니다."
+    },
+    {
+      "id": "history_14",
+      "category": "history",
+      "species": "cat",
+      "statement": "고양이의 가축화는 개보다 더 이른 시기에 이루어졌다.",
+      "answer": "X",
+      "explain": "개의 가축화가 더 이릅니다."
+    },
+    {
+      "id": "history_15",
+      "category": "history",
+      "species": "dog",
+      "statement": "'충견 하치코' 이야기는 일본의 유명한 실화 기반 일화다.",
+      "answer": "O",
+      "explain": "주인을 기다린 개로 알려졌습니다."
+    },
+    {
+      "id": "history_16",
+      "category": "history",
+      "species": "cat",
+      "statement": "페르시안 고양이는 비교적 오래된 묘종으로 알려져 있다.",
+      "answer": "O",
+      "explain": "역사가 긴 품종입니다."
+    },
+    {
+      "id": "history_17",
+      "category": "history",
+      "species": "dog",
+      "statement": "개는 사냥·목축·경비 등 역할에 따라 다양하게 길러져 왔다.",
+      "answer": "O",
+      "explain": "용도별로 품종이 발달했습니다."
+    },
+    {
+      "id": "history_18",
+      "category": "history",
+      "species": "cat",
+      "statement": "고양이를 뜻하는 영어 'cat'은 현대에 새로 만들어진 단어다.",
+      "answer": "X",
+      "explain": "오래된 어원을 가집니다."
+    },
+    {
+      "id": "history_19",
+      "category": "history",
+      "species": "dog",
+      "statement": "개는 시각장애인 안내견 등 보조 역할로도 활약한다.",
+      "answer": "O",
+      "explain": "보조견으로 활동합니다."
+    },
+    {
+      "id": "history_20",
+      "category": "history",
+      "species": "cat",
+      "statement": "고양이 카페 문화는 여러 나라로 퍼져 있다.",
+      "answer": "O",
+      "explain": "세계적으로 확산됐습니다."
+    },
+    {
+      "id": "trivia_01",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이는 쇄골이 작아 머리만 통과하면 좁은 틈도 빠져나갈 수 있다.",
+      "answer": "O",
+      "explain": "유연한 골격 덕분입니다."
+    },
+    {
+      "id": "trivia_02",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "강아지 코가 마르면 무조건 병에 걸린 것이다.",
+      "answer": "X",
+      "explain": "상황에 따라 마를 수 있어 단정할 수 없습니다."
+    },
+    {
+      "id": "trivia_03",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이는 자기 몸길이의 몇 배를 뛰어오를 수 있다.",
+      "answer": "O",
+      "explain": "점프력이 뛰어납니다."
+    },
+    {
+      "id": "trivia_04",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "개는 앞발과 뒷발의 발가락 수가 다를 수 있다.",
+      "answer": "O",
+      "explain": "며느리발톱 등 차이가 있습니다."
+    },
+    {
+      "id": "trivia_05",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이의 코 무늬도 개체마다 다르다.",
+      "answer": "O",
+      "explain": "사람 지문처럼 고유합니다."
+    },
+    {
+      "id": "trivia_06",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "모든 고양이는 물을 싫어해 절대 들어가지 않는다.",
+      "answer": "X",
+      "explain": "물을 좋아하는 개체·품종도 있습니다."
+    },
+    {
+      "id": "trivia_07",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "강아지의 평균 체온은 사람보다 높은 편이다.",
+      "answer": "O",
+      "explain": "대략 38도 이상입니다."
+    },
+    {
+      "id": "trivia_08",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이는 좁은 상자에 몸을 구겨 넣길 좋아한다.",
+      "answer": "O",
+      "explain": "안정감을 느낍니다."
+    },
+    {
+      "id": "trivia_09",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "삼색·카오스 무늬 고양이는 대부분 암컷이다.",
+      "answer": "O",
+      "explain": "털색 유전이 성염색체와 관련됩니다."
+    },
+    {
+      "id": "trivia_10",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "개는 사람보다 미각 수용체(맛봉오리)가 적은 편이다.",
+      "answer": "O",
+      "explain": "후각 의존도가 높습니다."
+    },
+    {
+      "id": "trivia_11",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이는 하루 중 상당 시간을 그루밍에 쓴다.",
+      "answer": "O",
+      "explain": "청결 유지에 많은 시간을 씁니다."
+    },
+    {
+      "id": "trivia_12",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "모든 강아지는 본능적으로 수영을 완벽히 잘한다.",
+      "answer": "X",
+      "explain": "개체·품종에 따라 차이가 큽니다."
+    },
+    {
+      "id": "trivia_13",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이의 앞발과 뒷발 발가락 수는 보통 다르다.",
+      "answer": "O",
+      "explain": "앞발이 더 많은 경우가 일반적입니다."
+    },
+    {
+      "id": "trivia_14",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "개의 귀 모양은 품종에 따라 다양하다.",
+      "answer": "O",
+      "explain": "쫑긋·접힘 등 다양합니다."
+    },
+    {
+      "id": "trivia_15",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이는 단맛 수용체가 거의 기능하지 않는다.",
+      "answer": "O",
+      "explain": "단맛을 잘 못 느낍니다."
+    },
+    {
+      "id": "trivia_16",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "개의 촉촉한 코는 냄새 분자를 포집하는 데 도움이 된다.",
+      "answer": "O",
+      "explain": "후각에 유리합니다."
+    },
+    {
+      "id": "trivia_17",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이 수염은 잘라도 아무 영향이 없다.",
+      "answer": "X",
+      "explain": "감각 기능에 영향을 주므로 자르면 안 됩니다."
+    },
+    {
+      "id": "trivia_18",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "개는 자기 이름과 일부 단어를 학습해 반응할 수 있다.",
+      "answer": "O",
+      "explain": "연관 학습이 가능합니다."
+    },
+    {
+      "id": "trivia_19",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이는 올라가는 것보다 내려오는 게 서툰 경우가 있다.",
+      "answer": "O",
+      "explain": "발톱 방향 때문입니다."
+    },
+    {
+      "id": "trivia_20",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "개의 후각 세포 수는 사람보다 훨씬 많다.",
+      "answer": "O",
+      "explain": "후각이 매우 발달했습니다."
+    },
+    {
+      "id": "care_01",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이는 스스로 그루밍하지만 장모종은 빗질 도움이 필요할 수 있다.",
+      "answer": "O",
+      "explain": "엉킴 방지에 빗질이 좋습니다."
+    },
+    {
+      "id": "care_02",
+      "category": "care",
+      "species": "dog",
+      "statement": "강아지도 정기적인 발톱 관리가 필요하다.",
+      "answer": "O",
+      "explain": "과도하게 길면 불편을 줍니다."
+    },
+    {
+      "id": "care_03",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이 화장실은 청결하게 유지해야 잘 사용한다.",
+      "answer": "O",
+      "explain": "불결하면 기피합니다."
+    },
+    {
+      "id": "care_04",
+      "category": "care",
+      "species": "common",
+      "statement": "반려동물에게 깨끗한 물을 항상 제공하는 것이 좋다.",
+      "answer": "O",
+      "explain": "신선한 물이 중요합니다."
+    },
+    {
+      "id": "care_05",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이는 식기와 물그릇을 떨어뜨려 두면 더 선호하기도 한다.",
+      "answer": "O",
+      "explain": "물과 음식 자리를 구분하는 경향이 있습니다."
+    },
+    {
+      "id": "care_06",
+      "category": "care",
+      "species": "common",
+      "statement": "적절한 운동·놀이 시간은 반려동물 스트레스 관리에 도움이 된다.",
+      "answer": "O",
+      "explain": "활동이 정서에 좋습니다."
+    },
+    {
+      "id": "care_07",
+      "category": "care",
+      "species": "dog",
+      "statement": "강아지 산책은 사회화와 자극 측면에서도 의미가 있다.",
+      "answer": "O",
+      "explain": "경험과 자극을 줍니다."
+    },
+    {
+      "id": "care_08",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이는 환경 변화에 민감해 갑작스러운 변화는 스트레스가 될 수 있다.",
+      "answer": "O",
+      "explain": "점진적 적응이 좋습니다."
+    },
+    {
+      "id": "care_09",
+      "category": "care",
+      "species": "common",
+      "statement": "반려동물 사료·물그릇은 청결하게 관리하는 것이 좋다.",
+      "answer": "O",
+      "explain": "위생 관리가 필요합니다."
+    },
+    {
+      "id": "care_10",
+      "category": "care",
+      "species": "dog",
+      "statement": "강아지는 더운 날 산책 시 뜨거운 아스팔트에 주의하는 것이 좋다.",
+      "answer": "O",
+      "explain": "발바닥 화상 위험이 있습니다."
+    },
+    {
+      "id": "care_11",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이에게 숨을 공간(은신처)을 주면 안정에 도움이 된다.",
+      "answer": "O",
+      "explain": "안전한 공간이 정서에 좋습니다."
+    },
+    {
+      "id": "care_12",
+      "category": "care",
+      "species": "common",
+      "statement": "실내 온도·환기는 반려동물 쾌적함에 영향을 준다.",
+      "answer": "O",
+      "explain": "환경 관리가 중요합니다."
+    },
+    {
+      "id": "care_13",
+      "category": "care",
+      "species": "dog",
+      "statement": "강아지 빗질은 털 빠짐·엉킴 관리에 도움이 된다.",
+      "answer": "O",
+      "explain": "피부·털 관리에 좋습니다."
+    },
+    {
+      "id": "care_14",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이는 물을 적게 마시는 경향이 있어 신선한 물 제공이 권장된다.",
+      "answer": "O",
+      "explain": "수분 섭취를 돕습니다."
+    },
+    {
+      "id": "care_15",
+      "category": "care",
+      "species": "common",
+      "statement": "손상된 장난감은 점검해 교체하는 것이 좋다.",
+      "answer": "O",
+      "explain": "안전을 위해 관리합니다."
+    },
+    {
+      "id": "care_16",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이 스크래처는 발톱 관리·스트레스 해소에 도움이 된다.",
+      "answer": "O",
+      "explain": "본능 충족에 좋습니다."
+    },
+    {
+      "id": "care_17",
+      "category": "care",
+      "species": "dog",
+      "statement": "강아지는 무더위에 그늘과 물을 제공하는 것이 좋다.",
+      "answer": "O",
+      "explain": "더위 관리가 필요합니다."
+    },
+    {
+      "id": "care_18",
+      "category": "care",
+      "species": "common",
+      "statement": "반려동물도 규칙적인 생활 리듬이 안정에 도움이 된다.",
+      "answer": "O",
+      "explain": "예측 가능성이 정서에 좋습니다."
+    },
+    {
+      "id": "care_19",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이 모래는 종류·취향에 따라 선호가 갈릴 수 있다.",
+      "answer": "O",
+      "explain": "개체마다 선호가 다릅니다."
+    },
+    {
+      "id": "care_20",
+      "category": "care",
+      "species": "common",
+      "statement": "반려동물 잠자리는 청결하게 관리하는 것이 좋다.",
+      "answer": "O",
+      "explain": "위생이 건강에 좋습니다."
+    },
+    {
+      "id": "behavior_21",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 그르렁대면 항상 100% 만족 상태라는 뜻이다.",
+      "answer": "X",
+      "explain": "불안·통증을 달랠 때도 그르렁댑니다."
+    },
+    {
+      "id": "behavior_22",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지가 땅을 파는 건 오직 더위를 식히기 위해서다.",
+      "answer": "X",
+      "explain": "은닉·놀이·본능 등 이유가 다양합니다."
+    },
+    {
+      "id": "behavior_23",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이는 영역 동물이 아니라 무리 생활만 한다.",
+      "answer": "X",
+      "explain": "대체로 영역성이 강한 동물입니다."
+    },
+    {
+      "id": "behavior_24",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지가 다른 개를 보고 짖으면 무조건 공격성이다.",
+      "answer": "X",
+      "explain": "흥분·경계·인사 등 이유가 다양합니다."
+    },
+    {
+      "id": "behavior_25",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이가 사람 위에 올라앉는 건 지배하려는 의도뿐이다.",
+      "answer": "X",
+      "explain": "따뜻함·애착 등 이유가 더 많습니다."
+    },
+    {
+      "id": "behavior_26",
+      "category": "behavior",
+      "species": "dog",
+      "statement": "강아지의 분리불안은 버릇일 뿐 행동 문제로 보지 않는다.",
+      "answer": "X",
+      "explain": "관리가 필요한 행동 문제로 봅니다."
+    },
+    {
+      "id": "behavior_27",
+      "category": "behavior",
+      "species": "cat",
+      "statement": "고양이는 스트레스를 받아도 행동에 전혀 변화가 없다.",
+      "answer": "X",
+      "explain": "과한 그루밍·식욕 변화 등으로 나타날 수 있습니다."
+    },
+    {
+      "id": "bodylang_21",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지가 꼬리를 높이 세우면 항상 무서워한다는 뜻이다.",
+      "answer": "X",
+      "explain": "자신감·경계의 표시인 경우가 많습니다."
+    },
+    {
+      "id": "bodylang_22",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 꼬리를 바닥에 탁탁 치면 기분이 아주 좋다는 신호다.",
+      "answer": "X",
+      "explain": "짜증·불편의 신호인 경우가 많습니다."
+    },
+    {
+      "id": "bodylang_23",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지의 '카밍 시그널'은 존재하지 않는 속설이다.",
+      "answer": "X",
+      "explain": "하품·고개 돌리기 등 진정 신호가 있습니다."
+    },
+    {
+      "id": "bodylang_24",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이가 눈을 크게 부릅뜨고 응시하면 애정 표현이다.",
+      "answer": "X",
+      "explain": "경계·도전의 신호일 수 있습니다."
+    },
+    {
+      "id": "bodylang_25",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지가 입을 꽉 다물고 몸이 굳으면 편안하다는 뜻이다.",
+      "answer": "X",
+      "explain": "긴장·경계 상태일 수 있습니다."
+    },
+    {
+      "id": "bodylang_26",
+      "category": "bodylang",
+      "species": "cat",
+      "statement": "고양이의 천천한 눈 깜빡임은 위협의 신호다.",
+      "answer": "X",
+      "explain": "신뢰·애정의 표현입니다."
+    },
+    {
+      "id": "bodylang_27",
+      "category": "bodylang",
+      "species": "dog",
+      "statement": "강아지가 귀를 쫑긋 세우면 늘 화가 났다는 뜻이다.",
+      "answer": "X",
+      "explain": "관심·집중의 신호인 경우가 많습니다."
+    },
+    {
+      "id": "senses_21",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이는 사람처럼 단맛을 잘 느낀다.",
+      "answer": "X",
+      "explain": "단맛 수용체가 거의 기능하지 않습니다."
+    },
+    {
+      "id": "senses_22",
+      "category": "senses",
+      "species": "dog",
+      "statement": "개는 사람보다 미각이 훨씬 발달했다.",
+      "answer": "X",
+      "explain": "미각보다 후각이 발달했습니다."
+    },
+    {
+      "id": "senses_23",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이의 수염은 잘라도 감각에 아무 영향이 없다.",
+      "answer": "X",
+      "explain": "공간 감지 등 감각에 중요합니다."
+    },
+    {
+      "id": "senses_24",
+      "category": "senses",
+      "species": "dog",
+      "statement": "개는 색을 사람과 똑같이 다채롭게 본다.",
+      "answer": "X",
+      "explain": "사람보다 색 구분 범위가 좁습니다."
+    },
+    {
+      "id": "senses_25",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이는 청력이 사람보다 떨어진다.",
+      "answer": "X",
+      "explain": "초음파 영역까지 들을 만큼 뛰어납니다."
+    },
+    {
+      "id": "senses_26",
+      "category": "senses",
+      "species": "dog",
+      "statement": "강아지의 후각은 사람과 비슷한 수준이다.",
+      "answer": "X",
+      "explain": "사람보다 수만 배 뛰어납니다."
+    },
+    {
+      "id": "senses_27",
+      "category": "senses",
+      "species": "cat",
+      "statement": "고양이는 어두운 곳에서 사람보다 잘 보지 못한다.",
+      "answer": "X",
+      "explain": "적은 빛에서도 잘 보도록 발달했습니다."
+    },
+    {
+      "id": "breed_21",
+      "category": "breed",
+      "species": "dog",
+      "statement": "푸들은 털이 거의 없는 무모종이다.",
+      "answer": "X",
+      "explain": "곱슬한 털이 풍성한 품종입니다."
+    },
+    {
+      "id": "breed_22",
+      "category": "breed",
+      "species": "cat",
+      "statement": "메인쿤은 세계에서 가장 작은 묘종이다.",
+      "answer": "X",
+      "explain": "대형 묘종에 속합니다."
+    },
+    {
+      "id": "breed_23",
+      "category": "breed",
+      "species": "dog",
+      "statement": "보더콜리는 활동량이 적어 실내에서만 지내기 좋은 견종이다.",
+      "answer": "X",
+      "explain": "활동량이 많은 목양견입니다."
+    },
+    {
+      "id": "breed_24",
+      "category": "breed",
+      "species": "cat",
+      "statement": "스핑크스 고양이는 긴 털이 특징이다.",
+      "answer": "X",
+      "explain": "털이 거의 없는 품종입니다."
+    },
+    {
+      "id": "breed_25",
+      "category": "breed",
+      "species": "dog",
+      "statement": "치와와는 초대형 견종에 속한다.",
+      "answer": "X",
+      "explain": "초소형견에 속합니다."
+    },
+    {
+      "id": "breed_26",
+      "category": "breed",
+      "species": "cat",
+      "statement": "샴고양이는 온몸의 색이 균일한 단색이 특징이다.",
+      "answer": "X",
+      "explain": "끝부분이 진한 포인트 무늬가 특징입니다."
+    },
+    {
+      "id": "breed_27",
+      "category": "breed",
+      "species": "dog",
+      "statement": "닥스훈트는 다리가 매우 긴 대형견이다.",
+      "answer": "X",
+      "explain": "다리가 짧은 소형견입니다."
+    },
+    {
+      "id": "sound_21",
+      "category": "sound",
+      "species": "cat",
+      "statement": "성묘끼리는 사람에게 하듯 야옹으로 자주 대화한다.",
+      "answer": "X",
+      "explain": "주로 사람을 대상으로 야옹합니다."
+    },
+    {
+      "id": "sound_22",
+      "category": "sound",
+      "species": "dog",
+      "statement": "강아지의 모든 짖음은 똑같은 한 가지 의미다.",
+      "answer": "X",
+      "explain": "상황에 따라 의미가 다릅니다."
+    },
+    {
+      "id": "sound_23",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이의 하악질은 반가움의 인사다.",
+      "answer": "X",
+      "explain": "위협·경고의 신호입니다."
+    },
+    {
+      "id": "sound_24",
+      "category": "sound",
+      "species": "dog",
+      "statement": "개의 하울링은 소리를 못 내서 나오는 이상 행동이다.",
+      "answer": "X",
+      "explain": "원거리 소통의 정상 행동입니다."
+    },
+    {
+      "id": "sound_25",
+      "category": "sound",
+      "species": "cat",
+      "statement": "고양이가 골골대면 무조건 건강하다는 뜻이다.",
+      "answer": "X",
+      "explain": "불안·통증 때도 골골댈 수 있습니다."
+    },
+    {
+      "id": "sound_26",
+      "category": "sound",
+      "species": "dog",
+      "statement": "강아지의 으르렁은 언제나 무는 직전 신호다.",
+      "answer": "X",
+      "explain": "놀이 중에도 으르렁댑니다."
+    },
+    {
+      "id": "sound_27",
+      "category": "sound",
+      "species": "cat",
+      "statement": "새끼 고양이는 어미를 찾을 때 소리를 전혀 내지 않는다.",
+      "answer": "X",
+      "explain": "높은 소리로 웁니다."
+    },
+    {
+      "id": "sleep_21",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이는 완전한 야행성이라 밤에만 활동한다.",
+      "answer": "X",
+      "explain": "새벽·해질녘에 주로 활동하는 박명박모성입니다."
+    },
+    {
+      "id": "sleep_22",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "강아지는 사람보다 잠을 적게 잔다.",
+      "answer": "X",
+      "explain": "사람보다 더 많이 잡니다."
+    },
+    {
+      "id": "sleep_23",
+      "category": "sleep",
+      "species": "common",
+      "statement": "나이 든 반려동물은 어릴 때보다 잠이 크게 줄어든다.",
+      "answer": "X",
+      "explain": "대체로 수면이 늘어납니다."
+    },
+    {
+      "id": "sleep_24",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이는 한 번 잠들면 주변 소리를 전혀 감지하지 못한다.",
+      "answer": "X",
+      "explain": "자면서도 귀로 소리를 감지합니다."
+    },
+    {
+      "id": "sleep_25",
+      "category": "sleep",
+      "species": "dog",
+      "statement": "강아지는 꿈을 전혀 꾸지 않는 것으로 알려져 있다.",
+      "answer": "X",
+      "explain": "꿈을 꾸는 것으로 추정됩니다."
+    },
+    {
+      "id": "sleep_26",
+      "category": "sleep",
+      "species": "cat",
+      "statement": "고양이는 추운 곳을 일부러 찾아 자는 습성이 있다.",
+      "answer": "X",
+      "explain": "대체로 따뜻한 곳을 선호합니다."
+    },
+    {
+      "id": "sleep_27",
+      "category": "sleep",
+      "species": "common",
+      "statement": "새끼 동물은 성체보다 잠을 적게 잔다.",
+      "answer": "X",
+      "explain": "성장을 위해 더 많이 잡니다."
+    },
+    {
+      "id": "training_21",
+      "category": "training",
+      "species": "common",
+      "statement": "체벌은 반려동물 훈련에서 가장 효과적인 방법이다.",
+      "answer": "X",
+      "explain": "신뢰를 해치고 공포를 유발할 수 있습니다."
+    },
+    {
+      "id": "training_22",
+      "category": "training",
+      "species": "cat",
+      "statement": "고양이는 어떤 방법으로도 훈련이 불가능하다.",
+      "answer": "X",
+      "explain": "보상 기반 학습이 가능합니다."
+    },
+    {
+      "id": "training_23",
+      "category": "training",
+      "species": "dog",
+      "statement": "강아지 훈련은 한 번에 오래 할수록 좋다.",
+      "answer": "X",
+      "explain": "짧고 자주가 더 효과적입니다."
+    },
+    {
+      "id": "training_24",
+      "category": "training",
+      "species": "common",
+      "statement": "잘못한 지 한참 뒤에 혼내도 반려동물은 정확히 이해한다.",
+      "answer": "X",
+      "explain": "시간이 지나면 이유를 연결하기 어렵습니다."
+    },
+    {
+      "id": "training_25",
+      "category": "training",
+      "species": "common",
+      "statement": "노령 반려동물은 새 행동을 절대 배울 수 없다.",
+      "answer": "X",
+      "explain": "느려도 학습은 가능합니다."
+    },
+    {
+      "id": "training_26",
+      "category": "training",
+      "species": "dog",
+      "statement": "강아지 사회화는 나이가 들수록 더 쉬워진다.",
+      "answer": "X",
+      "explain": "어린 시기의 사회화가 더 수월합니다."
+    },
+    {
+      "id": "training_27",
+      "category": "training",
+      "species": "common",
+      "statement": "보상 타이밍은 행동과 한참 뒤여도 학습에 똑같이 효과적이다.",
+      "answer": "X",
+      "explain": "행동 직후 보상이 효과적입니다."
+    },
+    {
+      "id": "history_21",
+      "category": "history",
+      "species": "cat",
+      "statement": "고양이의 가축화는 개보다 훨씬 이른 시기에 이루어졌다.",
+      "answer": "X",
+      "explain": "개의 가축화가 더 이릅니다."
+    },
+    {
+      "id": "history_22",
+      "category": "history",
+      "species": "dog",
+      "statement": "개는 인류와 함께한 역사가 매우 짧은 동물이다.",
+      "answer": "X",
+      "explain": "가장 오래 함께한 동물 중 하나입니다."
+    },
+    {
+      "id": "history_23",
+      "category": "history",
+      "species": "cat",
+      "statement": "검은 고양이는 전 세계 어디서나 불운으로만 여겨진다.",
+      "answer": "X",
+      "explain": "행운으로 보는 문화도 있습니다."
+    },
+    {
+      "id": "history_24",
+      "category": "history",
+      "species": "dog",
+      "statement": "우주에 간 동물 중에 개는 없었다.",
+      "answer": "X",
+      "explain": "라이카 등 개가 우주에 갔습니다."
+    },
+    {
+      "id": "history_25",
+      "category": "history",
+      "species": "cat",
+      "statement": "고양이는 역사적으로 쥐 방제에 전혀 쓰이지 않았다.",
+      "answer": "X",
+      "explain": "농경·선박에서 쥐를 잡았습니다."
+    },
+    {
+      "id": "history_26",
+      "category": "history",
+      "species": "dog",
+      "statement": "진돗개는 외국에서 들여온 외래 견종이다.",
+      "answer": "X",
+      "explain": "한국 토종견이자 천연기념물입니다."
+    },
+    {
+      "id": "history_27",
+      "category": "history",
+      "species": "cat",
+      "statement": "고양이 울음 의성어는 모든 나라에서 동일하다.",
+      "answer": "X",
+      "explain": "언어마다 표현이 다릅니다."
+    },
+    {
+      "id": "trivia_21",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "강아지 코가 마르면 반드시 아프다는 확실한 증거다.",
+      "answer": "X",
+      "explain": "상황에 따라 마를 수 있어 단정할 수 없습니다."
+    },
+    {
+      "id": "trivia_22",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "모든 고양이는 물을 극도로 싫어해 예외가 없다.",
+      "answer": "X",
+      "explain": "물을 좋아하는 개체·품종도 있습니다."
+    },
+    {
+      "id": "trivia_23",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "모든 강아지는 처음부터 수영을 완벽히 한다.",
+      "answer": "X",
+      "explain": "개체·품종에 따라 차이가 큽니다."
+    },
+    {
+      "id": "trivia_24",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이 수염을 자르면 금방 자라서 아무 문제 없다.",
+      "answer": "X",
+      "explain": "감각에 영향을 주므로 자르면 안 됩니다."
+    },
+    {
+      "id": "trivia_25",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "삼색 무늬 고양이는 대부분 수컷이다.",
+      "answer": "X",
+      "explain": "대부분 암컷입니다."
+    },
+    {
+      "id": "trivia_26",
+      "category": "trivia",
+      "species": "dog",
+      "statement": "개는 미각 수용체가 사람보다 훨씬 많다.",
+      "answer": "X",
+      "explain": "사람보다 적은 편입니다."
+    },
+    {
+      "id": "trivia_27",
+      "category": "trivia",
+      "species": "cat",
+      "statement": "고양이는 점프력이 약해 자기 키 정도만 겨우 뛴다.",
+      "answer": "X",
+      "explain": "몸길이의 여러 배를 뛰어오릅니다."
+    },
+    {
+      "id": "care_21",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이 화장실은 더러워도 사용에 전혀 지장이 없다.",
+      "answer": "X",
+      "explain": "불결하면 사용을 기피합니다."
+    },
+    {
+      "id": "care_22",
+      "category": "care",
+      "species": "dog",
+      "statement": "강아지는 발톱 관리를 전혀 하지 않아도 된다.",
+      "answer": "X",
+      "explain": "과도하게 길면 불편을 줍니다."
+    },
+    {
+      "id": "care_23",
+      "category": "care",
+      "species": "cat",
+      "statement": "고양이는 환경이 갑자기 바뀌어도 스트레스를 받지 않는다.",
+      "answer": "X",
+      "explain": "변화에 민감해 스트레스를 받을 수 있습니다."
+    },
+    {
+      "id": "care_24",
+      "category": "care",
+      "species": "common",
+      "statement": "반려동물 물그릇은 한 번 받아두면 갈아줄 필요가 없다.",
+      "answer": "X",
+      "explain": "신선한 물로 자주 갈아주는 것이 좋습니다."
+    },
+    {
+      "id": "care_25",
+      "category": "care",
+      "species": "dog",
+      "statement": "한여름 대낮 아스팔트는 강아지 발바닥에 안전하다.",
+      "answer": "X",
+      "explain": "뜨거워 화상 위험이 있습니다."
+    },
+    {
+      "id": "care_26",
+      "category": "care",
+      "species": "cat",
+      "statement": "장모종 고양이도 빗질이 전혀 필요 없다.",
+      "answer": "X",
+      "explain": "엉킴 방지를 위해 빗질이 필요합니다."
+    },
+    {
+      "id": "care_27",
+      "category": "care",
+      "species": "common",
+      "statement": "손상된 장난감도 그대로 계속 쓰는 것이 좋다.",
+      "answer": "X",
+      "explain": "안전을 위해 교체하는 것이 좋습니다."
+    }
+  ]
+}

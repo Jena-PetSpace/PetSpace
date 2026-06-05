@@ -15,9 +15,14 @@ import '../../../pets/presentation/bloc/pet_event.dart';
 import '../../../emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../../home/presentation/widgets/home_dashboard_header.dart';
 import '../../../home/presentation/widgets/home_quick_actions.dart';
+import '../../../home/presentation/widgets/home_ad_banner.dart';
+import '../../../home/presentation/widgets/home_news_section.dart';
 import '../../../home/presentation/widgets/home_quest_card.dart';
+import '../../../mbti/presentation/widgets/home_mbti_card.dart';
+import '../../../fortune/presentation/widgets/home_fortune_card.dart';
+import '../../../quiz/presentation/widgets/home_quiz_card.dart';
 import '../../../home/presentation/widgets/category_filter_chips.dart';
-import '../../../home/presentation/widgets/hot_topic_banner.dart';
+import '../../../home/presentation/widgets/hot_issue_card.dart';
 import '../../../home/presentation/widgets/magazine_grid.dart';
 import '../../../home/presentation/widgets/community_preview.dart';
 
@@ -117,7 +122,7 @@ class _HomePageState extends State<HomePage> {
               child: HomeDashboardHeader(),
             ),
 
-            // ── 퀵 액션 그리드 ──────────────────────────
+            // ── 퀵 액션 (원형 버튼 5개) ──────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.only(top: 16.h),
@@ -125,18 +130,32 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // ── 일일 퀘스트 카드 ─────────────────────────
+            // ── 배너형 광고 / 공지 슬롯 (자리만) ──────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.only(top: 16.h),
-                child: HomeQuestCard(checkNotifier: _questCheckNotifier),
+                padding: EdgeInsets.only(top: 20.h),
+                child: const HomeAdBanner(),
               ),
             ),
 
-            // ── 카테고리 필터 칩 ─────────────────────────
+            // ── 핫이슈 (썸네일 + 헤드라인 카드) ───────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.only(top: 16.h),
+                padding: EdgeInsets.only(top: 24.h),
+                child: const HotIssueCard(),
+              ),
+            ),
+
+            // ── 매거진: 카테고리 칩 ──────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 24.h),
+                child: _buildMagazineHeader(),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 12.h),
                 child: CategoryFilterChips(
                   onSelected: (index) {
                     setState(() => _selectedCategory = index);
@@ -145,11 +164,29 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // ── 카테고리별 콘텐츠 ────────────────────────
+            // ── 매거진: 카테고리별 콘텐츠 ─────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.only(top: 16.h, bottom: 32.h),
+                padding: EdgeInsets.only(top: 12.h),
                 child: _buildCategoryContent(),
+              ),
+            ),
+
+            // ── 뉴스 (외부 기사 스크랩 — 추후 구현, 자리만) ─
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 28.h),
+                child: const HomeNewsSection(),
+              ),
+            ),
+
+            // ── (임시 배치) 기존 홈 카드들 — 스크롤 하단 ──
+            //   MBTI·운세·퀴즈·퀘스트. 시안엔 없던 영역이라
+            //   실제 화면에서 위치를 확인한 뒤 최종 자리를 정한다.
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: 28.h),
+                child: _buildLegacyCardsSection(),
               ),
             ),
           ],
@@ -159,27 +196,66 @@ class _HomePageState extends State<HomePage> {
     ); // AnnotatedRegion
   }
 
+  // 매거진 섹션 헤더 ("매거진" + 더보기)
+  Widget _buildMagazineHeader() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Row(
+        children: [
+          Text(
+            '매거진',
+            style: TextStyle(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => context.go('/feed?tab=community&category=magazine'),
+            child: Text(
+              '더보기',
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCategoryContent() {
-    // 0: 인기(전체), 1: 커뮤니티, 2: 건강, 3: 훈련, 4: 매거진
+    // 0: 전체, 1: 건강, 2: 훈련, 3: 먹거리, 4: 생활 (피드 Q&A와 동일 체계)
     switch (_selectedCategory) {
       case 1:
-        return const CommunityPreview();
-      case 2:
         return const CommunityPreview(category: 'health');
-      case 3:
+      case 2:
         return const CommunityPreview(category: 'training');
+      case 3:
+        return const CommunityPreview(category: 'food');
       case 4:
-        return const MagazineGrid();
+        return const CommunityPreview(category: 'life');
       default:
-        return Column(
-          children: [
-            const HotTopicBanner(),
-            SizedBox(height: 20.h),
-            const MagazineGrid(),
-            SizedBox(height: 20.h),
-            const CommunityPreview(),
-          ],
-        );
+        return const MagazineGrid();
     }
+  }
+
+  // 시안엔 없던 기존 홈 카드들 — 위치 확인용으로 스크롤 하단에 임시 배치.
+  Widget _buildLegacyCardsSection() {
+    return Column(
+      children: [
+        const HomeMbtiCard(),
+        SizedBox(height: 16.h),
+        const HomeFortuneCard(),
+        SizedBox(height: 16.h),
+        const HomeQuizCard(),
+        SizedBox(height: 16.h),
+        HomeQuestCard(checkNotifier: _questCheckNotifier),
+        SizedBox(height: 32.h),
+      ],
+    );
   }
 }

@@ -11,6 +11,7 @@ import '../widgets/result/bottom_action_bar.dart';
 import '../widgets/result/breed_guide_card.dart';
 import '../widgets/result/context_card.dart';
 import '../widgets/result/emotion_distribution_card.dart';
+import '../widgets/result/emotion_share_card.dart';
 import '../widgets/result/emotion_summary_card.dart';
 import '../widgets/result/memo_save_modal.dart';
 import '../widgets/result/next_action_card.dart';
@@ -83,11 +84,19 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
 
   // ── 액션 핸들러 ─────────────────────────────────────────────
 
-  void _onShare() {
-    // TODO(action): share_plus 또는 기존 EmotionShareCard 재사용
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('공유 기능은 준비 중입니다')),
-    );
+  Future<void> _onShare() async {
+    try {
+      await EmotionShareHelper.shareAsCard(
+        context,
+        analysis: widget.analysis,
+        petName: widget.analysis.petName,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('공유 중 오류가 발생했어요: $e')),
+      );
+    }
   }
 
   Future<void> _onSave() async {

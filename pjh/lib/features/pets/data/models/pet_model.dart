@@ -13,6 +13,8 @@ class PetModel extends Pet {
     super.description,
     required super.createdAt,
     required super.updatedAt,
+    super.currentMbtiType,
+    super.currentMbtiUpdatedAt,
   });
 
   /// Entity를 Model로 변환
@@ -29,6 +31,8 @@ class PetModel extends Pet {
       description: pet.description,
       createdAt: pet.createdAt,
       updatedAt: pet.updatedAt,
+      currentMbtiType: pet.currentMbtiType,
+      currentMbtiUpdatedAt: pet.currentMbtiUpdatedAt,
     );
   }
 
@@ -50,6 +54,10 @@ class PetModel extends Pet {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.parse(json['created_at'] as String),
+      currentMbtiType: json['current_mbti_type'] as String?,
+      currentMbtiUpdatedAt: json['current_mbti_updated_at'] != null
+          ? DateTime.parse(json['current_mbti_updated_at'] as String)
+          : null,
     );
   }
 
@@ -155,6 +163,8 @@ class PetModel extends Pet {
     String? description,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? currentMbtiType,
+    DateTime? currentMbtiUpdatedAt,
   }) {
     return PetModel(
       id: id ?? this.id,
@@ -168,6 +178,8 @@ class PetModel extends Pet {
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      currentMbtiType: currentMbtiType ?? this.currentMbtiType,
+      currentMbtiUpdatedAt: currentMbtiUpdatedAt ?? this.currentMbtiUpdatedAt,
     );
   }
 }

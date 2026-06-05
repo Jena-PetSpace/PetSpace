@@ -1,0 +1,2301 @@
+{
+  "version": 1,
+  "meta": {
+    "questions_per_axis": 5,
+    "questions_per_set": 20,
+    "species": [
+      "dog",
+      "cat",
+      "etc"
+    ],
+    "disclaimer": "본 결과는 보호자 관찰을 바탕으로 한 재미용 콘텐츠이며, 반려동물의 행동·의학적 진단이 아닙니다. 건강·행동에 대한 우려가 있다면 펫페이스 AI 분석 또는 수의사 상담을 이용해 주세요."
+  },
+  "axes": {
+    "EI": {
+      "name": "사교성",
+      "pos": {
+        "code": "E",
+        "label": "외향"
+      },
+      "neg": {
+        "code": "I",
+        "label": "내향"
+      }
+    },
+    "SN": {
+      "name": "인식",
+      "pos": {
+        "code": "S",
+        "label": "현실"
+      },
+      "neg": {
+        "code": "N",
+        "label": "직관"
+      }
+    },
+    "TF": {
+      "name": "관계",
+      "pos": {
+        "code": "T",
+        "label": "독립"
+      },
+      "neg": {
+        "code": "F",
+        "label": "교감"
+      }
+    },
+    "JP": {
+      "name": "생활",
+      "pos": {
+        "code": "J",
+        "label": "계획"
+      },
+      "neg": {
+        "code": "P",
+        "label": "즉흥"
+      }
+    }
+  },
+  "groups": {
+    "분석가": {
+      "axesKey": "NT",
+      "color": "purple"
+    },
+    "외교관": {
+      "axesKey": "NF",
+      "color": "coral"
+    },
+    "관리자": {
+      "axesKey": "SJ",
+      "color": "navy"
+    },
+    "탐험가": {
+      "axesKey": "SP",
+      "color": "teal"
+    }
+  },
+  "questions": {
+    "dog": [
+      {
+        "id": "dog_01",
+        "axis": "EI",
+        "text": "낯선 사람이 집에 오면?",
+        "options": [
+          {
+            "label": "반갑게 꼬리 흔들며 곧장 다가가 인사한다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "잠깐 살피다 이내 다가가는 편이다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "선뜻 다가가진 않고 멀찍이 지켜본다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "구석이나 보호자 뒤로 숨어버린다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_02",
+        "axis": "EI",
+        "text": "산책 중 다른 강아지를 만나면?",
+        "options": [
+          {
+            "label": "먼저 다가가 신나게 잘 어울린다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "시간이 조금 걸리지만 대부분 먼저 다가간다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "상대 강아지와 적당히 거리를 둔다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "보호자 뒤로 와 경계한다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_03",
+        "axis": "EI",
+        "text": "가족이 다 모인 거실에서는?",
+        "options": [
+          {
+            "label": "한가운데서 모두와 어울려 논다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "사람들 곁을 오가며 함께 있으려 한다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "조금 떨어진 곳에서 지켜본다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "자기 자리로 가 혼자 조용히 쉰다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_04",
+        "axis": "EI",
+        "text": "처음 가는 장소에서는?",
+        "options": [
+          {
+            "label": "신나서 거침없이 여기저기 살핀다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "조금 두리번거리다 곧 탐색을 시작한다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "보호자 가까이서 조심스레 둘러본다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "보호자 곁에 딱 붙어 움직이지 않는다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_05",
+        "axis": "EI",
+        "text": "손님이 놀아주려 하면?",
+        "options": [
+          {
+            "label": "곧바로 신나서 폴짝폴짝 반응한다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "잠깐 망설이다 이내 같이 논다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "선뜻 응하진 않고 천천히 다가간다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "낯설어하며 거리를 둔다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_06",
+        "axis": "SN",
+        "text": "새 장난감을 주면?",
+        "options": [
+          {
+            "label": "한참 익숙해질 때까지 조심스레 살핀다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "조금 살피다 천천히 가지고 논다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "금세 관심을 보이며 만져본다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "바로 물고 이리저리 탐색한다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_07",
+        "axis": "SN",
+        "text": "산책 코스는?",
+        "options": [
+          {
+            "label": "늘 가던 익숙한 길만 좋아한다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "대체로 익숙한 길을 선호하는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "가끔 새로운 길도 가보고 싶어 한다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "매번 새로운 길로 가고 싶어 한다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_08",
+        "axis": "SN",
+        "text": "간식 찾기 놀이를 하면?",
+        "options": [
+          {
+            "label": "늘 찾던 자리만 집중해서 본다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "익숙한 자리부터 먼저 확인한다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "여기저기 조금씩 새로 뒤져본다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "온 사방을 새롭게 다 뒤진다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_09",
+        "axis": "SN",
+        "text": "집에 새 물건이 생기면?",
+        "options": [
+          {
+            "label": "전혀 관심 없이 평소처럼 지낸다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "흘깃 보고 마는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "다가가 한 번 냄새를 맡아본다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "꼭 가서 꼼꼼히 확인해야 직성이 풀린다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_10",
+        "axis": "SN",
+        "text": "평소 관심사는?",
+        "options": [
+          {
+            "label": "늘 먹던 간식·익숙한 장난감만 좋아한다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "익숙한 것을 더 좋아하는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "새 물건·새 냄새에도 종종 끌린다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "처음 보는 물건·새 냄새에 늘 호기심을 보인다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_11",
+        "axis": "TF",
+        "text": "보호자가 다른 일을 할 때?",
+        "options": [
+          {
+            "label": "전혀 신경 안 쓰고 혼자 잘 논다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "가끔 살피지만 대체로 혼자 논다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "자주 곁에 와 머무르려 한다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "옆에 꼭 붙어 떨어지지 않는다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_12",
+        "axis": "TF",
+        "text": "\"기다려\"를 시키면?",
+        "options": [
+          {
+            "label": "시큰둥하게 제 할 일을 한다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "마지못해 기다리는 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "보호자 눈치를 살피며 기다린다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "보호자만 빤히 보며 반응을 기다린다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_13",
+        "axis": "TF",
+        "text": "새 환경에 가면?",
+        "options": [
+          {
+            "label": "제 페이스대로 거침없이 움직인다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "대체로 알아서 둘러보는 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "보호자를 자주 돌아보며 움직인다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "보호자만 졸졸 따라다닌다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_14",
+        "axis": "TF",
+        "text": "보호자가 외출했다 돌아오면?",
+        "options": [
+          {
+            "label": "흘깃 보고 하던 일을 계속한다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "잠깐 반기고 금세 제 할 일을 한다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "꼬리 흔들며 한동안 반긴다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "한참을 격하게 반기며 떨어지지 않는다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_15",
+        "axis": "TF",
+        "text": "다른 방에 보호자가 있으면?",
+        "options": [
+          {
+            "label": "신경 쓰지 않고 혼자 잘 있는다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "가끔 확인하지만 대체로 혼자 있는다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "종종 따라가 곁에 머문다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "꼭 따라가 곁에 붙어 있는다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_16",
+        "axis": "JP",
+        "text": "하루 일과는?",
+        "options": [
+          {
+            "label": "밥·산책 시간이 칼같이 규칙적이다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 일정한 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "그날그날 조금씩 달라진다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "매일 들쭉날쭉 종잡을 수 없다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_17",
+        "axis": "JP",
+        "text": "잠자리는?",
+        "options": [
+          {
+            "label": "늘 정해진 자리에서만 잔다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 같은 자리를 선호한다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "그때그때 자리가 바뀌는 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "아무 데서나 편한 대로 잔다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_18",
+        "axis": "JP",
+        "text": "놀이 스타일은?",
+        "options": [
+          {
+            "label": "좋아하는 놀이만 반복해서 한다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "익숙한 놀이를 더 즐기는 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "기분 따라 노는 방식이 바뀐다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "매번 즉흥적으로 다르게 논다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_19",
+        "axis": "JP",
+        "text": "산책 시간이 다가오면?",
+        "options": [
+          {
+            "label": "시간을 아는 듯 정확히 기다린다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대략 때가 되면 기다리는 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "딱히 시간 개념은 없는 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "시간과 상관없이 내킬 때 움직인다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "dog_20",
+        "axis": "JP",
+        "text": "장난감은?",
+        "options": [
+          {
+            "label": "늘 같은 자리에 정리해 두려 한다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 제자리에 두는 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "여기저기 두는 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "온 집안에 흩어 놓는다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      }
+    ],
+    "cat": [
+      {
+        "id": "cat_01",
+        "axis": "EI",
+        "text": "낯선 손님이 오면?",
+        "options": [
+          {
+            "label": "호기심에 곧장 다가가 살핀다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "잠깐 망설이다 슬그머니 다가간다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "멀찍이서 지켜보기만 한다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "가구 밑이나 높은 곳에 숨어버린다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_02",
+        "axis": "EI",
+        "text": "집사가 여럿을 초대하면?",
+        "options": [
+          {
+            "label": "사람들 사이를 누비며 돌아다닌다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "근처를 맴돌며 분위기를 살핀다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "조용한 구석으로 슬쩍 물러난다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "조용한 방으로 완전히 자리를 옮긴다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_03",
+        "axis": "EI",
+        "text": "평소 우리 고양이는?",
+        "options": [
+          {
+            "label": "자주 골골대며 먼저 부른다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "가끔 다가와 관심을 표현한다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "대체로 혼자만의 시간을 즐긴다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "거의 늘 혼자 조용히 지낸다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_04",
+        "axis": "EI",
+        "text": "새 사람이 며칠 머물면?",
+        "options": [
+          {
+            "label": "금세 익숙해져 먼저 곁에 온다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "며칠 지나면 차츰 다가간다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "한동안 거리를 두며 지켜본다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "내내 모습을 잘 안 보인다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_05",
+        "axis": "EI",
+        "text": "평소 머무는 위치는?",
+        "options": [
+          {
+            "label": "늘 사람 가까이에 붙어 있다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "사람 근처에 머무는 편이다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "조금 떨어진 자리를 좋아한다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "늘 떨어진 조용한 곳에 있다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_06",
+        "axis": "SN",
+        "text": "가구 배치를 바꾸면?",
+        "options": [
+          {
+            "label": "한참 경계하며 좀처럼 적응 못 한다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "조금 경계하다 차차 적응한다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "금세 새 구조를 둘러본다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "곧장 신나서 새 구조를 탐험한다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_07",
+        "axis": "SN",
+        "text": "사냥놀이 장난감은?",
+        "options": [
+          {
+            "label": "늘 쓰던 것에만 반응한다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "익숙한 장난감을 더 좋아한다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "새것에도 곧잘 흥미를 보인다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "새것이라면 금세 사족을 못 쓴다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_08",
+        "axis": "SN",
+        "text": "창밖을 볼 때?",
+        "options": [
+          {
+            "label": "익숙한 풍경을 느긋이 바라본다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "대체로 가만히 보는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "움직임이 있으면 곧잘 쫓는다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "작은 움직임도 놓치지 않고 쫓는다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_09",
+        "axis": "SN",
+        "text": "빈 상자나 새 물건을 두면?",
+        "options": [
+          {
+            "label": "전혀 관심 없이 시큰둥하다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "흘깃 보고 마는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "다가가 한 번 살펴본다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "곧장 들어가거나 샅샅이 탐색한다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_10",
+        "axis": "SN",
+        "text": "평소 관심은?",
+        "options": [
+          {
+            "label": "익숙한 장난감만 찾는다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "익숙한 것을 더 좋아하는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "새 물건·움직이는 것에도 끌린다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "새롭고 움직이는 것이라면 늘 흥미를 보인다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_11",
+        "axis": "TF",
+        "text": "집사가 쓰다듬으려 하면?",
+        "options": [
+          {
+            "label": "기분 내킬 때만 잠깐 받아준다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "대체로 시큰둥하게 받는 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "곧잘 다가와 받아들인다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "먼저 비비며 적극적으로 다가온다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_12",
+        "axis": "TF",
+        "text": "집사가 아프거나 누워 있으면?",
+        "options": [
+          {
+            "label": "평소처럼 제 할 일을 한다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "흘깃 보고 마는 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "근처로 와 살피곤 한다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "곁에 꼭 붙어 머문다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_13",
+        "axis": "TF",
+        "text": "혼자 있는 시간에?",
+        "options": [
+          {
+            "label": "전혀 개의치 않고 잘 지낸다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "대체로 혼자서도 괜찮은 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "가끔 집사를 찾으며 운다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "집사를 애타게 찾으며 운다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_14",
+        "axis": "TF",
+        "text": "집사가 이름을 부르면?",
+        "options": [
+          {
+            "label": "내킬 때만 흘깃 반응한다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "대체로 모른 척하는 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "곧잘 반응하며 쳐다본다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "잘 반응하며 다가온다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_15",
+        "axis": "TF",
+        "text": "무릎이나 곁에 올라오는 편?",
+        "options": [
+          {
+            "label": "거의 올라오지 않는다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "가끔만 올라오는 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "종종 올라와 곁에 있는다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "자주 올라와 딱 붙어 있는다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_16",
+        "axis": "JP",
+        "text": "식사 패턴은?",
+        "options": [
+          {
+            "label": "정해진 시간에 칼같이 온다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 일정한 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "내킬 때 먹는 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "시간과 상관없이 제멋대로 먹는다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_17",
+        "axis": "JP",
+        "text": "휴식 자리는?",
+        "options": [
+          {
+            "label": "늘 같은 명당만 고수한다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 같은 자리를 선호한다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "그때그때 자리를 바꾸는 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "매번 새 자리를 찾아다닌다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_18",
+        "axis": "JP",
+        "text": "하루 루틴은?",
+        "options": [
+          {
+            "label": "거의 똑같은 패턴으로 움직인다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 비슷한 패턴이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "그날그날 조금씩 다른 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "도무지 예측하기 어렵다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_19",
+        "axis": "JP",
+        "text": "활동 시간대는?",
+        "options": [
+          {
+            "label": "늘 일정한 시간에 활동한다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 일정한 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "그때그때 다른 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "낮밤 없이 제멋대로다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "cat_20",
+        "axis": "JP",
+        "text": "화장실·밥자리 습관은?",
+        "options": [
+          {
+            "label": "늘 규칙적이고 한결같다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 규칙적인 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "조금 유동적인 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "매번 들쭉날쭉하다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      }
+    ],
+    "etc": [
+      {
+        "id": "etc_01",
+        "axis": "EI",
+        "text": "사람이 다가가면?",
+        "options": [
+          {
+            "label": "반갑게 먼저 다가온다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "조금 살피다 다가오는 편이다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "슬며시 거리를 두는 편이다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "곧장 피하거나 물러난다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_02",
+        "axis": "EI",
+        "text": "새로운 사람·동물에 대해?",
+        "options": [
+          {
+            "label": "적극적으로 관심을 보인다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "조심스럽지만 관심을 보이는 편이다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "경계하며 조용해지는 편이다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "잔뜩 경계하며 숨는다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_03",
+        "axis": "EI",
+        "text": "평소 활동은?",
+        "options": [
+          {
+            "label": "활발하게 여기저기 돌아다닌다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "대체로 활동적인 편이다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "한곳에 머무는 편이다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "늘 조용히 한자리에 있는다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_04",
+        "axis": "EI",
+        "text": "새로운 자극(소리·사람)에?",
+        "options": [
+          {
+            "label": "곧장 다가가 확인한다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "조금 망설이다 살펴보는 편이다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "물러나 지켜보는 편이다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "곧바로 피해 숨는다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_05",
+        "axis": "EI",
+        "text": "평소 위치 선호는?",
+        "options": [
+          {
+            "label": "늘 트인 곳·중심에 있다",
+            "pole": "E",
+            "weight": 2
+          },
+          {
+            "label": "사람·중심 가까이를 선호한다",
+            "pole": "E",
+            "weight": 1
+          },
+          {
+            "label": "구석진 곳을 좋아하는 편이다",
+            "pole": "I",
+            "weight": 1
+          },
+          {
+            "label": "늘 은신처·구석에 숨어 있다",
+            "pole": "I",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_06",
+        "axis": "SN",
+        "text": "환경이 바뀌면?",
+        "options": [
+          {
+            "label": "익숙해질 때까지 한참 걸린다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "조금 시간이 걸리는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "비교적 금세 살펴본다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "곧장 새 환경을 탐색한다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_07",
+        "axis": "SN",
+        "text": "새 먹이·물건을 주면?",
+        "options": [
+          {
+            "label": "한참 조심스럽게 확인한다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "조금 살피다 받아들이는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "곧잘 관심을 보인다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "곧바로 적극적으로 관심을 보인다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_08",
+        "axis": "SN",
+        "text": "평소 성향은?",
+        "options": [
+          {
+            "label": "늘 익숙한 것만 선호한다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "익숙한 것을 더 좋아하는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "새 자극도 곧잘 즐긴다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "새로운 자극을 늘 즐긴다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_09",
+        "axis": "SN",
+        "text": "처음 보는 장난감에?",
+        "options": [
+          {
+            "label": "한참 뒤에야 반응한다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "조금 뜸 들이다 반응하는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "비교적 금세 흥미를 보인다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "곧바로 흥미를 보인다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_10",
+        "axis": "SN",
+        "text": "일상에서?",
+        "options": [
+          {
+            "label": "늘 같은 패턴을 가장 편안해한다",
+            "pole": "S",
+            "weight": 2
+          },
+          {
+            "label": "익숙한 패턴을 선호하는 편이다",
+            "pole": "S",
+            "weight": 1
+          },
+          {
+            "label": "변화·탐색도 곧잘 즐긴다",
+            "pole": "N",
+            "weight": 1
+          },
+          {
+            "label": "변화와 탐색을 늘 즐긴다",
+            "pole": "N",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_11",
+        "axis": "TF",
+        "text": "보호자와의 관계는?",
+        "options": [
+          {
+            "label": "매우 독립적이다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "대체로 독립적인 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "애착이 있는 편이다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "애착이 매우 강하다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_12",
+        "axis": "TF",
+        "text": "혼자 있을 때?",
+        "options": [
+          {
+            "label": "전혀 개의치 않고 잘 지낸다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "대체로 잘 지내는 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "가끔 불안해하거나 찾는다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "몹시 불안해하며 보호자를 찾는다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_13",
+        "axis": "TF",
+        "text": "교감 방식은?",
+        "options": [
+          {
+            "label": "제 방식대로 거리를 둔다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "대체로 담백한 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "곧잘 표현하며 다가온다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "적극적으로 표현하고 다가온다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_14",
+        "axis": "TF",
+        "text": "보호자가 자리를 비우면?",
+        "options": [
+          {
+            "label": "평온하게 잘 지낸다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "대체로 괜찮은 편이다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "가끔 찾거나 불안해한다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "몹시 찾으며 불안해한다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_15",
+        "axis": "TF",
+        "text": "보호자가 다가오면?",
+        "options": [
+          {
+            "label": "선택적으로만 반응한다",
+            "pole": "T",
+            "weight": 2
+          },
+          {
+            "label": "대체로 담담하게 반응한다",
+            "pole": "T",
+            "weight": 1
+          },
+          {
+            "label": "반갑게 반응하는 편이다",
+            "pole": "F",
+            "weight": 1
+          },
+          {
+            "label": "아주 반갑게 적극 반응한다",
+            "pole": "F",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_16",
+        "axis": "JP",
+        "text": "생활 패턴은?",
+        "options": [
+          {
+            "label": "매우 규칙적이다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 규칙적인 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "조금 불규칙한 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "매우 불규칙하다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_17",
+        "axis": "JP",
+        "text": "휴식 자리는?",
+        "options": [
+          {
+            "label": "늘 정해진 자리만 쓴다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 같은 자리를 선호한다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "그때그때 바뀌는 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "매번 자리가 달라진다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_18",
+        "axis": "JP",
+        "text": "행동은?",
+        "options": [
+          {
+            "label": "매우 예측 가능하다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 예측 가능한 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "조금 즉흥적인 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "매우 즉흥적이다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_19",
+        "axis": "JP",
+        "text": "식사·활동 시간은?",
+        "options": [
+          {
+            "label": "늘 일정하다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 일정한 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "조금 들쭉날쭉한 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "매우 들쭉날쭉하다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "id": "etc_20",
+        "axis": "JP",
+        "text": "자리 선호는?",
+        "options": [
+          {
+            "label": "늘 고정적이다",
+            "pole": "J",
+            "weight": 2
+          },
+          {
+            "label": "대체로 고정적인 편이다",
+            "pole": "J",
+            "weight": 1
+          },
+          {
+            "label": "자주 바뀌는 편이다",
+            "pole": "P",
+            "weight": 1
+          },
+          {
+            "label": "매번 바뀐다",
+            "pole": "P",
+            "weight": 2
+          }
+        ]
+      }
+    ]
+  },
+  "types": {
+    "INTJ": {
+      "group": "분석가",
+      "dog": {
+        "nickname": "혼자서도 잘하는 전략가",
+        "summary": "조용한 카리스마의 독립견",
+        "desc": "보호자에게 과하게 의지하지 않고 제 할 일을 아는 똑똑한 친구예요. 낯선 상황에서도 차분히 판단하고 움직입니다.",
+        "strength": "차분하고 독립적",
+        "caution": "마음을 여는 데 시간이 필요해요",
+        "activity": "노즈워크·퍼즐 장난감"
+      },
+      "cat": {
+        "nickname": "도도한 마스터마인드",
+        "summary": "혼자가 편한 전략가 고양이",
+        "desc": "집안 구조와 사람을 다 파악하고 자기만의 규칙으로 움직이는 고양이예요. 애정 표현은 적지만 신뢰는 깊습니다.",
+        "strength": "자립심·관찰력",
+        "caution": "강요받는 걸 싫어해요",
+        "activity": "캣타워 탐색·혼자 놀기 장난감"
+      },
+      "etc": {
+        "nickname": "독립 연구원",
+        "summary": "스스로 판단하는 신중파",
+        "desc": "조용히 환경을 관찰하고 스스로 판단하는 신중한 성향이 강해요. 곁을 잘 안 내주는 듯해도 한번 신뢰하면 묵묵히 의지가 됩니다.",
+        "strength": "독립적·신중함",
+        "caution": "친해지는 데 시간이 필요",
+        "activity": "탐색형 환경 구성"
+      }
+    },
+    "INTP": {
+      "group": "분석가",
+      "dog": {
+        "nickname": "궁금한 게 많은 박사견",
+        "summary": "끝까지 파고드는 탐구견",
+        "desc": "새로운 물건이 생기면 끝까지 파헤쳐야 직성이 풀리는 탐구형이에요.",
+        "strength": "문제 해결력",
+        "caution": "관심 없으면 반응이 시큰둥",
+        "activity": "노즈워크·신상 장난감 로테이션"
+      },
+      "cat": {
+        "nickname": "탐구왕 똑똑냥",
+        "summary": "구석구석 조사하는 호기심파",
+        "desc": "서랍·박스·틈새를 죄다 조사하는 호기심 대장이에요.",
+        "strength": "영리함·탐색력",
+        "caution": "위험한 곳까지 탐험할 수 있어요",
+        "activity": "퍼즐 급식기·숨숨집"
+      },
+      "etc": {
+        "nickname": "엉뚱한 발명가",
+        "summary": "엉뚱하게 영리한 관찰자",
+        "desc": "주변을 탐색하며 제 방식대로 해결하는 호기심형 성향이 강해요. 골똘히 관찰하다 의외의 행동으로 보호자를 웃게 만들곤 합니다.",
+        "strength": "탐구심",
+        "caution": "마이페이스",
+        "activity": "새로운 자극 제공"
+      }
+    },
+    "ENTJ": {
+      "group": "분석가",
+      "dog": {
+        "nickname": "타고난 보스견",
+        "summary": "무리를 이끄는 당당한 리더",
+        "desc": "무리에서 앞장서는 리더 기질, 자신감 넘치는 당당한 친구예요.",
+        "strength": "리더십·담대함",
+        "caution": "주도권을 양보하는 연습 필요",
+        "activity": "어질리티·역할 있는 훈련"
+      },
+      "cat": {
+        "nickname": "제왕 카리스마냥",
+        "summary": "집안을 다스리는 보스",
+        "desc": "집안의 주인은 자기라고 믿는 당당한 고양이예요.",
+        "strength": "당당함·존재감",
+        "caution": "다른 동물과 서열 갈등 가능",
+        "activity": "높은 자리 확보·주도형 놀이"
+      },
+      "etc": {
+        "nickname": "야망의 지휘관",
+        "summary": "중심을 잡는 타고난 지휘관",
+        "desc": "환경을 주도하려는 당당한 성향이 강해요. 자기 영역과 순서를 분명히 하며, 무리에서 중심을 잡으려는 기질이 보입니다.",
+        "strength": "주도성",
+        "caution": "통제 욕구",
+        "activity": "충분한 공간·선택권 제공"
+      }
+    },
+    "ENTP": {
+      "group": "분석가",
+      "dog": {
+        "nickname": "장난꾸러기 꾀돌이",
+        "summary": "장난기 가득한 머리 좋은 개구쟁이",
+        "desc": "머리가 좋아 새로운 장난을 끊임없이 만들어내는 개구쟁이예요.",
+        "strength": "영리함·활기",
+        "caution": "지루하면 사고를 칠 수 있어요",
+        "activity": "변화 있는 트릭 훈련"
+      },
+      "cat": {
+        "nickname": "트러블메이커 천재냥",
+        "summary": "사고 치는 똑똑이 고양이",
+        "desc": "문 여는 법까지 익히는 똑똑하고 장난기 많은 고양이예요.",
+        "strength": "학습력",
+        "caution": "호기심이 사고로 이어질 수 있어요",
+        "activity": "난이도 있는 사냥놀이"
+      },
+      "etc": {
+        "nickname": "엉뚱 발상가",
+        "summary": "변화를 즐기는 아이디어뱅크",
+        "desc": "새로운 시도를 즐기는 영리하고 활동적인 성향이 강해요. 같은 자극에는 금세 시들해지지만, 변화를 주면 눈빛이 반짝 살아납니다.",
+        "strength": "적응력",
+        "caution": "자극 부족 시 산만",
+        "activity": "다양한 놀이 변화"
+      }
+    },
+    "INFJ": {
+      "group": "외교관",
+      "dog": {
+        "nickname": "영혼의 단짝 댕댕이",
+        "summary": "마음을 읽는 섬세한 단짝",
+        "desc": "보호자의 기분을 귀신같이 알아채는 섬세한 교감형이에요.",
+        "strength": "공감력·충성심",
+        "caution": "분위기에 민감해요",
+        "activity": "차분한 교감 산책"
+      },
+      "cat": {
+        "nickname": "신비주의 현자냥",
+        "summary": "거리를 두지만 깊은 교감파",
+        "desc": "거리는 두지만 결정적 순간 곁에 와주는 깊은 고양이예요.",
+        "strength": "섬세함·교감",
+        "caution": "환경 변화에 예민",
+        "activity": "안정적 공간·조용한 교감"
+      },
+      "etc": {
+        "nickname": "고요한 철학자",
+        "summary": "조용히 연결되는 공감러",
+        "desc": "조용하지만 보호자와 깊이 연결되는 성향이 강해요. 표현은 절제돼 있어도 보호자의 기분을 알아채는 섬세함이 있습니다.",
+        "strength": "깊은 애착",
+        "caution": "예민함",
+        "activity": "안정적 루틴"
+      }
+    },
+    "INFP": {
+      "group": "외교관",
+      "dog": {
+        "nickname": "꿈꾸는 순둥이",
+        "summary": "곁에 있으면 포근한 순둥이",
+        "desc": "순하고 다정해서 곁에 있으면 마음이 포근해지는 친구예요.",
+        "strength": "온화함·다정함",
+        "caution": "큰 자극에 위축",
+        "activity": "부드러운 놀이·교감"
+      },
+      "cat": {
+        "nickname": "몽상가 솜냥이",
+        "summary": "창가를 좋아하는 감성파",
+        "desc": "창가에서 멍하니 바깥을 보는 걸 좋아하는 감성 고양이예요.",
+        "strength": "온순함",
+        "caution": "낯선 환경에 약함",
+        "activity": "햇볕 자리·편안한 은신처"
+      },
+      "etc": {
+        "nickname": "다정한 몽상가",
+        "summary": "부드럽고 다정한 몽상가",
+        "desc": "부드럽고 감성적인, 조용한 애정형 성향이 강해요. 자극이 적은 편안한 곳에서 가장 자기다운 모습을 보입니다.",
+        "strength": "온화함",
+        "caution": "스트레스 민감",
+        "activity": "자극 적은 안정 환경"
+      }
+    },
+    "ENFJ": {
+      "group": "외교관",
+      "dog": {
+        "nickname": "모두의 리더 댕댕이",
+        "summary": "모두를 챙기는 따뜻한 인기쟁이",
+        "desc": "사람도 동물도 잘 챙기는 따뜻한 인기쟁이예요.",
+        "strength": "사회성·배려",
+        "caution": "관심을 못 받으면 시무룩",
+        "activity": "그룹 산책·사회화 놀이"
+      },
+      "cat": {
+        "nickname": "카리스마 보살핌냥",
+        "summary": "의젓하게 보살피는 고양이",
+        "desc": "다른 동물을 돌보기도 하는 의젓하고 다정한 고양이예요.",
+        "strength": "포용력",
+        "caution": "애정 욕구 큼",
+        "activity": "함께하는 놀이 시간"
+      },
+      "etc": {
+        "nickname": "따뜻한 인솔자",
+        "summary": "분위기를 잇는 다정한 인솔자",
+        "desc": "주변과 잘 어울리며 살뜰히 챙기는 성향이 강해요. 사람·동물 사이에서 분위기를 부드럽게 이어주는 다정함이 돋보입니다.",
+        "strength": "친화력",
+        "caution": "외로움에 약함",
+        "activity": "충분한 교감"
+      }
+    },
+    "ENFP": {
+      "group": "외교관",
+      "dog": {
+        "nickname": "호기심 대장 댕댕이",
+        "summary": "매일이 모험인 에너지 뭉치",
+        "desc": "세상 모든 게 신나는, 에너지와 애교가 넘치는 친구예요.",
+        "strength": "활기·친화력",
+        "caution": "흥분 조절 연습 필요",
+        "activity": "새 코스 산책·사회화"
+      },
+      "cat": {
+        "nickname": "발랄 자유냥",
+        "summary": "흔치 않은 사교형 호기심파",
+        "desc": "호기심 많고 사람도 좋아하는 흔치 않은 사교형 고양이예요.",
+        "strength": "활달함·호기심",
+        "caution": "쉽게 심심해해요",
+        "activity": "다양한 사냥놀이 로테이션"
+      },
+      "etc": {
+        "nickname": "반짝이는 호기심쟁이",
+        "summary": "어디서나 반짝이는 호기심쟁이",
+        "desc": "활발하고 새로운 걸 좋아하는 밝은 성향이 강해요. 어디서든 호기심이 먼저 발동해 보호자를 즐겁게 합니다.",
+        "strength": "활기",
+        "caution": "자극 부족 시 지루함",
+        "activity": "풍부한 환경 자극"
+      }
+    },
+    "ISTJ": {
+      "group": "관리자",
+      "dog": {
+        "nickname": "충직한 집사 지킴이",
+        "summary": "한결같이 믿음직한 친구",
+        "desc": "약속한 듯 규칙적이고 한결같은, 믿음직한 친구예요.",
+        "strength": "안정감·신뢰",
+        "caution": "변화에 적응이 느려요",
+        "activity": "규칙적 산책 루틴"
+      },
+      "cat": {
+        "nickname": "원칙주의 집냥이",
+        "summary": "루틴을 지키는 원칙파",
+        "desc": "자기 루틴과 영역을 소중히 여기는 한결같은 고양이예요.",
+        "strength": "안정·예측 가능",
+        "caution": "환경 변화에 스트레스",
+        "activity": "일정한 급식·정해진 자리"
+      },
+      "etc": {
+        "nickname": "성실한 모범생",
+        "summary": "차분하고 성실한 안정파",
+        "desc": "규칙적이고 차분한, 안정 지향 성향이 강해요. 익숙한 패턴 안에서 가장 편안해하고 한결같은 모습을 보입니다.",
+        "strength": "안정감",
+        "caution": "변화 민감",
+        "activity": "일관된 루틴 유지"
+      }
+    },
+    "ISFJ": {
+      "group": "관리자",
+      "dog": {
+        "nickname": "포근한 보디가드",
+        "summary": "조용히 가족을 지키는 헌신파",
+        "desc": "조용히 가족을 지키는, 정 많고 헌신적인 친구예요.",
+        "strength": "다정함·충성심",
+        "caution": "혼자 두면 외로워해요",
+        "activity": "가족과 함께하는 시간"
+      },
+      "cat": {
+        "nickname": "조용한 수호냥",
+        "summary": "티 안 나게 곁을 지키는 고양이",
+        "desc": "티 안 나게 곁을 지키는 다정하고 차분한 고양이예요.",
+        "strength": "온화함·애정",
+        "caution": "변화·소음에 약함",
+        "activity": "편안한 교감·안정 공간"
+      },
+      "etc": {
+        "nickname": "다정한 돌봄이",
+        "summary": "묵묵히 다정한 돌봄러",
+        "desc": "조용하지만 애정 깊은 헌신형 성향이 강해요. 티 내지 않고 보호자 곁을 지키며 든든한 동반자가 되어줍니다.",
+        "strength": "다정함",
+        "caution": "분리 불안 가능",
+        "activity": "안정적 동행"
+      }
+    },
+    "ESTJ": {
+      "group": "관리자",
+      "dog": {
+        "nickname": "든든한 대장견",
+        "summary": "질서를 좋아하는 듬직한 대장",
+        "desc": "질서를 좋아하고 무리를 이끄는 듬직한 친구예요.",
+        "strength": "통솔력·신뢰",
+        "caution": "고집이 보일 수 있어요",
+        "activity": "명확한 규칙의 훈련"
+      },
+      "cat": {
+        "nickname": "질서의 보스냥",
+        "summary": "규칙을 세우는 당당한 보스",
+        "desc": "집안 규칙을 자기 기준으로 세우는 당당한 고양이예요.",
+        "strength": "당당함·일관성",
+        "caution": "융통성 부족",
+        "activity": "예측 가능한 환경"
+      },
+      "etc": {
+        "nickname": "야무진 반장",
+        "summary": "야무지게 주도하는 관리파",
+        "desc": "규칙적이고 주도적인 관리형 성향이 강해요. 자기만의 질서가 분명해서 환경이 예측 가능할 때 가장 안정적입니다.",
+        "strength": "책임감",
+        "caution": "변화 거부감",
+        "activity": "일정한 규칙 제공"
+      }
+    },
+    "ESFJ": {
+      "group": "관리자",
+      "dog": {
+        "nickname": "오지랖 인기견",
+        "summary": "누구와도 친해지는 사교왕",
+        "desc": "누구와도 금방 친해지는, 정 많은 사교왕이에요.",
+        "strength": "친화력·다정함",
+        "caution": "관심 의존이 커요",
+        "activity": "다견 모임·사회화 산책"
+      },
+      "cat": {
+        "nickname": "챙김왕 사교냥",
+        "summary": "사람을 좋아하는 다정한 고양이",
+        "desc": "사람을 좋아하고 살뜰히 반응하는 다정한 고양이예요.",
+        "strength": "애교·친화력",
+        "caution": "외로움에 약함",
+        "activity": "함께 노는 시간 확보"
+      },
+      "etc": {
+        "nickname": "다정한 마당발",
+        "summary": "잘 어울리는 친화형 마당발",
+        "desc": "사람을 좋아하고 잘 어울리는 친화형 성향이 강해요. 관심과 교감을 받을 때 가장 생기 있고 사랑스러운 모습을 보입니다.",
+        "strength": "사교성",
+        "caution": "혼자 있는 시간에 약함",
+        "activity": "풍부한 교감"
+      }
+    },
+    "ISTP": {
+      "group": "탐험가",
+      "dog": {
+        "nickname": "쿨한 탐험견",
+        "summary": "호들갑 없는 쿨한 탐험가",
+        "desc": "호들갑 없이 제 할 일 하는, 능숙하고 쿨한 친구예요.",
+        "strength": "침착함·민첩함",
+        "caution": "애정 표현이 담백",
+        "activity": "어질리티·지형 탐색"
+      },
+      "cat": {
+        "nickname": "묘기의 달인",
+        "summary": "운동신경 만점 묘기파",
+        "desc": "높은 곳도 좁은 틈도 능숙하게 다루는 운동신경형이에요.",
+        "strength": "민첩·독립",
+        "caution": "자극 없으면 무료해함",
+        "activity": "입체적 캣타워·사냥놀이"
+      },
+      "etc": {
+        "nickname": "만능 해결사",
+        "summary": "침착하게 해결하는 실전파",
+        "desc": "침착하고 손(발)이 야무진 실전형 성향이 강해요. 호들갑 없이 상황에 적응하며 제 할 일을 능숙하게 해냅니다.",
+        "strength": "적응력",
+        "caution": "담백한 교감",
+        "activity": "탐색형 환경"
+      }
+    },
+    "ISFP": {
+      "group": "탐험가",
+      "dog": {
+        "nickname": "감성 산책러",
+        "summary": "순간을 즐기는 평화로운 산책러",
+        "desc": "느긋하고 온화하게 순간을 즐기는 평화주의 친구예요.",
+        "strength": "온순함·유연함",
+        "caution": "강압에 위축",
+        "activity": "여유로운 냄새 산책"
+      },
+      "cat": {
+        "nickname": "햇살 예술냥",
+        "summary": "햇볕을 사랑하는 느긋한 감성파",
+        "desc": "햇볕과 편안함을 사랑하는 느긋한 감성 고양이예요.",
+        "strength": "온화함",
+        "caution": "변화에 예민",
+        "activity": "햇볕 자리·부드러운 놀이"
+      },
+      "etc": {
+        "nickname": "느긋한 자유영혼",
+        "summary": "편안함을 아는 자유로운 영혼",
+        "desc": "편안하고 온화한, 자유로운 성향이 강해요. 강요받지 않는 여유로운 분위기에서 가장 자기다운 평온함을 보입니다.",
+        "strength": "평온함",
+        "caution": "스트레스 민감",
+        "activity": "편안한 환경"
+      }
+    },
+    "ESTP": {
+      "group": "탐험가",
+      "dog": {
+        "nickname": "에너지 폭발 모험왕",
+        "summary": "잠시도 못 쉬는 대담한 모험왕",
+        "desc": "잠시도 가만 못 있는, 대담하고 활동적인 친구예요.",
+        "strength": "활력·용감함",
+        "caution": "충동 조절 연습 필요",
+        "activity": "격한 운동·터그놀이"
+      },
+      "cat": {
+        "nickname": "겁없는 스턴트냥",
+        "summary": "겁 없이 뛰어드는 활동파",
+        "desc": "높은 곳도 거침없이 뛰어드는 대담한 고양이예요.",
+        "strength": "대담함·운동력",
+        "caution": "안전사고 주의",
+        "activity": "활동량 큰 사냥놀이"
+      },
+      "etc": {
+        "nickname": "스릴 추구자",
+        "summary": "스릴을 즐기는 에너자이저",
+        "desc": "활동적이고 대담한 에너지형 성향이 강해요. 새로운 도전 앞에서 망설임이 적고, 충분히 움직일 때 가장 만족스러워합니다.",
+        "strength": "활력",
+        "caution": "충동성",
+        "activity": "충분한 운동량"
+      }
+    },
+    "ESFP": {
+      "group": "탐험가",
+      "dog": {
+        "nickname": "분위기 메이커 인싸견",
+        "summary": "어디서든 주목받는 흥부자",
+        "desc": "어디서든 주목받는 걸 즐기는 흥부자 친구예요.",
+        "strength": "활기·애교",
+        "caution": "관심 없으면 시무룩",
+        "activity": "사람 많은 놀이터·트릭쇼"
+      },
+      "cat": {
+        "nickname": "무대체질 스타냥",
+        "summary": "사람 앞에서 더 빛나는 스타",
+        "desc": "사람 앞에서 더 활발해지는 흔치 않은 관종 고양이예요.",
+        "strength": "사교성·표현력",
+        "caution": "쉽게 심심",
+        "activity": "관객 있는 놀이"
+      },
+      "etc": {
+        "nickname": "흥부자 엔터테이너",
+        "summary": "주변을 환하게 만드는 분위기메이커",
+        "desc": "밝고 표현이 풍부한 인싸 성향이 강해요. 시선이 모일수록 신이 나며, 주변을 환하게 만드는 매력이 있습니다.",
+        "strength": "활기·표현력",
+        "caution": "관심 의존",
+        "activity": "충분한 상호작용"
+      }
+    }
+  },
+  "compatibility": {
+    "INTJ": {
+      "dog": {
+        "type": "ENFP",
+        "reason": "활발한 친구가 독립적인 우리 아이의 세계를 즐겁게 열어줘요"
+      },
+      "cat": {
+        "type": "ISFP",
+        "reason": "서로 거리를 존중해 편안한 사이가 돼요"
+      }
+    },
+    "INTP": {
+      "dog": {
+        "type": "ENTP",
+        "reason": "호기심 코드가 맞아 함께 탐색하며 잘 놀아요"
+      },
+      "cat": {
+        "type": "INFJ",
+        "reason": "조용히 곁을 지키며 안정감을 줘요"
+      }
+    },
+    "ENTJ": {
+      "dog": {
+        "type": "ISFJ",
+        "reason": "듬직한 리더를 따뜻하게 받쳐줘 균형이 좋아요"
+      },
+      "cat": {
+        "type": "ISTP",
+        "reason": "서로 간섭 없이 쿨하게 어울려요"
+      }
+    },
+    "ENTP": {
+      "dog": {
+        "type": "INFJ",
+        "reason": "차분한 친구가 장난기를 부드럽게 받아줘요"
+      },
+      "cat": {
+        "type": "ISFP",
+        "reason": "느긋함이 활기를 편안히 받아줘요"
+      }
+    },
+    "INFJ": {
+      "dog": {
+        "type": "ENFP",
+        "reason": "밝은 에너지가 섬세한 마음을 환기시켜줘요"
+      },
+      "cat": {
+        "type": "INTP",
+        "reason": "적당한 거리감이 서로 편안해요"
+      }
+    },
+    "INFP": {
+      "dog": {
+        "type": "ENFJ",
+        "reason": "다정한 리더가 순한 마음을 잘 보듬어요"
+      },
+      "cat": {
+        "type": "ISFJ",
+        "reason": "온화함끼리 만나 포근한 사이가 돼요"
+      }
+    },
+    "ENFJ": {
+      "dog": {
+        "type": "INFP",
+        "reason": "따뜻한 돌봄을 순수하게 받아줘요"
+      },
+      "cat": {
+        "type": "ESFJ",
+        "reason": "사교 코드가 맞아 함께 즐거워요"
+      }
+    },
+    "ENFP": {
+      "dog": {
+        "type": "ISFJ",
+        "reason": "차분한 친구가 넘치는 에너지를 안정시켜줘요"
+      },
+      "cat": {
+        "type": "INFP",
+        "reason": "감성이 통해 부드럽게 어울려요"
+      }
+    },
+    "ISTJ": {
+      "dog": {
+        "type": "ESFP",
+        "reason": "흥 많은 친구가 루틴에 활기를 더해줘요"
+      },
+      "cat": {
+        "type": "ISFJ",
+        "reason": "안정 지향끼리 만나 평온해요"
+      }
+    },
+    "ISFJ": {
+      "dog": {
+        "type": "ENFJ",
+        "reason": "따뜻한 리더와 헌신형이 서로를 채워줘요"
+      },
+      "cat": {
+        "type": "INFP",
+        "reason": "온순함끼리 만나 포근해요"
+      }
+    },
+    "ESTJ": {
+      "dog": {
+        "type": "ISFP",
+        "reason": "느긋한 친구가 규율형의 긴장을 풀어줘요"
+      },
+      "cat": {
+        "type": "ISTP",
+        "reason": "군더더기 없이 깔끔하게 어울려요"
+      }
+    },
+    "ESFJ": {
+      "dog": {
+        "type": "ISTP",
+        "reason": "담백한 친구가 사교형에 균형을 줘요"
+      },
+      "cat": {
+        "type": "ESFP",
+        "reason": "함께 어울리며 흥이 두 배가 돼요"
+      }
+    },
+    "ISTP": {
+      "dog": {
+        "type": "ESFJ",
+        "reason": "다정한 친구가 쿨한 우리 아이를 챙겨줘요"
+      },
+      "cat": {
+        "type": "ENTJ",
+        "reason": "서로 독립적이라 부담이 없어요"
+      }
+    },
+    "ISFP": {
+      "dog": {
+        "type": "ENFJ",
+        "reason": "따뜻한 리더가 온화함을 잘 이끌어줘요"
+      },
+      "cat": {
+        "type": "ESFP",
+        "reason": "밝은 친구가 평온함에 생기를 더해요"
+      }
+    },
+    "ESTP": {
+      "dog": {
+        "type": "ISFJ",
+        "reason": "차분한 친구가 넘치는 활력을 받쳐줘요"
+      },
+      "cat": {
+        "type": "INTJ",
+        "reason": "서로 간섭 없이 자유롭게 지내요"
+      }
+    },
+    "ESFP": {
+      "dog": {
+        "type": "ISTJ",
+        "reason": "든든한 친구가 흥을 안정적으로 받아줘요"
+      },
+      "cat": {
+        "type": "INFJ",
+        "reason": "섬세한 친구가 들뜬 마음을 다독여요"
+      }
+    }
+  }
+}

@@ -8,6 +8,10 @@ import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/repositories/social_repository.dart';
+import '../../../pets/presentation/bloc/pet_bloc.dart';
+import '../../../pets/presentation/bloc/pet_state.dart';
+import '../../../mbti/domain/repositories/mbti_repository.dart';
+import '../../../mbti/domain/entities/pet_mbti_result.dart';
 
 class _Quest {
   final String id;
@@ -68,12 +72,44 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
   int _totalPoints = 0;
   bool _isExpanded = true;
 
+  // MBTI 1회성 퀘스트: "그 pet 에 MBTI 결과 존재" 여부 = 완료 판정.
+  // (BLoC 적립 판정과 동일 기준 — getLatestResult 로 확인. daily 무관, 1회성.)
+  bool _mbtiDone = false;
+  String? _mbtiPetId;
+  String? _mbtiPetName;
+  String? _mbtiSpecies;
+
   @override
   void initState() {
     super.initState();
     _loadQuestStatus();
     _loadPoints();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadMbtiQuest());
     widget.checkNotifier?.addListener(_onCheckNotified);
+  }
+
+  /// MBTI 1회성 퀘스트 완료 판정 — 선택된 pet 에 결과 존재 여부.
+  /// BLoC 적립 기준과 동일하게 getLatestResult 를 본다(완료 표시=적립 여부 일치).
+  Future<void> _loadMbtiQuest() async {
+    if (!mounted) return;
+    final petState = context.read<PetBloc>().state;
+    if (petState is! PetLoaded) return;
+    final pet = petState.selectedPet ??
+        (petState.pets.isNotEmpty ? petState.pets.first : null);
+    if (pet == null) return;
+
+    _mbtiPetId = pet.id;
+    _mbtiPetName = pet.name;
+    _mbtiSpecies = MbtiSpeciesX.fromPetTypeString(pet.type.name).key;
+
+    // 캐시(current_mbti_type) 가 있으면 즉시 완료로(빠른 표시), 없으면 결과 조회.
+    if (pet.currentMbtiType != null) {
+      if (mounted) setState(() => _mbtiDone = true);
+      return;
+    }
+    final result = await sl<MbtiRepository>().getLatestResult(pet.id);
+    final done = result.fold((_) => false, (r) => r != null);
+    if (mounted) setState(() => _mbtiDone = done);
   }
 
   @override
@@ -84,6 +120,7 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
 
   void _onCheckNotified() {
     _verifyAllPendingQuests();
+    _loadMbtiQuest(); // 검사 완료 후 홈 복귀 시 MBTI 퀘스트 완료 반영
   }
 
   /// 홈 복귀 시 아직 완료 안 된 퀘스트들을 일괄 DB 검증
@@ -282,7 +319,8 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
                 Padding(
                   padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 12.h),
                   child: Column(
-                    children: _quests.map((quest) {
+                    children: <Widget>[
+                      ..._quests.map((quest) {
                       final done = _completed[quest.id] == true;
                       return GestureDetector(
                         onTap: done ? null : () => _onQuestTap(quest),
@@ -359,13 +397,99 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
+                      // MBTI 1회성 퀘스트 (표시 전용 — 적립은 검사 플로우/BLoC)
+                      _buildMbtiQuestRow(),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// MBTI 1회성 퀘스트 행. 적립은 검사 플로우(BLoC)에서만 — 여기선 런처+완료표시.
+  Widget _buildMbtiQuestRow() {
+    final done = _mbtiDone;
+    void onTap() {
+      if (done || _mbtiPetId == null) return;
+      final q = _mbtiSpecies ?? 'etc';
+      final nameParam = _mbtiPetName != null
+          ? '&petName=${Uri.encodeComponent(_mbtiPetName!)}'
+          : '';
+      context.push('/mbti?petId=$_mbtiPetId&species=$q$nameParam');
+    }
+
+    return GestureDetector(
+      onTap: done ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: EdgeInsets.only(bottom: 8.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: done
+              ? AppTheme.successColor.withValues(alpha: 0.08)
+              : AppTheme.subtleBackground,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: done
+                ? AppTheme.successColor.withValues(alpha: 0.3)
+                : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text('🧬', style: TextStyle(fontSize: 20.sp)),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '반려동물 성격 검사',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                      color: done
+                          ? AppTheme.successColor
+                          : AppTheme.primaryTextColor,
+                      decoration: done
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                    ),
+                  ),
+                  Text(
+                    'MBTI 유형을 알아봐요 (1회성)',
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      color: AppTheme.secondaryTextColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+              decoration: BoxDecoration(
+                color: done
+                    ? AppTheme.successColor
+                    : AppTheme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Text(
+                done ? '완료' : '+30pt',
+                style: TextStyle(
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.w700,
+                  color: done ? Colors.white : AppTheme.primaryColor,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

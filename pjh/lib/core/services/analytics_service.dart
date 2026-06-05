@@ -125,4 +125,90 @@ class AnalyticsService {
   // ── 12. 알림 허용 ───────────────────────────────────────
   Future<void> logNotificationPermissionGranted() =>
       _log('notification_permission_granted');
+
+  // ── 13. 반려동물 MBTI (익명 집계 전용) ─────────────────────
+  // ⚠️ 개인정보 최소화: pet 이름·사진 등 식별 정보는 파라미터에 넣지 않는다.
+  //    species(dog/cat/etc), 유형코드, 문항 인덱스, 완주 여부 등 집계용만.
+
+  /// 검사 시작
+  Future<void> logMbtiStart({required String species}) =>
+      _log('mbti_start', {'species': species});
+
+  /// 문항 이탈(중간에 검사 화면을 떠남). answered: 응답한 문항 수.
+  Future<void> logMbtiAbandon({
+    required String species,
+    required int answered,
+    required int total,
+  }) =>
+      _log('mbti_abandon', {
+        'species': species,
+        'answered': answered,
+        'total': total,
+      });
+
+  /// 완주(채점 성공). 완주율 집계용. type_code 로 유형 분포도 집계.
+  Future<void> logMbtiComplete({
+    required String species,
+    required String typeCode,
+  }) =>
+      _log('mbti_complete', {
+        'species': species,
+        'type_code': typeCode,
+      });
+
+  /// 결과 공유 완료. include_photo: 사진 포함 여부(집계용 bool→int).
+  Future<void> logMbtiShare({
+    required String typeCode,
+    required bool includePhoto,
+  }) =>
+      _log('mbti_share', {
+        'type_code': typeCode,
+        'include_photo': includePhoto ? 1 : 0,
+      });
+
+  // ── 14. 반려동물 운세 (익명 집계 전용) ──────────────────────
+  // ⚠️ 개인정보 최소화: pet 이름·사진·petId 등 식별 정보는 파라미터 금지.
+  //    species(dog/cat/etc), has_mbti/include_photo(0/1) 등 집계용만.
+
+  /// 운세 상세 조회. has_mbti: MBTI 캐시 유무(그룹 분기 사용 여부, bool→int).
+  Future<void> logFortuneView({
+    required String species,
+    required bool hasMbti,
+  }) =>
+      _log('fortune_view', {
+        'species': species,
+        'has_mbti': hasMbti ? 1 : 0,
+      });
+
+  /// 운세 공유 완료. include_photo: 사진 포함 여부(bool→int).
+  Future<void> logFortuneShare({
+    required String species,
+    required bool includePhoto,
+  }) =>
+      _log('fortune_share', {
+        'species': species,
+        'include_photo': includePhoto ? 1 : 0,
+      });
+
+  // ── 15. O/X 퀴즈 (익명 집계 전용) ──────────────────────────
+  // ⚠️ 개인정보 최소화: pet 이름·사진·petId 등 식별 정보는 파라미터 금지.
+  //    정답 수·총 문항·스트릭 등 익명 집계값만.
+  // TODO(공유): 점수/스트릭 자랑 공유 훅 확정 시 운세 공유 패턴(logFortuneShare)을
+  //   재사용해 logQuizShare 를 2차로 추가.
+
+  /// 퀴즈 진행 화면 진입(세트 시작). 진입 1회.
+  Future<void> logQuizStart() => _log('quiz_start');
+
+  /// 세트 완주 완료. **신규 완주 1회만**(멱등 커밋이라 복기 재진입에선 미발생).
+  /// 익명 집계: 정답 수·총 문항·스트릭.
+  Future<void> logQuizComplete({
+    required int correctCount,
+    required int total,
+    required int streak,
+  }) =>
+      _log('quiz_complete', {
+        'correct_count': correctCount,
+        'total': total,
+        'streak': streak,
+      });
 }

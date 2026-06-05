@@ -61,6 +61,8 @@ class _CommunityPreviewState extends State<CommunityPreview> {
     switch (widget.category) {
       case 'health':    return '🏥 건강 게시글';
       case 'training':  return '🎯 훈련 게시글';
+      case 'food':      return '🍖 먹거리 게시글';
+      case 'life':      return '🏡 생활 게시글';
       default:          return '💬 커뮤니티';
     }
   }
@@ -69,6 +71,8 @@ class _CommunityPreviewState extends State<CommunityPreview> {
     switch (widget.category) {
       case 'health':   return '/feed?tab=community&category=health';
       case 'training': return '/feed?tab=community&category=training';
+      case 'food':     return '/feed?tab=community&category=food';
+      case 'life':     return '/feed?tab=community&category=life';
       default:         return '/feed?tab=community';
     }
   }

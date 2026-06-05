@@ -96,6 +96,28 @@ import '../features/chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 import '../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
 
+// Features - MBTI (반려동물 성격 유형 검사)
+import '../features/mbti/data/datasources/mbti_content_data_source.dart';
+import '../features/mbti/data/datasources/mbti_draft_local_data_source.dart';
+import '../features/mbti/data/repositories/mbti_repository_impl.dart';
+import '../features/mbti/domain/repositories/mbti_repository.dart';
+import '../features/mbti/domain/services/mbti_scorer.dart';
+import '../features/mbti/domain/usecases/save_mbti_result.dart';
+import '../features/mbti/domain/usecases/get_latest_mbti_result.dart';
+import '../features/mbti/domain/usecases/get_mbti_history.dart';
+import '../features/mbti/presentation/bloc/mbti_test_bloc.dart';
+
+// Features - Fortune (반려동물 운세)
+import '../features/fortune/data/datasources/fortune_content_data_source.dart';
+import '../features/fortune/data/datasources/fortune_seen_local_data_source.dart';
+import '../features/fortune/domain/services/fortune_generator.dart';
+
+// Features - Quiz (O/X 퀴즈)
+import '../features/quiz/data/datasources/quiz_content_data_source.dart';
+import '../features/quiz/data/datasources/quiz_local_data_source.dart';
+import '../features/quiz/domain/services/quiz_session_builder.dart';
+import '../features/quiz/domain/services/quiz_reward_hook.dart';
+
 // Core Services
 import '../core/services/image_upload_service.dart';
 import '../core/services/notification_service.dart';
@@ -120,6 +142,9 @@ Future<void> init() async {
   await _initPets();
   await _initHealth();
   await _initChat();
+  await _initMbti();
+  await _initFortune();
+  await _initQuiz();
 }
 
 Future<void> _initAuth() async {
@@ -400,6 +425,90 @@ Future<void> _initChat() async {
       updateLastRead: sl<UpdateLastRead>(),
     ),
   );
+}
+
+Future<void> _initMbti() async {
+  // MBTI feature dependencies (반려동물 성격 유형 검사)
+
+  // Data Source (앱 번들 JSON 콘텐츠 로더)
+  sl.registerLazySingleton<MbtiContentDataSource>(
+    () => MbtiContentDataSourceImpl(),
+  );
+
+  // Data Source (검사 임시저장 — shared_preferences)
+  sl.registerLazySingleton<MbtiDraftLocalDataSource>(
+    () => MbtiDraftLocalDataSourceImpl(prefs: sl()),
+  );
+
+  // Domain Service (채점기 — 외부 의존 없음)
+  sl.registerLazySingleton(() => const MbtiScorer());
+
+  // Repository
+  sl.registerLazySingleton<MbtiRepository>(
+    () => MbtiRepositoryImpl(
+      supabaseClient: sl(),
+      networkInfo: sl(),
+    ),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => SaveMbtiResult(sl()));
+  sl.registerLazySingleton(() => GetLatestMbtiResult(sl()));
+  sl.registerLazySingleton(() => GetMbtiHistory(sl()));
+
+  // BLoC — factory (페이지마다 새 인스턴스)
+  sl.registerFactory(
+    () => MbtiTestBloc(
+      contentDataSource: sl(),
+      draftDataSource: sl(),
+      scorer: sl(),
+      saveMbtiResult: sl(),
+      mbtiRepository: sl(),
+      socialRepository: sl(),
+    ),
+  );
+}
+
+Future<void> _initFortune() async {
+  // Fortune feature dependencies (반려동물 운세 — 외부 호출·DB 0)
+
+  // Data Source (앱 번들 JSON 콘텐츠 로더)
+  sl.registerLazySingleton<FortuneContentDataSource>(
+    () => FortuneContentDataSourceImpl(),
+  );
+
+  // Domain Service (결정적 생성기 — 외부 의존 없음)
+  sl.registerLazySingleton(() => const FortuneGenerator());
+
+  // Data Source (오늘 확인 여부 — shared_preferences)
+  sl.registerLazySingleton<FortuneSeenLocalDataSource>(
+    () => FortuneSeenLocalDataSourceImpl(prefs: sl()),
+  );
+}
+
+Future<void> _initQuiz() async {
+  // Quiz feature dependencies (O/X 퀴즈 — 외부 호출·DB 0, 로컬 prefs만)
+
+  // Data Source (앱 번들 JSON 콘텐츠 로더)
+  sl.registerLazySingleton<QuizContentDataSource>(
+    () => QuizContentDataSourceImpl(),
+  );
+
+  // Data Source (시드·커서·완료·스트릭 — shared_preferences)
+  sl.registerLazySingleton<QuizLocalDataSource>(
+    () => QuizLocalDataSourceImpl(prefs: sl()),
+  );
+
+  // Domain Service (출제 코디네이터 — 외부 의존 없음)
+  sl.registerLazySingleton(
+    () => QuizSessionBuilder(
+      contentDataSource: sl(),
+      localDataSource: sl(),
+    ),
+  );
+
+  // 보상 연계 훅 (1차 no-op — 리워드스토어 구현 시 교체)
+  sl.registerLazySingleton<QuizRewardHook>(() => const QuizRewardHookNoop());
 }
 
 Future<void> _initCore() async {

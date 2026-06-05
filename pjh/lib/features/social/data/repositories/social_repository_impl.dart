@@ -240,6 +240,23 @@ class SocialRepositoryImpl implements SocialRepository {
   }
 
   @override
+  Future<Either<Failure, bool>> awardBadgeIfAbsent({
+    required String userId,
+    required String badgeId,
+  }) async {
+    try {
+      if (!await networkInfo.isConnected) {
+        return const Left(NetworkFailure(message: ErrorMessages.networkError));
+      }
+      final granted = await remoteDataSource.awardBadgeIfAbsent(
+          userId: userId, badgeId: badgeId);
+      return Right(granted);
+    } catch (e) {
+      return Left(ServerFailure(message: '뱃지 지급 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Map<String, dynamic>>>> getSavedPostsRaw(
       String userId) async {
     try {

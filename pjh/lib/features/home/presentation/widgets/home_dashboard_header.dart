@@ -35,15 +35,8 @@ class HomeDashboardHeader extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
               child: Row(
                 children: [
-                  // 로고 + 인사말
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      PetSpaceLogo(variant: LogoVariant.dark, height: 28.h),
-                      SizedBox(height: 2.h),
-                      _buildGreeting(context),
-                    ],
-                  ),
+                  // 로고 (하단 인사말 제거 · 크기 확대)
+                  PetSpaceLogo(variant: LogoVariant.dark, height: 40.h),
                   const Spacer(),
                   // 스트릭 배지
                   _buildStreakBadge(context),
@@ -71,38 +64,6 @@ class HomeDashboardHeader extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  // ── 시간대별 인사말 ───────────────────────────────────
-  Widget _buildGreeting(BuildContext context) {
-    final hour = DateTime.now().hour;
-    final String greeting;
-    if (hour < 6) {
-      greeting = '🌙 늦은 밤이에요';
-    } else if (hour < 12) {
-      greeting = '☀️ 좋은 아침이에요';
-    } else if (hour < 18) {
-      greeting = '🌤 즐거운 오후예요';
-    } else {
-      greeting = '🌙 편안한 저녁이에요';
-    }
-
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        final name = state is AuthAuthenticated
-            ? state.user.displayName.split(' ').first
-            : '';
-        final label = name.isNotEmpty ? '$greeting, $name님' : greeting;
-        return Text(
-          label,
-          style: TextStyle(
-            fontSize: 10.sp,
-            color: Colors.white.withValues(alpha: 0.75),
-            fontWeight: FontWeight.w500,
-          ),
-        );
-      },
     );
   }
 
