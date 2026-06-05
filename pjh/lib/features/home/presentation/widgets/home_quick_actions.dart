@@ -4,119 +4,113 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 
+/// 홈 상단 퀵 액션 — 원형 아이콘 버튼 5개 가로 배치.
+/// 아이콘은 임시(Material Icons)이며, 추후 전용 일러스트/에셋으로 교체 예정.
 class HomeQuickActions extends StatelessWidget {
   const HomeQuickActions({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final actions = [
+    final actions = <_QuickAction>[
       _QuickAction(
-        emoji: '📊',
-        label: '건강 기록',
-        sub: '기록 추가하기',
-        color: AppTheme.accentColor,
-        onTap: () => context.go('/health'),
-      ),
-      _QuickAction(
-        emoji: '🏥',
-        label: '병원 찾기',
-        sub: '주변 동물병원',
+        // 플레이스 = 기존 동물병원 찾기
+        icon: Icons.place_rounded,
+        label: '플레이스',
         color: const Color(0xFF4CAF50),
         onTap: () => context.push('/hospital'),
+      ),
+      _QuickAction(
+        icon: Icons.psychology_rounded,
+        label: 'MBTI 검사',
+        color: const Color(0xFF7E57C2),
+        // push로 진입해야 뒤로가기(앱·하드웨어)로 홈 복귀 가능
+        onTap: () => context.push('/mbti'),
+      ),
+      _QuickAction(
+        icon: Icons.directions_walk_rounded,
+        label: '산책 기록',
+        color: const Color(0xFF009688),
+        // 미구현 — 버튼만 노출, 탭 시 안내 스낵바
+        onTap: () => _showComingSoon(context),
+      ),
+      _QuickAction(
+        icon: Icons.auto_awesome_rounded,
+        label: '오늘의 운세',
+        color: const Color(0xFFFF9800),
+        onTap: () => context.push('/fortune'),
+      ),
+      _QuickAction(
+        icon: Icons.quiz_rounded,
+        label: 'O/X 퀴즈',
+        color: AppTheme.accentColor,
+        onTap: () => context.push('/quiz/play'),
       ),
     ];
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
       child: Row(
+        // 5개가 가로 폭에 균등하게 들어가도록 Expanded 배치
         children: actions
-            .map(
-              (a) => Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: a == actions.last ? 0 : 8.w,
-                  ),
-                  child: _buildActionCard(context, a),
-                ),
-              ),
-            )
+            .map((a) => Expanded(child: _buildItem(context, a)))
             .toList(),
       ),
     );
   }
 
-  Widget _buildActionCard(BuildContext context, _QuickAction action) {
+  Widget _buildItem(BuildContext context, _QuickAction action) {
     return GestureDetector(
       onTap: action.onTap,
-      child: Container(
-        padding: EdgeInsets.all(14.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: AppTheme.dividerColor),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        children: [
+          Container(
+            width: 52.w,
+            height: 52.w,
+            decoration: BoxDecoration(
+              color: action.color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40.w,
-              height: 40.w,
-              decoration: BoxDecoration(
-                color: action.color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Center(
-                child: Text(action.emoji, style: TextStyle(fontSize: 20.sp)),
-              ),
+            child: Icon(action.icon, size: 24.w, color: action.color),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            action.label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10.5.sp,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.primaryTextColor,
             ),
-            SizedBox(width: 10.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    action.label,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primaryTextColor,
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    action.sub,
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      color: AppTheme.secondaryTextColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('산책 기록은 곧 추가될 예정이에요 🐾'),
+          duration: Duration(seconds: 2),
+        ),
+      );
   }
 }
 
 class _QuickAction {
-  final String emoji;
+  final IconData icon;
   final String label;
-  final String sub;
   final Color color;
   final VoidCallback onTap;
 
   const _QuickAction({
-    required this.emoji,
+    required this.icon,
     required this.label,
-    required this.sub,
     required this.color,
     required this.onTap,
   });
