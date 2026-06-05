@@ -1,5 +1,5 @@
 // firebase_options.dart
-// Android (Google Play) 출시 기준 — iOS는 추후 추가 예정
+// Android (Google Play) + iOS (App Store) 출시 기준
 // API 키는 secrets.dart에서 관리 (git 미추적)
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
@@ -14,8 +14,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        // iOS Firebase 설정 미완료 — null 반환하여 Firebase 건너뜀
-        return null;
+        return ios;
       default:
         return null;
     }
@@ -37,5 +36,15 @@ class DefaultFirebaseOptions {
     messagingSenderId: Secrets.firebaseMessagingSenderId,
     projectId: Secrets.firebaseProjectId,
     storageBucket: Secrets.firebaseStorageBucket,
+  );
+
+  /// iOS — apiKey·appId만 Android와 다름, 나머지는 프로젝트 공통
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: Secrets.firebaseIosApiKey,
+    appId: Secrets.firebaseIosAppId,
+    messagingSenderId: Secrets.firebaseMessagingSenderId,
+    projectId: Secrets.firebaseProjectId,
+    storageBucket: Secrets.firebaseStorageBucket,
+    iosBundleId: Secrets.firebaseIosBundleId,
   );
 }
