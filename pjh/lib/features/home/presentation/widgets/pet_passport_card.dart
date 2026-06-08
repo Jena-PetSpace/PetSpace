@@ -124,21 +124,26 @@ class PetPassportCard extends StatelessWidget {
   }
 
   // ── 한글 워터마크 레이어(우측 그리드 영역 전용). 흰색 글자 PNG 회색 변환. ──
+  //    opacity 는 1.0 이 최대 → 더 진하게(1.25 효과) 위해 동일 레이어 2겹.
   Widget _watermarkLayer() {
+    final img = ColorFiltered(
+      colorFilter: const ColorFilter.mode(
+        _watermarkTint,
+        BlendMode.srcIn,
+      ),
+      child: Image.asset(
+        _watermarkAsset,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      ),
+    );
     return Positioned.fill(
-      child: Opacity(
-        opacity: 1.0,
-        child: ColorFiltered(
-          colorFilter: const ColorFilter.mode(
-            _watermarkTint,
-            BlendMode.srcIn,
-          ),
-          child: Image.asset(
-            _watermarkAsset,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-          ),
-        ),
+      child: Stack(
+        children: [
+          Positioned.fill(child: img),
+          // 2겹째(0.25)로 색 누적 → 약 1.25 농도.
+          Positioned.fill(child: Opacity(opacity: 0.25, child: img)),
+        ],
       ),
     );
   }
@@ -216,22 +221,21 @@ class PetPassportCard extends StatelessWidget {
     );
   }
 
-  // ── 본문: 좌 사진(그리드 높이에 맞춤) / 우 필드 그리드 ──────
+  // ── 본문: 좌 사진(고정 크기) / 우 필드 그리드(자연 10h 간격) ──
+  //    IntrinsicHeight 제거 → 그리드는 순수 자연 레이아웃이라 줄간격이 항상 균일.
   Widget _buildBody() {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 사진 — 가로 130 고정. IntrinsicHeight 로 그리드 자연 높이에 맞춰 늘어남.
-          // (그리드 행 간격은 _buildFields 의 SizedBox 값 그대로 유지)
-          SizedBox(
-            width: 130.w,
-            child: _buildPhoto(),
-          ),
-          SizedBox(width: 14.w),
-          Expanded(child: _buildFields()),
-        ],
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 사진 — 가로 130, 세로 고정(그리드 높이와 비슷하게).
+        SizedBox(
+          width: 130.w,
+          height: 232.w,
+          child: _buildPhoto(),
+        ),
+        SizedBox(width: 14.w),
+        Expanded(child: _buildFields()),
+      ],
     );
   }
 
@@ -383,7 +387,11 @@ class PetPassportCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _buildHealthButton(),
+                    // 건강관리 버튼만 우측으로 2 이동(지난기록은 그대로).
+                    Transform.translate(
+                      offset: Offset(2.w, 0),
+                      child: _buildHealthButton(),
+                    ),
                     SizedBox(height: 4.h),
                     GestureDetector(
                       onTap: onHistoryTap,

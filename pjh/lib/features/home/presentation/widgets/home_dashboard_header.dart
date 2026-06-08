@@ -40,7 +40,7 @@ class HomeDashboardHeader extends StatelessWidget {
               child: Row(
                 children: [
                   // 로고 (하단 인사말 제거 · 크기 확대)
-                  PetSpaceLogo(variant: LogoVariant.dark, height: 40.h),
+                  PetSpaceLogo(variant: LogoVariant.dark, height: 48.h),
                   const Spacer(),
                   // 스트릭 배지
                   _buildStreakBadge(context),
