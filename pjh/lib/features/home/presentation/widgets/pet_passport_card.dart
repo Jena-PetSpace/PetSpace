@@ -82,7 +82,7 @@ class PetPassportCard extends StatelessWidget {
   static const Color verifiedBlue = Color(0xFF1E88E5);
 
   /// 워터마크 틴트(연회색). 흰 카드 위에서 은은하게 보이는 톤.
-  static const Color _watermarkTint = Color(0xFF7A8A9C);
+  static const Color _watermarkTint = Color(0xFF5E6E80);
 
   /// 한글 격자 워터마크 PNG(흰색 글자 PNG). 흰 카드 위에선 연회색으로 틴트.
   /// 파일 없으면 폴백(흰 단색 유지).
@@ -152,18 +152,18 @@ class PetPassportCard extends StatelessWidget {
         Text(
           '여권',
           style: TextStyle(
-            fontSize: 20.sp,
+            fontSize: 15.sp,
             fontWeight: FontWeight.w800,
             color: navy,
           ),
         ),
-        SizedBox(width: 7.w),
+        SizedBox(width: 6.w),
         Padding(
-          padding: EdgeInsets.only(bottom: 2.h),
+          padding: EdgeInsets.only(bottom: 1.h),
           child: Text(
             'PETSPORT',
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: 12.sp,
               fontWeight: FontWeight.w700,
               color: navy,
               letterSpacing: 1.0,
@@ -222,7 +222,8 @@ class PetPassportCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 사진 — 가로 130 고정, 세로는 그리드 전체 높이에 맞춰 늘어남.
+          // 사진 — 가로 130 고정. IntrinsicHeight 로 그리드 자연 높이에 맞춰 늘어남.
+          // (그리드 행 간격은 _buildFields 의 SizedBox 값 그대로 유지)
           SizedBox(
             width: 130.w,
             child: _buildPhoto(),
@@ -328,6 +329,7 @@ class PetPassportCard extends StatelessWidget {
         // 워터마크는 그리드 영역에만(은은). 글자/버튼 뒤에 깔림.
         _watermarkLayer(),
         Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1행: MBTI · 국가코드 · 여권번호
