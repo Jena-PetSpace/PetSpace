@@ -48,8 +48,8 @@ class PetPassportCard extends StatelessWidget {
   });
 
   // ── 색상 팔레트(밝은 여권 양식) ──────────────────────────
-  /// 카드 배경(연한 그레이/베이지).
-  static const Color cardBg = Color(0xFFEDF1F6);
+  /// 카드 배경(흰색 단색).
+  static const Color cardBg = Color(0xFFFCFDFE);
 
   /// 진한 남색 글자/제목.
   static const Color navy = Color(0xFF0C447C);
@@ -63,14 +63,13 @@ class PetPassportCard extends StatelessWidget {
   /// 인증 뱃지 파란색.
   static const Color verifiedBlue = Color(0xFF1E88E5);
 
-  /// 한글 격자 워터마크 PNG(흰색 글자 PNG). 밝은 카드 위에선 navy 로 틴트.
-  /// 파일 없으면 폴백(밝은 단색 유지).
+  /// 워터마크 틴트(연회색). 흰 카드 위에서 은은하게 보이는 톤.
+  static const Color _watermarkTint = Color(0xFF9AA7B5);
+
+  /// 한글 격자 워터마크 PNG(흰색 글자 PNG). 흰 카드 위에선 연회색으로 틴트.
+  /// 파일 없으면 폴백(흰 단색 유지).
   static const String _watermarkAsset =
       'assets/images/petspace_passport_watermark_white.png';
-
-  /// 사진 위 원형 도장 PNG(선택, 없으면 미표시).
-  static const String _stampAsset =
-      'assets/images/petspace_passport_stamp.png';
 
   @override
   Widget build(BuildContext context) {
@@ -90,15 +89,15 @@ class PetPassportCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16.r),
         child: Stack(
           children: [
-            // ── 한글 워터마크 레이어(은은). 흰색 PNG 를 navy 로 틴트해 밝은 카드에 맞춤.
-            //    파일 없으면 밝은 단색 폴백.
+            // ── 한글 워터마크 레이어. 흰색 PNG 를 연회색으로 틴트해 흰 카드에 표시.
+            //    파일 없으면 흰 단색 폴백. (1번 시안처럼 선명하게)
             Positioned.fill(
               child: Opacity(
-                opacity: 0.07,
+                opacity: 0.35,
                 child: Image.asset(
                   _watermarkAsset,
                   fit: BoxFit.cover,
-                  color: navy,
+                  color: _watermarkTint,
                   colorBlendMode: BlendMode.srcIn,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
@@ -130,6 +129,7 @@ class PetPassportCard extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        // 좌: 여권 PETSPORT (고정폭, 공간 점유 최소화)
         Text(
           '여권',
           style: TextStyle(
@@ -147,36 +147,47 @@ class PetPassportCard extends StatelessWidget {
               fontSize: 9.sp,
               fontWeight: FontWeight.w600,
               color: labelColor,
-              letterSpacing: 1.5,
+              letterSpacing: 1.2,
             ),
           ),
         ),
-        const Spacer(),
-        Flexible(
-          child: Text(
-            _countryName(pet.countryCodeOrDefault),
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w800,
-              color: navy,
-            ),
-            overflow: TextOverflow.ellipsis,
+        SizedBox(width: 10.w),
+        // 우: 국가명(한/영) + 인증뱃지 — 남은 공간 전부 차지, 우측 정렬
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  _countryName(pet.countryCodeOrDefault),
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800,
+                    color: navy,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              SizedBox(width: 4.w),
+              Flexible(
+                child: Text(
+                  _countryEnglishName(pet.countryCodeOrDefault),
+                  style: TextStyle(
+                    fontSize: 8.sp,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              SizedBox(width: 4.w),
+              Icon(Icons.verified, size: 15.w, color: verifiedBlue),
+            ],
           ),
         ),
-        SizedBox(width: 4.w),
-        Flexible(
-          child: Text(
-            _countryEnglishName(pet.countryCodeOrDefault),
-            style: TextStyle(
-              fontSize: 9.sp,
-              fontWeight: FontWeight.w600,
-              color: labelColor,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        SizedBox(width: 4.w),
-        Icon(Icons.verified, size: 16.w, color: verifiedBlue),
       ],
     );
   }
@@ -197,29 +208,10 @@ class PetPassportCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 사진 + 우하단 도장 오버레이
         SizedBox(
           width: 92.w,
           height: 108.w,
-          child: Stack(
-            children: [
-              Positioned.fill(child: _buildPhoto()),
-              // 원형 도장(있을 때만). 파일 없으면 미표시.
-              Positioned(
-                right: -2.w,
-                bottom: -2.w,
-                child: Opacity(
-                  opacity: 0.85,
-                  child: Image.asset(
-                    _stampAsset,
-                    width: 40.w,
-                    height: 40.w,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          child: _buildPhoto(),
         ),
         SizedBox(height: 10.h),
         // 오늘의 기분(코랄)
