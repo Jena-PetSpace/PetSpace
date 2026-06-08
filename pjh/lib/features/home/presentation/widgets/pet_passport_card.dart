@@ -105,42 +105,39 @@ class PetPassportCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16.r),
-        child: Stack(
-          children: [
-            // ── 한글 워터마크 레이어. 흰색 글자 PNG 를 ColorFiltered 로 회색 변환.
-            //    (Image.color+srcIn 이 Impeller 에서 누락되는 케이스 → ColorFiltered 사용)
-            //    글자 모양(알파)에 불투명 회색을 입힌 뒤 Opacity 로 은은하게.
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.5,
-                child: ColorFiltered(
-                  colorFilter: const ColorFilter.mode(
-                    _watermarkTint,
-                    BlendMode.srcIn,
-                  ),
-                  child: Image.asset(
-                    _watermarkAsset,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-            ),
-            // ── 본문 ──
-            Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildHeader(),
-                  SizedBox(height: 14.h),
-                  // 좌 사진 + 우 그리드(…생년월일/성별 → 오늘의 기분·건강관리)
-                  _buildBody(),
-                ],
-              ),
-            ),
-          ],
+        // 본문 (워터마크는 우측 그리드 영역에만 깔린다 → _buildFields 내부)
+        child: Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildHeader(),
+              SizedBox(height: 14.h),
+              // 좌 사진 + 우 그리드(…생년월일/성별 → 오늘의 기분·건강관리)
+              _buildBody(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 한글 워터마크 레이어(우측 그리드 영역 전용). 흰색 글자 PNG 회색 변환. ──
+  Widget _watermarkLayer() {
+    return Positioned.fill(
+      child: Opacity(
+        opacity: 0.85,
+        child: ColorFiltered(
+          colorFilter: const ColorFilter.mode(
+            _watermarkTint,
+            BlendMode.srcIn,
+          ),
+          child: Image.asset(
+            _watermarkAsset,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
         ),
       ),
     );
@@ -324,67 +321,84 @@ class PetPassportCard extends StatelessWidget {
             ? pet.nameHanguel!.trim()
             : pet.name;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // 컬럼 경계 통일(여권번호=성별 세로선 정렬용): [5 | 4 | 7]
+    // 여권번호는 3번째 칸(flex7), 성별도 같은 3번째 칸(flex7)에 배치.
+    return Stack(
       children: [
-        // 1행: MBTI · 국가코드 · 여권번호
-        Row(
+        // 워터마크는 그리드 영역에만(은은). 글자/버튼 뒤에 깔림.
+        _watermarkLayer(),
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(flex: 5, child: _field('MBTI', mbti)),
-            Expanded(flex: 4, child: _field('국가코드', pet.countryCodeOrDefault)),
-            Expanded(flex: 7, child: _field('여권번호', pet.passportNo ?? '미발급')),
-          ],
-        ),
-        SizedBox(height: 10.h),
-        // 2행: 성(영문) · 이름(영문)
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: _field('성', surname == null || surname.isEmpty ? '—' : surname)),
-            Expanded(
-                flex: 2,
-                child: _field('이름', given == null || given.isEmpty ? '—' : given)),
-          ],
-        ),
-        SizedBox(height: 10.h),
-        // 3행: 한글성명
-        _field('한글성명', hanguel),
-        SizedBox(height: 10.h),
-        // 4행: 생년월일 · 성별
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 2, child: _field('생년월일', _formatBirthDate(pet.birthDate))),
-            Expanded(child: _field('성별', pet.genderDisplayName ?? '—')),
-          ],
-        ),
-        SizedBox(height: 10.h),
-        // 5행: 좌 오늘의 기분(생년월일 밑) / 우 건강관리 버튼
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(child: _buildMood()),
-            _buildHealthButton(),
-          ],
-        ),
-        SizedBox(height: 4.h),
-        // 지난 기록 보기(우측 정렬)
-        Align(
-          alignment: Alignment.centerRight,
-          child: GestureDetector(
-            onTap: onHistoryTap,
-            child: Text(
-              '지난 기록 보기',
-              style: TextStyle(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w600,
-                color: labelColor,
-                decoration: TextDecoration.underline,
-                decorationColor: labelColor,
+            // 1행: MBTI · 국가코드 · 여권번호
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 5, child: _field('MBTI', mbti)),
+                Expanded(flex: 4, child: _field('국가코드', pet.countryCodeOrDefault)),
+                Expanded(
+                    flex: 7, child: _field('여권번호', pet.passportNo ?? '미발급')),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            // 2행: 성(영문) · 이름(영문) — 같은 컬럼 경계
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                    flex: 5,
+                    child: _field(
+                        '성', surname == null || surname.isEmpty ? '—' : surname)),
+                Expanded(
+                    flex: 11,
+                    child: _field('이름',
+                        given == null || given.isEmpty ? '—' : given)),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            // 3행: 한글성명
+            _field('한글성명', hanguel),
+            SizedBox(height: 10.h),
+            // 4행: 생년월일(1~2칸) · 성별(3칸=여권번호와 동일 세로선)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                    flex: 9,
+                    child: _field('생년월일', _formatBirthDate(pet.birthDate))),
+                Expanded(
+                    flex: 7,
+                    child: _field('성별', pet.genderDisplayName ?? '—')),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            // 5행: 좌 오늘의 기분(생년월일 밑) / 우 건강관리 버튼(우측 끝선 정렬)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(child: _buildMood()),
+                _buildHealthButton(),
+              ],
+            ),
+            SizedBox(height: 4.h),
+            // 지난 기록 보기(우측 끝선 = 버튼 우측 끝선과 동일)
+            Align(
+              alignment: Alignment.centerRight,
+              child: GestureDetector(
+                onTap: onHistoryTap,
+                child: Text(
+                  '지난 기록 보기',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
+                    decoration: TextDecoration.underline,
+                    decorationColor: labelColor,
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ],
     );
