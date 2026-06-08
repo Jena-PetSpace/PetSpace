@@ -63,8 +63,14 @@ class PetPassportCard extends StatelessWidget {
   /// 진한 남색 글자/제목.
   static const Color navy = Color(0xFF0C447C);
 
-  /// 라벨(연한 회색-남색).
+  /// 라벨(연한 회색-남색) — PETSPORT/영문 국가명 등 보조 텍스트.
   static const Color labelColor = Color(0xFF6B7B8F);
+
+  /// 필드 라벨(파란색): MBTI/국가코드/여권번호 등 항목명.
+  static const Color labelBlue = Color(0xFF2C6BB3);
+
+  /// 필드 값(검은색): 항목의 값.
+  static const Color valueBlack = Color(0xFF1A1A1A);
 
   /// 코랄 포인트.
   static const Color coral = Color(0xFFD85A30);
@@ -98,17 +104,22 @@ class PetPassportCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16.r),
         child: Stack(
           children: [
-            // ── 한글 워터마크 레이어. 흰색 PNG 를 연회색으로 틴트해 흰 카드에 표시.
-            //    파일 없으면 흰 단색 폴백. (1번 시안처럼 선명하게)
+            // ── 한글 워터마크 레이어. 흰색 글자 PNG 를 ColorFiltered 로 회색 변환.
+            //    (Image.color+srcIn 이 Impeller 에서 누락되는 케이스 → ColorFiltered 사용)
+            //    글자 모양(알파)에 불투명 회색을 입힌 뒤 Opacity 로 은은하게.
             Positioned.fill(
               child: Opacity(
-                opacity: 0.35,
-                child: Image.asset(
-                  _watermarkAsset,
-                  fit: BoxFit.cover,
-                  color: _watermarkTint,
-                  colorBlendMode: BlendMode.srcIn,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                opacity: 0.7,
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.mode(
+                    _watermarkTint,
+                    BlendMode.srcIn,
+                  ),
+                  child: Image.asset(
+                    _watermarkAsset,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),
@@ -120,10 +131,12 @@ class PetPassportCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildHeader(),
-                  SizedBox(height: 12.h),
+                  SizedBox(height: 14.h),
+                  // 사진(좌, 큼) + 필드 그리드(우)
                   _buildBody(),
-                  SizedBox(height: 10.h),
-                  _buildFooter(),
+                  SizedBox(height: 14.h),
+                  // 하단: 좌 오늘의 기분 / 우 건강관리 버튼 + 지난 기록 보기
+                  _buildBottomRow(),
                 ],
               ),
             ),
@@ -201,30 +214,67 @@ class PetPassportCard extends StatelessWidget {
     );
   }
 
-  // ── 본문: 좌 사진(+도장+기분) / 우 필드 그리드 ───────────────
+  // ── 본문: 좌 사진(큼) / 우 필드 그리드 ──────────────────────
   Widget _buildBody() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildPhotoColumn(),
+        // 사진 — 시안처럼 크게(세로로 그리드와 비슷한 높이).
+        SizedBox(
+          width: 116.w,
+          height: 142.w,
+          child: _buildPhoto(),
+        ),
         SizedBox(width: 14.w),
         Expanded(child: _buildFields()),
       ],
     );
   }
 
-  Widget _buildPhotoColumn() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  // ── 하단: 좌 오늘의 기분 / 우 건강관리 버튼 + 지난 기록 보기 ──
+  Widget _buildBottomRow() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        SizedBox(
-          width: 92.w,
-          height: 108.w,
-          child: _buildPhoto(),
-        ),
-        SizedBox(height: 10.h),
-        // 오늘의 기분(코랄)
         _buildMood(),
+        const Spacer(),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            GestureDetector(
+              onTap: onHealthTap,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
+                decoration: BoxDecoration(
+                  color: coral,
+                  borderRadius: BorderRadius.circular(22.r),
+                ),
+                child: Text(
+                  '오늘의 건강 관리',
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 6.h),
+            GestureDetector(
+              onTap: onHistoryTap,
+              child: Text(
+                '지난 기록 보기',
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                  color: labelColor,
+                  decoration: TextDecoration.underline,
+                  decorationColor: labelColor,
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -250,7 +300,7 @@ class PetPassportCard extends StatelessWidget {
   }
 
   Widget _defaultPhoto() {
-    return Center(child: Text('🐾', style: TextStyle(fontSize: 34.sp)));
+    return Center(child: Text('🐾', style: TextStyle(fontSize: 44.sp)));
   }
 
   // ── 오늘의 기분: 라벨 + "편안함 90%"(코랄) / 미분석 시 유도 ──
@@ -348,7 +398,7 @@ class PetPassportCard extends StatelessWidget {
     );
   }
 
-  /// 라벨(작게) + 값(굵게). 여권 양식 한 칸.
+  /// 라벨(파란색) + 값(검은색). 여권 양식 한 칸.
   Widget _field(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,9 +406,9 @@ class PetPassportCard extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 8.5.sp,
+            fontSize: 9.sp,
             fontWeight: FontWeight.w600,
-            color: labelColor,
+            color: labelBlue,
             letterSpacing: 0.3,
           ),
         ),
@@ -366,53 +416,11 @@ class PetPassportCard extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: 12.sp,
+            fontSize: 13.sp,
             fontWeight: FontWeight.w800,
-            color: navy,
+            color: valueBlack,
           ),
           overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-
-  // ── 푸터: 우측 코랄 버튼 + 지난 기록 보기 텍스트 ─────────────
-  Widget _buildFooter() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        GestureDetector(
-          onTap: onHealthTap,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 9.h),
-            decoration: BoxDecoration(
-              color: coral,
-              borderRadius: BorderRadius.circular(20.r),
-            ),
-            child: Text(
-              '오늘의 건강 관리',
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-        SizedBox(width: 14.w),
-        GestureDetector(
-          onTap: onHistoryTap,
-          child: Text(
-            '지난 기록 보기',
-            style: TextStyle(
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w600,
-              color: labelColor,
-              decoration: TextDecoration.underline,
-              decorationColor: labelColor,
-            ),
-          ),
         ),
       ],
     );
