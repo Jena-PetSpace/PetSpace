@@ -2731,3 +2731,60 @@ ADD COLUMN IF NOT EXISTS context_note TEXT;
 
 COMMENT ON COLUMN emotion_history.context_note IS
   '분석 시점 보호자 입력 컨텍스트. AI 프롬프트 주입용. memo와 별도 (memo는 분석 후 회고용).';
+
+
+-- ============================================================================
+-- PART 19: 펫 뉴스 (F1) — 반자동 수집/검수/링크아웃
+-- ============================================================================
+-- 외부 RSS를 Edge Function(collect-news)이 매일 09:00 KST 수집 → pending 적재.
+-- 운영자가 대시보드에서 published 토글 → 앱은 published만 노출(원문 링크아웃).
+-- 저작권: 제목·발행일·출처·원문 링크만 저장. 본문/요약/썸네일 컬럼 없음.
+-- (상세·검증 내역은 supabase/migrations/F1_pet_news.sql 참조)
+
+-- 19-1) 수집 소스 목록
+create table if not exists public.news_sources (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,                 -- 매체명(출처 표시용)
+  rss_url     text not null unique,          -- RSS 피드 URL
+  is_active   boolean not null default true, -- 수집 on/off
+  created_at  timestamptz not null default now()
+);
+
+comment on table public.news_sources is '펫 뉴스 RSS 수집 소스';
+
+-- 19-2) 수집 기사
+create table if not exists public.news_articles (
+  id            uuid primary key default gen_random_uuid(),
+  source_id     uuid references public.news_sources(id) on delete set null,
+  source_name   text not null,                -- 출처(매체명) — 표시용 비정규화
+  title         text not null,                -- 기사 제목
+  link          text not null unique,         -- 원문 URL (중복 방지 키)
+  published_at  timestamptz,                  -- 원문 발행일(파싱)
+  status        text not null default 'pending'
+                check (status in ('pending','published','rejected')),
+  collected_at  timestamptz not null default now(),
+  reviewed_at   timestamptz                   -- 검수(발행/반려) 시각
+);
+
+comment on table public.news_articles is '수집된 펫 뉴스(반자동 검수). 본문 미저장 → 링크아웃 전용';
+
+create index if not exists idx_news_articles_status_pub
+  on public.news_articles (status, published_at desc);
+
+-- 19-3) RLS: 앱은 발행분만 SELECT. INSERT/UPDATE는 정책 없음(service_role 전용).
+alter table public.news_articles enable row level security;
+alter table public.news_sources  enable row level security;
+
+drop policy if exists "news read published" on public.news_articles;
+create policy "news read published"
+  on public.news_articles
+  for select
+  using (status = 'published');
+
+-- 19-4) 소스 시드 (작업0 검증, 2026-06-08)
+insert into public.news_sources (name, rss_url, is_active) values
+  ('데일리벳',         'https://www.dailyvet.co.kr/feed',                        true),
+  ('뉴스펫',           'https://www.newspet.co.kr/rss/allArticle.xml',           true),
+  ('구글뉴스(반려동물)', 'https://news.google.com/rss/search?q=%EB%B0%98%EB%A0%A4%EB%8F%99%EB%AC%BC&hl=ko&gl=KR&ceid=KR:ko', true),
+  ('한국반려동물신문', 'http://www.pet-news.or.kr/rss/allArticle.xml',           false)  -- 휴면, 수집 제외
+on conflict (rss_url) do nothing;
