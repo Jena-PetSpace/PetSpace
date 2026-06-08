@@ -20,26 +20,22 @@ class PassportMood {
   });
 }
 
-/// 홈 상단 "반려동물 여권 카드".
+/// 홈 상단 "반려동물 여권 카드"(밝은 여권 양식).
 ///
-/// 디자인 규칙(작업지시서 공통 원칙):
-/// - 네이비(#0C447C) 배경 + 코랄(#D85A30) 포인트 + 흰 텍스트. **빨강 금지.**
-/// - 훈민정음 워터마크 PNG 레이어(은은). 파일 없으면 네이비 단색 폴백.
-/// - "오늘의 기분 N%" 는 감정 **분포 비율**(신뢰도 아님).
-/// - MBTI 없으면 "—", 사진 없으면 기본 일러스트.
+/// 디자인:
+/// - **밝은 카드(연한 그레이/베이지) 배경 + 진한 남색 글자.** 코랄 포인트. 빨강 금지.
+/// - 훈민정음 한글 워터마크 PNG(은은) + 사진 위 원형 도장(선택). 파일 없으면 폴백.
+/// - 헤더: "여권 PETSPORT" / "대한민국 REPUBLIC OF KOREA + 인증뱃지".
+/// - 본문: 좌 사진 + 우 그리드(MBTI·국가코드·여권번호 / 성·이름 / 한글성명 / 생일·성별).
+/// - 사진 아래 "오늘의 기분 {감정} {비율}%"(코랄). MBTI 없으면 "—".
 class PetPassportCard extends StatelessWidget {
   final Pet pet;
 
   /// 오늘의 기분(분포 1위). null 이면 미분석 → 분석 유도.
   final PassportMood? mood;
 
-  /// "오늘의 건강 관리" 탭(코랄 버튼).
   final VoidCallback? onHealthTap;
-
-  /// "지난 기록 보기" 탭.
   final VoidCallback? onHistoryTap;
-
-  /// "오늘 분석하기" 탭(mood 없을 때 유도).
   final VoidCallback? onAnalyzeTap;
 
   const PetPassportCard({
@@ -51,35 +47,59 @@ class PetPassportCard extends StatelessWidget {
     this.onAnalyzeTap,
   });
 
-  /// 여권 카드 네이비 배경.
+  // ── 색상 팔레트(밝은 여권 양식) ──────────────────────────
+  /// 카드 배경(연한 그레이/베이지).
+  static const Color cardBg = Color(0xFFEDF1F6);
+
+  /// 진한 남색 글자/제목.
   static const Color navy = Color(0xFF0C447C);
 
-  /// 여권 카드 코랄 포인트.
+  /// 라벨(연한 회색-남색).
+  static const Color labelColor = Color(0xFF6B7B8F);
+
+  /// 코랄 포인트.
   static const Color coral = Color(0xFFD85A30);
 
-  /// 워터마크 PNG 경로(파일 없으면 폴백). soft 버전으로 교체 가능.
+  /// 인증 뱃지 파란색.
+  static const Color verifiedBlue = Color(0xFF1E88E5);
+
+  /// 한글 격자 워터마크 PNG(흰색 글자 PNG). 밝은 카드 위에선 navy 로 틴트.
+  /// 파일 없으면 폴백(밝은 단색 유지).
   static const String _watermarkAsset =
       'assets/images/petspace_passport_watermark_white.png';
 
+  /// 사진 위 원형 도장 PNG(선택, 없으면 미표시).
+  static const String _stampAsset =
+      'assets/images/petspace_passport_stamp.png';
+
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20.r),
-      child: Container(
-        decoration: BoxDecoration(
-          color: navy,
-          borderRadius: BorderRadius.circular(20.r),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.r),
         child: Stack(
           children: [
-            // ── 워터마크 레이어 (은은). 파일 없으면 네이비 단색 폴백 ──
+            // ── 한글 워터마크 레이어(은은). 흰색 PNG 를 navy 로 틴트해 밝은 카드에 맞춤.
+            //    파일 없으면 밝은 단색 폴백.
             Positioned.fill(
               child: Opacity(
-                opacity: 0.10,
+                opacity: 0.07,
                 child: Image.asset(
                   _watermarkAsset,
                   fit: BoxFit.cover,
-                  // 안전장치: 에셋 누락 시 빈 박스 → 네이비 단색 유지.
+                  color: navy,
+                  colorBlendMode: BlendMode.srcIn,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),
@@ -89,17 +109,13 @@ class PetPassportCard extends StatelessWidget {
               padding: EdgeInsets.all(16.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildPassportHeader(),
-                  SizedBox(height: 14.h),
+                  _buildHeader(),
+                  SizedBox(height: 12.h),
                   _buildBody(),
-                  SizedBox(height: 14.h),
-                  Divider(
-                      color: Colors.white.withValues(alpha: 0.2), height: 1),
-                  SizedBox(height: 12.h),
-                  _buildMoodRow(),
-                  SizedBox(height: 12.h),
-                  _buildActionButtons(),
+                  SizedBox(height: 10.h),
+                  _buildFooter(),
                 ],
               ),
             ),
@@ -109,91 +125,119 @@ class PetPassportCard extends StatelessWidget {
     );
   }
 
-  // ── 여권 헤더: "여권 PETSPORT / 국가명 ✓" ──────────────────
-  Widget _buildPassportHeader() {
+  // ── 헤더: 여권 PETSPORT / 국가명 + 인증뱃지 ─────────────────
+  Widget _buildHeader() {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '여권',
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 1,
-              ),
-            ),
-            Text(
-              'PETSPORT',
-              style: TextStyle(
-                fontSize: 9.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white.withValues(alpha: 0.6),
-                letterSpacing: 2,
-              ),
-            ),
-          ],
+        Text(
+          '여권',
+          style: TextStyle(
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w800,
+            color: navy,
+          ),
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Row(
-              children: [
-                Text(
-                  _countryName(pet.countryCodeOrDefault),
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(width: 4.w),
-                Icon(Icons.check_circle, size: 14.w, color: coral),
-              ],
+        SizedBox(width: 5.w),
+        Padding(
+          padding: EdgeInsets.only(bottom: 1.h),
+          child: Text(
+            'PETSPORT',
+            style: TextStyle(
+              fontSize: 9.sp,
+              fontWeight: FontWeight.w600,
+              color: labelColor,
+              letterSpacing: 1.5,
             ),
-            Text(
-              _countryEnglishName(pet.countryCodeOrDefault),
-              style: TextStyle(
-                fontSize: 8.sp,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.6),
-                letterSpacing: 1,
-              ),
-            ),
-          ],
+          ),
         ),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            _countryName(pet.countryCodeOrDefault),
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w800,
+              color: navy,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        SizedBox(width: 4.w),
+        Flexible(
+          child: Text(
+            _countryEnglishName(pet.countryCodeOrDefault),
+            style: TextStyle(
+              fontSize: 9.sp,
+              fontWeight: FontWeight.w600,
+              color: labelColor,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        SizedBox(width: 4.w),
+        Icon(Icons.verified, size: 16.w, color: verifiedBlue),
       ],
     );
   }
 
-  // ── 본문: 좌 사진 + 우 필드 ─────────────────────────────────
+  // ── 본문: 좌 사진(+도장+기분) / 우 필드 그리드 ───────────────
   Widget _buildBody() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildPhoto(),
+        _buildPhotoColumn(),
         SizedBox(width: 14.w),
         Expanded(child: _buildFields()),
       ],
     );
   }
 
+  Widget _buildPhotoColumn() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 사진 + 우하단 도장 오버레이
+        SizedBox(
+          width: 92.w,
+          height: 108.w,
+          child: Stack(
+            children: [
+              Positioned.fill(child: _buildPhoto()),
+              // 원형 도장(있을 때만). 파일 없으면 미표시.
+              Positioned(
+                right: -2.w,
+                bottom: -2.w,
+                child: Opacity(
+                  opacity: 0.85,
+                  child: Image.asset(
+                    _stampAsset,
+                    width: 40.w,
+                    height: 40.w,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 10.h),
+        // 오늘의 기분(코랄)
+        _buildMood(),
+      ],
+    );
+  }
+
   Widget _buildPhoto() {
     return Container(
-      width: 76.w,
-      height: 96.w,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: navy.withValues(alpha: 0.15)),
       ),
       child: pet.avatarUrl != null && pet.avatarUrl!.isNotEmpty
           ? ClipRRect(
-              borderRadius: BorderRadius.circular(10.r),
+              borderRadius: BorderRadius.circular(8.r),
               child: Image.network(
                 pet.avatarUrl!,
                 fit: BoxFit.cover,
@@ -205,121 +249,27 @@ class PetPassportCard extends StatelessWidget {
   }
 
   Widget _defaultPhoto() {
-    return Center(
-      child: Text('🐾', style: TextStyle(fontSize: 32.sp)),
-    );
+    return Center(child: Text('🐾', style: TextStyle(fontSize: 34.sp)));
   }
 
-  Widget _buildFields() {
-    final mbti = (pet.currentMbtiType != null &&
-            pet.currentMbtiType!.trim().isNotEmpty)
-        ? pet.currentMbtiType!
-        : '—';
-    final surname = pet.passportSurname?.trim();
-    final given = pet.passportGivenName?.trim();
-    final englishName = [surname, given]
-        .where((e) => e != null && e.isNotEmpty)
-        .join(' ');
-    final hanguel = (pet.nameHanguel != null && pet.nameHanguel!.trim().isNotEmpty)
-        ? pet.nameHanguel!.trim()
-        : pet.name;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // MBTI · 국가코드 · 여권번호
-        Row(
-          children: [
-            _chip('MBTI $mbti'),
-            SizedBox(width: 6.w),
-            _chip(pet.countryCodeOrDefault),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        _kv('여권번호', pet.passportNo ?? '미발급'),
-        _kv('이름(한글)', hanguel),
-        _kv('이름(영문)', englishName.isEmpty ? '—' : englishName),
-        _kv('생년월일', _formatBirthDate(pet.birthDate)),
-        _kv('성별', pet.genderDisplayName ?? '—'),
-      ],
-    );
-  }
-
-  Widget _chip(String text) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 9.sp,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-
-  Widget _kv(String key, String value) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 3.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 56.w,
-            child: Text(
-              key,
-              style: TextStyle(
-                fontSize: 9.sp,
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── 오늘의 기분 (분포 1위 + 비율) ──────────────────────────
-  Widget _buildMoodRow() {
+  // ── 오늘의 기분: 라벨 + "편안함 90%"(코랄) / 미분석 시 유도 ──
+  Widget _buildMood() {
     if (mood == null) {
-      // 미분석 → "오늘 분석하기" 유도
       return GestureDetector(
         onTap: onAnalyzeTap,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('🧠', style: TextStyle(fontSize: 16.sp)),
-            SizedBox(width: 8.w),
-            Expanded(
-              child: Text(
-                '오늘 기분 분석을 안 했어요',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.85),
-                ),
-              ),
+            Text(
+              '오늘의 기분',
+              style: TextStyle(fontSize: 9.sp, color: labelColor),
             ),
+            SizedBox(height: 2.h),
             Text(
               '오늘 분석하기 ›',
               style: TextStyle(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w700,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w800,
                 color: coral,
               ),
             ),
@@ -327,78 +277,139 @@ class PetPassportCard extends StatelessWidget {
         ),
       );
     }
-
     final m = mood!;
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(m.emoji, style: TextStyle(fontSize: 18.sp)),
-        SizedBox(width: 8.w),
-        Text(
-          '오늘의 기분: ',
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: Colors.white.withValues(alpha: 0.8),
-          ),
-        ),
+        Text('오늘의 기분', style: TextStyle(fontSize: 9.sp, color: labelColor)),
+        SizedBox(height: 2.h),
         Text(
           '${m.label} ${m.percent}%',
           style: TextStyle(
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w900,
+            color: coral,
           ),
         ),
       ],
     );
   }
 
-  // ── 하단 버튼: 코랄 "오늘의 건강 관리" + "지난 기록 보기" ──
-  Widget _buildActionButtons() {
-    return Row(
+  // ── 우측 필드 그리드 ───────────────────────────────────────
+  Widget _buildFields() {
+    final mbti = (pet.currentMbtiType != null &&
+            pet.currentMbtiType!.trim().isNotEmpty)
+        ? pet.currentMbtiType!
+        : '—';
+    final surname = pet.passportSurname?.trim();
+    final given = pet.passportGivenName?.trim();
+    final hanguel =
+        (pet.nameHanguel != null && pet.nameHanguel!.trim().isNotEmpty)
+            ? pet.nameHanguel!.trim()
+            : pet.name;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: onHealthTap,
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: 10.h),
-              decoration: BoxDecoration(
-                color: coral,
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Center(
-                child: Text(
-                  '오늘의 건강 관리',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
+        // 1행: MBTI · 국가코드 · 여권번호
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 5, child: _field('MBTI', mbti)),
+            Expanded(flex: 4, child: _field('국가코드', pet.countryCodeOrDefault)),
+            Expanded(flex: 7, child: _field('여권번호', pet.passportNo ?? '미발급')),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        // 2행: 성(영문) · 이름(영문)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _field('성', surname == null || surname.isEmpty ? '—' : surname)),
+            Expanded(
+                flex: 2,
+                child: _field('이름', given == null || given.isEmpty ? '—' : given)),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        // 3행: 한글성명
+        _field('한글성명', hanguel),
+        SizedBox(height: 10.h),
+        // 4행: 생년월일 · 성별
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 2, child: _field('생년월일', _formatBirthDate(pet.birthDate))),
+            Expanded(child: _field('성별', pet.genderDisplayName ?? '—')),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 라벨(작게) + 값(굵게). 여권 양식 한 칸.
+  Widget _field(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 8.5.sp,
+            fontWeight: FontWeight.w600,
+            color: labelColor,
+            letterSpacing: 0.3,
+          ),
+        ),
+        SizedBox(height: 2.h),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w800,
+            color: navy,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  // ── 푸터: 우측 코랄 버튼 + 지난 기록 보기 텍스트 ─────────────
+  Widget _buildFooter() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        GestureDetector(
+          onTap: onHealthTap,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 9.h),
+            decoration: BoxDecoration(
+              color: coral,
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            child: Text(
+              '오늘의 건강 관리',
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
               ),
             ),
           ),
         ),
-        SizedBox(width: 10.w),
-        Expanded(
-          child: GestureDetector(
-            onTap: onHistoryTap,
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: 10.h),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-              ),
-              child: Center(
-                child: Text(
-                  '지난 기록 보기',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+        SizedBox(width: 14.w),
+        GestureDetector(
+          onTap: onHistoryTap,
+          child: Text(
+            '지난 기록 보기',
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+              color: labelColor,
+              decoration: TextDecoration.underline,
+              decorationColor: labelColor,
             ),
           ),
         ),
@@ -412,7 +423,6 @@ class PetPassportCard extends StatelessWidget {
     return '${d.year}.${d.month.toString().padLeft(2, '0')}.${d.day.toString().padLeft(2, '0')}';
   }
 
-  /// 국가코드 → 한글 국가명. 미지정 코드는 코드 그대로 표시.
   static String _countryName(String code) {
     const map = {
       'KOR': '대한민국',
@@ -428,7 +438,6 @@ class PetPassportCard extends StatelessWidget {
     return map[code] ?? code;
   }
 
-  /// 국가코드 → 영문 국가명.
   static String _countryEnglishName(String code) {
     const map = {
       'KOR': 'REPUBLIC OF KOREA',
