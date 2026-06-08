@@ -48,8 +48,17 @@ class PetPassportCard extends StatelessWidget {
   });
 
   // ── 색상 팔레트(밝은 여권 양식) ──────────────────────────
-  /// 카드 배경(흰색 단색).
-  static const Color cardBg = Color(0xFFFCFDFE);
+  /// 카드 배경 그라데이션(좌상 연회색 → 우 연분홍/살구빛). 1번 시안 톤.
+  static const LinearGradient cardGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.centerRight,
+    colors: [
+      Color(0xFFE7E9ED), // 좌상 연회색
+      Color(0xFFF1ECEC), // 중간
+      Color(0xFFFBEDE6), // 우 연분홍/살구
+    ],
+    stops: [0.0, 0.6, 1.0],
+  );
 
   /// 진한 남색 글자/제목.
   static const Color navy = Color(0xFF0C447C);
@@ -75,7 +84,7 @@ class PetPassportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: cardBg,
+        gradient: cardGradient,
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
