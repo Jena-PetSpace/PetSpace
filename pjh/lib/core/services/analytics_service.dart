@@ -211,4 +211,12 @@ class AnalyticsService {
         'total': total,
         'streak': streak,
       });
+
+  /// 펫 뉴스 목록(/news) 진입. 진입 1회. 개인 식별정보 없음.
+  Future<void> logNewsListView() => _log('news_list_view');
+
+  /// 기사 원문 링크아웃. 어떤 매체가 많이 열리는지 익명 집계(source_name만).
+  /// 기사 제목·링크·개인 식별정보는 전송하지 않음.
+  Future<void> logNewsArticleOpen({required String sourceName}) =>
+      _log('news_article_open', {'source_name': sourceName});
 }

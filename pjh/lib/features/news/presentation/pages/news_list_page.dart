@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../bloc/news_bloc.dart';
@@ -38,6 +39,8 @@ class _NewsListViewState extends State<_NewsListView> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    // 목록 진입 1회 집계(익명).
+    AnalyticsService.instance.logNewsListView();
   }
 
   @override
@@ -136,7 +139,11 @@ class _NewsListViewState extends State<_NewsListView> {
                   final article = state.articles[index];
                   return NewsArticleTile(
                     article: article,
-                    onTap: () => openArticle(context, article.link),
+                    onTap: () {
+                      AnalyticsService.instance
+                          .logNewsArticleOpen(sourceName: article.sourceName);
+                      openArticle(context, article.link);
+                    },
                   );
                 },
               ),
