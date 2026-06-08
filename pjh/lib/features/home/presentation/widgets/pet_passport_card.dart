@@ -82,7 +82,7 @@ class PetPassportCard extends StatelessWidget {
   static const Color verifiedBlue = Color(0xFF1E88E5);
 
   /// 워터마크 틴트(연회색). 흰 카드 위에서 은은하게 보이는 톤.
-  static const Color _watermarkTint = Color(0xFF9AA7B5);
+  static const Color _watermarkTint = Color(0xFF7A8A9C);
 
   /// 한글 격자 워터마크 PNG(흰색 글자 PNG). 흰 카드 위에선 연회색으로 틴트.
   /// 파일 없으면 폴백(흰 단색 유지).
@@ -127,7 +127,7 @@ class PetPassportCard extends StatelessWidget {
   Widget _watermarkLayer() {
     return Positioned.fill(
       child: Opacity(
-        opacity: 0.85,
+        opacity: 1.0,
         child: ColorFiltered(
           colorFilter: const ColorFilter.mode(
             _watermarkTint,
@@ -152,18 +152,18 @@ class PetPassportCard extends StatelessWidget {
         Text(
           '여권',
           style: TextStyle(
-            fontSize: 15.sp,
+            fontSize: 20.sp,
             fontWeight: FontWeight.w800,
             color: navy,
           ),
         ),
-        SizedBox(width: 6.w),
+        SizedBox(width: 7.w),
         Padding(
-          padding: EdgeInsets.only(bottom: 1.h),
+          padding: EdgeInsets.only(bottom: 2.h),
           child: Text(
             'PETSPORT',
             style: TextStyle(
-              fontSize: 12.sp,
+              fontSize: 16.sp,
               fontWeight: FontWeight.w700,
               color: navy,
               letterSpacing: 1.0,
@@ -372,31 +372,33 @@ class PetPassportCard extends StatelessWidget {
               ],
             ),
             SizedBox(height: 10.h),
-            // 5행: 좌 오늘의 기분(생년월일 밑) / 우 건강관리 버튼(우측 끝선 정렬)
+            // 5행: 좌 오늘의 기분 / 우 [건강관리 버튼 + 지난기록] 같은 우측 끝선
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(child: _buildMood()),
-                _buildHealthButton(),
-              ],
-            ),
-            SizedBox(height: 4.h),
-            // 지난 기록 보기(우측 끝선 = 버튼 우측 끝선과 동일)
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                onTap: onHistoryTap,
-                child: Text(
-                  '지난 기록 보기',
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600,
-                    color: labelColor,
-                    decoration: TextDecoration.underline,
-                    decorationColor: labelColor,
-                  ),
+                // 버튼과 지난기록을 한 Column(end)에 묶어 우측 끝선 완전 일치.
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _buildHealthButton(),
+                    SizedBox(height: 4.h),
+                    GestureDetector(
+                      onTap: onHistoryTap,
+                      child: Text(
+                        '지난 기록 보기',
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                          color: labelColor,
+                          decoration: TextDecoration.underline,
+                          decorationColor: labelColor,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+              ],
             ),
           ],
         ),
