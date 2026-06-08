@@ -36,7 +36,8 @@ class HomeDashboardHeader extends StatelessWidget {
           children: [
             // ── 로고 + 액션 바 ──────────────────────────
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+              // 로고~여권 카드 거리 1/2(하단 10 → 5)
+              padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 5.h),
               child: Row(
                 children: [
                   // 로고 (하단 인사말 제거 · 크기 확대)
@@ -62,7 +63,7 @@ class HomeDashboardHeader extends StatelessWidget {
 
             // ── 반려동물 대시보드 카드 ──────────────────
             Padding(
-              padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 16.h),
+              padding: EdgeInsets.fromLTRB(16.w, 2.h, 16.w, 16.h),
               child: _buildPetDashboard(context),
             ),
           ],

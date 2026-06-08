@@ -141,8 +141,8 @@ class PetPassportCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(child: img),
-          // 2겹째(0.25)로 색 누적 → 약 1.25 농도.
-          Positioned.fill(child: Opacity(opacity: 0.25, child: img)),
+          // 2겹째(0.20)로 색 누적 → 약 1.20 농도.
+          Positioned.fill(child: Opacity(opacity: 0.20, child: img)),
         ],
       ),
     );
@@ -221,21 +221,20 @@ class PetPassportCard extends StatelessWidget {
     );
   }
 
-  // ── 본문: 좌 사진(고정 크기) / 우 필드 그리드(자연 10h 간격) ──
-  //    IntrinsicHeight 제거 → 그리드는 순수 자연 레이아웃이라 줄간격이 항상 균일.
+  // ── 본문: 좌 사진 / 우 필드 그리드 ──────────────────────────
+  //    그리드 Column 은 mainAxisSize.min → IntrinsicHeight+stretch 여도
+  //    행 간격(10h)은 분배되지 않고 고정 유지. 사진은 그리드 높이에 맞춰 늘어남
+  //    → 사진과 그리드 끝이 같아져 좌하단 빈 공간 제거.
   Widget _buildBody() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 사진 — 가로 130, 세로 고정(그리드 높이와 비슷하게).
-        SizedBox(
-          width: 130.w,
-          height: 232.w,
-          child: _buildPhoto(),
-        ),
-        SizedBox(width: 14.w),
-        Expanded(child: _buildFields()),
-      ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(width: 130.w, child: _buildPhoto()),
+          SizedBox(width: 14.w),
+          Expanded(child: _buildFields()),
+        ],
+      ),
     );
   }
 
@@ -387,9 +386,9 @@ class PetPassportCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // 건강관리 버튼만 우측으로 2 이동(지난기록은 그대로).
+                    // 건강관리 버튼만 우측으로 4 이동(지난기록은 그대로).
                     Transform.translate(
-                      offset: Offset(2.w, 0),
+                      offset: Offset(4.w, 0),
                       child: _buildHealthButton(),
                     ),
                     SizedBox(height: 4.h),
