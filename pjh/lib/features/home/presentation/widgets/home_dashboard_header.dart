@@ -11,8 +11,10 @@ import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../emotion/presentation/bloc/emotion_analysis_bloc.dart';
+import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 import '../../../social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
+import 'pet_passport_card.dart';
 
 /// 홈 화면 전체 헤더
 /// 딥블루 배경 + 로고 + 스트릭 + 반려동물 감정 대시보드
@@ -181,266 +183,87 @@ class HomeDashboardHeader extends StatelessWidget {
     );
   }
 
-  // ── 반려동물 대시보드 카드 ─────────────────────────────
+  // ── 반려동물 대시보드 카드(= 펫 여권 카드) ──────────────
   Widget _buildPetDashboard(BuildContext context) {
     return BlocBuilder<PetBloc, PetState>(
       builder: (context, petState) {
         final pet = _getSelectedPet(petState);
         if (pet == null) return _buildNoPetCard(context);
-        return _buildPetCard(context, pet);
-      },
-    );
-  }
-
-  Widget _buildPetCard(BuildContext context, Pet pet) {
-    return Container(
-      padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          // 반려동물 정보 + AI 분석 버튼
-          Row(
-            children: [
-              _buildPetAvatar(context, pet),
-              SizedBox(width: 12.w),
-              Expanded(child: _buildPetInfo(context, pet)),
-              _buildAnalysisButton(context),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          // 주간 스트릭 바
-          _buildWeeklyStreak(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPetAvatar(BuildContext context, Pet pet) {
-    return Stack(
-      children: [
-        Container(
-          width: 56.w,
-          height: 56.w,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.25),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.5),
-              width: 2,
-            ),
-          ),
-          child: pet.avatarUrl != null && pet.avatarUrl!.isNotEmpty
-              ? ClipOval(
-                  child: Image.network(
-                    pet.avatarUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _defaultPetIcon(),
-                  ),
-                )
-              : _defaultPetIcon(),
-        ),
-        // 감정 이모지 오버레이
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
-            builder: (context, state) {
-              final emoji = _getLatestEmotionEmoji(state);
-              return Container(
-                width: 22.w,
-                height: 22.w,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.primaryColor, width: 2),
-                ),
-                child: Center(
-                  child: Text(emoji, style: TextStyle(fontSize: 11.sp)),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _defaultPetIcon() {
-    return const Center(
-      child: Text('🐾', style: TextStyle(fontSize: 24)),
-    );
-  }
-
-  Widget _buildPetInfo(BuildContext context, Pet pet) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          pet.name,
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
-        ),
-        Text(
-          '${pet.typeDisplayName} · ${pet.displayAge}',
-          style: TextStyle(
-            fontSize: 10.sp,
-            color: Colors.white.withValues(alpha: 0.7),
-          ),
-        ),
-        SizedBox(height: 6.h),
-        // 감정 한 줄 요약
-        BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
-          builder: (context, state) {
-            final summary = _getEmotionSummary(state);
-            return Container(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: Text(
-                summary,
-                style: TextStyle(
-                  fontSize: 10.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+        return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
+          builder: (context, emotionState) {
+            return PetPassportCard(
+              pet: pet,
+              mood: _todayMood(emotionState, pet),
+              onHealthTap: () => context.go('/emotion'),
+              onHistoryTap: () => context.push('/ai-history-page'),
+              onAnalyzeTap: () => context.go('/emotion'),
             );
           },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAnalysisButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.go('/emotion'),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 12.h),
-        decoration: BoxDecoration(
-          color: AppTheme.highlightColor,
-          borderRadius: BorderRadius.circular(14.r),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.highlightColor.withValues(alpha: 0.4),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('🧠', style: TextStyle(fontSize: 20.sp)),
-            SizedBox(height: 4.h),
-            Text(
-              'AI\n분석',
-              style: TextStyle(
-                fontSize: 9.sp,
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                height: 1.3,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWeeklyStreak(BuildContext context) {
-    return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
-      builder: (context, state) {
-        final weekDays = _getWeekAnalysisDays(state);
-        final streak = _calculateStreak(state);
-        final dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  streak > 0 ? '🔥 $streak일 연속 분석 중!' : '오늘 감정 분석해볼까요?',
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => context.push('/ai-history-page'),
-                  child: Text(
-                    '기록 보기 >',
-                    style: TextStyle(
-                      fontSize: 9.sp,
-                      color: Colors.white.withValues(alpha: 0.55),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 8.h),
-            Row(
-              children: List.generate(7, (i) {
-                final isAnalyzed = weekDays[i];
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 2.w),
-                    child: Column(
-                      children: [
-                        AnimatedContainer(
-                          duration: Duration(milliseconds: 200 + i * 50),
-                          height: 28.h,
-                          decoration: BoxDecoration(
-                            color: isAnalyzed
-                                ? AppTheme.highlightColor
-                                : Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Center(
-                            child: Text(
-                              isAnalyzed ? '✓' : '',
-                              style: TextStyle(
-                                fontSize: 11.sp,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          dayLabels[i],
-                          style: TextStyle(
-                            fontSize: 9.sp,
-                            color: Colors.white.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ],
         );
       },
     );
   }
+
+  /// 오늘의 기분(분포 1위 감정 + 비율). 오늘 분석이 없으면 null → "오늘 분석하기".
+  /// ⚠️ 비율은 감정 **분포값**이지 신뢰도(confidence) 점수가 아니다.
+  PassportMood? _todayMood(EmotionAnalysisState state, Pet pet) {
+    if (state is! EmotionAnalysisHistoryLoaded || state.history.isEmpty) {
+      return null;
+    }
+    final today = DateTime.now();
+    bool isToday(DateTime d) =>
+        d.year == today.year && d.month == today.month && d.day == today.day;
+
+    // 선택된 펫의 오늘 분석 중 최신 1건.
+    EmotionAnalysis? latest;
+    for (final a in state.history) {
+      final matchesPet = a.petId == null || a.petId == pet.id;
+      if (matchesPet && isToday(a.analyzedAt)) {
+        if (latest == null || a.analyzedAt.isAfter(latest.analyzedAt)) {
+          latest = a;
+        }
+      }
+    }
+    if (latest == null) return null;
+
+    final scores = latest.emotions;
+    final total = scores.total;
+    if (total <= 0) return null;
+
+    final dominant = scores.dominantEmotion;
+    final value = _emotionValue(scores, dominant);
+    final percent = ((value / total) * 100).round();
+
+    return PassportMood(
+      label: AppTheme.getEmotionLabel(dominant),
+      percent: percent,
+      emoji: AppTheme.getEmotionEmoji(dominant),
+    );
+  }
+
+  double _emotionValue(EmotionScores s, String key) {
+    switch (key) {
+      case 'happiness':
+        return s.happiness;
+      case 'calm':
+        return s.calm;
+      case 'excitement':
+        return s.excitement;
+      case 'curiosity':
+        return s.curiosity;
+      case 'anxiety':
+        return s.anxiety;
+      case 'fear':
+        return s.fear;
+      case 'sadness':
+        return s.sadness;
+      case 'discomfort':
+        return s.discomfort;
+      default:
+        return 0;
+    }
+  }
+
 
   Widget _buildNoPetCard(BuildContext context) {
     return GestureDetector(
@@ -501,28 +324,6 @@ class HomeDashboardHeader extends StatelessWidget {
     return null;
   }
 
-  /// 이번 주 월~일 분석 여부 (7개 bool)
-  List<bool> _getWeekAnalysisDays(EmotionAnalysisState state) {
-    final now = DateTime.now();
-    // 이번 주 월요일 0시
-    final monday = now.subtract(Duration(days: now.weekday - 1));
-    final mondayDate = DateTime(monday.year, monday.month, monday.day);
-
-    final analyzedDates = <DateTime>{};
-    if (state is EmotionAnalysisHistoryLoaded) {
-      for (final a in state.history) {
-        final d = a.analyzedAt;
-        final dateOnly = DateTime(d.year, d.month, d.day);
-        analyzedDates.add(dateOnly);
-      }
-    }
-
-    return List.generate(7, (i) {
-      final day = mondayDate.add(Duration(days: i));
-      return analyzedDates.contains(day);
-    });
-  }
-
   /// 연속 분석 일수 계산
   int _calculateStreak(EmotionAnalysisState state) {
     if (state is! EmotionAnalysisHistoryLoaded || state.history.isEmpty) {
@@ -557,30 +358,5 @@ class HomeDashboardHeader extends StatelessWidget {
       }
     }
     return streak;
-  }
-
-  String _getLatestEmotionEmoji(EmotionAnalysisState state) {
-    if (state is EmotionAnalysisHistoryLoaded && state.history.isNotEmpty) {
-      return AppTheme.getEmotionEmoji(state.history.first.emotions.dominantEmotion);
-    }
-    return '🐾';
-  }
-
-  String _getEmotionSummary(EmotionAnalysisState state) {
-    if (state is EmotionAnalysisHistoryLoaded && state.history.isNotEmpty) {
-      final top = state.history.first.emotions.dominantEmotion;
-      final map = {
-        'happiness': '오늘 행복해 보여요 😊',
-        'calm': '오늘 편안해 보여요 😌',
-        'excitement': '오늘 신나 보여요 🎉',
-        'curiosity': '궁금한 게 많아요 🤔',
-        'anxiety': '불안해 보여요 😰',
-        'fear': '무서워하는 것 같아요 😨',
-        'sadness': '조금 슬퍼 보여요 😢',
-        'discomfort': '불편해 보여요 😣',
-      };
-      return map[top] ?? '분석 결과 확인하기';
-    }
-    return '오늘 AI 분석 해볼까요?';
   }
 }
