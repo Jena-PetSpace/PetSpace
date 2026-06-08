@@ -118,6 +118,13 @@ import '../features/quiz/data/datasources/quiz_local_data_source.dart';
 import '../features/quiz/domain/services/quiz_session_builder.dart';
 import '../features/quiz/domain/services/quiz_reward_hook.dart';
 
+// Features - News (반려동물 펫 뉴스 — Supabase published 조회)
+import '../features/news/data/datasources/news_remote_data_source.dart';
+import '../features/news/data/repositories/news_repository_impl.dart';
+import '../features/news/domain/repositories/news_repository.dart';
+import '../features/news/domain/usecases/get_published_news.dart';
+import '../features/news/presentation/bloc/news_bloc.dart';
+
 // Core Services
 import '../core/services/image_upload_service.dart';
 import '../core/services/notification_service.dart';
@@ -145,6 +152,7 @@ Future<void> init() async {
   await _initMbti();
   await _initFortune();
   await _initQuiz();
+  await _initNews();
 }
 
 Future<void> _initAuth() async {
@@ -509,6 +517,29 @@ Future<void> _initQuiz() async {
 
   // 보상 연계 훅 (1차 no-op — 리워드스토어 구현 시 교체)
   sl.registerLazySingleton<QuizRewardHook>(() => const QuizRewardHookNoop());
+}
+
+Future<void> _initNews() async {
+  // News feature dependencies (펫 뉴스 — Supabase published 조회·링크아웃)
+
+  // Data Source
+  sl.registerLazySingleton<NewsRemoteDataSource>(
+    () => NewsRemoteDataSourceImpl(supabaseClient: sl()),
+  );
+
+  // Repository
+  sl.registerLazySingleton<NewsRepository>(
+    () => NewsRepositoryImpl(
+      remoteDataSource: sl(),
+      networkInfo: sl(),
+    ),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetPublishedNews(sl()));
+
+  // BLoC
+  sl.registerFactory(() => NewsBloc(getPublishedNews: sl()));
 }
 
 Future<void> _initCore() async {
