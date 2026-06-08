@@ -221,20 +221,17 @@ class PetPassportCard extends StatelessWidget {
     );
   }
 
-  // ── 본문: 좌 사진 / 우 필드 그리드 ──────────────────────────
-  //    그리드 Column 은 mainAxisSize.min → IntrinsicHeight+stretch 여도
-  //    행 간격(10h)은 분배되지 않고 고정 유지. 사진은 그리드 높이에 맞춰 늘어남
-  //    → 사진과 그리드 끝이 같아져 좌하단 빈 공간 제거.
+  // ── 본문: 좌 사진(고정, 그리드보다 작게) / 우 필드 그리드 ──────
+  //    IntrinsicHeight 없음 → 그리드가 카드 높이를 결정(자연 10h 균일 간격).
+  //    사진은 그리드보다 짧게 고정 → 그리드 늘어남/마지막 행 벌어짐 없음.
   Widget _buildBody() {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(width: 130.w, child: _buildPhoto()),
-          SizedBox(width: 14.w),
-          Expanded(child: _buildFields()),
-        ],
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 130.w, height: 190.w, child: _buildPhoto()),
+        SizedBox(width: 14.w),
+        Expanded(child: _buildFields()),
+      ],
     );
   }
 
