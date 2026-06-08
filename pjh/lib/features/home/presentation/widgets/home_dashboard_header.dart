@@ -16,6 +16,7 @@ import '../../../chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 import '../../../social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
 import 'pet_passport_card.dart';
 import 'pet_passport_carousel.dart';
+import 'passport_mood_mapper.dart';
 
 /// 홈 화면 전체 헤더
 /// 딥블루 배경 + 로고 + 스트릭 + 반려동물 감정 대시보드
@@ -232,44 +233,9 @@ class HomeDashboardHeader extends StatelessWidget {
     }
     if (latest == null) return null;
 
-    final scores = latest.emotions;
-    final total = scores.total;
-    if (total <= 0) return null;
-
-    final dominant = scores.dominantEmotion;
-    final value = _emotionValue(scores, dominant);
-    final percent = ((value / total) * 100).round();
-
-    return PassportMood(
-      label: AppTheme.getEmotionLabel(dominant),
-      percent: percent,
-      emoji: AppTheme.getEmotionEmoji(dominant),
-    );
+    // 분포 1위 + 비율 변환(신뢰도 아님). 순수 로직은 PassportMoodMapper.
+    return PassportMoodMapper.fromScores(latest.emotions);
   }
-
-  double _emotionValue(EmotionScores s, String key) {
-    switch (key) {
-      case 'happiness':
-        return s.happiness;
-      case 'calm':
-        return s.calm;
-      case 'excitement':
-        return s.excitement;
-      case 'curiosity':
-        return s.curiosity;
-      case 'anxiety':
-        return s.anxiety;
-      case 'fear':
-        return s.fear;
-      case 'sadness':
-        return s.sadness;
-      case 'discomfort':
-        return s.discomfort;
-      default:
-        return 0;
-    }
-  }
-
 
   Widget _buildNoPetCard(BuildContext context) {
     return GestureDetector(
