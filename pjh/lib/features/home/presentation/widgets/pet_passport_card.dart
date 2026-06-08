@@ -72,8 +72,11 @@ class PetPassportCard extends StatelessWidget {
   /// 필드 값(검은색): 항목의 값.
   static const Color valueBlack = Color(0xFF1A1A1A);
 
-  /// 코랄 포인트.
-  static const Color coral = Color(0xFFD85A30);
+  /// 코랄 포인트(버튼). 시안 샘플 기준 밝은 코랄.
+  static const Color coral = Color(0xFFFF6F61);
+
+  /// 오늘의 기분 강조색(살짝 진한 코랄, 가독성).
+  static const Color moodCoral = Color(0xFFE8553F);
 
   /// 인증 뱃지 파란색.
   static const Color verifiedBlue = Color(0xFF1E88E5);
@@ -132,11 +135,8 @@ class PetPassportCard extends StatelessWidget {
                 children: [
                   _buildHeader(),
                   SizedBox(height: 14.h),
-                  // 사진(좌, 큼) + 필드 그리드(우)
+                  // 좌: 사진(큼) + 오늘의 기분 / 우: 필드 그리드 + 버튼
                   _buildBody(),
-                  SizedBox(height: 14.h),
-                  // 하단: 좌 오늘의 기분 / 우 건강관리 버튼 + 지난 기록 보기
-                  _buildBottomRow(),
                 ],
               ),
             ),
@@ -160,16 +160,16 @@ class PetPassportCard extends StatelessWidget {
             color: navy,
           ),
         ),
-        SizedBox(width: 5.w),
+        SizedBox(width: 6.w),
         Padding(
           padding: EdgeInsets.only(bottom: 1.h),
           child: Text(
             'PETSPORT',
             style: TextStyle(
-              fontSize: 9.sp,
-              fontWeight: FontWeight.w600,
-              color: labelColor,
-              letterSpacing: 1.2,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+              color: navy,
+              letterSpacing: 1.0,
             ),
           ),
         ),
@@ -184,7 +184,7 @@ class PetPassportCard extends StatelessWidget {
                 child: Text(
                   _countryName(pet.countryCodeOrDefault),
                   style: TextStyle(
-                    fontSize: 13.sp,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w800,
                     color: navy,
                   ),
@@ -192,21 +192,21 @@ class PetPassportCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: 5.w),
               Flexible(
                 child: Text(
                   _countryEnglishName(pet.countryCodeOrDefault),
                   style: TextStyle(
-                    fontSize: 8.sp,
-                    fontWeight: FontWeight.w600,
-                    color: labelColor,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w700,
+                    color: navy,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              SizedBox(width: 4.w),
-              Icon(Icons.verified, size: 15.w, color: verifiedBlue),
+              SizedBox(width: 5.w),
+              Icon(Icons.verified, size: 16.w, color: verifiedBlue),
             ],
           ),
         ),
@@ -214,66 +214,81 @@ class PetPassportCard extends StatelessWidget {
     );
   }
 
-  // ── 본문: 좌 사진(큼) / 우 필드 그리드 ──────────────────────
+  // ── 본문: 좌[사진(큼) + 오늘의 기분] / 우[필드 그리드 + 버튼] ──
   Widget _buildBody() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 사진 — 시안처럼 크게(세로로 그리드와 비슷한 높이).
-        SizedBox(
-          width: 116.w,
-          height: 142.w,
-          child: _buildPhoto(),
-        ),
-        SizedBox(width: 14.w),
-        Expanded(child: _buildFields()),
-      ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 좌측: 큰 사진 + 그 아래 오늘의 기분
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 사진 — 시안처럼 크게.
+              SizedBox(
+                width: 130.w,
+                height: 168.w,
+                child: _buildPhoto(),
+              ),
+              SizedBox(height: 12.h),
+              // 오늘의 기분(사진 아래, 생년월일과 같은 흐름의 하단)
+              _buildMood(),
+            ],
+          ),
+          SizedBox(width: 14.w),
+          // 우측: 필드 그리드 + 하단 버튼/지난기록
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildFields(),
+                const Spacer(),
+                SizedBox(height: 10.h),
+                _buildActions(),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  // ── 하단: 좌 오늘의 기분 / 우 건강관리 버튼 + 지난 기록 보기 ──
-  Widget _buildBottomRow() {
-    return Row(
+  // ── 우하단: 코랄 "오늘의 건강 관리" 버튼 + "지난 기록 보기" ──
+  Widget _buildActions() {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _buildMood(),
-        const Spacer(),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            GestureDetector(
-              onTap: onHealthTap,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
-                decoration: BoxDecoration(
-                  color: coral,
-                  borderRadius: BorderRadius.circular(22.r),
-                ),
-                child: Text(
-                  '오늘의 건강 관리',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
+        GestureDetector(
+          onTap: onHealthTap,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 11.h),
+            decoration: BoxDecoration(
+              color: coral,
+              borderRadius: BorderRadius.circular(24.r),
+            ),
+            child: Text(
+              '오늘의 건강 관리',
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
               ),
             ),
-            SizedBox(height: 6.h),
-            GestureDetector(
-              onTap: onHistoryTap,
-              child: Text(
-                '지난 기록 보기',
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
-                  color: labelColor,
-                  decoration: TextDecoration.underline,
-                  decorationColor: labelColor,
-                ),
-              ),
+          ),
+        ),
+        SizedBox(height: 6.h),
+        GestureDetector(
+          onTap: onHistoryTap,
+          child: Text(
+            '지난 기록 보기',
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+              color: labelColor,
+              decoration: TextDecoration.underline,
+              decorationColor: labelColor,
             ),
-          ],
+          ),
         ),
       ],
     );
@@ -313,7 +328,10 @@ class PetPassportCard extends StatelessWidget {
           children: [
             Text(
               '오늘의 기분',
-              style: TextStyle(fontSize: 9.sp, color: labelColor),
+              style: TextStyle(
+                  fontSize: 9.sp,
+                  fontWeight: FontWeight.w600,
+                  color: labelBlue),
             ),
             SizedBox(height: 2.h),
             Text(
@@ -321,7 +339,7 @@ class PetPassportCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w800,
-                color: coral,
+                color: moodCoral,
               ),
             ),
           ],
@@ -332,14 +350,18 @@ class PetPassportCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('오늘의 기분', style: TextStyle(fontSize: 9.sp, color: labelColor)),
+        Text('오늘의 기분',
+            style: TextStyle(
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w600,
+                color: labelBlue)),
         SizedBox(height: 2.h),
         Text(
           '${m.label} ${m.percent}%',
           style: TextStyle(
             fontSize: 15.sp,
             fontWeight: FontWeight.w900,
-            color: coral,
+            color: moodCoral,
           ),
         ),
       ],
