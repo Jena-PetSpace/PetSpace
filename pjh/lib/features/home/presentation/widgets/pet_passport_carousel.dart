@@ -48,8 +48,8 @@ class _PetPassportCarouselState extends State<PetPassportCarousel> {
 
   /// 카드 높이(밝은 여권 카드 내용 + 약간의 버퍼). 844 baseline 기준.
   /// 그리드 5행(…생년월일/성별 → 기분/버튼) + 지난기록 행 기준 콤팩트 높이.
-  /// 사진은 그리드 높이에 맞춰 늘어남(IntrinsicHeight). 실기기 오버플로 방지 버퍼 포함.
-  static const double _carouselHeight = 340;
+  /// 사진은 그리드 높이에 맞춰 늘어남(IntrinsicHeight). 하단 여백 최소화.
+  static const double _carouselHeight = 296;
 
   @override
   void initState() {
