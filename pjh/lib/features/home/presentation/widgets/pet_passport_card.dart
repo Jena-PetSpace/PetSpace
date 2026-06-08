@@ -171,7 +171,7 @@ class PetPassportCard extends StatelessWidget {
               fontSize: 12.sp,
               fontWeight: FontWeight.w700,
               color: navy,
-              letterSpacing: 1.0,
+              // REPUBLIC OF KOREA 와 동일하게 자간 기본값(0).
             ),
           ),
         ),

@@ -46,16 +46,30 @@ class _PetPassportCarouselState extends State<PetPassportCarousel> {
   late final PageController _controller;
   late int _currentPage;
 
-  /// 카드 높이(밝은 여권 카드 내용 + 약간의 버퍼). 844 baseline 기준.
-  /// 헤더 + 그리드 5행(…기분/버튼) + 지난기록 기준. 사진은 그리드보다 짧음.
-  /// 하단 여백 최소화하되 오버플로 안 나게 버퍼.
-  static const double _carouselHeight = 340;
+  /// 측정 전 임시 높이(첫 프레임). 측정 후 실제 카드 높이로 대체된다.
+  static const double _fallbackHeight = 320;
+
+  /// 실제 카드 높이(첫 펫 카드를 한 번 측정). null 이면 측정 전.
+  double? _measuredHeight;
+
+  /// 측정용 키(화면 밖에 카드 1장 렌더해 높이만 잰다).
+  final GlobalKey _measureKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _currentPage = _initialIndex();
     _controller = PageController(initialPage: _currentPage, viewportFraction: 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  void _measure() {
+    final ctx = _measureKey.currentContext;
+    if (ctx == null) return;
+    final h = ctx.size?.height;
+    if (h != null && h > 0 && (_measuredHeight == null || (h - _measuredHeight!).abs() > 0.5)) {
+      setState(() => _measuredHeight = h);
+    }
   }
 
   int _initialIndex() {
@@ -76,6 +90,8 @@ class _PetPassportCarouselState extends State<PetPassportCarousel> {
         _controller.jumpToPage(_currentPage);
       }
     }
+    // 데이터 변경으로 카드 높이가 달라질 수 있으니 재측정.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
   }
 
   @override
@@ -92,41 +108,59 @@ class _PetPassportCarouselState extends State<PetPassportCarousel> {
     }
   }
 
+  PetPassportCard _cardFor(Pet pet) => PetPassportCard(
+        pet: pet,
+        mood: widget.moodFor(pet),
+        onHealthTap: () => widget.onHealthTap(pet),
+        onHistoryTap: () => widget.onHistoryTap(pet),
+        onAnalyzeTap: () => widget.onAnalyzeTap(pet),
+      );
+
   @override
   Widget build(BuildContext context) {
     // 펫 카드 N개 + "추가" 카드 1개
     final pageCount = widget.pets.length + 1;
+    // 측정된 카드 높이가 있으면 그 높이로(여백 없음), 없으면 임시 높이.
+    final pageHeight = _measuredHeight ?? _fallbackHeight.h;
 
-    return Column(
+    return Stack(
       children: [
-        SizedBox(
-          height: _carouselHeight.h,
-          child: PageView.builder(
-            controller: _controller,
-            onPageChanged: _onPageChanged,
-            itemCount: pageCount,
-            itemBuilder: (context, index) {
-              if (index == widget.pets.length) {
-                return _buildAddCard();
-              }
-              final pet = widget.pets[index];
-              // 카드를 상단 정렬 → 카드는 내용만큼만 높이를 차지하고,
-              // 남는 공간은 배경(네이비)으로 보여 카드 하단 여백이 안 생김.
-              return Align(
-                alignment: Alignment.topCenter,
-                child: PetPassportCard(
-                  pet: pet,
-                  mood: widget.moodFor(pet),
-                  onHealthTap: () => widget.onHealthTap(pet),
-                  onHistoryTap: () => widget.onHistoryTap(pet),
-                  onAnalyzeTap: () => widget.onAnalyzeTap(pet),
-                ),
-              );
-            },
-          ),
+        Column(
+          children: [
+            SizedBox(
+              height: pageHeight,
+              child: PageView.builder(
+                controller: _controller,
+                onPageChanged: _onPageChanged,
+                itemCount: pageCount,
+                itemBuilder: (context, index) {
+                  if (index == widget.pets.length) {
+                    return _buildAddCard();
+                  }
+                  return _cardFor(widget.pets[index]);
+                },
+              ),
+            ),
+            SizedBox(height: 10.h),
+            _buildDots(pageCount),
+          ],
         ),
-        SizedBox(height: 10.h),
-        _buildDots(pageCount),
+        // 화면 밖(완전 투명)에서 첫 펫 카드 1장을 렌더해 높이만 측정.
+        if (widget.pets.isNotEmpty)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: -10000,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0,
+                child: Container(
+                  key: _measureKey,
+                  child: _cardFor(widget.pets.first),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
