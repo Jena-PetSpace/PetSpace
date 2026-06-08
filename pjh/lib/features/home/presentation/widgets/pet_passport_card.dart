@@ -112,7 +112,7 @@ class PetPassportCard extends StatelessWidget {
             //    글자 모양(알파)에 불투명 회색을 입힌 뒤 Opacity 로 은은하게.
             Positioned.fill(
               child: Opacity(
-                opacity: 0.7,
+                opacity: 0.5,
                 child: ColorFiltered(
                   colorFilter: const ColorFilter.mode(
                     _watermarkTint,
@@ -135,11 +135,8 @@ class PetPassportCard extends StatelessWidget {
                 children: [
                   _buildHeader(),
                   SizedBox(height: 14.h),
-                  // 좌 사진(세로 큼) + 우 필드 그리드(생년월일/성별까지)
+                  // 좌 사진 + 우 그리드(…생년월일/성별 → 오늘의 기분·건강관리)
                   _buildBody(),
-                  SizedBox(height: 12.h),
-                  // 하단 행: 좌 오늘의 기분(생년월일 밑) / 우 건강관리 버튼
-                  _buildBottomRow(),
                 ],
               ),
             ),
@@ -222,68 +219,21 @@ class PetPassportCard extends StatelessWidget {
     );
   }
 
-  // ── 본문: 좌 사진(세로 큼) / 우 필드 그리드(생년월일/성별까지) ──
+  // ── 본문: 좌 사진(그리드 높이에 맞춤) / 우 필드 그리드 ──────
   Widget _buildBody() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 사진 — 가로 유지(130), 세로 확대해 그리드 4행 높이까지.
-        SizedBox(
-          width: 130.w,
-          height: 200.w,
-          child: _buildPhoto(),
-        ),
-        SizedBox(width: 14.w),
-        Expanded(child: _buildFields()),
-      ],
-    );
-  }
-
-  // ── 하단 행: 좌 오늘의 기분(생년월일 밑) / 우 건강관리 버튼+지난기록 ──
-  Widget _buildBottomRow() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        _buildMood(),
-        const Spacer(),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            GestureDetector(
-              onTap: onHealthTap,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 11.h),
-                decoration: BoxDecoration(
-                  color: coral,
-                  borderRadius: BorderRadius.circular(24.r),
-                ),
-                child: Text(
-                  '오늘의 건강 관리',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: 6.h),
-            GestureDetector(
-              onTap: onHistoryTap,
-              child: Text(
-                '지난 기록 보기',
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
-                  color: labelColor,
-                  decoration: TextDecoration.underline,
-                  decorationColor: labelColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 사진 — 가로 130 고정, 세로는 그리드 전체 높이에 맞춰 늘어남.
+          SizedBox(
+            width: 130.w,
+            child: _buildPhoto(),
+          ),
+          SizedBox(width: 14.w),
+          Expanded(child: _buildFields()),
+        ],
+      ),
     );
   }
 
@@ -409,7 +359,56 @@ class PetPassportCard extends StatelessWidget {
             Expanded(child: _field('성별', pet.genderDisplayName ?? '—')),
           ],
         ),
+        SizedBox(height: 12.h),
+        // 5행: 좌 오늘의 기분(생년월일 밑) / 우 건강관리 버튼
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(child: _buildMood()),
+            _buildHealthButton(),
+          ],
+        ),
+        SizedBox(height: 6.h),
+        // 지난 기록 보기(우측 정렬)
+        Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: onHistoryTap,
+            child: Text(
+              '지난 기록 보기',
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+                color: labelColor,
+                decoration: TextDecoration.underline,
+                decorationColor: labelColor,
+              ),
+            ),
+          ),
+        ),
       ],
+    );
+  }
+
+  // ── 코랄 "오늘의 건강 관리" 버튼 ───────────────────────────
+  Widget _buildHealthButton() {
+    return GestureDetector(
+      onTap: onHealthTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: coral,
+          borderRadius: BorderRadius.circular(24.r),
+        ),
+        child: Text(
+          '오늘의 건강 관리',
+          style: TextStyle(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 
