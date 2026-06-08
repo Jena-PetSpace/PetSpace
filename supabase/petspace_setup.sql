@@ -62,6 +62,12 @@ CREATE TABLE IF NOT EXISTS pets (
     gender VARCHAR(10),
     avatar_url TEXT,
     description TEXT,
+    -- 펫 여권(F2_pet_passport) 컬럼. 모두 nullable → 기존 행/미입력 안전.
+    passport_no TEXT,                  -- 여권번호(등록 시 1회 생성, P 시작)
+    passport_surname TEXT,             -- 영문 성(수동 입력)
+    passport_given_name TEXT,          -- 영문 이름(수동 입력)
+    name_hanguel TEXT,                 -- 한글성명(수동 입력, name 과 별개)
+    country_code TEXT DEFAULT 'KOR',   -- 국가코드(ISO 3166-1 alpha-3)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -301,6 +307,9 @@ COMMENT ON COLUMN users.followers IS '사용자를 팔로우하는 사용자 UUI
 
 -- Pets
 CREATE INDEX IF NOT EXISTS idx_pets_user_id ON pets(user_id);
+-- 여권번호 UNIQUE (부분 인덱스: null 제외 → 미발급 행 다수 허용)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pets_passport_no
+  ON pets (passport_no) WHERE passport_no IS NOT NULL;
 
 -- Posts
 CREATE INDEX IF NOT EXISTS idx_posts_author_id ON posts(author_id);
