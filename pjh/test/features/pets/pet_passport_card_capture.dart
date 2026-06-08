@@ -1,13 +1,22 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 
 import 'package:meong_nyang_diary/features/home/presentation/widgets/pet_passport_card.dart';
+import 'package:meong_nyang_diary/features/home/presentation/widgets/pet_passport_carousel.dart';
 import 'package:meong_nyang_diary/features/pets/domain/entities/pet.dart';
+import 'package:meong_nyang_diary/features/pets/presentation/bloc/pet_bloc.dart';
+import 'package:meong_nyang_diary/features/pets/presentation/bloc/pet_event.dart';
+import 'package:meong_nyang_diary/features/pets/presentation/bloc/pet_state.dart';
+
+class _MockPetBloc extends MockBloc<PetEvent, PetState> implements PetBloc {}
 
 /// 펫 여권 카드 워터마크 위 가독성 검토용 캡처 (개발 도구 — CI 비포함).
 ///
@@ -129,6 +138,42 @@ void main() {
           surname: null,
           given: null,
           hanguel: null,
+        ),
+      ),
+    );
+  });
+
+  testWidgets('capture: 다견 캐러셀 — 2마리 + 추가 카드', (tester) async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    // 실제 단말 비율(844 높이)에 맞춰 .h 스케일 ≈ 1 로 캡처(오버플로 검증 정확도).
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    final p1 = pet(mbti: 'ENFP', hanguel: '몽이');
+    final p2 = pet(mbti: 'ISTJ', hanguel: '초코', surname: 'LEE', given: 'CHOCO')
+        .copyWith(id: 'pet-2', name: '초코');
+
+    final bloc = _MockPetBloc();
+    final state = PetLoaded(pets: [p1, p2], selectedPet: p1);
+    when(() => bloc.state).thenReturn(state);
+    whenListen(bloc, const Stream<PetState>.empty(), initialState: state);
+
+    await capture(
+      tester,
+      'passport_04_carousel',
+      BlocProvider<PetBloc>.value(
+        value: bloc,
+        child: PetPassportCarousel(
+          pets: [p1, p2],
+          selectedPet: p1,
+          moodFor: (p) => p.id == 'pet-2'
+              ? null
+              : const PassportMood(label: '편안함', percent: 90, emoji: '😌'),
+          onAddPassport: () {},
+          onHealthTap: (_) {},
+          onHistoryTap: (_) {},
+          onAnalyzeTap: (_) {},
         ),
       ),
     );

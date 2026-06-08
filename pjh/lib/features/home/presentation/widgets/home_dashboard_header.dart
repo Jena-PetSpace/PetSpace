@@ -15,6 +15,7 @@ import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 import '../../../social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
 import 'pet_passport_card.dart';
+import 'pet_passport_carousel.dart';
 
 /// 홈 화면 전체 헤더
 /// 딥블루 배경 + 로고 + 스트릭 + 반려동물 감정 대시보드
@@ -183,20 +184,25 @@ class HomeDashboardHeader extends StatelessWidget {
     );
   }
 
-  // ── 반려동물 대시보드 카드(= 펫 여권 카드) ──────────────
+  // ── 반려동물 대시보드(= 펫 여권 카드 캐러셀) ──────────────
   Widget _buildPetDashboard(BuildContext context) {
     return BlocBuilder<PetBloc, PetState>(
       builder: (context, petState) {
-        final pet = _getSelectedPet(petState);
-        if (pet == null) return _buildNoPetCard(context);
+        final pets = _getPets(petState);
+        // 0마리(신규 사용자) → 등록 유도 CTA 카드.
+        if (pets.isEmpty) return _buildNoPetCard(context);
+
+        final selected = _getSelectedPet(petState);
         return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
           builder: (context, emotionState) {
-            return PetPassportCard(
-              pet: pet,
-              mood: _todayMood(emotionState, pet),
-              onHealthTap: () => context.go('/emotion'),
-              onHistoryTap: () => context.push('/ai-history-page'),
-              onAnalyzeTap: () => context.go('/emotion'),
+            return PetPassportCarousel(
+              pets: pets,
+              selectedPet: selected,
+              moodFor: (pet) => _todayMood(emotionState, pet),
+              onAddPassport: () => context.push('/pets'),
+              onHealthTap: (_) => context.go('/emotion'),
+              onHistoryTap: (_) => context.push('/ai-history-page'),
+              onAnalyzeTap: (_) => context.go('/emotion'),
             );
           },
         );
@@ -314,6 +320,13 @@ class HomeDashboardHeader extends StatelessWidget {
   }
 
   // ── 헬퍼 메서드 ───────────────────────────────────────
+  /// 현재 상태의 펫 목록(없으면 빈 리스트).
+  List<Pet> _getPets(PetState state) {
+    if (state is PetLoaded) return state.pets;
+    if (state is PetOperationSuccess) return state.pets;
+    return const [];
+  }
+
   Pet? _getSelectedPet(PetState state) {
     if (state is PetLoaded && state.pets.isNotEmpty) {
       return state.selectedPet ?? state.pets.first;
