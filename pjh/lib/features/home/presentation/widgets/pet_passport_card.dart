@@ -221,17 +221,20 @@ class PetPassportCard extends StatelessWidget {
     );
   }
 
-  // ── 본문: 좌 사진(고정, 그리드보다 작게) / 우 필드 그리드 ──────
-  //    IntrinsicHeight 없음 → 그리드가 카드 높이를 결정(자연 10h 균일 간격).
-  //    사진은 그리드보다 짧게 고정 → 그리드 늘어남/마지막 행 벌어짐 없음.
+  // ── 본문: 좌 사진(그리드 높이에 정합) / 우 필드 그리드 ──────────
+  //    그리드가 더 길어 IntrinsicHeight = 그리드 높이, 사진이 그에 맞춰 늘어남
+  //    → 사진 하단선 = 그리드 하단선 일치.
+  //    그리드 Column 은 min + 5행 모두 start 정렬이라 행 간격 10h 균일 유지.
   Widget _buildBody() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(width: 130.w, height: 190.w, child: _buildPhoto()),
-        SizedBox(width: 14.w),
-        Expanded(child: _buildFields()),
-      ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(width: 130.w, child: _buildPhoto()),
+          SizedBox(width: 14.w),
+          Expanded(child: _buildFields()),
+        ],
+      ),
     );
   }
 
@@ -374,18 +377,19 @@ class PetPassportCard extends StatelessWidget {
               ],
             ),
             SizedBox(height: 10.h),
-            // 5행: 좌 오늘의 기분 / 우 [건강관리 버튼 + 지난기록] 같은 우측 끝선
+            // 5행: 좌 오늘의 기분(생년월일과 동일 10h 간격, 상단 정렬) /
+            //      우 [건강관리 버튼 + 지난기록] 같은 우측 끝선
             Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(child: _buildMood()),
                 // 버튼과 지난기록을 한 Column(end)에 묶어 우측 끝선 완전 일치.
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // 건강관리 버튼만 우측으로 4 이동(지난기록은 그대로).
+                    // 건강관리 버튼만 우측으로 2 이동(지난기록은 그대로).
                     Transform.translate(
-                      offset: Offset(4.w, 0),
+                      offset: Offset(2.w, 0),
                       child: _buildHealthButton(),
                     ),
                     SizedBox(height: 4.h),

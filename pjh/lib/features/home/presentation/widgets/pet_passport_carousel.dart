@@ -49,7 +49,7 @@ class _PetPassportCarouselState extends State<PetPassportCarousel> {
   /// 카드 높이(밝은 여권 카드 내용 + 약간의 버퍼). 844 baseline 기준.
   /// 헤더 + 그리드 5행(…기분/버튼) + 지난기록 기준. 사진은 그리드보다 짧음.
   /// 하단 여백 최소화하되 오버플로 안 나게 버퍼.
-  static const double _carouselHeight = 296;
+  static const double _carouselHeight = 340;
 
   @override
   void initState() {
@@ -110,12 +110,17 @@ class _PetPassportCarouselState extends State<PetPassportCarousel> {
                 return _buildAddCard();
               }
               final pet = widget.pets[index];
-              return PetPassportCard(
-                pet: pet,
-                mood: widget.moodFor(pet),
-                onHealthTap: () => widget.onHealthTap(pet),
-                onHistoryTap: () => widget.onHistoryTap(pet),
-                onAnalyzeTap: () => widget.onAnalyzeTap(pet),
+              // 카드를 상단 정렬 → 카드는 내용만큼만 높이를 차지하고,
+              // 남는 공간은 배경(네이비)으로 보여 카드 하단 여백이 안 생김.
+              return Align(
+                alignment: Alignment.topCenter,
+                child: PetPassportCard(
+                  pet: pet,
+                  mood: widget.moodFor(pet),
+                  onHealthTap: () => widget.onHealthTap(pet),
+                  onHistoryTap: () => widget.onHistoryTap(pet),
+                  onAnalyzeTap: () => widget.onAnalyzeTap(pet),
+                ),
               );
             },
           ),
