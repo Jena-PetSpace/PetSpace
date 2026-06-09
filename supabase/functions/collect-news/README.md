@@ -21,10 +21,23 @@
 
 ## 배포
 ```bash
-supabase functions deploy collect-news
+# 게이트웨이 JWT 검증 없이 배포(서버 전용 함수 — 내부에서 service-role로 동작).
+# 새 API 키 체계(sb_secret_/sb_publishable_) 프로젝트는 레거시 JWT가 없어 --no-verify-jwt 권장.
+supabase functions deploy collect-news --no-verify-jwt
 ```
 함수 환경변수(시크릿)는 Supabase가 자동 주입:
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (RLS 우회 — **앱/깃 커밋 절대 금지**).
+
+### 공개 URL 보호 (no-verify-jwt 보완)
+`--no-verify-jwt`면 URL을 아는 누구나 호출 가능 → **공유 시크릿 가드**로 차단:
+- 함수 시크릿 `COLLECT_NEWS_SECRET`을 임의 문자열로 설정.
+- 설정돼 있으면 요청 헤더 `x-collect-secret`이 일치할 때만 실행(불일치 403).
+- 미설정 시 가드 비활성(최초 검증 편의). 검증 후 반드시 설정 권장:
+```bash
+supabase secrets set COLLECT_NEWS_SECRET=<임의-긴-문자열>
+```
+- cron의 net.http_post 헤더에 같은 값을 넣는다(아래 cron SQL 참조).
+- 이 시크릿도 **코드·깃 커밋 금지**(함수 시크릿·cron 헤더에만).
 
 ## 수동 1회 실행(검증)
 대시보드 > Edge Functions > collect-news > Invoke, 또는:
@@ -39,6 +52,8 @@ curl -i -X POST "https://<PROJECT_REF>.supabase.co/functions/v1/collect-news" \
 Supabase 대시보드 > Database > Extensions에서 `pg_cron`, `pg_net` 활성화 후 SQL Editor:
 ```sql
 -- 매일 00:00 UTC(=09:00 KST). cron은 UTC 기준임에 주의.
+-- --no-verify-jwt로 배포했으므로 Authorization 불필요.
+-- 대신 COLLECT_NEWS_SECRET을 설정했다면 x-collect-secret 헤더로 같은 값을 전달.
 select cron.schedule(
   'collect-news-daily',
   '0 0 * * *',
@@ -47,7 +62,7 @@ select cron.schedule(
     url     := 'https://<PROJECT_REF>.supabase.co/functions/v1/collect-news',
     headers := jsonb_build_object(
       'Content-Type','application/json',
-      'Authorization','Bearer <SERVICE_ROLE_KEY>'
+      'x-collect-secret','<COLLECT_NEWS_SECRET>'
     )
   );
   $$

@@ -39,7 +39,15 @@ interface ParsedItem {
   source: string;             // <source> 태그 매체명(구글뉴스). 없으면 빈 문자열.
 }
 
-serve(async (_req) => {
+serve(async (req) => {
+  // 공유 시크릿 가드: 게이트웨이 JWT 검증을 끄고(no-verify-jwt) 배포하므로,
+  // COLLECT_NEWS_SECRET 환경변수가 설정돼 있으면 x-collect-secret 헤더와 일치할 때만 실행.
+  // (cron net.http_post 헤더로 전달. 미설정 시 가드 비활성 — 최초 검증 편의.)
+  const expected = Deno.env.get("COLLECT_NEWS_SECRET");
+  if (expected && req.headers.get("x-collect-secret") !== expected) {
+    return json({ ok: false, error: "forbidden" }, 403);
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
