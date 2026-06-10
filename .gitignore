@@ -13,8 +13,11 @@
 .DS_Store
 Thumbs.db
 
-# Claude Code local settings
-.claude/
+# Claude Code: share agents/skills, keep local settings private
+.claude/*
+!.claude/agents/
+!.claude/skills/
+.claude/settings.local.json
 
 # Node
 node_modules/
