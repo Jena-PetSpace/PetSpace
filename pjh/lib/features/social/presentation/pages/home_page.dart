@@ -21,7 +21,6 @@ import '../../../home/presentation/widgets/home_quest_card.dart';
 import '../../../mbti/presentation/widgets/home_mbti_card.dart';
 import '../../../fortune/presentation/widgets/home_fortune_card.dart';
 import '../../../quiz/presentation/widgets/home_quiz_card.dart';
-import '../../../news/presentation/widgets/home_news_card.dart';
 import '../../../home/presentation/widgets/category_filter_chips.dart';
 import '../../../home/presentation/widgets/hot_issue_card.dart';
 import '../../../home/presentation/widgets/magazine_grid.dart';
@@ -253,8 +252,6 @@ class _HomePageState extends State<HomePage> {
         const HomeFortuneCard(),
         SizedBox(height: 16.h),
         const HomeQuizCard(),
-        SizedBox(height: 16.h),
-        const HomeNewsCard(),
         SizedBox(height: 16.h),
         HomeQuestCard(checkNotifier: _questCheckNotifier),
         SizedBox(height: 32.h),
