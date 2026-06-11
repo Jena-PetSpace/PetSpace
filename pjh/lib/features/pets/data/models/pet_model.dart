@@ -15,6 +15,11 @@ class PetModel extends Pet {
     required super.updatedAt,
     super.currentMbtiType,
     super.currentMbtiUpdatedAt,
+    super.passportNo,
+    super.passportSurname,
+    super.passportGivenName,
+    super.nameHanguel,
+    super.countryCode,
   });
 
   /// Entity를 Model로 변환
@@ -33,6 +38,11 @@ class PetModel extends Pet {
       updatedAt: pet.updatedAt,
       currentMbtiType: pet.currentMbtiType,
       currentMbtiUpdatedAt: pet.currentMbtiUpdatedAt,
+      passportNo: pet.passportNo,
+      passportSurname: pet.passportSurname,
+      passportGivenName: pet.passportGivenName,
+      nameHanguel: pet.nameHanguel,
+      countryCode: pet.countryCode,
     );
   }
 
@@ -58,6 +68,11 @@ class PetModel extends Pet {
       currentMbtiUpdatedAt: json['current_mbti_updated_at'] != null
           ? DateTime.parse(json['current_mbti_updated_at'] as String)
           : null,
+      passportNo: json['passport_no'] as String?,
+      passportSurname: json['passport_surname'] as String?,
+      passportGivenName: json['passport_given_name'] as String?,
+      nameHanguel: json['name_hanguel'] as String?,
+      countryCode: json['country_code'] as String?,
     );
   }
 
@@ -75,10 +90,16 @@ class PetModel extends Pet {
       'description': description,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'passport_no': passportNo,
+      'passport_surname': passportSurname,
+      'passport_given_name': passportGivenName,
+      'name_hanguel': nameHanguel,
+      'country_code': countryCode,
     };
   }
 
   /// INSERT용 JSON (id 제외, created_at/updated_at 자동 생성)
+  /// 여권번호는 등록 시 1회 생성된 값을 그대로 저장(생성 로직은 use case 경유).
   Map<String, dynamic> toInsertJson() {
     return {
       'user_id': userId,
@@ -89,10 +110,17 @@ class PetModel extends Pet {
       'gender': gender != null ? _petGenderToString(gender!) : null,
       'avatar_url': avatarUrl,
       'description': description,
+      'passport_no': passportNo,
+      'passport_surname': passportSurname,
+      'passport_given_name': passportGivenName,
+      'name_hanguel': nameHanguel,
+      // 미입력 시 DB default(KOR) 사용을 위해 null 이면 키 자체를 제외.
+      if (countryCode != null) 'country_code': countryCode,
     };
   }
 
   /// UPDATE용 JSON (수정 가능한 필드만)
+  /// 여권번호(passport_no)는 수정 시 유지 → UPDATE payload 에 포함하지 않음.
   Map<String, dynamic> toUpdateJson() {
     return {
       'name': name,
@@ -102,6 +130,10 @@ class PetModel extends Pet {
       'gender': gender != null ? _petGenderToString(gender!) : null,
       'avatar_url': avatarUrl,
       'description': description,
+      'passport_surname': passportSurname,
+      'passport_given_name': passportGivenName,
+      'name_hanguel': nameHanguel,
+      'country_code': countryCode,
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
@@ -165,6 +197,11 @@ class PetModel extends Pet {
     DateTime? updatedAt,
     String? currentMbtiType,
     DateTime? currentMbtiUpdatedAt,
+    String? passportNo,
+    String? passportSurname,
+    String? passportGivenName,
+    String? nameHanguel,
+    String? countryCode,
   }) {
     return PetModel(
       id: id ?? this.id,
@@ -180,6 +217,11 @@ class PetModel extends Pet {
       updatedAt: updatedAt ?? this.updatedAt,
       currentMbtiType: currentMbtiType ?? this.currentMbtiType,
       currentMbtiUpdatedAt: currentMbtiUpdatedAt ?? this.currentMbtiUpdatedAt,
+      passportNo: passportNo ?? this.passportNo,
+      passportSurname: passportSurname ?? this.passportSurname,
+      passportGivenName: passportGivenName ?? this.passportGivenName,
+      nameHanguel: nameHanguel ?? this.nameHanguel,
+      countryCode: countryCode ?? this.countryCode,
     );
   }
 }

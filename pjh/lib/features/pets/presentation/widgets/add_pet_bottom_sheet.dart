@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
@@ -31,6 +32,11 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
   final _breedController = TextEditingController();
   final _descriptionController = TextEditingController();
 
+  // 여권(F2_pet_passport) 입력 컨트롤러
+  final _passportSurnameController = TextEditingController();
+  final _passportGivenNameController = TextEditingController();
+  final _nameHanguelController = TextEditingController();
+
   PetType _selectedType = PetType.dog;
   PetGender? _selectedGender;
   DateTime? _selectedBirthDate;
@@ -40,6 +46,22 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
 
   String? _selectedBreed; // 드롭다운에서 선택된 품종
   bool _isCustomBreed = false; // "기타" 선택 시 true
+
+  /// 국가코드(ISO 3166-1 alpha-3). 기본 KOR.
+  String _countryCode = 'KOR';
+
+  /// 여권 국가 선택지(자주 쓰는 국가 위주, 추후 확장 가능).
+  static const List<({String code, String label})> _countryOptions = [
+    (code: 'KOR', label: '🇰🇷 대한민국 (KOR)'),
+    (code: 'USA', label: '🇺🇸 미국 (USA)'),
+    (code: 'JPN', label: '🇯🇵 일본 (JPN)'),
+    (code: 'CHN', label: '🇨🇳 중국 (CHN)'),
+    (code: 'GBR', label: '🇬🇧 영국 (GBR)'),
+    (code: 'DEU', label: '🇩🇪 독일 (DEU)'),
+    (code: 'FRA', label: '🇫🇷 프랑스 (FRA)'),
+    (code: 'CAN', label: '🇨🇦 캐나다 (CAN)'),
+    (code: 'AUS', label: '🇦🇺 호주 (AUS)'),
+  ];
 
   @override
   void initState() {
@@ -56,6 +78,15 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
     _selectedGender = pet.gender;
     _selectedBirthDate = pet.birthDate;
     _avatarUrl = pet.avatarUrl;
+
+    // 여권 필드 초기화(수정 시 기존 값 표시)
+    _passportSurnameController.text = pet.passportSurname ?? '';
+    _passportGivenNameController.text = pet.passportGivenName ?? '';
+    _nameHanguelController.text = pet.nameHanguel ?? '';
+    final code = pet.countryCode;
+    if (code != null && _countryOptions.any((c) => c.code == code)) {
+      _countryCode = code;
+    }
 
     // 품종 초기화
     if (pet.breed != null && pet.breed!.isNotEmpty) {
@@ -79,6 +110,9 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
     _nameController.dispose();
     _breedController.dispose();
     _descriptionController.dispose();
+    _passportSurnameController.dispose();
+    _passportGivenNameController.dispose();
+    _nameHanguelController.dispose();
     super.dispose();
   }
 
@@ -119,6 +153,8 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
                   _buildBirthDateField(),
                   SizedBox(height: 16.h),
                   _buildDescriptionField(),
+                  SizedBox(height: 24.h),
+                  _buildPassportSection(),
                   SizedBox(height: 24.h),
                   _buildActionButtons(),
                 ],
@@ -382,6 +418,97 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
     );
   }
 
+  /// 여권(F2_pet_passport) 입력 섹션.
+  /// 여권번호는 등록 시 자동 생성되므로 입력 필드를 두지 않는다.
+  Widget _buildPassportSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.badge_outlined,
+                size: 18.w, color: AppTheme.primaryColor),
+            SizedBox(width: 6.w),
+            Text(
+              '여권 정보 (선택)',
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          '여권 카드 표기에 사용돼요. 비워두면 기본 이름으로 표시됩니다.',
+          style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+        ),
+        SizedBox(height: 16.h),
+        // 영문 성
+        TextFormField(
+          controller: _passportSurnameController,
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z ]')),
+            _UpperCaseTextFormatter(),
+          ],
+          decoration: const InputDecoration(
+            labelText: '영문 성 (Surname)',
+            hintText: '예: KIM',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        // 영문 이름
+        TextFormField(
+          controller: _passportGivenNameController,
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z ]')),
+            _UpperCaseTextFormatter(),
+          ],
+          decoration: const InputDecoration(
+            labelText: '영문 이름 (Given name)',
+            hintText: '예: MONGE',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        // 한글성명 (기존 이름과 별개)
+        TextFormField(
+          controller: _nameHanguelController,
+          decoration: const InputDecoration(
+            labelText: '여권 표기용 한글 이름',
+            hintText: '비워두면 위의 이름으로 표시',
+            helperText: '위 "이름"과 별개로 여권 카드에 표기할 한글 이름',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        // 국가코드
+        DropdownButtonFormField<String>(
+          initialValue: _countryCode,
+          decoration: const InputDecoration(
+            labelText: '국가',
+            border: OutlineInputBorder(),
+          ),
+          items: _countryOptions
+              .map((c) => DropdownMenuItem<String>(
+                    value: c.code,
+                    child: Text(c.label),
+                  ))
+              .toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _countryCode = value);
+            }
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _buildActionButtons() {
     return Row(
       children: [
@@ -498,6 +625,12 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
         return;
       }
 
+      // 여권 입력값 정리(공백 제거, 빈 값은 null)
+      String? trimToNull(String s) {
+        final t = s.trim();
+        return t.isEmpty ? null : t;
+      }
+
       final now = DateTime.now();
       final pet = Pet(
         id: widget.pet?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -513,6 +646,12 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
             : null,
         createdAt: widget.pet?.createdAt ?? now,
         updatedAt: now,
+        // 여권: 번호는 수정 시 기존 값 유지, 신규는 Repository 에서 생성.
+        passportNo: widget.pet?.passportNo,
+        passportSurname: trimToNull(_passportSurnameController.text),
+        passportGivenName: trimToNull(_passportGivenNameController.text),
+        nameHanguel: trimToNull(_nameHanguelController.text),
+        countryCode: _countryCode,
       );
 
       widget.onPetAdded(pet);
@@ -532,5 +671,16 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
         });
       }
     }
+  }
+}
+
+/// 영문 입력을 대문자로 강제 변환(여권 표기 관례). 커서 위치 유지.
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }

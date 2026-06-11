@@ -22,6 +22,22 @@ class Pet extends Equatable {
   final String? currentMbtiType;
   final DateTime? currentMbtiUpdatedAt;
 
+  /// 펫 여권(F2_pet_passport) 필드. 모두 nullable → 미적용/미입력 안전.
+  /// 여권번호: 등록 시 1회 생성('P'+영문2+숫자5), 수정 시 유지.
+  final String? passportNo;
+
+  /// 여권 영문 성(수동 입력).
+  final String? passportSurname;
+
+  /// 여권 영문 이름(수동 입력).
+  final String? passportGivenName;
+
+  /// 여권 표기용 한글성명(수동 입력, 기존 name 과 별개).
+  final String? nameHanguel;
+
+  /// 국가코드(ISO 3166-1 alpha-3). 기본 KOR.
+  final String? countryCode;
+
   const Pet({
     required this.id,
     required this.userId,
@@ -36,7 +52,18 @@ class Pet extends Equatable {
     required this.updatedAt,
     this.currentMbtiType,
     this.currentMbtiUpdatedAt,
+    this.passportNo,
+    this.passportSurname,
+    this.passportGivenName,
+    this.nameHanguel,
+    this.countryCode,
   });
+
+  /// 국가코드(null/공백 시 기본 KOR).
+  String get countryCodeOrDefault =>
+      (countryCode == null || countryCode!.trim().isEmpty)
+          ? 'KOR'
+          : countryCode!.trim().toUpperCase();
 
   Pet copyWith({
     String? id,
@@ -52,6 +79,11 @@ class Pet extends Equatable {
     DateTime? updatedAt,
     String? currentMbtiType,
     DateTime? currentMbtiUpdatedAt,
+    String? passportNo,
+    String? passportSurname,
+    String? passportGivenName,
+    String? nameHanguel,
+    String? countryCode,
   }) {
     return Pet(
       id: id ?? this.id,
@@ -67,6 +99,11 @@ class Pet extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       currentMbtiType: currentMbtiType ?? this.currentMbtiType,
       currentMbtiUpdatedAt: currentMbtiUpdatedAt ?? this.currentMbtiUpdatedAt,
+      passportNo: passportNo ?? this.passportNo,
+      passportSurname: passportSurname ?? this.passportSurname,
+      passportGivenName: passportGivenName ?? this.passportGivenName,
+      nameHanguel: nameHanguel ?? this.nameHanguel,
+      countryCode: countryCode ?? this.countryCode,
     );
   }
 
@@ -127,5 +164,10 @@ class Pet extends Equatable {
         updatedAt,
         currentMbtiType,
         currentMbtiUpdatedAt,
+        passportNo,
+        passportSurname,
+        passportGivenName,
+        nameHanguel,
+        countryCode,
       ];
 }

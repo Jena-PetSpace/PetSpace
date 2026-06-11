@@ -61,6 +61,7 @@ import '../../features/mbti/domain/entities/pet_mbti_result.dart';
 import '../../features/fortune/presentation/pages/fortune_detail_page.dart';
 import '../../features/quiz/presentation/pages/quiz_play_page.dart';
 import '../../features/quiz/presentation/pages/quiz_result_page.dart';
+import '../../features/news/presentation/pages/news_list_page.dart';
 import '../../features/emotion/data/models/health_analysis_model.dart';
 import '../../features/onboarding/presentation/pages/onboarding_complete_page.dart';
 import '../../features/auth/presentation/pages/terms_agreement_page.dart';
@@ -145,6 +146,7 @@ class AppRouter {
         ),
         GoRoute(path: '/emotion/weekly-report', builder: (_, __) => const WeeklyReportPage()),
         GoRoute(path: '/health/alert-settings', builder: (_, __) => const HealthAlertSettingsPage()),
+        GoRoute(path: '/news', builder: (_, __) => const NewsListPage()),
         GoRoute(
           path: '/privacy',
           builder: (context, state) => const PrivacyPolicyPage(),

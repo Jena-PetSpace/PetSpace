@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/error/failures.dart';
@@ -8,6 +9,7 @@ import '../../../../core/network/network_info.dart';
 import '../../../../core/services/image_upload_service.dart';
 import '../../domain/entities/pet.dart';
 import '../../domain/repositories/pet_repository.dart';
+import '../../domain/services/passport_number_generator.dart';
 import '../models/pet_model.dart';
 
 /// PetRepository 구현
@@ -17,15 +19,21 @@ class PetRepositoryImpl implements PetRepository {
   final SupabaseClient supabaseClient;
   final NetworkInfo networkInfo;
   final ImageUploadService imageUploadService;
+  final PassportNumberGenerator passportNumberGenerator;
 
   PetRepositoryImpl({
     required this.supabaseClient,
     required this.networkInfo,
     required this.imageUploadService,
-  });
+    PassportNumberGenerator? passportNumberGenerator,
+  }) : passportNumberGenerator =
+            passportNumberGenerator ?? PassportNumberGenerator();
 
   /// 테이블 이름 상수
   static const String _tableName = 'pets';
+
+  /// 여권번호 UNIQUE 충돌 시 재생성 최대 횟수.
+  static const int _passportRetryCount = 5;
 
   @override
   Future<Either<Failure, List<Pet>>> getUserPets(String userId) async {
@@ -109,30 +117,66 @@ class PetRepositoryImpl implements PetRepository {
     }
 
     try {
-      final petModel = PetModel.fromEntity(pet);
+      // 신규 등록 시 여권번호가 없으면 1회 생성. 수정/재등록으로 이미
+      // 번호가 있으면 그대로 유지.
+      final needsPassport = !PassportNumberGenerator.isValid(pet.passportNo);
 
-      // PostgreSQL INSERT: INSERT INTO pets (...) VALUES (...) RETURNING *
-      // TRD 문서: RLS 정책 적용됨 - 사용자는 자신의 반려동물만 추가 가능
-      final response = await supabaseClient
-          .from(_tableName)
-          .insert(petModel.toInsertJson())
-          .select()
-          .single();
+      // 여권번호 UNIQUE 충돌(23505) 시 재생성 후 재시도(최대 N회).
+      // 번호를 직접 부여하지 않은 경우엔 재시도 의미가 없으므로 1회만 수행.
+      final maxAttempts = needsPassport ? _passportRetryCount : 1;
+      PostgrestException? lastUniqueError;
 
-      final createdPet = PetModel.fromJson(response);
-      return Right(createdPet);
+      for (var attempt = 0; attempt < maxAttempts; attempt++) {
+        final petModel = needsPassport
+            ? PetModel.fromEntity(
+                pet.copyWith(passportNo: passportNumberGenerator.generate()),
+              )
+            : PetModel.fromEntity(pet);
+
+        try {
+          final response = await insertPetRow(petModel.toInsertJson());
+          final createdPet = PetModel.fromJson(response);
+          return Right(createdPet);
+        } on PostgrestException catch (e) {
+          if (e.code == '23505' && needsPassport) {
+            // 여권번호 충돌 추정 → 번호 재생성 후 재시도.
+            lastUniqueError = e;
+            continue;
+          }
+          rethrow;
+        }
+      }
+
+      // 재시도 소진(극히 드묾) → 마지막 충돌 보고.
+      return Left(DatabaseFailure(
+          message: '여권번호 생성에 실패했습니다. 다시 시도해주세요. (${lastUniqueError?.message ?? ''})'));
     } on PostgrestException catch (e) {
       if (e.code == '23503') {
         // Foreign Key Violation
         return const Left(DatabaseFailure(message: '유효하지 않은 사용자입니다.'));
       } else if (e.code == '23505') {
-        // Unique Violation (unlikely for pets)
+        // Unique Violation (여권번호 외 제약 — 예: 향후 추가 제약)
         return const Left(DatabaseFailure(message: '이미 존재하는 반려동물입니다.'));
       }
       return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
     } catch (e) {
       return Left(GeneralFailure(message: '반려동물 등록 중 오류 발생: ${e.toString()}'));
     }
+  }
+
+  /// pets 테이블 INSERT 실행 후 생성된 row 반환.
+  /// UNIQUE 위반 시 PostgrestException(code 23505) 을 그대로 throw.
+  /// 여권번호 재시도 로직 단위 테스트를 위해 분리(@visibleForTesting).
+  @visibleForTesting
+  Future<Map<String, dynamic>> insertPetRow(
+      Map<String, dynamic> insertJson) async {
+    // PostgreSQL INSERT: INSERT INTO pets (...) VALUES (...) RETURNING *
+    // TRD 문서: RLS 정책 적용됨 - 사용자는 자신의 반려동물만 추가 가능
+    return await supabaseClient
+        .from(_tableName)
+        .insert(insertJson)
+        .select()
+        .single();
   }
 
   @override
