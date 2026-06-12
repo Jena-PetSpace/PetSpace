@@ -21,8 +21,9 @@ class NextActionCard extends StatelessWidget {
     this.onReanalyze,
   });
 
-  /// 재분석 노출 조건: 부정 감정 60% 이상 또는 스트레스 70+
+  /// 재분석 노출 조건: 콜백 연결 + (부정 감정 60% 이상 또는 스트레스 70+)
   bool get _showReanalyze {
+    if (onReanalyze == null) return false; // TODO(재분석): prefill 구현 후 콜백 연결 시 자동 복원
     final e = analysis.emotions;
     final negSum = e.anxiety + e.sadness + e.fear + e.discomfort;
     return negSum >= 0.6 || e.stressLevel >= 70;
