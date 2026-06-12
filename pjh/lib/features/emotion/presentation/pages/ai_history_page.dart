@@ -16,6 +16,7 @@ import '../../domain/entities/health_analysis.dart';
 import '../../domain/repositories/emotion_repository.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/pet_inline_dropdown.dart';
+import '../theme/emotion_result_tokens.dart';
 import 'emotion_result_page.dart';
 import 'health_result_page.dart';
 
@@ -404,7 +405,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
       statusWidget = Text('주의',
           style: TextStyle(
               fontSize: 8.5.sp,
-              color: const Color(0xFF854F0B),
+              color: EmotionResultTokens.amberDark,
               fontWeight: FontWeight.w500));
     } else if (s.status == '위험') {
       borderColor = AppTheme.highlightColor;
@@ -1035,7 +1036,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
       'good': (AppTheme.successColor.withValues(alpha: 0.1),
           AppTheme.successColor),
       'warn': (const Color(0xFFEF9F27).withValues(alpha: 0.1),
-          const Color(0xFF854F0B)),
+          EmotionResultTokens.amberDark),
       'bad': (AppTheme.errorColor.withValues(alpha: 0.1),
           AppTheme.errorColor),
     };
