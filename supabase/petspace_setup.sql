@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS users (
     is_onboarding_completed BOOLEAN DEFAULT FALSE,
     pets UUID[] DEFAULT ARRAY[]::UUID[],
     following UUID[] DEFAULT ARRAY[]::UUID[],
-    followers UUID[] DEFAULT ARRAY[]::UUID[]
+    followers UUID[] DEFAULT ARRAY[]::UUID[],
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
 );
 
 -- 2. Pets
@@ -372,6 +373,7 @@ CREATE INDEX IF NOT EXISTS idx_users_pets ON users USING GIN(pets);
 CREATE INDEX IF NOT EXISTS idx_users_following ON users USING GIN(following);
 CREATE INDEX IF NOT EXISTS idx_users_followers ON users USING GIN(followers);
 CREATE INDEX IF NOT EXISTS idx_users_onboarding ON users(is_onboarding_completed);
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at) WHERE deleted_at IS NOT NULL;
 
 -- Comment Likes
 CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id);
@@ -922,17 +924,26 @@ BEGIN
 END;
 $$;
 
--- 계정 삭제 (auth.users + public.users 모두 삭제)
--- SECURITY DEFINER로 실행되어 auth.users 삭제 가능
-CREATE OR REPLACE FUNCTION delete_user_account()
+-- 계정 30일 soft delete (G-1: delete_user_account 대체)
+-- 앱 호출처: auth_repository_impl.dart (Task 1-C에서 교체 예정)
+CREATE OR REPLACE FUNCTION request_account_deletion()
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-    -- public.users 삭제 (CASCADE로 연관 데이터 자동 삭제)
-    DELETE FROM public.users WHERE id = auth.uid();
-    -- auth.users 삭제
-    DELETE FROM auth.users WHERE id = auth.uid();
+    UPDATE users SET deleted_at = NOW()
+    WHERE id = auth.uid() AND deleted_at IS NULL;
+END;
+$$;
+
+-- 계정 복구 RPC (SECURITY DEFINER — RLS 우회하여 본인 deleted_at 해제)
+CREATE OR REPLACE FUNCTION restore_my_account()
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    UPDATE users SET deleted_at = NULL
+    WHERE id = auth.uid() AND deleted_at IS NOT NULL;
 END;
 $$;
 
@@ -1068,11 +1079,12 @@ ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 
 -- Users
 -- 인증된 유저는 모든 프로필 조회 가능 (채팅 유저 검색, 소셜 기능 등)
+-- 탈퇴 계정(deleted_at NOT NULL)은 본인만 조회 가능 (복구 안내용)
 DROP POLICY IF EXISTS "Users can view own profile" ON users;
 DROP POLICY IF EXISTS "Authenticated users can view all profiles" ON users;
 CREATE POLICY "Authenticated users can view all profiles" ON users
     FOR SELECT TO authenticated
-    USING (true);
+    USING (deleted_at IS NULL OR auth.uid() = id);
 
 DROP POLICY IF EXISTS "Users can update own profile" ON users;
 CREATE POLICY "Users can update own profile" ON users
@@ -1104,10 +1116,16 @@ DROP POLICY IF EXISTS "Users can delete own pets" ON pets;
 CREATE POLICY "Users can delete own pets" ON pets
     FOR DELETE USING (auth.uid() = user_id);
 
--- Posts (soft delete 반영)
+-- Posts (soft delete 반영 + 탈퇴 작성자 차단)
 DROP POLICY IF EXISTS "Posts are viewable by everyone" ON posts;
 CREATE POLICY "Posts are viewable by everyone" ON posts
-    FOR SELECT USING (deleted_at IS NULL);
+    FOR SELECT USING (
+        deleted_at IS NULL
+        AND NOT EXISTS (
+            SELECT 1 FROM users u
+            WHERE u.id = posts.author_id AND u.deleted_at IS NOT NULL
+        )
+    );
 
 DROP POLICY IF EXISTS "Users can insert own posts" ON posts;
 CREATE POLICY "Users can insert own posts" ON posts
@@ -1126,10 +1144,16 @@ DROP POLICY IF EXISTS "Users can only see own emotion history" ON emotion_histor
 CREATE POLICY "Users can only see own emotion history" ON emotion_history
     FOR ALL USING (auth.uid() = user_id);
 
--- Comments (soft delete 반영)
+-- Comments (soft delete 반영 + 탈퇴 작성자 차단)
 DROP POLICY IF EXISTS "Comments are viewable by everyone" ON comments;
 CREATE POLICY "Comments are viewable by everyone" ON comments
-    FOR SELECT USING (deleted_at IS NULL);
+    FOR SELECT USING (
+        deleted_at IS NULL
+        AND NOT EXISTS (
+            SELECT 1 FROM users u
+            WHERE u.id = comments.author_id AND u.deleted_at IS NOT NULL
+        )
+    );
 
 DROP POLICY IF EXISTS "Users can insert comments" ON comments;
 CREATE POLICY "Users can insert comments" ON comments
@@ -2382,7 +2406,9 @@ REVOKE EXECUTE ON FUNCTION increment_user_points(UUID, INTEGER) FROM anon;
 REVOKE EXECUTE ON FUNCTION increment_user_points(UUID, INTEGER, TEXT, TEXT) FROM anon;
 
 -- 계정/게시물 삭제 함수 (authenticated 전용)
-REVOKE EXECUTE ON FUNCTION delete_user_account() FROM anon;
+-- delete_user_account() 는 G-1 마이그레이션에서 DROP됨 (soft delete로 대체)
+REVOKE EXECUTE ON FUNCTION request_account_deletion() FROM anon;
+REVOKE EXECUTE ON FUNCTION restore_my_account() FROM anon;
 REVOKE EXECUTE ON FUNCTION soft_delete_post(UUID) FROM anon;
 REVOKE EXECUTE ON FUNCTION soft_delete_comment(UUID) FROM anon;
 
