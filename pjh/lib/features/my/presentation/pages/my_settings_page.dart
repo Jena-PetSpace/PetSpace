@@ -232,20 +232,48 @@ class MySettingsPage extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context) {
+    final authBloc = context.read<AuthBloc>();
+    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('회원탈퇴'),
-        content: const Text('탈퇴 시 모든 데이터가 삭제되며\n복구할 수 없습니다. 정말 탈퇴하시겠어요?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('탈퇴',
-                style: TextStyle(color: AppTheme.errorColor)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('회원탈퇴'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '탈퇴 후 30일이 지나면 모든 데이터가 영구 삭제됩니다.\n'
+                '그 전까지는 다시 로그인하면 계정을 복구할 수 있어요.',
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: controller,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: "계속하려면 '탈퇴'를 입력하세요",
+                  isDense: true,
+                ),
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+            TextButton(
+              onPressed: controller.text.trim() == '탈퇴'
+                  ? () {
+                      Navigator.pop(ctx);
+                      authBloc.add(AuthDeleteAccountRequested());
+                    }
+                  : null,
+              child: const Text('탈퇴',
+                  style: TextStyle(color: AppTheme.errorColor)),
+            ),
+          ],
+        ),
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 }

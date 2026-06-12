@@ -14,6 +14,7 @@ class User extends Equatable {
   final UserSettings settings;
   final bool isOnboardingCompleted; // 온보딩 완료 여부
   final DateTime? emailConfirmedAt; // 이메일 인증 완료 시각 (null이면 미인증)
+  final DateTime? deletedAt; // soft delete 처리 시각 (null이면 정상 계정)
 
   const User({
     required this.uid,
@@ -28,10 +29,14 @@ class User extends Equatable {
     required this.settings,
     this.isOnboardingCompleted = false,
     this.emailConfirmedAt,
+    this.deletedAt,
   });
 
   // 이메일 인증 여부 확인
   bool get isEmailConfirmed => emailConfirmedAt != null;
+
+  // soft delete 여부 확인
+  bool get isDeleted => deletedAt != null;
 
   User copyWith({
     String? uid,
@@ -46,6 +51,7 @@ class User extends Equatable {
     UserSettings? settings,
     bool? isOnboardingCompleted,
     DateTime? emailConfirmedAt,
+    DateTime? deletedAt,
   }) {
     return User(
       uid: uid ?? this.uid,
@@ -61,6 +67,7 @@ class User extends Equatable {
       isOnboardingCompleted:
           isOnboardingCompleted ?? this.isOnboardingCompleted,
       emailConfirmedAt: emailConfirmedAt ?? this.emailConfirmedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 
@@ -78,6 +85,7 @@ class User extends Equatable {
         settings,
         isOnboardingCompleted,
         emailConfirmedAt,
+        deletedAt,
       ];
 }
 

@@ -41,3 +41,12 @@ class AuthEmailVerificationRequired extends AuthState {
   @override
   List<Object?> get props => [user];
 }
+
+class AuthAccountDeleted extends AuthState {
+  final User user;
+
+  const AuthAccountDeleted(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}

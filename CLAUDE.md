@@ -24,7 +24,7 @@ AI 기반 반려동물 감정 분석 + 소셜 네트워킹 Flutter 앱. 백엔�
 ```bash
 flutter pub get          # 의존성 설치 (패키지 추가 후 필수)
 flutter analyze          # 정적 분석 (push 전 통과 필수)
-flutter test             # 테스트 (5개 파일, 51케이스)
+flutter test             # 테스트 (250케이스 — health·feed 사전 실패 일부는 Sprint5 인계 베이스라인)
 flutter run              # 디바이스/에뮬레이터 실행
 flutter build apk --release --split-per-abi   # Android APK
 flutter build appbundle --release             # Play Store AAB

@@ -16,8 +16,8 @@ class AuthGuard extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthUnauthenticated) {
-          // 로그인 상태가 아니면 로그인 페이지로 리디렉션
+        if (state is AuthUnauthenticated || state is AuthAccountDeleted) {
+          // 로그인 상태가 아니거나 soft-delete 상태면 로그인 페이지로 리디렉션
           context.go('/login');
         } else if (state is AuthAuthenticated) {
           // 인증되었지만 온보딩이 완료되지 않은 경우 온보딩으로 리디렉션

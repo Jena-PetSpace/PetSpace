@@ -661,12 +661,17 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final user = supabaseClient.auth.currentUser;
       if (user != null) {
-        // Storage 파일 정리 (각 폴더별 try-catch로 하나가 실패해도 나머지 진행)
-        await _cleanupUserStorageFiles(user.id);
+        // 30일 유예 soft delete — Storage 정리·영구 삭제는
+        // purge-deleted-accounts 배치가 30일 후 수행
+        await supabaseClient.functions.invoke('request-account-deletion');
 
-        // RPC로 auth.users + public.users 모두 삭제
-        await supabaseClient.rpc('delete_user_account');
-        await supabaseClient.auth.signOut();
+        // Edge Function 서버 측에서 글로벌 signOut이 일어나므로
+        // 로컬 signOut 실패 시에도 탈퇴 자체는 성공으로 처리
+        try {
+          await supabaseClient.auth.signOut();
+        } catch (_) {
+          // 이미 서버에서 세션 무효화됨 — 무시
+        }
 
         // 로컬 저장소 초기화 (가이드 표시 기록 등)
         final prefs = await SharedPreferences.getInstance();
@@ -681,49 +686,18 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  /// 사용자의 모든 Storage 파일을 정리합니다.
-  /// 각 폴더를 개별 try-catch로 감싸서 하나의 실패가 나머지를 차단하지 않도록 합니다.
-  Future<void> _cleanupUserStorageFiles(String userId) async {
-    final storage = supabaseClient.storage.from('images');
-    final folders = [
-      'profiles/$userId',
-      'pets/$userId',
-      'posts/$userId',
-      'emotion_analysis/$userId',
-      'chat/$userId',
-    ];
-
-    for (final folder in folders) {
-      try {
-        await _deleteStorageFolder(storage, folder);
-        log('✅ [DeleteAccount] Storage 정리 완료: $folder', name: 'AuthRepository');
-      } catch (e) {
-        log('⚠️ [DeleteAccount] Storage 정리 실패 ($folder): $e',
-            name: 'AuthRepository');
-      }
-    }
-  }
-
-  /// 주어진 폴더 내의 모든 파일을 재귀적으로 삭제합니다.
-  /// 하위 폴더가 있는 경우 (pets/{userId}/{petId}/ 등) 재귀 탐색합니다.
-  Future<void> _deleteStorageFolder(
-      StorageFileApi storage, String folderPath) async {
-    final items = await storage.list(path: folderPath);
-
-    // 파일 삭제 (id가 null이 아닌 항목이 파일)
-    final filePaths = items
-        .where((item) => item.id != null)
-        .map((item) => '$folderPath/${item.name}')
-        .toList();
-
-    if (filePaths.isNotEmpty) {
-      await storage.remove(filePaths);
+  @override
+  Future<Either<Failure, void>> restoreAccount() async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
     }
 
-    // 하위 폴더 재귀 탐색 (id가 null인 항목이 폴더)
-    final subFolders = items.where((item) => item.id == null).toList();
-    for (final subFolder in subFolders) {
-      await _deleteStorageFolder(storage, '$folderPath/${subFolder.name}');
+    try {
+      await supabaseClient.rpc('restore_my_account');
+      return const Right(null);
+    } catch (e) {
+      return Left(
+          GeneralFailure(message: '계정 복구 중 오류가 발생했습니다: ${e.toString()}'));
     }
   }
 

@@ -44,6 +44,26 @@ final _tUser = User(
   isOnboardingCompleted: true,
 );
 
+// 이메일 인증 완료 유저 (정상 로그인 흐름용)
+final _tConfirmedUser = User(
+  uid: 'test-uid-001',
+  email: 'test@petspace.kr',
+  displayName: '테스트유저',
+  photoURL: null,
+  createdAt: DateTime(2025, 1, 1),
+  updatedAt: DateTime(2025, 1, 1),
+  pets: const [],
+  following: const [],
+  followers: const [],
+  settings: const UserSettings(
+    notificationsEnabled: true,
+    privacyLevel: PrivacyLevel.public,
+    showEmotionAnalysisToPublic: false,
+  ),
+  isOnboardingCompleted: true,
+  emailConfirmedAt: DateTime(2025, 1, 1),
+);
+
 void main() {
   late AuthBloc bloc;
   late MockAuthRepository mockRepo;
@@ -90,8 +110,11 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       '스트림에서 User가 emit되면 AuthAuthenticated로 전환',
       build: () {
+        // getCurrentUser()는 AuthStarted에서 즉시 호출되므로 stub 필요
+        when(() => mockRepo.getCurrentUser())
+            .thenAnswer((_) async => Right(_tConfirmedUser));
         when(() => mockRepo.authStateChanges)
-            .thenAnswer((_) => Stream.value(_tUser));
+            .thenAnswer((_) => Stream.value(_tConfirmedUser));
         return AuthBloc(
           authRepository: mockRepo,
           signInWithGoogle: mockGoogle,
@@ -110,6 +133,8 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       '스트림에서 null이 emit되면 AuthUnauthenticated로 전환',
       build: () {
+        when(() => mockRepo.getCurrentUser())
+            .thenAnswer((_) async => const Right(null));
         when(() => mockRepo.authStateChanges)
             .thenAnswer((_) => Stream.value(null));
         return AuthBloc(
@@ -130,7 +155,7 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       '성공 → AuthAuthenticated',
       build: () {
-        when(() => mockGoogle()).thenAnswer((_) async => Right(_tUser));
+        when(() => mockGoogle()).thenAnswer((_) async => Right(_tConfirmedUser));
         return bloc;
       },
       act: (b) => b.add(AuthSignInWithGoogleRequested()),
@@ -161,7 +186,7 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       '성공 → AuthAuthenticated',
       build: () {
-        when(() => mockKakao()).thenAnswer((_) async => Right(_tUser));
+        when(() => mockKakao()).thenAnswer((_) async => Right(_tConfirmedUser));
         return bloc;
       },
       act: (b) => b.add(AuthSignInWithKakaoRequested()),
@@ -189,35 +214,36 @@ void main() {
   // ── 로그아웃 ─────────────────────────────────────────────────────────────────
   group('AuthSignOutRequested', () {
     blocTest<AuthBloc, AuthState>(
-      '성공 → AuthUnauthenticated',
+      '성공 → [Loading, Unauthenticated]',
       build: () {
         when(() => mockSignOut()).thenAnswer((_) async => const Right(null));
         return bloc;
       },
-      seed: () => AuthAuthenticated(_tUser),
+      seed: () => AuthAuthenticated(_tConfirmedUser),
       act: (b) => b.add(AuthSignOutRequested()),
-      expect: () => [isA<AuthUnauthenticated>()],
+      expect: () => [isA<AuthLoading>(), isA<AuthUnauthenticated>()],
     );
 
     blocTest<AuthBloc, AuthState>(
-      '실패 → AuthError',
+      '실패 → [Loading, AuthError]',
       build: () {
         when(() => mockSignOut()).thenAnswer(
             (_) async => const Left(AuthFailure(message: '로그아웃 실패')));
         return bloc;
       },
-      seed: () => AuthAuthenticated(_tUser),
+      seed: () => AuthAuthenticated(_tConfirmedUser),
       act: (b) => b.add(AuthSignOutRequested()),
-      expect: () => [isA<AuthError>()],
+      expect: () => [isA<AuthLoading>(), isA<AuthError>()],
     );
   });
 
   // ── AuthUserChanged ───────────────────────────────────────────────────────────
   group('AuthUserChanged', () {
     blocTest<AuthBloc, AuthState>(
-      'User 객체 → AuthAuthenticated',
+      'User 객체(이메일 인증 완료) → AuthAuthenticated',
       build: () => bloc,
-      act: (b) => b.add(AuthUserChanged(_tUser)),
+      act: (b) => b.add(AuthUserChanged(
+          _tUser.copyWith(emailConfirmedAt: DateTime(2025, 1, 1)))),
       expect: () => [isA<AuthAuthenticated>()],
     );
 
@@ -226,6 +252,52 @@ void main() {
       build: () => bloc,
       act: (b) => b.add(const AuthUserChanged(null)),
       expect: () => [isA<AuthUnauthenticated>()],
+    );
+  });
+
+  // ── 계정 soft delete ──────────────────────────────────────────────────────────
+  group('계정 soft delete', () {
+    blocTest<AuthBloc, AuthState>(
+      'deletedAt 있는 유저가 AuthUserChanged로 들어오면 AuthAccountDeleted',
+      build: () => bloc,
+      act: (bloc) => bloc.add(AuthUserChanged(
+          _tUser.copyWith(deletedAt: DateTime(2026, 6, 1)))),
+      expect: () => [isA<AuthAccountDeleted>()],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'AuthDeleteAccountRequested 성공 → [Loading, Unauthenticated]',
+      build: () {
+        when(() => mockRepo.deleteAccount())
+            .thenAnswer((_) async => const Right(null));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(AuthDeleteAccountRequested()),
+      expect: () => [isA<AuthLoading>(), isA<AuthUnauthenticated>()],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'AuthRestoreAccountRequested 성공 → [Loading, Authenticated]',
+      build: () {
+        when(() => mockRepo.restoreAccount())
+            .thenAnswer((_) async => const Right(null));
+        when(() => mockRepo.getCurrentUser()).thenAnswer((_) async =>
+            Right(_tUser.copyWith(emailConfirmedAt: DateTime(2025, 1, 1))));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(AuthRestoreAccountRequested()),
+      expect: () => [isA<AuthLoading>(), isA<AuthAuthenticated>()],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'AuthRestoreAccountRequested 실패 → [Loading, AuthError]',
+      build: () {
+        when(() => mockRepo.restoreAccount()).thenAnswer(
+            (_) async => const Left(GeneralFailure(message: '복구 실패')));
+        return bloc;
+      },
+      act: (bloc) => bloc.add(AuthRestoreAccountRequested()),
+      expect: () => [isA<AuthLoading>(), isA<AuthError>()],
     );
   });
 }
