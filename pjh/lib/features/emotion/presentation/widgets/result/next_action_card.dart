@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../domain/entities/emotion_analysis.dart';
 import '../../theme/emotion_result_tokens.dart';
+import '../../../../../shared/themes/app_theme.dart';
 
 /// "다음에 해볼 것" 카드.
 /// - 3개 액션: 10분 후 재분석 (코랄, 조건부), 건강 분석 (네이비), 기록 남기기 (그레이)
@@ -133,7 +134,7 @@ class NextActionCard extends StatelessWidget {
           ),
           _buildItem(
             icon: Icons.edit_outlined,
-            bgColor: const Color(0xFFF1EFE8),
+            bgColor: AppTheme.tilePastelSand,
             iconColor: EmotionResultTokens.grayDark,
             label: '이 순간 기록하기',
             hint: '한 줄 메모로 남겨두세요',

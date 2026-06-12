@@ -41,7 +41,6 @@ import '../../features/onboarding/presentation/pages/splash_page.dart';
 import '../../features/profile/presentation/pages/community_guidelines_page.dart';
 import '../../features/profile/presentation/pages/privacy_policy_page.dart';
 import '../../features/my/presentation/pages/reward_store_page.dart';
-import '../../features/emotion/presentation/pages/emotion_calendar_page.dart';
 import '../../features/home/presentation/pages/hospital_search_page.dart';
 import '../../features/social/presentation/pages/channel_subscription_page.dart';
 import '../../features/pets/presentation/pages/public_pet_page.dart';
@@ -617,26 +616,11 @@ class AppRouter {
                   name: 'emotion-history',
                   redirect: (_, __) => '/ai-history-page',
                 ),
-                GoRoute(
-                  path: 'calendar',
-                  name: 'emotion-calendar',
-                  builder: (_, __) => const EmotionCalendarPage(),
-                ),
               ],
             ),
             GoRoute(
               path: '/ai-history-page',
               name: 'ai-history-page',
-              builder: (context, state) {
-                return BlocProvider(
-                  create: (_) => sl<EmotionAnalysisBloc>(),
-                  child: const AiHistoryPage(),
-                );
-              },
-            ),
-            GoRoute(
-              path: '/ai-history',
-              name: 'ai-history',
               builder: (context, state) {
                 return BlocProvider(
                   create: (_) => sl<EmotionAnalysisBloc>(),
