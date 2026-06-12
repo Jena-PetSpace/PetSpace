@@ -156,7 +156,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                   indicatorColor: AppTheme.primaryColor,
                   indicatorWeight: 2,
                   labelColor: AppTheme.primaryColor,
-                  unselectedLabelColor: const Color(0xFFBDBDBD),
+                  unselectedLabelColor: AppTheme.lightTextColor,
                   dividerColor: const Color(0xFFEEEEEE),
                 ),
               ),

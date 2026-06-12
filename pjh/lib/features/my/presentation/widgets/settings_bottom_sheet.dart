@@ -39,7 +39,7 @@ class SettingsBottomSheet extends StatelessWidget {
             width: 36.w,
             height: 4.h,
             decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
+              color: AppTheme.dividerColor,
               borderRadius: BorderRadius.circular(2.r),
             ),
           ),
@@ -55,19 +55,19 @@ class SettingsBottomSheet extends StatelessWidget {
                     _SettingsItem(
                       icon: Icons.pets_outlined,
                       label: '내 반려동물 관리',
-                      bgColor: const Color(0xFFE6F1FB),
+                      bgColor: AppTheme.tilePastelBlue,
                       onTap: () { Navigator.pop(context); context.push('/pets'); },
                     ),
                     _SettingsItem(
                       icon: Icons.bar_chart_outlined,
                       label: 'AI 분석 히스토리',
-                      bgColor: const Color(0xFFEAF3DE),
+                      bgColor: AppTheme.tilePastelGreen,
                       onTap: () { Navigator.pop(context); context.push('/ai-history-page'); },
                     ),
                     _SettingsItem(
                       icon: Icons.card_giftcard_outlined,
                       label: '리워드 스토어',
-                      bgColor: const Color(0xFFFAECE7),
+                      bgColor: AppTheme.tilePastelPeach,
                       onTap: () { Navigator.pop(context); context.push('/reward'); },
                     ),
                   ]),
@@ -77,25 +77,25 @@ class SettingsBottomSheet extends StatelessWidget {
                     _SettingsItem(
                       icon: Icons.edit_outlined,
                       label: '프로필 편집',
-                      bgColor: const Color(0xFFF1EFE8),
+                      bgColor: AppTheme.tilePastelSand,
                       onTap: () { Navigator.pop(context); context.push('/my/edit-profile'); },
                     ),
                     _SettingsItem(
                       icon: Icons.notifications_none_outlined,
                       label: '알림 설정',
-                      bgColor: const Color(0xFFFBEAF0),
+                      bgColor: AppTheme.tilePastelPink,
                       onTap: () { Navigator.pop(context); context.push('/my/notification-settings'); },
                     ),
                     _SettingsItem(
                       icon: Icons.lock_outline,
                       label: '개인정보처리방침',
-                      bgColor: const Color(0xFFF1EFE8),
+                      bgColor: AppTheme.tilePastelSand,
                       onTap: () { Navigator.pop(context); context.push('/privacy'); },
                     ),
                     _SettingsItem(
                       icon: Icons.info_outline,
                       label: '앱 정보 · 버전',
-                      bgColor: const Color(0xFFF1EFE8),
+                      bgColor: AppTheme.tilePastelSand,
                       onTap: () {
                         Navigator.pop(context);
                         showAboutDialog(
@@ -112,7 +112,7 @@ class SettingsBottomSheet extends StatelessWidget {
                     _SettingsItem(
                       icon: Icons.logout,
                       label: '로그아웃',
-                      bgColor: const Color(0xFFFCEBEB),
+                      bgColor: AppTheme.tilePastelRose,
                       textColor: AppTheme.errorColor,
                       showChevron: false,
                       onTap: () => _confirmLogout(context),
@@ -120,7 +120,7 @@ class SettingsBottomSheet extends StatelessWidget {
                     _SettingsItem(
                       icon: Icons.warning_amber,
                       label: '회원탈퇴',
-                      bgColor: const Color(0xFFFCEBEB),
+                      bgColor: AppTheme.tilePastelRose,
                       textColor: AppTheme.errorColor,
                       showChevron: false,
                       onTap: () => _confirmDelete(context),
