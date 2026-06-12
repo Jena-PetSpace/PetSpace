@@ -2407,8 +2407,10 @@ REVOKE EXECUTE ON FUNCTION increment_user_points(UUID, INTEGER, TEXT, TEXT) FROM
 
 -- 계정/게시물 삭제 함수 (authenticated 전용)
 -- delete_user_account() 는 G-1 마이그레이션에서 DROP됨 (soft delete로 대체)
-REVOKE EXECUTE ON FUNCTION request_account_deletion() FROM anon;
-REVOKE EXECUTE ON FUNCTION restore_my_account() FROM anon;
+REVOKE EXECUTE ON FUNCTION request_account_deletion() FROM anon, public;
+REVOKE EXECUTE ON FUNCTION restore_my_account() FROM anon, public;
+GRANT EXECUTE ON FUNCTION request_account_deletion() TO authenticated;
+GRANT EXECUTE ON FUNCTION restore_my_account() TO authenticated;
 REVOKE EXECUTE ON FUNCTION soft_delete_post(UUID) FROM anon;
 REVOKE EXECUTE ON FUNCTION soft_delete_comment(UUID) FROM anon;
 

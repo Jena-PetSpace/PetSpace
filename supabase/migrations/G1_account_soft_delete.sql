@@ -65,13 +65,22 @@ BEGIN
 END;
 $$;
 
--- 6) 기존 hard delete RPC 제거 (승인 조건 — 2026-06-12)
+-- 6) 신규 RPC 권한 정리 (검토 보완 — 2026-06-12)
+--    SECURITY DEFINER 함수는 기본 PUBLIC 실행 권한이 부여되므로 명시적으로 회수 후
+--    authenticated에만 허용 (RPC 본문이 auth.uid() 기준이라 anon 호출은 무의미·차단)
+REVOKE EXECUTE ON FUNCTION request_account_deletion() FROM anon, public;
+REVOKE EXECUTE ON FUNCTION restore_my_account() FROM anon, public;
+GRANT EXECUTE ON FUNCTION request_account_deletion() TO authenticated;
+GRANT EXECUTE ON FUNCTION restore_my_account() TO authenticated;
+
+-- 7) 기존 hard delete RPC 제거 (승인 조건 — 2026-06-12)
 --    SECURITY DEFINER 즉시 삭제 함수가 남으면 30일 soft delete 정책 우회 경로가 공존.
 --    앱 호출처는 1-C에서 제거됨, 그 외 호출처 0건 확인 후 DROP.
 --    (petspace_setup.sql:927-937 확인 결과: 인자 없음·auth.uid() 기준 → 시그니처 일치)
 DROP FUNCTION IF EXISTS delete_user_account();
 
--- 7) pg_cron 일배치 등록 (대시보드에서 수동 실행 — URL·시크릿 치환 필요)
+-- 8) pg_cron 일배치 등록 (대시보드에서 수동 실행 — URL·시크릿 치환 필요)
+-- 사전: Dashboard Extensions에서 pg_cron·pg_net 활성화
 -- 매일 03:00 KST(18:00 UTC) purge Edge Function 호출:
 -- SELECT cron.schedule(
 --   'purge-deleted-accounts-daily', '0 18 * * *',
