@@ -53,6 +53,19 @@ void main() {
     expect(result, isNull);
   });
 
+  test('analyzedAt이 current와 정확히 같은 분석은 "이전"으로 보지 않고 제외 (strict <)', () async {
+    // 연사 촬영·중복 저장으로 동일 시각이면 직전 판정이 모호하므로 제외가 안전.
+    // 기준이 < (isBefore)임을 못박는다 — <= 가 아님.
+    when(() => repo.getAnalysesByPet(petId: 'p1', limit: 5)).thenAnswer(
+      (_) async => Right([
+        _a('sameTime', DateTime(2026, 6, 13, 12, 0)), // current와 동일 시각·다른 id
+        _a('older', DateTime(2026, 6, 13, 11, 0)),    // 진짜 이전 ← 기대값
+      ]),
+    );
+    final result = await usecase(current: current);
+    expect(result?.id, 'older'); // sameTime은 건너뛰고 진짜 이전 것 반환
+  });
+
   test('0건이면 null', () async {
     when(() => repo.getAnalysesByPet(petId: 'p1', limit: 5))
         .thenAnswer((_) async => const Right([]));
