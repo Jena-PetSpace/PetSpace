@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -27,6 +26,7 @@ import '../widgets/analysis_input/section_card.dart';
 import '../widgets/analysis_input/guide_tip_row.dart';
 import '../widgets/analysis_input/analysis_sub_tab.dart';
 import '../widgets/analysis_input/health_area_chips.dart';
+import '../widgets/analysis_input/image_grid_section.dart';
 
 class EmotionAnalysisPage extends StatefulWidget {
   final String? initialPetId;
@@ -546,7 +546,13 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 SizedBox(height: 10.h),
 
                 // 사진 그리드
-                _buildImageGrid(),
+                ImageGridSection(
+                  imagePaths: _imagePaths,
+                  maxImages: _maxImages,
+                  onAddTapped: _requestPermissionsAndOpenGuide,
+                  onRemove: (index) =>
+                      setState(() => _imagePaths.removeAt(index)),
+                ),
 
                 SizedBox(height: 16.h),
 
@@ -590,144 +596,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   }
 
   // 사진 그리드 (선택된 사진들 + 빈 슬롯 힌트)
-  Widget _buildImageGrid() {
-    if (_imagePaths.isEmpty) {
-      return GestureDetector(
-        onTap: _requestPermissionsAndOpenGuide,
-        child: Container(
-          width: double.infinity,
-          height: 120.h,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(
-              color: Colors.grey.shade200,
-              width: 1.5,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 52.w,
-                height: 52.w,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.add_photo_alternate_outlined,
-                    size: 28.w, color: AppTheme.primaryColor.withValues(alpha: 0.6)),
-              ),
-              SizedBox(height: 10.h),
-              Text(
-                '사진을 탭해서 추가하세요',
-                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppTheme.primaryColor.withValues(alpha: 0.7)),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                '최대 $_maxImages장 · 많을수록 정확해요',
-                style: TextStyle(fontSize: 10.sp, color: AppTheme.secondaryTextColor),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final showAddSlot = _imagePaths.length < _maxImages;
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8.w,
-        mainAxisSpacing: 8.w,
-        childAspectRatio: 1,
-      ),
-      itemCount: _imagePaths.length + (showAddSlot ? 1 : 0),
-      itemBuilder: (context, index) {
-        // 마지막 슬롯 = + 추가 버튼
-        if (showAddSlot && index == _imagePaths.length) {
-          return GestureDetector(
-            onTap: _requestPermissionsAndOpenGuide,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.25),
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_photo_alternate_outlined,
-                      size: 26.w, color: AppTheme.primaryColor.withValues(alpha: 0.6)),
-                  SizedBox(height: 4.h),
-                  Text(
-                    '추가',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      color: AppTheme.primaryColor.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10.r),
-              child: Image.file(
-                File(_imagePaths[index]),
-                fit: BoxFit.cover,
-              ),
-            ),
-            // X 버튼
-            Positioned(
-              top: 4.h,
-              right: 4.w,
-              child: GestureDetector(
-                onTap: () => setState(() => _imagePaths.removeAt(index)),
-                child: Container(
-                  width: 22.w,
-                  height: 22.w,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.close, size: 14.w, color: Colors.white),
-                ),
-              ),
-            ),
-            // 첫 번째 사진 표시
-            if (index == 0)
-              Positioned(
-                bottom: 4.h,
-                left: 4.w,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                  child: Text(
-                    '대표',
-                    style: TextStyle(fontSize: 9.sp, color: Colors.white),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildManualBreedSelector() {
     final breeds = _manualPetType != null
         ? _breedsByType[_manualPetType] ?? []
