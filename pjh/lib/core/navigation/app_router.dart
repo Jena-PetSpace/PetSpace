@@ -742,7 +742,9 @@ class AppRouter {
           return null;
         }
 
-        // 인증되지 않은 상태 (AuthUnauthenticated)
+        // 인증되지 않은 상태 (AuthUnauthenticated / AuthAccountDeleted)
+        // soft-delete 계정도 미인증과 동일하게 로그인 페이지로 보낸다.
+        // (복구 다이얼로그는 로그인 페이지의 BlocListener가 표시)
         log('User not authenticated', name: 'GoRouter');
         // 온보딩 페이지는 허용
         if (currentPath == '/onboarding' ||

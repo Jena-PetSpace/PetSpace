@@ -265,7 +265,12 @@ class MySettingsPage extends StatelessWidget {
               onPressed: controller.text.trim() == '탈퇴'
                   ? () {
                       Navigator.pop(ctx);
-                      authBloc.add(AuthDeleteAccountRequested());
+                      // 다이얼로그가 완전히 해체된 다음 프레임에 이벤트 발행 —
+                      // pop과 미인증 전환(트리 교체)이 같은 프레임에 겹쳐
+                      // InheritedWidget deactivate assertion이 터지는 것을 방지.
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        authBloc.add(AuthDeleteAccountRequested());
+                      });
                     }
                   : null,
               child: const Text('탈퇴',
