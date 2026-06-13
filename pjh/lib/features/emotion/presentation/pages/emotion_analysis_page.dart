@@ -28,6 +28,7 @@ import '../widgets/analysis_input/health_area_chips.dart';
 import '../widgets/analysis_input/image_grid_section.dart';
 import '../widgets/analysis_input/additional_input_section.dart';
 import '../widgets/analysis_input/analysis_guide_sheet.dart';
+import '../widgets/analysis_input/manual_breed_selector.dart';
 
 class EmotionAnalysisPage extends StatefulWidget {
   final String? initialPetId;
@@ -45,43 +46,6 @@ class EmotionAnalysisPage extends StatefulWidget {
   @override
   State<EmotionAnalysisPage> createState() => _EmotionAnalysisPageState();
 }
-
-// 품종 데이터
-const Map<String, List<String>> _breedsByType = {
-  'dog': [
-    '골든 리트리버',
-    '래브라도 리트리버',
-    '비글',
-    '시바견',
-    '진돗개',
-    '포메라니안',
-    '말티즈',
-    '푸들',
-    '치와와',
-    '요크셔테리어',
-    '시츄',
-    '웰시코기',
-    '보더콜리',
-    '허스키',
-    '사모예드',
-    '기타',
-  ],
-  'cat': [
-    '코리안 숏헤어',
-    '페르시안',
-    '러시안 블루',
-    '브리티시 숏헤어',
-    '스코티시 폴드',
-    '아메리칸 숏헤어',
-    '샴',
-    '뱅갈',
-    '메인쿤',
-    '노르웨이 숲',
-    '랙돌',
-    '터키시 앙고라',
-    '기타',
-  ],
-};
 
 class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   Pet? _selectedPet;
@@ -309,7 +273,21 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 // 수동 종/품종 선택 (반려동물 미선택 시)
                 if (_analyzeWithoutPet) ...[
                   SizedBox(height: 12.h),
-                  SectionCard(child: _buildManualBreedSelector()),
+                  SectionCard(
+                    child: ManualBreedSelector(
+                      selectedType: _manualPetType,
+                      selectedBreed: _manualBreed,
+                      customBreedCtrl: _breedCustomCtrl,
+                      onTypeSelected: (type) => setState(() {
+                        _manualPetType = type;
+                        _manualBreed = null;
+                        _breedCustomCtrl.clear();
+                      }),
+                      onBreedSelected: (breed) => setState(() {
+                        _manualBreed = breed;
+                      }),
+                    ),
+                  ),
                 ],
 
                 SizedBox(height: 16.h),
@@ -420,197 +398,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       ),
       ), // Scaffold
     ); // BlocListener
-  }
-
-  // 사진 그리드 (선택된 사진들 + 빈 슬롯 힌트)
-  Widget _buildManualBreedSelector() {
-    final breeds = _manualPetType != null
-        ? _breedsByType[_manualPetType] ?? []
-        : <String>[];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '종류 선택 (선택사항)',
-          style: TextStyle(
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.secondaryTextColor,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        Row(
-          children: [
-            _buildTypeChip('dog', '강아지'),
-            SizedBox(width: 8.w),
-            _buildTypeChip('cat', '고양이'),
-          ],
-        ),
-        if (_manualPetType != null && breeds.isNotEmpty) ...[
-          SizedBox(height: 12.h),
-          Autocomplete<String>(
-            key: ValueKey('breed_${_manualPetType}_$_manualBreed'),
-            initialValue: TextEditingValue(
-              text: (_manualBreed != null && _manualBreed != '기타') ? _manualBreed! : '',
-            ),
-            optionsBuilder: (textEditingValue) {
-              final query = textEditingValue.text.trim();
-              if (query.isEmpty) return breeds;
-              return breeds.where(
-                (b) => b.contains(query),
-              );
-            },
-            displayStringForOption: (b) => b,
-            onSelected: (value) {
-              setState(() {
-                _manualBreed = value;
-                _breedCustomCtrl.clear();
-              });
-              FocusScope.of(context).unfocus();
-            },
-            fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-              return TextField(
-                controller: controller,
-                focusNode: focusNode,
-                style: TextStyle(fontSize: 13.sp),
-                decoration: InputDecoration(
-                  labelText: '품종',
-                  labelStyle: TextStyle(fontSize: 13.sp),
-                  hintText: '입력하여 검색하거나 목록에서 선택',
-                  hintStyle: TextStyle(fontSize: 12.sp, color: Colors.grey),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 10.h,
-                  ),
-                  isDense: true,
-                  suffixIcon: _manualBreed != null
-                      ? IconButton(
-                          icon: Icon(Icons.clear, size: 16.w, color: Colors.grey),
-                          onPressed: () {
-                            setState(() {
-                              _manualBreed = null;
-                              _breedCustomCtrl.clear();
-                            });
-                            controller.clear();
-                          },
-                        )
-                      : Icon(Icons.arrow_drop_down, size: 20.w, color: Colors.grey),
-                ),
-              );
-            },
-            optionsViewBuilder: (context, onSelected, options) {
-              return Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width - 64.w,
-                  child: Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(10.r),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxHeight: 200.h),
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        itemCount: options.length,
-                        itemBuilder: (context, index) {
-                          final option = options.elementAt(index);
-                          final isSelected = _manualBreed == option;
-                          return GestureDetector(
-                            onTap: () => onSelected(option),
-                            child: Container(
-                              width: double.infinity,
-                              color: isSelected
-                                  ? AppTheme.primaryColor.withValues(alpha: 0.08)
-                                  : Colors.white,
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 16.w, vertical: 13.h),
-                              child: Text(
-                                option,
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w400,
-                                  color: isSelected
-                                      ? AppTheme.primaryColor
-                                      : AppTheme.primaryTextColor,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          if (_manualBreed == '기타') ...[
-            SizedBox(height: 8.h),
-            TextField(
-              controller: _breedCustomCtrl,
-              style: TextStyle(fontSize: 13.sp),
-              decoration: InputDecoration(
-                labelText: '품종 직접 입력',
-                labelStyle: TextStyle(fontSize: 13.sp),
-                hintText: '예: 비숑프리제',
-                hintStyle: TextStyle(fontSize: 12.sp, color: Colors.grey),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12.w, vertical: 10.h),
-                isDense: true,
-              ),
-            ),
-          ],
-        ],
-        SizedBox(height: 4.h),
-        Text(
-          '품종을 선택하면 더 정확한 분석이 가능해요',
-          style: TextStyle(fontSize: 11.sp, color: Colors.grey[500]),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTypeChip(String type, String label) {
-    final isSelected = _manualPetType == type;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _manualPetType = type;
-          _manualBreed = null;
-          _breedCustomCtrl.clear();
-        });
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppTheme.primaryColor.withValues(alpha: 0.1)
-              : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13.sp,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? AppTheme.primaryColor : Colors.grey[600],
-          ),
-        ),
-      ),
-    );
   }
 
   // ── 분석 버튼 텍스트 ──────────────────────────────────────────
