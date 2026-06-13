@@ -27,6 +27,7 @@ import '../widgets/analysis_input/guide_tip_row.dart';
 import '../widgets/analysis_input/analysis_sub_tab.dart';
 import '../widgets/analysis_input/health_area_chips.dart';
 import '../widgets/analysis_input/image_grid_section.dart';
+import '../widgets/analysis_input/additional_input_section.dart';
 
 class EmotionAnalysisPage extends StatefulWidget {
   final String? initialPetId;
@@ -557,7 +558,13 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 SizedBox(height: 16.h),
 
                 // 추가 입력란 (감정/건강 공통)
-                SectionCard(child: _buildAdditionalInput()),
+                SectionCard(
+                  child: AdditionalInputSection(
+                    controller: _additionalCtrl,
+                    expanded: _showAdditionalInput,
+                    onToggle: (v) => setState(() => _showAdditionalInput = v),
+                  ),
+                ),
 
                 SizedBox(height: 24.h),
 
@@ -783,68 +790,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           ),
         ),
       ),
-    );
-  }
-
-  // ── 추가 입력란 ────────────────────────────────────────────────
-  Widget _buildAdditionalInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: () => setState(() => _showAdditionalInput = !_showAdditionalInput),
-          child: Row(
-            children: [
-              Icon(
-                _showAdditionalInput
-                    ? Icons.keyboard_arrow_up
-                    : Icons.add_circle_outline,
-                size: 18.w,
-                color: AppTheme.primaryColor,
-              ),
-              SizedBox(width: 6.w),
-              Text(
-                _showAdditionalInput ? '추가 정보 접기' : '추가 정보 입력 (선택)',
-                style: TextStyle(fontSize: 12.sp, color: AppTheme.primaryColor),
-              ),
-              const Spacer(),
-              if (_showAdditionalInput)
-                ValueListenableBuilder(
-                  valueListenable: _additionalCtrl,
-                  builder: (_, value, __) {
-                    final len = value.text.length;
-                    final isNear = len >= 80;
-                    return Text(
-                      '$len/100자',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: isNear ? AppTheme.highlightColor : AppTheme.secondaryTextColor,
-                        fontWeight: isNear ? FontWeight.w600 : FontWeight.w400,
-                      ),
-                    );
-                  },
-                ),
-            ],
-          ),
-        ),
-        if (_showAdditionalInput) ...[
-          SizedBox(height: 8.h),
-          TextField(
-            controller: _additionalCtrl,
-            maxLength: 100,
-            maxLines: 3,
-            buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
-            decoration: InputDecoration(
-              hintText: '장소, 상황, 특이사항 등\nex) 산책 직후, 방금 목욕을 마쳤어요',
-              hintStyle: TextStyle(fontSize: 11.sp, color: Colors.grey),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              contentPadding: EdgeInsets.all(12.w),
-            ),
-          ),
-        ],
-      ],
     );
   }
 
