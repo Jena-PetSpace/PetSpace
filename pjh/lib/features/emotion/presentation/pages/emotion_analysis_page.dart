@@ -23,6 +23,8 @@ import 'emotion_result_page.dart';
 import 'health_loading_page.dart';
 import 'health_result_page.dart';
 import '../../data/models/health_analysis_model.dart';
+import '../widgets/analysis_input/section_card.dart';
+import '../widgets/analysis_input/guide_tip_row.dart';
 
 class EmotionAnalysisPage extends StatefulWidget {
   final String? initialPetId;
@@ -252,32 +254,32 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                       ),
                     ),
                     SizedBox(height: 20.h),
-                    _buildGuideTipRow(
-                      Icons.face,
-                      Colors.blue,
-                      '얼굴이 선명하게',
-                      '반려동물의 얼굴이 잘 보이도록 촬영해주세요',
+                    const GuideTipRow(
+                      icon: Icons.face,
+                      color: Colors.blue,
+                      title: '얼굴이 선명하게',
+                      subtitle: '반려동물의 얼굴이 잘 보이도록 촬영해주세요',
                     ),
                     SizedBox(height: 16.h),
-                    _buildGuideTipRow(
-                      Icons.wb_sunny,
-                      Colors.orange,
-                      '충분한 조명',
-                      '밝은 곳에서 촬영하면 더 정확해요',
+                    const GuideTipRow(
+                      icon: Icons.wb_sunny,
+                      color: Colors.orange,
+                      title: '충분한 조명',
+                      subtitle: '밝은 곳에서 촬영하면 더 정확해요',
                     ),
                     SizedBox(height: 16.h),
-                    _buildGuideTipRow(
-                      Icons.zoom_in,
-                      Colors.green,
-                      '가까운 거리에서',
-                      '너무 멀리서 찍지 마시고 가까이서 촬영해주세요',
+                    const GuideTipRow(
+                      icon: Icons.zoom_in,
+                      color: Colors.green,
+                      title: '가까운 거리에서',
+                      subtitle: '너무 멀리서 찍지 마시고 가까이서 촬영해주세요',
                     ),
                     SizedBox(height: 16.h),
-                    _buildGuideTipRow(
-                      Icons.crop_free,
-                      Colors.red,
-                      '깔끔한 배경',
-                      '배경이 복잡하지 않은 곳에서 촬영해주세요',
+                    const GuideTipRow(
+                      icon: Icons.crop_free,
+                      color: Colors.red,
+                      title: '깔끔한 배경',
+                      subtitle: '배경이 복잡하지 않은 곳에서 촬영해주세요',
                     ),
                   ],
                 ),
@@ -314,47 +316,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildGuideTipRow(
-      IconData icon, Color color, String title, String subtitle) {
-    return Row(
-      children: [
-        Container(
-          width: 40.w,
-          height: 40.w,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Icon(icon, color: color, size: 20.w),
-        ),
-        SizedBox(width: 12.w),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primaryTextColor,
-                ),
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: AppTheme.secondaryTextColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -501,14 +462,14 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 // 수동 종/품종 선택 (반려동물 미선택 시)
                 if (_analyzeWithoutPet) ...[
                   SizedBox(height: 12.h),
-                  _buildSectionCard(child: _buildManualBreedSelector()),
+                  SectionCard(child: _buildManualBreedSelector()),
                 ],
 
                 SizedBox(height: 16.h),
 
                 // 건강분석 탭일 때: 부위 칩 선택
                 if (_tabIndex == 1) ...[
-                  _buildSectionCard(child: _buildAreaChips()),
+                  SectionCard(child: _buildAreaChips()),
                   SizedBox(height: 16.h),
                 ],
 
@@ -559,7 +520,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                 SizedBox(height: 16.h),
 
                 // 추가 입력란 (감정/건강 공통)
-                _buildSectionCard(child: _buildAdditionalInput()),
+                SectionCard(child: _buildAdditionalInput()),
 
                 SizedBox(height: 24.h),
 
@@ -1087,25 +1048,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     if (_imagePaths.isEmpty) return '분석 시작하기';
     if (_tabIndex == 0) return '분석 시작하기';
     return '분석 시작하기';
-  }
-
-  Widget _buildSectionCard({required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: child,
-    );
   }
 
   void _showPetNotSelectedSnackBar() {
