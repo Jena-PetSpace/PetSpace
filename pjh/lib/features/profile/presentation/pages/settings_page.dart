@@ -9,35 +9,59 @@ class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   void _showDeleteAccountDialog(BuildContext context) {
+    final authBloc = context.read<AuthBloc>();
+    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('계정 삭제',
-            style: TextStyle(fontSize: 18.sp, color: Colors.red[700])),
-        content: Text(
-          '정말로 계정을 삭제하시겠습니까?\n\n'
-          '모든 게시물, 댓글, 반려동물 정보 등이 영구적으로 삭제되며 복구할 수 없습니다.',
-          style: TextStyle(fontSize: 14.sp),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setState) => AlertDialog(
+          title: Text('회원탈퇴',
+              style: TextStyle(fontSize: 18.sp, color: Colors.red[700])),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '탈퇴 후 30일이 지나면 모든 데이터가 영구 삭제됩니다.\n'
+                '그 전까지는 다시 로그인하면 계정을 복구할 수 있어요.',
+                style: TextStyle(fontSize: 14.sp),
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: controller,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: "계속하려면 '탈퇴'를 입력하세요",
+                  isDense: true,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text('취소', style: TextStyle(fontSize: 14.sp)),
+            ),
+            TextButton(
+              // 네비게이션은 GoRouter refreshListenable+redirect가 처리한다.
+              // 여기서 수동 context.go 를 호출하면 이중 네비게이션이 다이얼로그
+              // 해체와 겹쳐 _dependents.isEmpty assertion이 발생하므로 제거.
+              onPressed: controller.text.trim() == '탈퇴'
+                  ? () {
+                      Navigator.of(dialogContext).pop();
+                      // 다이얼로그가 완전히 해체된 다음 프레임에 이벤트 발행
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        authBloc.add(AuthDeleteAccountRequested());
+                      });
+                    }
+                  : null,
+              child: Text('탈퇴',
+                  style: TextStyle(color: Colors.red, fontSize: 14.sp)),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text('취소', style: TextStyle(fontSize: 14.sp)),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              context.read<AuthBloc>().add(AuthDeleteAccountRequested());
-              // BLoC 상태 변경 대기 후 이동
-              await Future.delayed(const Duration(milliseconds: 500));
-              if (context.mounted) context.go('/onboarding/login');
-            },
-            child: Text('삭제',
-                style: TextStyle(color: Colors.red, fontSize: 14.sp)),
-          ),
-        ],
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 
   void _showAccountInfo(BuildContext context) {
@@ -212,9 +236,9 @@ class SettingsPage extends StatelessWidget {
               );
 
               if (shouldLogout == true && context.mounted) {
+                // 네비게이션은 GoRouter refreshListenable+redirect가 처리한다
+                // (수동 context.go 제거 — 이중 네비게이션 방지)
                 context.read<AuthBloc>().add(AuthSignOutRequested());
-                // 로그아웃 후 온보딩 로그인 페이지로 이동
-                context.go('/onboarding/login');
               }
             },
           ),
