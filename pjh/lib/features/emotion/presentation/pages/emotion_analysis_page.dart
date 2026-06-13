@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -5,7 +6,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../domain/entities/emotion_analysis.dart';
+import '../../domain/usecases/get_previous_analysis.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/pet_inline_dropdown.dart';
 import '../../../pets/domain/entities/pet.dart';
@@ -1274,15 +1278,25 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
     if (!mounted) return;
 
     if (result is EmotionAnalysisSuccess) {
+      final analysis = result.analysis;
+      // 직전 분석 1건 조회. 비교 UI는 부가 기능이므로 화면 전환을 막지 않도록
+      // 300ms 타임아웃 — 느리거나 실패하면 즉시 null로 진행.
+      EmotionAnalysis? previous;
+      try {
+        previous = await sl<GetPreviousAnalysis>()(current: analysis)
+            .timeout(const Duration(milliseconds: 300));
+      } catch (_) {
+        previous = null;
+      }
+      if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => BlocProvider.value(
             value: bloc,
-            // TODO(previousAnalysis): 직전 분석 1건 조회해서 채우기 (별도 PR)
             child: EmotionResultPage(
-              analysis: result.analysis,
+              analysis: analysis,
               imagePaths: imagePathsCopy,
-              previousAnalysis: null,
+              previousAnalysis: previous,
             ),
           ),
         ),

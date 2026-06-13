@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -5,6 +7,7 @@ import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../../domain/repositories/emotion_repository.dart';
+import '../../domain/usecases/get_previous_analysis.dart';
 import 'emotion_result_page.dart';
 
 /// analysisId로 분석 결과를 로드한 후 EmotionResultPage를 표시하는 래퍼 페이지
@@ -20,6 +23,7 @@ class EmotionResultLoaderPage extends StatefulWidget {
 
 class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
   EmotionAnalysis? _analysis;
+  EmotionAnalysis? _previousAnalysis;
   String? _error;
   bool _loading = true;
 
@@ -40,11 +44,26 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
         _error = failure.message;
         _loading = false;
       }),
-      (analysis) => setState(() {
-        _analysis = analysis;
-        _loading = false;
-      }),
+      // fold는 동기 — 비동기 후속(직전 분석 조회+setState)은 fire-and-forget.
+      // 내부에서 자체 try-catch·mounted 가드하므로 의도적으로 unawaited.
+      (analysis) => unawaited(_onAnalysisLoaded(analysis)),
     );
+  }
+
+  Future<void> _onAnalysisLoaded(EmotionAnalysis analysis) async {
+    EmotionAnalysis? previous;
+    try {
+      previous = await sl<GetPreviousAnalysis>()(current: analysis)
+          .timeout(const Duration(milliseconds: 300));
+    } catch (_) {
+      previous = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _analysis = analysis;
+      _previousAnalysis = previous;
+      _loading = false;
+    });
   }
 
   @override
@@ -107,10 +126,9 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
       );
     }
 
-    // TODO(previousAnalysis): 직전 분석 1건 조회해서 채우기 (별도 PR)
     return EmotionResultPage(
       analysis: _analysis!,
-      previousAnalysis: null,
+      previousAnalysis: _previousAnalysis,
     );
   }
 }

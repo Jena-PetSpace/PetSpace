@@ -27,6 +27,7 @@ import '../features/emotion/domain/usecases/save_emotion_analysis.dart';
 import '../features/emotion/domain/usecases/get_emotion_history.dart';
 import '../features/emotion/domain/usecases/get_emotion_statistics.dart';
 import '../features/emotion/domain/usecases/delete_emotion_analysis.dart';
+import '../features/emotion/domain/usecases/get_previous_analysis.dart';
 import '../features/emotion/data/datasources/emotion_ai_service.dart';
 import '../features/emotion/data/datasources/image_service.dart';
 import '../features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
@@ -213,6 +214,7 @@ Future<void> _initEmotion() async {
   sl.registerLazySingleton(() => GetEmotionHistory(sl()));
   sl.registerLazySingleton(() => GetEmotionStatistics(sl()));
   sl.registerLazySingleton(() => DeleteEmotionAnalysis(sl()));
+  sl.registerLazySingleton(() => GetPreviousAnalysis(sl()));
 
   // BLoC - factory로 등록: 페이지마다 새 인스턴스 생성 (singleton 재사용 시 closed 오류 방지)
   sl.registerFactory(
