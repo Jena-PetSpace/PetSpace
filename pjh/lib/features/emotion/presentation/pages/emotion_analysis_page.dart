@@ -25,6 +25,8 @@ import 'health_result_page.dart';
 import '../../data/models/health_analysis_model.dart';
 import '../widgets/analysis_input/section_card.dart';
 import '../widgets/analysis_input/guide_tip_row.dart';
+import '../widgets/analysis_input/analysis_sub_tab.dart';
+import '../widgets/analysis_input/health_area_chips.dart';
 
 class EmotionAnalysisPage extends StatefulWidget {
   final String? initialPetId;
@@ -409,8 +411,32 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
               padding: EdgeInsets.all(3.w),
               child: Row(
                 children: [
-                  _buildSubTab('감정 분석', 0),
-                  _buildSubTab('건강 분석', 1),
+                  AnalysisSubTab(
+                    label: '감정 분석',
+                    index: 0,
+                    currentIndex: _tabIndex,
+                    onSelected: (i) {
+                      setState(() {
+                        _tabIndex = i;
+                        _additionalCtrl.clear();
+                        _showAdditionalInput = false;
+                        _imagePaths.clear();
+                      });
+                    },
+                  ),
+                  AnalysisSubTab(
+                    label: '건강 분석',
+                    index: 1,
+                    currentIndex: _tabIndex,
+                    onSelected: (i) {
+                      setState(() {
+                        _tabIndex = i;
+                        _additionalCtrl.clear();
+                        _showAdditionalInput = false;
+                        _imagePaths.clear();
+                      });
+                    },
+                  ),
                 ],
               ),
             ),
@@ -469,7 +495,12 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
 
                 // 건강분석 탭일 때: 부위 칩 선택
                 if (_tabIndex == 1) ...[
-                  SectionCard(child: _buildAreaChips()),
+                  SectionCard(
+                    child: HealthAreaChips(
+                      selectedArea: _selectedArea,
+                      onSelected: (area) => setState(() => _selectedArea = area),
+                    ),
+                  ),
                   SizedBox(height: 16.h),
                 ],
 
@@ -884,100 +915,6 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           ),
         ),
       ),
-    );
-  }
-
-  // ── 서브탭 ──────────────────────────────────────────────────────
-  Widget _buildSubTab(String label, int index) {
-    final isOn = _tabIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _tabIndex = index;
-            _additionalCtrl.clear();
-            _showAdditionalInput = false;
-            _imagePaths.clear();
-          });
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: EdgeInsets.symmetric(vertical: 11.h),
-          decoration: BoxDecoration(
-            color: isOn ? AppTheme.primaryColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(26.r),
-            boxShadow: isOn
-                ? [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: isOn ? FontWeight.w700 : FontWeight.w500,
-              color: isOn ? Colors.white : AppTheme.secondaryTextColor,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── 건강분석 부위 칩 ───────────────────────────────────────────
-  static const List<String> _healthAreas = [
-    '종합(전체)', '눈·귀', '코·입', '피부·털', '체형(BCS)', '자세·체형 대칭',
-  ];
-
-  Widget _buildAreaChips() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '분석 부위 선택',
-          style: TextStyle(
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.secondaryTextColor,
-          ),
-        ),
-        SizedBox(height: 10.h),
-        Wrap(
-          spacing: 8.w,
-          runSpacing: 8.h,
-          children: _healthAreas.map((area) {
-            final isOn = _selectedArea == area;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedArea = area),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-                decoration: BoxDecoration(
-                  color: isOn ? AppTheme.primaryColor : Colors.white,
-                  borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(
-                    color: isOn ? AppTheme.primaryColor : Colors.grey.shade300,
-                  ),
-                ),
-                child: Text(
-                  area,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: isOn ? FontWeight.w600 : FontWeight.w400,
-                    color: isOn ? Colors.white : AppTheme.primaryTextColor,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
     );
   }
 
