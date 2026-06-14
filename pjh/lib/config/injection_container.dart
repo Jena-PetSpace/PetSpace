@@ -93,6 +93,7 @@ import '../features/chat/domain/usecases/get_unread_count.dart';
 import '../features/chat/domain/usecases/search_users_for_chat.dart';
 import '../features/chat/domain/usecases/leave_chat_room.dart';
 import '../features/chat/domain/usecases/add_chat_members.dart';
+import '../features/chat/domain/usecases/report_chat_target.dart';
 import '../features/chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 import '../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
@@ -412,6 +413,7 @@ Future<void> _initChat() async {
   sl.registerLazySingleton(() => SearchUsersForChat(sl<ChatRepository>()));
   sl.registerLazySingleton(() => LeaveChatRoom(sl<ChatRepository>()));
   sl.registerLazySingleton(() => AddChatMembers(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => ReportChatTarget(sl<ChatRepository>()));
 
   // BLoCs
   sl.registerFactory(

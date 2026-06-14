@@ -7,13 +7,18 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/services/block_service.dart';
+import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_participant.dart';
 import '../../domain/repositories/chat_repository.dart';
+import '../../domain/usecases/report_chat_target.dart';
 import '../bloc/chat_detail/chat_detail_bloc.dart';
+import '../bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
+import '../widgets/chat_report_sheet.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String roomId;
@@ -100,6 +105,128 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           _roomName = info['name'] as String? ?? _roomName;
         });
       },
+    );
+  }
+
+  /// 1:1 채팅 상대 참여자(없으면 null — 그룹/미로딩).
+  ChatParticipant? get _otherParticipant {
+    for (final p in _participants) {
+      if (p.userId != _currentUserId) return p;
+    }
+    return null;
+  }
+
+  /// 신고하기: 사유 선택 → ReportChatTarget(reportChatUser) → 접수 안내.
+  Future<void> _reportUser() async {
+    final other = _otherParticipant;
+    if (other == null) {
+      _showSnack('신고할 상대를 찾을 수 없습니다.');
+      return;
+    }
+    final reason = await showChatReportSheet(context, title: '사용자 신고');
+    if (reason == null || !mounted) return;
+
+    final result = await sl<ReportChatTarget>()(ReportChatTargetParams(
+      target: ChatReportTarget.user,
+      targetId: other.userId,
+      reporterId: _currentUserId,
+      reason: reason,
+    ));
+    if (!mounted) return;
+    result.fold(
+      (failure) => _showSnack('신고 접수에 실패했습니다: ${failure.message}'),
+      (_) => _showSnack('신고가 접수되었습니다. 검토 후 조치하겠습니다.'),
+    );
+  }
+
+  /// 개별 메시지 신고: 사유 선택 → ReportChatTarget(reportChatMessage) → 접수 안내.
+  Future<void> _reportMessage(ChatMessage message) async {
+    final reason = await showChatReportSheet(context, title: '메시지 신고');
+    if (reason == null || !mounted) return;
+
+    final result = await sl<ReportChatTarget>()(ReportChatTargetParams(
+      target: ChatReportTarget.message,
+      targetId: message.id,
+      reporterId: _currentUserId,
+      reason: reason,
+    ));
+    if (!mounted) return;
+    result.fold(
+      (failure) => _showSnack('신고 접수에 실패했습니다: ${failure.message}'),
+      (_) => _showSnack('신고가 접수되었습니다. 검토 후 조치하겠습니다.'),
+    );
+  }
+
+  /// 차단하기: 확인 다이얼로그 → blockUser → 캐시 무효화 → 즉시 반영(현재 방 재로드 +
+  /// 방 목록 refresh) → 목록으로 복귀.
+  Future<void> _blockUser() async {
+    final other = _otherParticipant;
+    if (other == null) {
+      _showSnack('차단할 상대를 찾을 수 없습니다.');
+      return;
+    }
+    final name = other.displayName ?? '이 사용자';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('사용자 차단'),
+        content: Text(
+          '$name님을 차단하시겠어요?\n대화와 메시지가 더 이상 표시되지 않습니다.',
+          style: TextStyle(fontSize: 14.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.highlightColor),
+            child: const Text('차단'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final ok = await sl<BlockService>().blockUser(other.userId);
+    if (!mounted) return;
+    if (!ok) {
+      _showSnack('차단에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    // 캐시 무효화 후 최신 차단 목록 반영(즉시 반영의 전제).
+    await sl<BlockService>().getBlockedUserIds(forceRefresh: true);
+    if (!mounted) return;
+
+    // 현재 방 즉시 재그리기(차단 상대 기존 메시지 비표시).
+    context.read<ChatDetailBloc>().add(
+          ChatDetailBlockApplied(roomId: widget.roomId),
+        );
+    // 채팅방 목록에서 차단 방 숨김 갱신(목록 BLoC이 트리에 없으면 다음 자연 로드에서 반영).
+    try {
+      context.read<ChatRoomsBloc>().add(
+            ChatRoomsRefreshRequested(userId: _currentUserId),
+          );
+    } catch (_) {
+      // ChatRoomsBloc 미제공 컨텍스트 — getChatRooms 필터가 다음 로드 시 적용됨.
+    }
+
+    _showSnack('$name님을 차단했습니다.');
+    // 차단 후엔 대화가 비므로 목록으로 복귀.
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      context.go('/chat');
+    }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -221,6 +348,20 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 _refreshRoomName();
               }
             },
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'report') {
+                _reportUser();
+              } else if (value == 'block') {
+                _blockUser();
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'report', child: Text('신고하기')),
+              const PopupMenuItem(value: 'block', child: Text('차단하기')),
+            ],
           ),
         ],
       ),
@@ -359,6 +500,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               showSenderInfo: showSenderInfo,
               unreadCount: unreadCount,
               showReadLabel: false,
+              onLongPress: isMine ? null : () => _reportMessage(message),
             ),
           ],
         );
