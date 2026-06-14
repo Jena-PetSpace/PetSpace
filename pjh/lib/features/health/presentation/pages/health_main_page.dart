@@ -13,6 +13,7 @@ import '../../domain/entities/health_record.dart';
 import '../bloc/health_bloc.dart';
 import '../widgets/health_record_card.dart';
 import '../widgets/health_record_data.dart';
+import '../widgets/weight_trend_chart.dart';
 import '../widgets/emotion_trend_mini_chart.dart';
 
 part '../widgets/health_record_sheets.dart';
@@ -191,6 +192,12 @@ class _HealthMainViewState extends State<_HealthMainView> {
             // 유형별 필터 칩
             _buildFilterChips(),
             SizedBox(height: 12.h),
+
+            // 체중 필터 선택 시 추이 차트 노출 (감정 트렌드와 위치 충돌 없음)
+            if (_selectedFilter == HealthRecordType.weight) ...[
+              WeightTrendChart(records: state.records),
+              SizedBox(height: 12.h),
+            ],
 
             if (state.records.isEmpty)
               _buildEmptyRecordState()
