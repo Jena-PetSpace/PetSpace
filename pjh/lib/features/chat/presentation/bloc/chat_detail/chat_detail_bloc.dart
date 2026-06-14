@@ -29,6 +29,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     on<ChatDetailSendImageRequested>(_onSendImageRequested);
     on<ChatDetailMarkAsReadRequested>(_onMarkAsReadRequested);
     on<ChatDetailNewMessageReceived>(_onNewMessageReceived);
+    on<ChatDetailBlockApplied>(_onBlockApplied);
   }
 
   Future<void> _onLoadRequested(
@@ -164,5 +165,22 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
         messages: [event.message, ...currentState.messages],
       ));
     }
+  }
+
+  /// 차단 직후 현재 방 즉시 재로드 — 차단 상대의 기존 메시지가
+  /// 필터된 결과(repository getChatMessages)로 다시 그려진다.
+  Future<void> _onBlockApplied(
+    ChatDetailBlockApplied event,
+    Emitter<ChatDetailState> emit,
+  ) async {
+    final result =
+        await getChatMessages(GetChatMessagesParams(roomId: event.roomId));
+    result.fold(
+      (failure) => emit(ChatDetailError(message: failure.message)),
+      (messages) => emit(ChatDetailLoaded(
+        messages: messages,
+        hasReachedMax: messages.length < 30,
+      )),
+    );
   }
 }

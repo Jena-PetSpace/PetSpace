@@ -396,6 +396,7 @@ Future<void> _initChat() async {
     () => ChatRepositoryImpl(
       remoteDataSource: sl<ChatRemoteDataSource>(),
       networkInfo: sl<NetworkInfo>(),
+      blockService: sl<BlockService>(),
     ),
   );
 

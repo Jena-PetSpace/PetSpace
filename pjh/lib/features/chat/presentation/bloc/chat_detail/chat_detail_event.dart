@@ -76,3 +76,14 @@ class ChatDetailNewMessageReceived extends ChatDetailEvent {
   @override
   List<Object?> get props => [message];
 }
+
+/// 차단 액션 직후 현재 방을 즉시 다시 그린다(앱 재시작 없이).
+/// 차단 상대의 기존 메시지가 필터된 결과로 재로드된다.
+class ChatDetailBlockApplied extends ChatDetailEvent {
+  final String roomId;
+
+  const ChatDetailBlockApplied({required this.roomId});
+
+  @override
+  List<Object?> get props => [roomId];
+}

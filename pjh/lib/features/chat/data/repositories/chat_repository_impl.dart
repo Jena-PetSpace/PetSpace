@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/network_info.dart';
+import '../../../../core/services/block_service.dart';
 import '../../domain/entities/chat_room.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_participant.dart';
@@ -11,10 +12,12 @@ import '../datasources/chat_remote_data_source.dart';
 class ChatRepositoryImpl implements ChatRepository {
   final ChatRemoteDataSource remoteDataSource;
   final NetworkInfo networkInfo;
+  final BlockService blockService;
 
   ChatRepositoryImpl({
     required this.remoteDataSource,
     required this.networkInfo,
+    required this.blockService,
   });
 
   @override
@@ -24,7 +27,13 @@ class ChatRepositoryImpl implements ChatRepository {
     }
     try {
       final result = await remoteDataSource.getChatRooms(userId);
-      return Right(result.map((m) => m.toEntity()).toList());
+      final blocked = (await blockService.getBlockedUserIds()).toSet();
+      final rooms = result.map((m) => m.toEntity()).where((room) {
+        // 1:1 방에서 상대가 차단 대상이면 목록에서 숨김. (그룹은 유지)
+        final other = room.getOtherParticipant(userId);
+        return other == null || !blocked.contains(other.userId);
+      }).toList();
+      return Right(rooms);
     } catch (e) {
       return Left(ServerFailure(message: '채팅방 목록을 불러오지 못했습니다: $e'));
     }
@@ -45,7 +54,12 @@ class ChatRepositoryImpl implements ChatRepository {
         limit: limit,
         lastMessageId: lastMessageId,
       );
-      return Right(result.map((m) => m.toEntity()).toList());
+      // 차단한 사용자의 메시지 제외 (초기/추가 로드).
+      final blocked = (await blockService.getBlockedUserIds()).toSet();
+      return Right(result
+          .where((m) => !blocked.contains(m.senderId))
+          .map((m) => m.toEntity())
+          .toList());
     } catch (e) {
       return Left(ServerFailure(message: '메시지를 불러오지 못했습니다: $e'));
     }
@@ -312,10 +326,14 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Stream<ChatMessage> subscribeToRoomMessages(String roomId) {
-    return remoteDataSource
-        .subscribeToRoomMessages(roomId)
-        .map((model) => model.toEntity());
+  Stream<ChatMessage> subscribeToRoomMessages(String roomId) async* {
+    // 실시간 INSERT마다 차단 목록을 새로 조회해 동적으로 반영한다.
+    // (구독 시점 스냅샷이 아님 — 차단 액션이 캐시를 무효화하므로 다음 메시지부터 즉시 차단)
+    await for (final model in remoteDataSource.subscribeToRoomMessages(roomId)) {
+      final blocked = await blockService.getBlockedUserIds();
+      if (blocked.contains(model.senderId)) continue; // 차단 사용자 메시지 드롭
+      yield model.toEntity();
+    }
   }
 
   @override
