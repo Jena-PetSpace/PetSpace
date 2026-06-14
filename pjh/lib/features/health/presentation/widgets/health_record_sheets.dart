@@ -4,6 +4,7 @@ extension _HealthMainSheets on _HealthMainViewState {
   void _showAddRecordSheet(BuildContext context) {
     final titleController = TextEditingController();
     final descController = TextEditingController();
+    final typeFields = _TypeFieldState();
     HealthRecordType selectedType = HealthRecordType.vaccination;
     DateTime selectedDate = DateTime.now();
     DateTime? nextDate;
@@ -54,12 +55,16 @@ extension _HealthMainSheets on _HealthMainViewState {
                 ),
                 SizedBox(height: 16.h),
 
-                // 제목
+                // 타입별 전용 입력
+                _buildTypeFields(selectedType, typeFields, setSheetState),
+                SizedBox(height: 12.h),
+
+                // 제목 (선택 — 체중은 자동 생성)
                 TextField(
                   controller: titleController,
                   style: TextStyle(fontSize: 14.sp),
                   decoration: InputDecoration(
-                    labelText: '제목',
+                    labelText: '제목 (선택)',
                     labelStyle: TextStyle(fontSize: 14.sp),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.r),
@@ -131,9 +136,11 @@ extension _HealthMainSheets on _HealthMainViewState {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      if (titleController.text.trim().isEmpty) {
+                      final typeError =
+                          _validateTypeFields(selectedType, typeFields);
+                      if (typeError != null) {
                         ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('제목을 입력해주세요')),
+                          SnackBar(content: Text(typeError)),
                         );
                         return;
                       }
@@ -144,12 +151,24 @@ extension _HealthMainSheets on _HealthMainViewState {
                         return;
                       }
 
+                      final data = _composeData(selectedType, typeFields);
+                      // 제목: 입력값 우선, 체중은 자동 생성, 그 외 비면 타입명.
+                      String title = titleController.text.trim();
+                      if (title.isEmpty) {
+                        if (selectedType == HealthRecordType.weight) {
+                          title = weightTitle(
+                              parseWeightKg(typeFields.weight.text)!);
+                        } else {
+                          title = _getRecordTypeName(selectedType);
+                        }
+                      }
+
                       final record = HealthRecord(
                         id: '',
                         petId: petState.selectedPet!.id,
                         userId: '',
                         recordType: selectedType,
-                        title: titleController.text.trim(),
+                        title: title,
                         description: descController.text.trim().isEmpty
                             ? null
                             : descController.text.trim(),
@@ -158,6 +177,7 @@ extension _HealthMainSheets on _HealthMainViewState {
                         status: selectedDate.isAfter(DateTime.now())
                             ? HealthRecordStatus.scheduled
                             : HealthRecordStatus.completed,
+                        data: data,
                         createdAt: DateTime.now(),
                         updatedAt: DateTime.now(),
                       );
@@ -192,6 +212,7 @@ extension _HealthMainSheets on _HealthMainViewState {
     final titleController = TextEditingController(text: record.title);
     final descController =
         TextEditingController(text: record.description ?? '');
+    final typeFields = _TypeFieldState()..hydrate(record.data);
     HealthRecordType selectedType = record.recordType;
     DateTime selectedDate = record.recordDate;
     DateTime? nextDate = record.nextDate;
@@ -241,11 +262,15 @@ extension _HealthMainSheets on _HealthMainViewState {
                 ),
                 SizedBox(height: 16.h),
 
+                // 타입별 전용 입력
+                _buildTypeFields(selectedType, typeFields, setSheetState),
+                SizedBox(height: 12.h),
+
                 TextField(
                   controller: titleController,
                   style: TextStyle(fontSize: 14.sp),
                   decoration: InputDecoration(
-                    labelText: '제목',
+                    labelText: '제목 (선택)',
                     labelStyle: TextStyle(fontSize: 14.sp),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.r)),
@@ -331,11 +356,24 @@ extension _HealthMainSheets on _HealthMainViewState {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      if (titleController.text.trim().isEmpty) {
+                      final typeError =
+                          _validateTypeFields(selectedType, typeFields);
+                      if (typeError != null) {
                         ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('제목을 입력해주세요')),
+                          SnackBar(content: Text(typeError)),
                         );
                         return;
+                      }
+
+                      final data = _composeData(selectedType, typeFields);
+                      String title = titleController.text.trim();
+                      if (title.isEmpty) {
+                        if (selectedType == HealthRecordType.weight) {
+                          title = weightTitle(
+                              parseWeightKg(typeFields.weight.text)!);
+                        } else {
+                          title = _getRecordTypeName(selectedType);
+                        }
                       }
 
                       final updated = HealthRecord(
@@ -343,13 +381,14 @@ extension _HealthMainSheets on _HealthMainViewState {
                         petId: record.petId,
                         userId: record.userId,
                         recordType: selectedType,
-                        title: titleController.text.trim(),
+                        title: title,
                         description: descController.text.trim().isEmpty
                             ? null
                             : descController.text.trim(),
                         recordDate: selectedDate,
                         nextDate: nextDate,
                         status: selectedStatus,
+                        data: data,
                         createdAt: record.createdAt,
                         updatedAt: DateTime.now(),
                       );
@@ -452,5 +491,205 @@ extension _HealthMainSheets on _HealthMainViewState {
 
   String _formatDate(DateTime date) {
     return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// 타입별 전용 입력 필드. 공통 필드(메모·날짜·상태) 위에 노출된다.
+  /// 값은 [s]의 컨트롤러/필드에 담기고, 저장 시 buildHealthRecordData로 data Map 구성.
+  Widget _buildTypeFields(
+    HealthRecordType type,
+    _TypeFieldState s,
+    void Function(void Function()) setSheetState,
+  ) {
+    InputDecoration deco(String label) => InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(fontSize: 14.sp),
+          border:
+              OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+        );
+
+    switch (type) {
+      case HealthRecordType.weight:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: s.weight,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              style: TextStyle(fontSize: 14.sp),
+              decoration: deco('체중 (kg)'),
+            ),
+            SizedBox(height: 12.h),
+            Text('BCS (선택, 1~9)',
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600)),
+            SizedBox(height: 8.h),
+            Wrap(
+              spacing: 6.w,
+              children: List.generate(9, (i) {
+                final v = i + 1;
+                return ChoiceChip(
+                  label: Text('$v', style: TextStyle(fontSize: 12.sp)),
+                  selected: s.bcs == v,
+                  selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
+                  onSelected: (_) =>
+                      setSheetState(() => s.bcs = s.bcs == v ? null : v),
+                );
+              }),
+            ),
+          ],
+        );
+      case HealthRecordType.vaccination:
+        return TextField(
+          controller: s.vaccineType,
+          style: TextStyle(fontSize: 14.sp),
+          decoration: deco('백신 종류'),
+        );
+      case HealthRecordType.medication:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: s.medName,
+              style: TextStyle(fontSize: 14.sp),
+              decoration: deco('약 이름'),
+            ),
+            SizedBox(height: 12.h),
+            TextField(
+              controller: s.dosage,
+              style: TextStyle(fontSize: 14.sp),
+              decoration: deco('용량 (선택)'),
+            ),
+            SizedBox(height: 12.h),
+            Text('반복 주기',
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600)),
+            SizedBox(height: 8.h),
+            Wrap(
+              spacing: 6.w,
+              children: medicationFrequencies.map((f) {
+                return ChoiceChip(
+                  label: Text(f, style: TextStyle(fontSize: 12.sp)),
+                  selected: s.frequency == f,
+                  selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
+                  onSelected: (_) => setSheetState(
+                      () => s.frequency = s.frequency == f ? null : f),
+                );
+              }).toList(),
+            ),
+          ],
+        );
+      case HealthRecordType.checkup:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: s.hospital,
+              style: TextStyle(fontSize: 14.sp),
+              decoration: deco('병원 (선택)'),
+            ),
+            SizedBox(height: 12.h),
+            TextField(
+              controller: s.result,
+              style: TextStyle(fontSize: 14.sp),
+              decoration: deco('결과/소견 (선택)'),
+            ),
+            SizedBox(height: 12.h),
+            TextField(
+              controller: s.cost,
+              keyboardType: TextInputType.number,
+              style: TextStyle(fontSize: 14.sp),
+              decoration: deco('비용 (선택, 원)'),
+            ),
+          ],
+        );
+      case HealthRecordType.surgery:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: s.surgeryName,
+              style: TextStyle(fontSize: 14.sp),
+              decoration: deco('수술명'),
+            ),
+            SizedBox(height: 12.h),
+            TextField(
+              controller: s.hospital,
+              style: TextStyle(fontSize: 14.sp),
+              decoration: deco('병원 (선택)'),
+            ),
+          ],
+        );
+    }
+  }
+
+  /// 타입별 필수 검증. 통과 시 null, 실패 시 안내 메시지 반환.
+  String? _validateTypeFields(HealthRecordType type, _TypeFieldState s) {
+    switch (type) {
+      case HealthRecordType.weight:
+        if (parseWeightKg(s.weight.text) == null) {
+          return '체중(kg)을 올바르게 입력해주세요';
+        }
+        return null;
+      case HealthRecordType.medication:
+        if (s.medName.text.trim().isEmpty) return '약 이름을 입력해주세요';
+        return null;
+      case HealthRecordType.surgery:
+        if (s.surgeryName.text.trim().isEmpty) return '수술명을 입력해주세요';
+        return null;
+      case HealthRecordType.vaccination:
+      case HealthRecordType.checkup:
+        return null;
+    }
+  }
+
+  /// [s]에서 타입별 data Map 구성.
+  Map<String, dynamic> _composeData(HealthRecordType type, _TypeFieldState s) {
+    return buildHealthRecordData(
+      type: type,
+      weightKg: parseWeightKg(s.weight.text),
+      bcs: s.bcs,
+      vaccineType: s.vaccineType.text,
+      hospital: s.hospital.text,
+      medName: s.medName.text,
+      dosage: s.dosage.text,
+      frequency: s.frequency,
+      endDate: s.endDate,
+      result: s.result.text,
+      cost: parseCost(s.cost.text),
+      surgeryName: s.surgeryName.text,
+    );
+  }
+}
+
+/// 타입별 전용 입력 상태(컨트롤러·선택값). add/edit 시트에서 공유.
+class _TypeFieldState {
+  final weight = TextEditingController();
+  int? bcs;
+  final vaccineType = TextEditingController();
+  final hospital = TextEditingController();
+  final medName = TextEditingController();
+  final dosage = TextEditingController();
+  String? frequency;
+  DateTime? endDate;
+  final result = TextEditingController();
+  final cost = TextEditingController();
+  final surgeryName = TextEditingController();
+
+  /// 기존 레코드의 data로 초기화(수정 시트용). null-safe.
+  void hydrate(Map<String, dynamic> d) {
+    final w = d['weight_kg'];
+    if (w is num) weight.text = w.toString();
+    final b = d['bcs'];
+    if (b is num) bcs = b.toInt();
+    vaccineType.text = (d['vaccine_type'] as String?) ?? '';
+    hospital.text = (d['hospital'] as String?) ?? '';
+    medName.text = (d['med_name'] as String?) ?? '';
+    dosage.text = (d['dosage'] as String?) ?? '';
+    frequency = d['frequency'] as String?;
+    final e = d['end_date'];
+    if (e is String) endDate = DateTime.tryParse(e);
+    result.text = (d['result'] as String?) ?? '';
+    final c = d['cost'];
+    if (c is num) cost.text = c.toInt().toString();
+    surgeryName.text = (d['surgery_name'] as String?) ?? '';
   }
 }

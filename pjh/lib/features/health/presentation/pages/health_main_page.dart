@@ -12,6 +12,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/health_record.dart';
 import '../bloc/health_bloc.dart';
 import '../widgets/health_record_card.dart';
+import '../widgets/health_record_data.dart';
 import '../widgets/emotion_trend_mini_chart.dart';
 
 part '../widgets/health_record_sheets.dart';
@@ -235,7 +236,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
                             icon: _getRecordIcon(record.recordType),
                             iconColor: _getRecordColor(record.recordType),
                             title: _getRecordTypeName(record.recordType),
-                            subtitle: record.title,
+                            subtitle: recordCardSubtitle(record),
                             date: _formatDate(record.recordDate),
                             status: _getStatusName(record.status),
                             statusColor: _getStatusColor(record.status),
