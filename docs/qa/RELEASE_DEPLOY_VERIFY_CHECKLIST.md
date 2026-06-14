@@ -83,6 +83,12 @@
 - [ ] 감정 분석 정상 결과 / 건강 분석 정상 결과 / 일기 생성(generateText)
 - [ ] 비로그인 상태 분석 시도 → "로그인이 필요합니다" 처리
 
+📱 **건강관리 개선** (health 트랙 4f377a8..45ca8e2 — docs/qa/health_pdf_verification.md)
+- [ ] 감정 트렌드: 분석 기록 0/1/2+건 상태(빈 상태·단일·추이 라인) 표시
+- [ ] 건강기록 5타입 전용 입력 저장 + 카드 타입별 표시(체중 "5.2kg" 등) + 기존 빈 레코드 안 깨짐
+- [ ] 체중 필터 선택 시 추이 차트 + 증감 표시
+- [ ] **PDF 생성·공유 시트(iOS/Android)** — pdf/printing 네이티브 의존, 한글 정상 표시, 빈 섹션 생략
+
 ---
 
 ## PHASE 5 — 알려진 버그 (홈 트랙, 출시 차단 아님)
@@ -97,6 +103,7 @@
 | Sprint 2 리팩토링 | b2c82db..5c8eb87 | (PHASE 4 스모크) |
 | Gemini 프록시 | 8ca475b..f67d37c | gemini_proxy_verification.md |
 | 채팅 안전장치 | c13c5f5..53d5645 | chat_safety_verification.md |
+| 건강관리 개선 | 4f377a8..45ca8e2 | health_pdf_verification.md |
 
 ## 핵심 의존성 요약
 1. **gemini-proxy 배포 + 키 교체 → 그 다음에 분석 동작 검증**(PHASE 1 → PHASE 4 분석).
