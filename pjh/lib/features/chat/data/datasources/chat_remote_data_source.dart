@@ -63,6 +63,20 @@ abstract class ChatRemoteDataSource {
   /// 특정 채팅방의 새 메시지 Stream (Realtime INSERT 이벤트).
   /// 구독 취소 시 내부 channel 자동 정리.
   Stream<ChatMessageModel> subscribeToRoomMessages(String roomId);
+
+  /// 채팅 상대 사용자 신고 (reports.reported_user_id).
+  Future<void> reportChatUser({
+    required String reportedUserId,
+    required String reporterId,
+    required String reason,
+  });
+
+  /// 개별 채팅 메시지 신고 (reports.reported_message_id).
+  Future<void> reportChatMessage({
+    required String messageId,
+    required String reporterId,
+    required String reason,
+  });
 }
 
 class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
@@ -542,5 +556,35 @@ class ChatRemoteDataSourceImpl implements ChatRemoteDataSource {
     };
 
     return controller.stream;
+  }
+
+  @override
+  Future<void> reportChatUser({
+    required String reportedUserId,
+    required String reporterId,
+    required String reason,
+  }) async {
+    await supabaseClient.from('reports').insert({
+      'reporter_id': reporterId,
+      'reported_user_id': reportedUserId,
+      'reason': reason,
+      'status': 'pending',
+      'created_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  @override
+  Future<void> reportChatMessage({
+    required String messageId,
+    required String reporterId,
+    required String reason,
+  }) async {
+    await supabaseClient.from('reports').insert({
+      'reporter_id': reporterId,
+      'reported_message_id': messageId,
+      'reason': reason,
+      'status': 'pending',
+      'created_at': DateTime.now().toIso8601String(),
+    });
   }
 }

@@ -317,4 +317,46 @@ class ChatRepositoryImpl implements ChatRepository {
         .subscribeToRoomMessages(roomId)
         .map((model) => model.toEntity());
   }
+
+  @override
+  Future<Either<Failure, void>> reportChatUser({
+    required String reportedUserId,
+    required String reporterId,
+    required String reason,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
+    }
+    try {
+      await remoteDataSource.reportChatUser(
+        reportedUserId: reportedUserId,
+        reporterId: reporterId,
+        reason: reason,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '신고 접수에 실패했습니다: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> reportChatMessage({
+    required String messageId,
+    required String reporterId,
+    required String reason,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요.'));
+    }
+    try {
+      await remoteDataSource.reportChatMessage(
+        messageId: messageId,
+        reporterId: reporterId,
+        reason: reason,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(message: '신고 접수에 실패했습니다: $e'));
+    }
+  }
 }

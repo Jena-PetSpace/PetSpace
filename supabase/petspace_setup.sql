@@ -170,15 +170,18 @@ CREATE TABLE IF NOT EXISTS reports (
     reported_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     reported_post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
     reported_comment_id UUID REFERENCES comments(id) ON DELETE CASCADE,
+    -- reported_message_id FK 는 chat_messages 정의 이후 ALTER TABLE 로 추가(아래 참조)
+    reported_message_id UUID,
     reason TEXT NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     admin_notes TEXT,
-    CHECK (
+    CONSTRAINT reports_target_check CHECK (
         reported_user_id IS NOT NULL OR
         reported_post_id IS NOT NULL OR
-        reported_comment_id IS NOT NULL
+        reported_comment_id IS NOT NULL OR
+        reported_message_id IS NOT NULL
     )
 );
 
@@ -274,6 +277,23 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 
 -- chat_messages에 image_urls 컬럼 추가 (기존 테이블 대비)
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS image_urls TEXT[];
+
+-- reports.reported_message_id FK 추가 (chat_messages 정의 이후 — 채팅 메시지 신고용)
+-- reports 테이블이 chat_messages보다 먼저 생성되므로 FK는 여기서 ALTER로 연결한다.
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS reported_message_id UUID;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'reports_reported_message_id_fkey'
+      AND table_name = 'reports'
+  ) THEN
+    ALTER TABLE reports
+      ADD CONSTRAINT reports_reported_message_id_fkey
+      FOREIGN KEY (reported_message_id) REFERENCES chat_messages(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_reports_reported_message_id ON reports(reported_message_id);
 
 -- Users 테이블 컬럼 보강 (기존 테이블 대비)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_onboarding_completed BOOLEAN DEFAULT FALSE;
