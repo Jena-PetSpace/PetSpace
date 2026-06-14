@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../config/api_config.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../../domain/entities/health_analysis.dart';
@@ -102,8 +101,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     String? gender,
     String? additionalContext,
   }) async {
-    if (!ApiConfig.isGeminiConfigured) {
-      throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
+    if (Supabase.instance.client.auth.currentSession == null) {
+      throw const AnalysisException('로그인이 필요합니다.');
     }
 
     try {
@@ -156,8 +155,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     String? gender,
     String? additionalContext,
   }) async {
-    if (!ApiConfig.isGeminiConfigured) {
-      throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
+    if (Supabase.instance.client.auth.currentSession == null) {
+      throw const AnalysisException('로그인이 필요합니다.');
     }
     if (imageFiles.isEmpty) {
       throw const AnalysisException('분석할 이미지가 없습니다.');
@@ -225,7 +224,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 
   // B-4: 텍스트 전용 Gemini 호출 (이미지 없이, JSON 강제 아님)
   Future<String?> generateText(String prompt) async {
-    if (!ApiConfig.isGeminiConfigured) return null;
+    if (Supabase.instance.client.auth.currentSession == null) return null;
 
     try {
       final requestData = _buildTextRequest([
@@ -555,8 +554,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     required String userId,
     String? petId,
   }) async {
-    if (!ApiConfig.isGeminiConfigured) {
-      throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
+    if (Supabase.instance.client.auth.currentSession == null) {
+      throw const AnalysisException('로그인이 필요합니다.');
     }
     if (imagePaths.isEmpty) {
       throw const AnalysisException('분석할 이미지가 없습니다.');

@@ -5,11 +5,9 @@ class ApiConfig {
   static const String emotionApiEndpoint = 'YOUR_AI_EMOTION_API_ENDPOINT';
   static const String emotionApiKey = 'YOUR_AI_EMOTION_API_KEY';
 
-  // Google Gemini API 설정 (secrets.dart에서 로드)
-  static String get geminiApiKey => Secrets.geminiApiKey;
-
-  // Google Vision API 설정 (현재 미사용 - Gemini로 대체)
-  static String get googleVisionApiKey => Secrets.geminiApiKey;
+  // Google Gemini API 설정:
+  // 앱은 더 이상 Gemini 키를 직접 보유하지 않는다. Gemini 호출은 gemini-proxy
+  // Edge Function을 경유하며 키는 Supabase Secrets에만 존재한다. (api 키 앱바이너리 제거)
 
   // OpenAI API 설정 (선택)
   static const String openAiApiKey = 'YOUR_OPENAI_API_KEY';
@@ -34,12 +32,6 @@ class ApiConfig {
       emotionApiEndpoint != 'YOUR_AI_EMOTION_API_ENDPOINT' &&
       emotionApiKey != 'YOUR_AI_EMOTION_API_KEY';
 
-  static bool get isGeminiConfigured =>
-      geminiApiKey != 'YOUR_GEMINI_API_KEY_HERE' && geminiApiKey.isNotEmpty;
-
-  static bool get isGoogleVisionConfigured =>
-      googleVisionApiKey != 'YOUR_GOOGLE_VISION_API_KEY';
-
   static bool get isOpenAiConfigured => openAiApiKey != 'YOUR_OPENAI_API_KEY';
 
   static bool get isAwsConfigured =>
@@ -56,8 +48,6 @@ class ApiConfig {
     final features = <String>[];
 
     if (isEmotionApiConfigured) features.add('AI 감정분석');
-    if (isGeminiConfigured) features.add('Google Gemini AI');
-    if (isGoogleVisionConfigured) features.add('Google Vision API');
     if (isOpenAiConfigured) features.add('OpenAI API');
     if (isAwsConfigured) features.add('AWS Rekognition');
     if (isGoogleLoginConfigured) features.add('Google 로그인');
@@ -76,9 +66,8 @@ class ApiConfig {
 
 현재 데모 모드로 실행 중입니다. 실제 기능을 사용하려면 다음 API 키들을 설정하세요:
 
-1. lib/config/secrets.dart 파일에서 API 키 설정:
-   - geminiApiKey: Google AI Studio에서 발급
-     https://aistudio.google.com/apikey
+1. Gemini: 앱은 키를 직접 보유하지 않습니다.
+   Supabase Secrets(GEMINI_API_KEY) + gemini-proxy Edge Function을 통해 호출됩니다.
 
 2. 소셜 로그인:
    - googleClientId: Google OAuth 클라이언트 ID
