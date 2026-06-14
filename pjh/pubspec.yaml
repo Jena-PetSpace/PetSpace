@@ -39,6 +39,10 @@ dependencies:
   # UI & Charts
   fl_chart: ^0.68.0
   lottie: ^3.1.2
+
+  # PDF (건강 요약서 온디바이스 생성·공유)
+  pdf: ^3.11.1
+  printing: ^5.13.3
   flutter_svg: ^2.0.10+1
   table_calendar: ^3.1.2
   geolocator: ^13.0.2

@@ -11,8 +11,11 @@ import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/health_record.dart';
 import '../bloc/health_bloc.dart';
+import '../../../emotion/domain/entities/emotion_analysis.dart';
+import '../../../emotion/domain/repositories/emotion_repository.dart';
 import '../widgets/health_record_card.dart';
 import '../widgets/health_record_data.dart';
+import '../widgets/health_pdf_generator.dart';
 import '../widgets/weight_trend_chart.dart';
 import '../widgets/emotion_trend_mini_chart.dart';
 
@@ -89,6 +92,13 @@ class _HealthMainViewState extends State<_HealthMainView> {
               ],
             ),
             centerTitle: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                tooltip: 'PDF 내보내기',
+                onPressed: () => _exportHealthPdf(context),
+              ),
+            ],
           ),
           floatingActionButton: Semantics(
             label: '건강 기록 추가',
@@ -270,6 +280,60 @@ class _HealthMainViewState extends State<_HealthMainView> {
         ),
       ),
     );
+  }
+
+  /// 건강 요약서 PDF 생성·공유. 펫 미선택·기록 0건 시 안내.
+  Future<void> _exportHealthPdf(BuildContext context) async {
+    final petState = context.read<PetBloc>().state;
+    final pet = petState is PetLoaded ? petState.selectedPet : null;
+    if (pet == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('반려동물을 먼저 선택해주세요')),
+      );
+      return;
+    }
+
+    final healthState = context.read<HealthBloc>().state;
+    final records =
+        healthState is HealthLoaded ? healthState.records : <HealthRecord>[];
+    if (records.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('내보낼 건강 기록이 없습니다')),
+      );
+      return;
+    }
+
+    final authState = context.read<AuthBloc>().state;
+    final ownerName =
+        authState is AuthAuthenticated ? authState.user.displayName : '보호자';
+    final userId =
+        authState is AuthAuthenticated ? authState.user.uid : null;
+
+    // 최근 AI 감정 분석 1건(선택, 읽기 전용).
+    EmotionAnalysis? latest;
+    if (userId != null) {
+      final res = await sl<EmotionRepository>().getAnalysisHistory(
+        userId: userId,
+        petId: pet.id,
+        limit: 1,
+      );
+      latest = res.fold((_) => null, (list) => list.isEmpty ? null : list.first);
+    }
+
+    try {
+      await HealthPdfGenerator.generateAndShare(
+        pet: pet,
+        ownerName: ownerName,
+        records: records,
+        latestAnalysis: latest,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('PDF 생성에 실패했습니다: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildFilterChips() {
