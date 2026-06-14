@@ -135,9 +135,9 @@ class _HealthMainViewState extends State<_HealthMainView> {
               SizedBox(height: 20.h),
             ],
 
-            // 주간 감정 트렌드
+            // 감정 분석 추이
             Text(
-              '주간 감정 트렌드',
+              '감정 분석 추이',
               style: TextStyle(
                 fontSize: 15.sp,
                 fontWeight: FontWeight.bold,
@@ -145,7 +145,23 @@ class _HealthMainViewState extends State<_HealthMainView> {
               ),
             ),
             SizedBox(height: 12.h),
-            const EmotionTrendMiniChart(),
+            Builder(
+              builder: (context) {
+                final authState = context.read<AuthBloc>().state;
+                final userId =
+                    authState is AuthAuthenticated ? authState.user.uid : null;
+                final petState = context.read<PetBloc>().state;
+                final petId = petState is PetLoaded
+                    ? petState.selectedPet?.id
+                    : null;
+                if (userId == null) return const SizedBox.shrink();
+                return EmotionTrendMiniChart(
+                  key: ValueKey('emotion_trend_$petId'),
+                  userId: userId,
+                  petId: petId,
+                );
+              },
+            ),
             SizedBox(height: 20.h),
 
             // 건강 기록 리스트

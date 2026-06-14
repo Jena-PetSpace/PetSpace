@@ -218,6 +218,16 @@ class EmotionScores extends Equatable {
       happiness + calm + excitement + curiosity +
       anxiety + fear + sadness + discomfort;
 
+  /// 긍정도 (0.0~1.0). 긍정 감정(happiness·calm·excitement·curiosity) 합을
+  /// 8감정 total로 나눈 비율. _calculateStatistics·dominantEmotion의 8감정
+  /// 분류(긍정 4 / 부정 4: anxiety·fear·sadness·discomfort)와 동일 기준.
+  /// total==0(분석 미검출 등)이면 중립 0.5 반환(NaN 방지).
+  double get positiveRatio {
+    if (total <= 0) return 0.5;
+    return ((happiness + calm + excitement + curiosity) / total)
+        .clamp(0.0, 1.0);
+  }
+
   String get dominantEmotion {
     final scores = {
       'happiness':  happiness,
