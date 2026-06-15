@@ -14,6 +14,7 @@ import '../../../../shared/widgets/lazy_load_list.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 import '../utils/saved_posts_pagination.dart';
+import '../widgets/my_pet_summary_section.dart';
 import '../widgets/my_profile_header.dart';
 import '../widgets/user_badges_section.dart';
 import '../../../mbti/presentation/widgets/my_mbti_badge_section.dart';
@@ -149,6 +150,8 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
               UserBadgesSection(userId: user.uid),
               // MBTI 성격 유형 뱃지 (결과 있는 pet 만, 없으면 자동 숨김)
               const MyMbtiBadgeSection(),
+              // 내 반려동물 라이프 요약 (분석·건강) — 고정 영역, 가로 스크롤
+              MyPetSummarySection(userId: user.uid),
               // 탭 바 (고정)
               Container(
                 color: Colors.white,
