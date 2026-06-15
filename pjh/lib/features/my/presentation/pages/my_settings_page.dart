@@ -51,17 +51,26 @@ class MySettingsPage extends StatelessWidget {
                 label: 'AI 분석 히스토리',
                 onTap: () => context.push('/ai-history-page'),
               ),
-              _buildTile(
-                context,
-                icon: Icons.card_giftcard_outlined,
-                bgColor: AppTheme.tilePastelPeach,
-                label: '리워드 스토어',
-                onTap: () => context.push('/reward'),
-              ),
+              // TODO(reward): 리워드/포인트 시스템 미완성 → 진입 숨김.
+              // 리워드 트랙 복원 시 아래 타일 주석 해제로 되살리기.
+              // _buildTile(
+              //   context,
+              //   icon: Icons.card_giftcard_outlined,
+              //   bgColor: AppTheme.tilePastelPeach,
+              //   label: '리워드 스토어',
+              //   onTap: () => context.push('/reward'),
+              // ),
             ]),
             SizedBox(height: 20.h),
             _buildGroupLabel('계정'),
             _buildGroup([
+              _buildTile(
+                context,
+                icon: Icons.person_outline,
+                bgColor: AppTheme.tilePastelBlue,
+                label: '계정 정보',
+                onTap: () => _showAccountInfo(context),
+              ),
               _buildTile(
                 context,
                 icon: Icons.edit_outlined,
@@ -76,12 +85,30 @@ class MySettingsPage extends StatelessWidget {
                 label: '알림 설정',
                 onTap: () => context.push('/settings/notification'),
               ),
+            ]),
+            SizedBox(height: 20.h),
+            _buildGroupLabel('정보'),
+            _buildGroup([
               _buildTile(
                 context,
                 icon: Icons.lock_outline,
                 bgColor: AppTheme.tilePastelSand,
                 label: '개인정보처리방침',
                 onTap: () => context.push('/privacy'),
+              ),
+              _buildTile(
+                context,
+                icon: Icons.shield_outlined,
+                bgColor: AppTheme.tilePastelSand,
+                label: '커뮤니티 가이드라인',
+                onTap: () => context.push('/community-guidelines'),
+              ),
+              _buildTile(
+                context,
+                icon: Icons.help_outline,
+                bgColor: AppTheme.tilePastelSand,
+                label: '도움말',
+                onTap: () => context.push('/settings/help'),
               ),
               _buildTile(
                 context,
@@ -206,6 +233,58 @@ class MySettingsPage extends StatelessWidget {
                   color: AppTheme.lightTextColor, size: 20.w),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAccountInfo(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) return;
+    final user = authState.user;
+
+    Widget row(IconData icon, String label, String value) => Padding(
+          padding: EdgeInsets.only(bottom: 12.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 18.w, color: AppTheme.secondaryTextColor),
+                  SizedBox(width: 8.w),
+                  Text(label,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13.sp)),
+                ],
+              ),
+              SizedBox(height: 4.h),
+              Padding(
+                padding: EdgeInsets.only(left: 26.w),
+                child: Text(value, style: TextStyle(fontSize: 15.sp)),
+              ),
+            ],
+          ),
+        );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('계정 정보', style: TextStyle(fontSize: 17.sp)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            row(Icons.person, '닉네임', user.displayName),
+            row(Icons.email, '이메일', user.email),
+            row(Icons.calendar_today, '가입일',
+                '${user.createdAt.year}년 ${user.createdAt.month}월 ${user.createdAt.day}일'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('확인'),
+          ),
+        ],
       ),
     );
   }

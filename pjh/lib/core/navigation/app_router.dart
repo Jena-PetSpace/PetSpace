@@ -12,9 +12,7 @@ import '../../features/social/presentation/bloc/notifications_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/emotion/presentation/pages/emotion_analysis_page.dart';
 import '../../features/emotion/presentation/pages/emotion_result_loader_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/profile_edit_page.dart';
-import '../../features/profile/presentation/pages/settings_page.dart';
 import '../../features/social/presentation/pages/home_page.dart';
 import '../../features/social/presentation/pages/explore_page.dart';
 import '../../features/social/presentation/pages/notifications_page.dart';
@@ -384,31 +382,9 @@ class AppRouter {
               },
             ),
             GoRoute(
-              path: '/profile',
-              name: 'profile',
-              builder: (context, state) => const ProfilePage(),
-              routes: [
-                GoRoute(
-                  path: '/edit',
-                  name: 'profile-edit',
-                  builder: (context, state) => const ProfileEditPage(),
-                ),
-                GoRoute(
-                  path: '/settings',
-                  name: 'settings',
-                  builder: (context, state) => const SettingsPage(),
-                ),
-              ],
-            ),
-            GoRoute(
               path: '/pets',
               name: 'pets',
               builder: (context, state) => const PetManagementPage(),
-            ),
-            GoRoute(
-              path: '/settings',
-              name: 'settings-direct',
-              builder: (context, state) => const SettingsPage(),
             ),
             GoRoute(
               path: '/settings/my',
