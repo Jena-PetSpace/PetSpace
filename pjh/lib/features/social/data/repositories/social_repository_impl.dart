@@ -274,13 +274,14 @@ class SocialRepositoryImpl implements SocialRepository {
   Future<Either<Failure, List<Map<String, dynamic>>>> getCommunityPosts({
     String? category,
     int limit = 30,
+    DateTime? beforeCreatedAt,
   }) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
       final rows = await remoteDataSource.getCommunityPosts(
-          category: category, limit: limit);
+          category: category, limit: limit, beforeCreatedAt: beforeCreatedAt);
       return Right(rows);
     } catch (e) {
       return Left(ServerFailure(message: '커뮤니티 게시물 조회 중 오류: ${e.toString()}'));

@@ -46,6 +46,7 @@ abstract class SocialRemoteDataSource {
   Future<List<Map<String, dynamic>>> getCommunityPosts({
     String? category,
     int limit = 30,
+    DateTime? beforeCreatedAt,
   });
   Future<List<Map<String, dynamic>>> getSavedPostsRaw(String userId);
   Future<Set<String>> getEarnedBadgeIds(String userId);
@@ -188,8 +189,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   @override Future<List<Map<String, dynamic>>> getUserPostsFiltered({
     required String authorId, String? petId, String? beforeCreatedAt, int limit = 30,
   }) => _getUserPostsFiltered(authorId: authorId, petId: petId, beforeCreatedAt: beforeCreatedAt, limit: limit);
-  @override Future<List<Map<String, dynamic>>> getCommunityPosts({String? category, int limit = 30}) =>
-      _getCommunityPosts(category: category, limit: limit);
+  @override Future<List<Map<String, dynamic>>> getCommunityPosts({String? category, int limit = 30, DateTime? beforeCreatedAt}) =>
+      _getCommunityPosts(category: category, limit: limit, beforeCreatedAt: beforeCreatedAt);
   @override Future<List<Map<String, dynamic>>> getSavedPostsRaw(String userId) => _getSavedPostsRaw(userId);
   @override Future<Set<String>> getEarnedBadgeIds(String userId) => _getEarnedBadgeIds(userId);
   @override Future<void> checkAndAwardBadges(String userId) => _checkAndAwardBadges(userId);

@@ -64,6 +64,7 @@ abstract class SocialRepository {
   Future<Either<Failure, List<Map<String, dynamic>>>> getCommunityPosts({
     String? category,
     int limit = 30,
+    DateTime? beforeCreatedAt,
   });
 
   /// 내가 저장한 게시물 (saved_posts + posts JOIN) — my_page 용 raw Map

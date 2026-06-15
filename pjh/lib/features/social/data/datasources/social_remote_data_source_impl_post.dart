@@ -158,6 +158,7 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
   Future<List<Map<String, dynamic>>> _getCommunityPosts({
     String? category,
     int limit = 30,
+    DateTime? beforeCreatedAt,
   }) async {
     var query = supabaseClient
         .from('posts')
@@ -166,6 +167,10 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
         .isFilter('deleted_at', null)
         .not('hashtags', 'cs', '{"magazine"}');
     if (category != null) query = query.contains('hashtags', [category]);
+    // 키셋 페이지네이션: 마지막 글의 created_at 이전 글만 (사진 피드와 동일 방식)
+    if (beforeCreatedAt != null) {
+      query = query.lt('created_at', beforeCreatedAt.toIso8601String());
+    }
     final response =
         await query.order('created_at', ascending: false).limit(limit);
     return List<Map<String, dynamic>>.from(response);

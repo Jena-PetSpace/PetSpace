@@ -1,5 +1,5 @@
-import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../social/presentation/pages/channel_subscription_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,30 +9,47 @@ import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 import '../../../social/presentation/pages/feed_page.dart';
+import '../../domain/entities/community_post.dart';
+import '../cubit/community_cubit.dart';
 import '../widgets/community_post_card.dart';
 import 'create_community_post_page.dart';
 
 enum _FeedMode { photo, qna }
 
-class FeedHubPage extends StatefulWidget {
+class FeedHubPage extends StatelessWidget {
   final int initialTab;
   final String? initialCategory;
   const FeedHubPage({super.key, this.initialTab = 0, this.initialCategory});
 
   @override
-  State<FeedHubPage> createState() => _FeedHubPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider<CommunityCubit>(
+      create: (_) => CommunityCubit(repository: sl<SocialRepository>()),
+      child: _FeedHubView(
+        initialTab: initialTab,
+        initialCategory: initialCategory,
+      ),
+    );
+  }
 }
 
-class _FeedHubPageState extends State<FeedHubPage>
+class _FeedHubView extends StatefulWidget {
+  final int initialTab;
+  final String? initialCategory;
+  const _FeedHubView({required this.initialTab, this.initialCategory});
+
+  @override
+  State<_FeedHubView> createState() => _FeedHubViewState();
+}
+
+class _FeedHubViewState extends State<_FeedHubView>
     with TickerProviderStateMixin {
   late TabController _photoTabController;
   late TabController _qnaTabController;
+  final ScrollController _qnaScrollController = ScrollController();
 
   _FeedMode _mode = _FeedMode.photo;
-
   int _selectedQnaCategory = 0;
-  List<Map<String, dynamic>> _communityPosts = [];
-  bool _communityLoading = true;
 
   static const List<Map<String, String?>> _qnaCategories = [
     {'label': '전체', 'value': null},
@@ -42,11 +59,14 @@ class _FeedHubPageState extends State<FeedHubPage>
     {'label': '생활', 'value': 'life'},
   ];
 
+  CommunityCubit get _cubit => context.read<CommunityCubit>();
+
   @override
   void initState() {
     super.initState();
     _photoTabController = TabController(length: 2, vsync: this);
     _qnaTabController = TabController(length: 5, vsync: this);
+    _qnaScrollController.addListener(_onQnaScroll);
 
     if (widget.initialTab >= 2) {
       _mode = _FeedMode.qna;
@@ -59,13 +79,13 @@ class _FeedHubPageState extends State<FeedHubPage>
           }
         }
       }
-      _loadCommunityPosts(category: _qnaCategories[_selectedQnaCategory]['value']);
+      _cubit.loadCategory(_qnaCategories[_selectedQnaCategory]['value']);
     }
 
     _qnaTabController.addListener(() {
       if (!_qnaTabController.indexIsChanging) {
         setState(() => _selectedQnaCategory = _qnaTabController.index);
-        _loadCommunityPosts(category: _qnaCategories[_qnaTabController.index]['value']);
+        _cubit.loadCategory(_qnaCategories[_qnaTabController.index]['value']);
       }
     });
   }
@@ -74,35 +94,22 @@ class _FeedHubPageState extends State<FeedHubPage>
   void dispose() {
     _photoTabController.dispose();
     _qnaTabController.dispose();
+    _qnaScrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCommunityPosts({String? category}) async {
-    setState(() => _communityLoading = true);
-    final result = await sl<SocialRepository>().getCommunityPosts(
-      category: category,
-      limit: 30,
-    );
-    if (!mounted) return;
-    result.fold(
-      (failure) {
-        dev.log('커뮤니티 포스트 로드 실패: ${failure.message}', name: 'FeedHubPage');
-        setState(() => _communityLoading = false);
-      },
-      (posts) {
-        setState(() {
-          _communityPosts = posts;
-          _communityLoading = false;
-        });
-      },
-    );
+  void _onQnaScroll() {
+    if (_qnaScrollController.position.pixels >=
+        _qnaScrollController.position.maxScrollExtent * 0.8) {
+      _cubit.loadMore();
+    }
   }
 
   void _switchMode(_FeedMode mode) {
     if (_mode == mode) return;
     setState(() => _mode = mode);
-    if (mode == _FeedMode.qna && _communityPosts.isEmpty) {
-      _loadCommunityPosts(category: _qnaCategories[_selectedQnaCategory]['value']);
+    if (mode == _FeedMode.qna && _cubit.state.status == CommunityStatus.initial) {
+      _cubit.loadCategory(_qnaCategories[_selectedQnaCategory]['value']);
     }
   }
 
@@ -318,39 +325,47 @@ class _FeedHubPageState extends State<FeedHubPage>
   Widget _buildQnaBody() {
     return KeyedSubtree(
       key: const ValueKey('qna'),
-      child: _communityLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _communityPosts.isEmpty
-              ? _buildEmpty()
-              : RefreshIndicator(
-                  onRefresh: () async {
-                    final cat = _qnaCategories[_selectedQnaCategory]['value'];
-                    await _loadCommunityPosts(category: cat);
-                  },
-                  child: ListView.builder(
-                    padding: EdgeInsets.symmetric(vertical: 8.h),
-                    itemCount: _communityPosts.length,
-                    itemBuilder: (context, index) {
-                      final post = _communityPosts[index];
-                      final user = post['users'] as Map<String, dynamic>?;
-                      final hashtags = List<String>.from(post['hashtags'] ?? []);
-                      final displayName = user?['display_name'] as String? ?? '익명';
-                      return GestureDetector(
-                        onTap: () => context.push('/post/${post['id']}'),
-                        child: CommunityPostCard(
-                          authorName: displayName,
-                          category: _categoryFromHashtags(hashtags),
-                          title: '',
-                          content: post['caption'] as String? ?? '',
-                          likes: post['likes_count'] as int? ?? 0,
-                          comments: post['comments_count'] as int? ?? 0,
-                          timeAgo: _timeAgo(post['created_at'] as String? ?? ''),
-                          isAdmin: displayName == '관리자',
-                        ),
-                      );
-                    },
+      child: BlocBuilder<CommunityCubit, CommunityState>(
+        builder: (context, state) {
+          if (state.status == CommunityStatus.loading ||
+              state.status == CommunityStatus.initial) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state.posts.isEmpty) {
+            return _buildEmpty();
+          }
+          return RefreshIndicator(
+            onRefresh: () => _cubit.refresh(),
+            child: ListView.builder(
+              controller: _qnaScrollController,
+              padding: EdgeInsets.symmetric(vertical: 8.h),
+              itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index >= state.posts.length) {
+                  return Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    child: const Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final CommunityPost post = state.posts[index];
+                return GestureDetector(
+                  onTap: () => context.push('/post/${post.id}'),
+                  child: CommunityPostCard(
+                    authorName: post.authorName,
+                    category: post.categoryLabel,
+                    title: '',
+                    content: post.content,
+                    likes: post.likes,
+                    comments: post.comments,
+                    timeAgo: _timeAgo(post.createdAt),
+                    isAdmin: post.isAdmin,
                   ),
-                ),
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -393,36 +408,18 @@ class _FeedHubPageState extends State<FeedHubPage>
         MaterialPageRoute(builder: (_) => const CreateCommunityPostPage()),
       );
       if (created == true && mounted) {
-        final cat = _qnaCategories[_selectedQnaCategory]['value'];
-        _loadCommunityPosts(category: cat);
+        _cubit.refresh();
       }
     }
   }
 
-  String _categoryFromHashtags(List<String> hashtags) {
-    for (final tag in hashtags) {
-      if (tag == 'qa') return 'Q&A';
-      if (tag == 'health') return '건강';
-      if (tag == 'training') return '훈련';
-      if (tag == 'food') return '먹거리';
-      if (tag == 'life') return '생활';
-      if (tag == 'magazine') return '매거진';
-    }
-    return '';
-  }
-
-  String _timeAgo(String isoString) {
-    if (isoString.isEmpty) return '';
-    try {
-      final dt = DateTime.parse(isoString).toLocal();
-      final diff = DateTime.now().difference(dt);
-      if (diff.inMinutes < 1) return '방금 전';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
-      if (diff.inHours < 24) return '${diff.inHours}시간 전';
-      if (diff.inDays < 7) return '${diff.inDays}일 전';
-      return '${dt.month}/${dt.day}';
-    } catch (_) {
-      return '';
-    }
+  String _timeAgo(DateTime dt) {
+    final local = dt.toLocal();
+    final diff = DateTime.now().difference(local);
+    if (diff.inMinutes < 1) return '방금 전';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+    if (diff.inHours < 24) return '${diff.inHours}시간 전';
+    if (diff.inDays < 7) return '${diff.inDays}일 전';
+    return '${local.month}/${local.day}';
   }
 }
