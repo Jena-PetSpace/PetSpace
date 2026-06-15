@@ -180,14 +180,28 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  Future<List<Map<String, dynamic>>> _getSavedPostsRaw(String userId) async {
-    final response = await supabaseClient
+  Future<List<Map<String, dynamic>>> _getSavedPostsRaw(
+    String userId, {
+    int limit = 30,
+    String? beforeSavedAt,
+  }) async {
+    var query = supabaseClient
         .from('saved_posts')
-        .select('post_id, posts(id, image_url, caption, author_id)')
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
+        .select('post_id, created_at, posts(id, image_url, caption, author_id)')
+        .eq('user_id', userId);
+    // 키셋 페이지네이션: 저장 시각(saved_posts.created_at) 기준. 내 글 커서와 동일 방식.
+    if (beforeSavedAt != null) {
+      query = query.lt('created_at', beforeSavedAt);
+    }
+    final response =
+        await query.order('created_at', ascending: false).limit(limit);
     return (response as List)
-        .map((e) => e['posts'] as Map<String, dynamic>?)
+        .map((e) {
+          final post = e['posts'] as Map<String, dynamic>?;
+          if (post == null) return null;
+          // 저장 시각을 커서로 쓰도록 post 맵에 주입(post 자체 created_at과 구분).
+          return {...post, 'saved_at': e['created_at']};
+        })
         .whereType<Map<String, dynamic>>()
         .toList();
   }

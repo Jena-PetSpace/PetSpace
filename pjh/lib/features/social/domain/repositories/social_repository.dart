@@ -67,9 +67,13 @@ abstract class SocialRepository {
     DateTime? beforeCreatedAt,
   });
 
-  /// 내가 저장한 게시물 (saved_posts + posts JOIN) — my_page 용 raw Map
+  /// 내가 저장한 게시물 (saved_posts + posts JOIN) — my_page 용 raw Map.
+  /// saved_posts.created_at(저장 시각) 기준 키셋 페이지네이션. 각 행에 `saved_at` 포함.
   Future<Either<Failure, List<Map<String, dynamic>>>> getSavedPostsRaw(
-      String userId);
+    String userId, {
+    int limit,
+    String? beforeSavedAt,
+  });
 
   /// 획득한 뱃지 ID 집합
   Future<Either<Failure, Set<String>>> getEarnedBadgeIds(String userId);

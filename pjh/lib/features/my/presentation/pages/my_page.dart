@@ -13,6 +13,7 @@ import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../../shared/widgets/lazy_load_list.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/repositories/social_repository.dart';
+import '../utils/saved_posts_pagination.dart';
 import '../widgets/my_profile_header.dart';
 import '../widgets/user_badges_section.dart';
 import '../../../mbti/presentation/widgets/my_mbti_badge_section.dart';
@@ -38,9 +39,9 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   // 내 게시글 커서 (커서 기반 페이지네이션)
   String? _myPostsCursor;
   bool _myPostsHasMore = true;
-  // 저장 게시글은 전체 로드 후 클라이언트 페이지네이션
-  List<Map<String, dynamic>>? _allSavedPosts;
-  int _savedOffset = 0;
+  // 저장 게시글 커서 (saved_posts.created_at 기준 — 내 글과 동일 구조)
+  String? _savedCursor;
+  bool _savedHasMore = true;
   static const int _pageSize = 30;
 
   @override
@@ -94,30 +95,34 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   }
 
   Future<List<Map<String, dynamic>>> _loadSavedPostsInitial() async {
-    _savedOffset = 0;
-    _allSavedPosts = null;
+    _savedCursor = null;
+    _savedHasMore = true;
     return _fetchSavedPostsPage();
   }
 
   Future<List<Map<String, dynamic>>> _loadSavedPostsMore() async {
+    if (!_savedHasMore) return [];
     return _fetchSavedPostsPage();
   }
 
   Future<List<Map<String, dynamic>>> _fetchSavedPostsPage() async {
-    if (_allSavedPosts == null) {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return [];
-      final repo = sl<SocialRepository>();
-      final result = await repo.getSavedPostsRaw(userId);
-      _allSavedPosts = result.fold((failure) {
-        dev.log('저장 게시글 로드 실패: ${failure.message}', name: 'MyPage');
-        return [];
-      }, (list) => list);
-    }
-    final all = _allSavedPosts!;
-    final page = all.skip(_savedOffset).take(_pageSize).toList();
-    _savedOffset += page.length;
-    return page;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return [];
+    final repo = sl<SocialRepository>();
+    final result = await repo.getSavedPostsRaw(
+      userId,
+      limit: _pageSize,
+      beforeSavedAt: _savedCursor,
+    );
+    return result.fold((failure) {
+      dev.log('저장 게시글 로드 실패: ${failure.message}', name: 'MyPage');
+      return [];
+    }, (list) {
+      final page = SavedPostsPage.fromFetched(list, pageSize: _pageSize);
+      _savedCursor = page.nextCursor ?? _savedCursor;
+      _savedHasMore = page.hasMore;
+      return page.posts;
+    });
   }
 
   @override

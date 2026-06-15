@@ -258,12 +258,16 @@ class SocialRepositoryImpl implements SocialRepository {
 
   @override
   Future<Either<Failure, List<Map<String, dynamic>>>> getSavedPostsRaw(
-      String userId) async {
+    String userId, {
+    int limit = 30,
+    String? beforeSavedAt,
+  }) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
-      final rows = await remoteDataSource.getSavedPostsRaw(userId);
+      final rows = await remoteDataSource.getSavedPostsRaw(userId,
+          limit: limit, beforeSavedAt: beforeSavedAt);
       return Right(rows);
     } catch (e) {
       return Left(ServerFailure(message: '저장 게시물 조회 중 오류: ${e.toString()}'));
