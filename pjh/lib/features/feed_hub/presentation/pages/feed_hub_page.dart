@@ -7,11 +7,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 import '../../../social/presentation/pages/feed_page.dart';
 import '../../domain/entities/community_post.dart';
 import '../cubit/community_cubit.dart';
 import '../widgets/community_post_card.dart';
+import '../widgets/magazine_section.dart';
 import 'create_community_post_page.dart';
 
 enum _FeedMode { photo, qna }
@@ -58,6 +60,15 @@ class _FeedHubViewState extends State<_FeedHubView>
     {'label': '먹거리', 'value': 'food'},
     {'label': '생활', 'value': 'life'},
   ];
+
+  /// 카테고리별 아이콘·컬러(AppTheme feature 토큰 계열). '전체'는 중립색.
+  static const Map<String, ({IconData icon, Color color})> _qnaCategoryStyle = {
+    '전체': (icon: Icons.apps_rounded, color: AppTheme.primaryColor),
+    '건강': (icon: Icons.favorite_rounded, color: AppTheme.featureHealth),
+    '훈련': (icon: Icons.school_rounded, color: AppTheme.featurePlay),
+    '먹거리': (icon: Icons.restaurant_rounded, color: AppTheme.featureFortune),
+    '생활': (icon: Icons.home_rounded, color: AppTheme.featureWalk),
+  };
 
   CommunityCubit get _cubit => context.read<CommunityCubit>();
 
@@ -286,27 +297,28 @@ class _FeedHubViewState extends State<_FeedHubView>
 
   Widget _buildQnaTabBar() {
     return SizedBox(
-      height: 42.h,
-      child: TabBar(
-        controller: _qnaTabController,
-        isScrollable: true,
-        tabAlignment: TabAlignment.start,
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        labelColor: AppTheme.primaryColor,
-        unselectedLabelColor: AppTheme.secondaryTextColor,
-        labelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700),
-        unselectedLabelStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w400),
-        indicatorColor: AppTheme.primaryColor,
-        indicatorWeight: 2.5,
-        indicatorSize: TabBarIndicatorSize.label,
-        dividerColor: Colors.transparent,
-        tabs: const [
-          Tab(text: '전체'),
-          Tab(text: '건강'),
-          Tab(text: '훈련'),
-          Tab(text: '먹거리'),
-          Tab(text: '생활'),
-        ],
+      height: 48.h,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        itemCount: _qnaCategories.length,
+        separatorBuilder: (_, __) => SizedBox(width: 8.w),
+        itemBuilder: (context, index) {
+          final label = _qnaCategories[index]['label'] ?? '전체';
+          final style = _qnaCategoryStyle[label]!;
+          final selected = _selectedQnaCategory == index;
+          return _CategoryChip(
+            label: label,
+            icon: style.icon,
+            color: style.color,
+            selected: selected,
+            onTap: () {
+              if (_selectedQnaCategory == index) return;
+              // 기존 리스너(_qnaTabController)가 loadCategory를 트리거한다.
+              _qnaTabController.animateTo(index);
+            },
+          );
+        },
       ),
     );
   }
@@ -331,34 +343,59 @@ class _FeedHubViewState extends State<_FeedHubView>
               state.status == CommunityStatus.initial) {
             return const Center(child: CircularProgressIndicator());
           }
+          // 매거진 섹션은 '전체' 탭에서만 노출(묻혀있던 운영자 칼럼 노출).
+          final showMagazine = _selectedQnaCategory == 0;
+
           if (state.posts.isEmpty) {
-            return _buildEmpty();
+            // 빈 상태에서도 매거진은 보여준다.
+            return RefreshIndicator(
+              onRefresh: () => _cubit.refresh(),
+              child: ListView(
+                controller: _qnaScrollController,
+                children: [
+                  if (showMagazine) const MagazineSection(),
+                  SizedBox(height: 60.h),
+                  _buildEmpty(),
+                ],
+              ),
+            );
           }
+
+          final headerCount = showMagazine ? 1 : 0;
           return RefreshIndicator(
             onRefresh: () => _cubit.refresh(),
             child: ListView.builder(
               controller: _qnaScrollController,
-              padding: EdgeInsets.symmetric(vertical: 8.h),
-              itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0),
+              padding: EdgeInsets.only(bottom: 8.h),
+              itemCount: headerCount +
+                  state.posts.length +
+                  (state.isLoadingMore ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index >= state.posts.length) {
+                if (showMagazine && index == 0) {
+                  return const MagazineSection();
+                }
+                final postIndex = index - headerCount;
+                if (postIndex >= state.posts.length) {
                   return Padding(
                     padding: EdgeInsets.symmetric(vertical: 16.h),
                     child: const Center(child: CircularProgressIndicator()),
                   );
                 }
-                final CommunityPost post = state.posts[index];
-                return GestureDetector(
-                  onTap: () => context.push('/post/${post.id}'),
-                  child: CommunityPostCard(
-                    authorName: post.authorName,
-                    category: post.categoryLabel,
-                    title: '',
-                    content: post.content,
-                    likes: post.likes,
-                    comments: post.comments,
-                    timeAgo: _timeAgo(post.createdAt),
-                    isAdmin: post.isAdmin,
+                final CommunityPost post = state.posts[postIndex];
+                return Padding(
+                  padding: EdgeInsets.only(top: postIndex == 0 ? 8.h : 0),
+                  child: GestureDetector(
+                    onTap: () => context.push('/post/${post.id}'),
+                    child: CommunityPostCard(
+                      authorName: post.authorName,
+                      category: post.categoryLabel,
+                      title: '',
+                      content: post.content,
+                      likes: post.likes,
+                      comments: post.comments,
+                      timeAgo: _timeAgo(post.createdAt),
+                      isAdmin: post.isAdmin,
+                    ),
                   ),
                 );
               },
@@ -370,19 +407,18 @@ class _FeedHubViewState extends State<_FeedHubView>
   }
 
   Widget _buildEmpty() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.forum_outlined, size: 56.w, color: Colors.grey[300]),
-          SizedBox(height: 16.h),
-          Text('게시글이 없습니다',
-              style: TextStyle(fontSize: 15.sp, color: Colors.grey[500])),
-          SizedBox(height: 6.h),
-          Text('첫 번째 글을 작성해보세요',
-              style: TextStyle(fontSize: 13.sp, color: Colors.grey[400])),
-        ],
-      ),
+    final label = _qnaCategories[_selectedQnaCategory]['label'] ?? '전체';
+    final isAll = _selectedQnaCategory == 0;
+    return EmptyStateWidget(
+      icon: Icons.forum_outlined,
+      emoji: '💬',
+      badgeEmoji: '✏️',
+      title: isAll ? '아직 글이 없어요' : '$label 글이 아직 없어요',
+      subtitle: isAll
+          ? '궁금한 점을 물어보거나\n반려 생활 팁을 나눠보세요!'
+          : '$label 카테고리의 첫 글을\n남겨보세요!',
+      actionLabel: '첫 글 쓰기',
+      onAction: _openCreateCommunityPost,
     );
   }
 
@@ -404,12 +440,17 @@ class _FeedHubViewState extends State<_FeedHubView>
     if (_mode == _FeedMode.photo) {
       context.push('/create-post');
     } else {
-      final created = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => const CreateCommunityPostPage()),
-      );
-      if (created == true && mounted) {
-        _cubit.refresh();
-      }
+      await _openCreateCommunityPost();
+    }
+  }
+
+  /// Q&A 글쓰기 화면 진입 — 작성 성공 시 현재 카테고리 새로고침.
+  Future<void> _openCreateCommunityPost() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const CreateCommunityPostPage()),
+    );
+    if (created == true && mounted) {
+      _cubit.refresh();
     }
   }
 
@@ -421,5 +462,60 @@ class _FeedHubViewState extends State<_FeedHubView>
     if (diff.inHours < 24) return '${diff.inHours}시간 전';
     if (diff.inDays < 7) return '${diff.inDays}일 전';
     return '${local.month}/${local.day}';
+  }
+}
+
+/// Q&A 카테고리 선택 칩 — 아이콘 + 라벨, 선택 시 카테고리 컬러 채움.
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CategoryChip({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: selected ? color : color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: selected ? color : Colors.transparent,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16.w,
+              color: selected ? Colors.white : color,
+            ),
+            SizedBox(width: 6.w),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? Colors.white : color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
