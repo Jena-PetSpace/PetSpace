@@ -115,8 +115,9 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0), width: 0.5)),
+        color: AppTheme.surfaceColor,
+        border:
+            Border(bottom: BorderSide(color: AppTheme.dividerColor, width: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,7 +187,7 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
         margin: EdgeInsets.all(16.w),
         padding: EdgeInsets.all(24.w),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surfaceColor,
           borderRadius: BorderRadius.circular(24.r),
         ),
         child: Column(

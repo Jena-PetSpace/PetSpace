@@ -27,7 +27,7 @@ class SettingsBottomSheet extends StatelessWidget {
     return Container(
       constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       child: Column(
@@ -184,7 +184,7 @@ class SettingsBottomSheet extends StatelessWidget {
     return Container(
       height: 0.5,
       margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
-      color: const Color(0xFFF0F0F0),
+      color: AppTheme.dividerColor,
     );
   }
 

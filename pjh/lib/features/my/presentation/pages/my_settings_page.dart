@@ -14,10 +14,10 @@ class MySettingsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.surfaceColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.primaryTextColor),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -169,7 +169,7 @@ class MySettingsPage extends StatelessWidget {
   Widget _buildGroup(List<Widget> tiles) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
@@ -184,7 +184,7 @@ class MySettingsPage extends StatelessWidget {
           for (int i = 0; i < tiles.length; i++) ...[
             tiles[i],
             if (i < tiles.length - 1)
-              Divider(height: 1, indent: 52.w, color: const Color(0xFFF0F0F0)),
+              Divider(height: 1, indent: 52.w, color: AppTheme.dividerColor),
           ],
         ],
       ),

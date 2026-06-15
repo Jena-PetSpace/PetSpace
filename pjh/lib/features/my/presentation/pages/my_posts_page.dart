@@ -170,7 +170,7 @@ class _MyPostsPageState extends State<MyPostsPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, size: 48.w, color: Colors.grey[400]),
+                Icon(Icons.error_outline, size: 48.w, color: AppTheme.lightTextColor),
                 SizedBox(height: 12.h),
                 Text(state.message,
                     style: TextStyle(
@@ -232,7 +232,7 @@ class _MyPostsPageState extends State<MyPostsPage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.error_outline,
-                          size: 48.w, color: Colors.grey[400]),
+                          size: 48.w, color: AppTheme.lightTextColor),
                       SizedBox(height: 12.h),
                       Text(state.message,
                           style: TextStyle(
@@ -288,7 +288,7 @@ class _MyPostsPageState extends State<MyPostsPage>
                   ),
                   selected: isSelected,
                   selectedColor: AppTheme.primaryColor,
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppTheme.surfaceColor,
                   side: BorderSide(
                       color: isSelected
                           ? AppTheme.primaryColor
@@ -318,7 +318,7 @@ class _MyPostsPageState extends State<MyPostsPage>
                   ),
                   selected: isSelected,
                   selectedColor: AppTheme.primaryColor,
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppTheme.surfaceColor,
                   side: BorderSide(
                       color: isSelected
                           ? AppTheme.primaryColor
@@ -352,7 +352,7 @@ class _MyPostsPageState extends State<MyPostsPage>
                 ),
                 selected: isSelected,
                 selectedColor: AppTheme.primaryColor,
-                backgroundColor: Colors.white,
+                backgroundColor: AppTheme.surfaceColor,
                 side: BorderSide(
                     color: isSelected
                         ? AppTheme.primaryColor
@@ -392,7 +392,7 @@ class _MyPostsPageState extends State<MyPostsPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64.w, color: Colors.grey[300]),
+          Icon(icon, size: 64.w, color: AppTheme.lightTextColor),
           SizedBox(height: 16.h),
           Text(
             title,

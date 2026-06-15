@@ -154,7 +154,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
               MyPetSummarySection(userId: user.uid),
               // 탭 바 (고정)
               Container(
-                color: Colors.white,
+                color: AppTheme.surfaceColor,
                 child: TabBar(
                   controller: _tabController,
                   tabs: const [
@@ -165,7 +165,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                   indicatorWeight: 2,
                   labelColor: AppTheme.primaryColor,
                   unselectedLabelColor: AppTheme.lightTextColor,
-                  dividerColor: const Color(0xFFEEEEEE),
+                  dividerColor: AppTheme.dividerColor,
                 ),
               ),
               // 그리드 (스크롤 영역)
