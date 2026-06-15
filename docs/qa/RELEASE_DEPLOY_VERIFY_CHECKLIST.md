@@ -91,6 +91,30 @@
 
 ---
 
+## PHASE 6 — 피드 탭 개선 (Q&A 정주 + 사진 그리드)
+
+🟦 **배포 (선행 필수)**
+- [ ] `supabase/migrations/posts_category.sql` 대시보드 SQL Editor 실행
+      (`posts.category` 컬럼 추가 + hashtags→category 멱등 백필 + 인덱스).
+      ⛔ **미실행 시 Q&A 조회·작성이 컬럼 부재로 에러.** 앱 배포 시점과 맞출 것.
+- [ ] (참고) 라이브 백필 영향 0건(분류 태그 보유 글 0). 컬럼 생성만으로 동작.
+
+📱 **검증** (docs/qa/feed_improvement_verification.md)
+- [ ] 0: migration 적용 후 Q&A 조회·작성 정상(미적용 시 에러 재현 확인)
+- [ ] 1: Q&A 무한 스크롤(30건 경계 다음 페이지 로드·중복 없음)
+- [ ] 2: 상태 보존(사진↔Q&A 토글 시 목록·스크롤 유지)
+- [ ] 3: 카테고리 필터(category 컬럼 기준, 화면 건수=DB 건수) + 칩 컬러
+- [ ] 4: post_type 오염 차단(사진 글이 Q&A에 비노출)
+- [ ] 5: 빈 상태 CTA("첫 글 쓰기"→작성→즉시 반영)
+- [ ] 6: 매거진 노출('전체' 상단 가로 슬라이더, 0건 시 미노출, 더보기→/hashtag/magazine)
+- [ ] 7: 사진 그리드 토글(3열 정사각·이미지 글만·셀 탭 상세)
+- [ ] 8: **리스트 뷰 무변경 회귀**(무한스크롤·새로고침·좋아요·에러·빈상태 동일)
+- [ ] 9: 그리드 무한스크롤(원본 posts 기준 로드) / 사진 0건 시 "리스트로 보기"
+
+⛔ migration 적용이 Q&A 동작 선행조건. 사진 그리드(7~9)는 DB 무관(즉시 검증 가능).
+
+---
+
 ## PHASE 5 — 알려진 버그 (홈 트랙, 출시 차단 아님)
 - [ ] **HomePage.dispose 빨간 화면**(home_page.dart:96, debug 전용 assertion). 수정안: `didChangeDependencies()`에서 `_router=GoRouter.of(context)` 캡처 → `dispose()`에서 context 조회 제거. (home_page.dart는 그간 금지 파일이라 미수정 — 홈 트랙에서 처리)
 
@@ -104,9 +128,11 @@
 | Gemini 프록시 | 8ca475b..f67d37c | gemini_proxy_verification.md |
 | 채팅 안전장치 | c13c5f5..53d5645 | chat_safety_verification.md |
 | 건강관리 개선 | 4f377a8..45ca8e2 | health_pdf_verification.md |
+| 피드 탭 개선 | cac3591..74c7025 | feed_improvement_verification.md |
 
 ## 핵심 의존성 요약
 1. **gemini-proxy 배포 + 키 교체 → 그 다음에 분석 동작 검증**(PHASE 1 → PHASE 4 분석).
 2. soft delete: migration → Edge Function → 시크릿 → cron **순서 엄수**(PHASE 2).
 3. chat_report.sql 실행 → 그 다음 메시지 신고 검증(PHASE 3).
 4. 탈퇴 경로 작동 시 HomePage.dispose 빨간 화면 표면화(debug만, 무시 가능 — PHASE 5).
+5. **posts_category.sql 실행 → 그 다음 Q&A 조회·작성 가능**(PHASE 6). 미실행 시 Q&A 에러.
