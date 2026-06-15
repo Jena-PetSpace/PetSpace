@@ -157,7 +157,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
                               : AppTheme.secondaryTextColor)),
                   selected: isSelected,
                   selectedColor: AppTheme.primaryColor,
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppTheme.surfaceColor,
                   side: BorderSide(
                       color: isSelected
                           ? AppTheme.primaryColor

@@ -52,7 +52,7 @@ class _MagazineSectionState extends State<MagazineSection> {
     if (_loading || _posts.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      color: Colors.white,
+      color: AppTheme.surfaceColor,
       padding: EdgeInsets.only(top: 12.h, bottom: 12.h),
       margin: EdgeInsets.only(bottom: 8.h),
       child: Column(

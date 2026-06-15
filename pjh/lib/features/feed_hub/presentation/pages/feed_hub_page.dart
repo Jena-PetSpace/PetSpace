@@ -150,7 +150,7 @@ class _FeedHubViewState extends State<_FeedHubView>
 
   AppBar _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.surfaceColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       title: Text(
@@ -173,7 +173,7 @@ class _FeedHubViewState extends State<_FeedHubView>
               initialChildSize: 0.7,
               builder: (ctx, ctrl) => Container(
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.surfaceColor,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: const ChannelSubscriptionPage(),
@@ -199,7 +199,7 @@ class _FeedHubViewState extends State<_FeedHubView>
 
   Widget _buildHeader() {
     return Container(
-      color: Colors.white,
+      color: AppTheme.surfaceColor,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -426,7 +426,7 @@ class _FeedHubViewState extends State<_FeedHubView>
     final isPhoto = _mode == _FeedMode.photo;
     return FloatingActionButton(
       onPressed: () => _onFabPressed(context),
-      backgroundColor: isPhoto ? AppTheme.primaryColor : Colors.amber[700],
+      backgroundColor: AppTheme.primaryColor,
       elevation: 3,
       child: Icon(
         isPhoto ? Icons.camera_alt_rounded : Icons.edit_rounded,
