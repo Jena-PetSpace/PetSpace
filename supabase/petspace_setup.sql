@@ -2789,6 +2789,24 @@ ADD COLUMN IF NOT EXISTS context_note TEXT;
 COMMENT ON COLUMN emotion_history.context_note IS
   '분석 시점 보호자 입력 컨텍스트. AI 프롬프트 주입용. memo와 별도 (memo는 분석 후 회고용).';
 
+-- 2026-06-15: posts 라이브 컬럼 동기화 + 카테고리 컬럼화
+-- 이 setup.sql의 posts 정의(PART 3)와 라이브 DB가 어긋나 있어, 라이브에 이미
+-- 존재하는 컬럼(post_type, image_urls)을 IF NOT EXISTS로 명문화한다.
+-- 새 스키마 변경은 category 추가뿐(상세·백필은 migrations/posts_category.sql).
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS post_type TEXT DEFAULT 'photo';
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_urls TEXT[] DEFAULT '{}';
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS category TEXT;
+
+COMMENT ON COLUMN posts.post_type IS
+  '글 종류: photo(사진) / community(Q&A 등 텍스트) / emotion(감정 분석 공유).';
+COMMENT ON COLUMN posts.image_urls IS
+  '다중 이미지 URL 배열. 레거시 image_url(단일) 대체.';
+COMMENT ON COLUMN posts.category IS
+  '커뮤니티(Q&A) 글의 카테고리: health/training/food/life/qa. 미분류는 NULL.';
+
+CREATE INDEX IF NOT EXISTS idx_posts_category
+  ON posts(category) WHERE deleted_at IS NULL;
+
 
 -- ============================================================================
 -- PART 19: 펫 뉴스 (F1) — 반자동 수집/검수/링크아웃

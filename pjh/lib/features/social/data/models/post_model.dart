@@ -16,6 +16,7 @@ class PostModel {
       emotionAnalysis; // Supabase: emotion_analysis (JSONB)
   final String? caption;
   final List<String> hashtags; // Supabase: hashtags (TEXT[])
+  final String? category; // Supabase: category (TEXT) — 커뮤니티 글 분류
   final int likesCount;
   final int commentsCount;
   final DateTime createdAt;
@@ -43,6 +44,7 @@ class PostModel {
     this.emotionAnalysis,
     this.caption,
     this.hashtags = const [],
+    this.category,
     this.likesCount = 0,
     this.commentsCount = 0,
     required this.createdAt,
@@ -98,6 +100,7 @@ class PostModel {
       hashtags: json['hashtags'] != null
           ? List<String>.from(json['hashtags'] as List)
           : [],
+      category: json['category'] as String?,
       likesCount: json['likes_count'] as int? ?? 0,
       commentsCount: json['comments_count'] as int? ?? 0,
       createdAt: createdAt,
@@ -125,6 +128,7 @@ class PostModel {
       if (emotionAnalysis != null) 'emotion_analysis': emotionAnalysis,
       if (caption != null) 'caption': caption,
       if (hashtags.isNotEmpty) 'hashtags': hashtags,
+      if (category != null) 'category': category,
       'likes_count': likesCount,
       'comments_count': commentsCount,
       'is_private': isPrivate,
@@ -180,6 +184,7 @@ class PostModel {
       imageUrls: imageUrls,
       emotionAnalysis: analysis,
       tags: hashtags,
+      category: category,
       createdAt: createdAt,
       updatedAt: updatedAt,
       likesCount: likesCount,
@@ -225,6 +230,7 @@ class PostModel {
       emotionAnalysis: post.emotionAnalysis?.toJson(),
       caption: post.content,
       hashtags: post.tags,
+      category: post.category,
       likesCount: post.likesCount,
       commentsCount: post.commentsCount,
       createdAt: post.createdAt,
@@ -250,6 +256,7 @@ class PostModel {
     Map<String, dynamic>? emotionAnalysis,
     String? caption,
     List<String>? hashtags,
+    String? category,
     int? likesCount,
     int? commentsCount,
     DateTime? createdAt,
@@ -273,6 +280,7 @@ class PostModel {
       emotionAnalysis: emotionAnalysis ?? this.emotionAnalysis,
       caption: caption ?? this.caption,
       hashtags: hashtags ?? this.hashtags,
+      category: category ?? this.category,
       likesCount: likesCount ?? this.likesCount,
       commentsCount: commentsCount ?? this.commentsCount,
       createdAt: createdAt ?? this.createdAt,

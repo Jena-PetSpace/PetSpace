@@ -16,6 +16,10 @@ class Post extends Equatable {
   final String? videoUrl;
   final EmotionAnalysis? emotionAnalysis;
   final List<String> tags;
+
+  /// 커뮤니티(Q&A) 글의 카테고리 컬럼 값(health/training/food/life/qa).
+  /// 사진/감정분석 글은 null.
+  final String? category;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final int likesCount;
@@ -43,6 +47,7 @@ class Post extends Equatable {
     this.videoUrl,
     this.emotionAnalysis,
     this.tags = const [],
+    this.category,
     required this.createdAt,
     this.updatedAt,
     this.likesCount = 0,
@@ -69,6 +74,7 @@ class Post extends Equatable {
     String? videoUrl,
     EmotionAnalysis? emotionAnalysis,
     List<String>? tags,
+    String? category,
     DateTime? createdAt,
     DateTime? updatedAt,
     int? likesCount,
@@ -94,6 +100,7 @@ class Post extends Equatable {
       videoUrl: videoUrl ?? this.videoUrl,
       emotionAnalysis: emotionAnalysis ?? this.emotionAnalysis,
       tags: tags ?? this.tags,
+      category: category ?? this.category,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       likesCount: likesCount ?? this.likesCount,
@@ -122,6 +129,7 @@ class Post extends Equatable {
         videoUrl,
         emotionAnalysis,
         tags,
+        category,
         createdAt,
         updatedAt,
         likesCount,

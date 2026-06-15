@@ -89,34 +89,51 @@ void main() {
     });
   });
 
-  group('CommunityPost.categoryLabel', () {
-    test('hashtags에서 카테고리 한글 라벨을 도출한다', () {
-      CommunityPost build(List<String> tags) => CommunityPost.fromJson({
-            'id': 'x',
-            'author_id': 'u',
-            'caption': 'c',
-            'hashtags': tags,
-            'created_at': '2026-06-10T09:00:00.000Z',
-          });
+  group('CommunityPost.category (컬럼)', () {
+    CommunityPost build(String? category) => CommunityPost.fromJson({
+          'id': 'x',
+          'author_id': 'u',
+          'caption': 'c',
+          'category': category,
+          'created_at': '2026-06-10T09:00:00.000Z',
+        });
 
-      expect(build(['qa']).categoryLabel, 'Q&A');
-      expect(build(['health']).categoryLabel, '건강');
-      expect(build(['training']).categoryLabel, '훈련');
-      expect(build(['food']).categoryLabel, '먹거리');
-      expect(build(['life']).categoryLabel, '생활');
-      expect(build(['magazine']).categoryLabel, '매거진');
+    test('category 컬럼 값을 그대로 보존한다', () {
+      expect(build('health').category, 'health');
+      expect(build('qa').category, 'qa');
     });
 
-    test('알려진 카테고리 태그가 없으면 빈 문자열', () {
+    test('category 컬럼이 NULL이면 category는 null', () {
       final post = CommunityPost.fromJson(const {
         'id': 'x',
         'author_id': 'u',
         'caption': 'c',
-        'hashtags': ['community', '랜덤태그'],
         'created_at': '2026-06-10T09:00:00.000Z',
       });
+      expect(post.category, isNull);
+    });
+  });
 
-      expect(post.categoryLabel, '');
+  group('CommunityPost.categoryLabel (category 컬럼 기반)', () {
+    CommunityPost build(String? category) => CommunityPost.fromJson({
+          'id': 'x',
+          'author_id': 'u',
+          'caption': 'c',
+          'category': category,
+          'created_at': '2026-06-10T09:00:00.000Z',
+        });
+
+    test('category 컬럼 값을 한글 라벨로 변환한다', () {
+      expect(build('qa').categoryLabel, 'Q&A');
+      expect(build('health').categoryLabel, '건강');
+      expect(build('training').categoryLabel, '훈련');
+      expect(build('food').categoryLabel, '먹거리');
+      expect(build('life').categoryLabel, '생활');
+    });
+
+    test('category가 NULL이거나 미상이면 빈 문자열', () {
+      expect(build(null).categoryLabel, '');
+      expect(build('알수없음').categoryLabel, '');
     });
   });
 }

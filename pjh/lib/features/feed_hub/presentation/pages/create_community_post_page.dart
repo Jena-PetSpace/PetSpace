@@ -61,9 +61,9 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
       id: '',
       authorId: authState.user.uid,
       authorName: authState.user.displayName,
-      type: PostType.text,
+      type: PostType.text, // → post_type='community'
       content: '$title\n\n$content',
-      tags: ['community', _selectedCategory],
+      category: _selectedCategory, // hashtags 대신 category 컬럼에 저장
       createdAt: DateTime.now(),
     );
 
