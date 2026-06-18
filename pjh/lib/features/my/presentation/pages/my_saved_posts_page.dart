@@ -47,7 +47,7 @@ class _MySavedPostsViewState extends State<_MySavedPostsView> {
     return Scaffold(
       backgroundColor: AppTheme.subtleBackground,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.surfaceColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: _showingPosts
@@ -177,11 +177,12 @@ class _MySavedPostsViewState extends State<_MySavedPostsView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.bookmark_border, size: 64.w, color: Colors.grey[300]),
+            Icon(Icons.bookmark_border,
+                size: 64.w, color: AppTheme.lightTextColor),
             SizedBox(height: 16.h),
             Text('저장한 글이 없습니다',
-                style:
-                    TextStyle(fontSize: 16.sp, color: Colors.grey[500])),
+                style: TextStyle(
+                    fontSize: 16.sp, color: AppTheme.secondaryTextColor)),
           ],
         ),
       );
@@ -252,7 +253,7 @@ class _MySavedPostsViewState extends State<_MySavedPostsView> {
               child: const Text('취소')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('삭제'),
           ),
         ],
@@ -289,7 +290,7 @@ class _CollectionGridItem extends StatelessWidget {
           : null,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surfaceColor,
           borderRadius: BorderRadius.circular(16.r),
           boxShadow: [
             BoxShadow(

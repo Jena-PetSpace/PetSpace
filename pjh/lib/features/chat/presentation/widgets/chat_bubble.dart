@@ -11,6 +11,9 @@ class ChatBubble extends StatelessWidget {
   final int unreadCount;
   final bool showReadLabel;
 
+  /// 상대 메시지 롱프레스 시 호출(메시지 신고 진입). 내 메시지/그룹 시스템엔 없음.
+  final VoidCallback? onLongPress;
+
   const ChatBubble({
     super.key,
     required this.message,
@@ -18,6 +21,7 @@ class ChatBubble extends StatelessWidget {
     this.showSenderInfo = false,
     this.unreadCount = 0,
     this.showReadLabel = false,
+    this.onLongPress,
   });
 
   @override
@@ -97,7 +101,14 @@ class ChatBubble extends StatelessWidget {
                           ],
                         ),
                       ),
-                    Flexible(child: _buildMessageContent(context)),
+                    Flexible(
+                      child: (!isMine && onLongPress != null)
+                          ? GestureDetector(
+                              onLongPress: onLongPress,
+                              child: _buildMessageContent(context),
+                            )
+                          : _buildMessageContent(context),
+                    ),
                     if (!isMine)
                       Padding(
                         padding: EdgeInsets.only(left: 4.w, bottom: 2.h),

@@ -158,27 +158,50 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
   Future<List<Map<String, dynamic>>> _getCommunityPosts({
     String? category,
     int limit = 30,
+    DateTime? beforeCreatedAt,
   }) async {
     var query = supabaseClient
         .from('posts')
         .select(
-            'id, author_id, caption, hashtags, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
+            'id, author_id, caption, hashtags, category, likes_count, comments_count, created_at, users!posts_author_id_fkey(display_name, photo_url)')
         .isFilter('deleted_at', null)
+        // 커뮤니티(Q&A) 글만 — 사진 글이 Q&A 목록에 새는 오염 차단
+        .eq('post_type', 'community')
+        // 매거진은 별도 노출 경로 → Q&A에서 제외(안전장치 유지)
         .not('hashtags', 'cs', '{"magazine"}');
-    if (category != null) query = query.contains('hashtags', [category]);
+    // 카테고리 필터는 hashtags 역추론이 아닌 category 컬럼 기준
+    if (category != null) query = query.eq('category', category);
+    // 키셋 페이지네이션: 마지막 글의 created_at 이전 글만 (사진 피드와 동일 방식)
+    if (beforeCreatedAt != null) {
+      query = query.lt('created_at', beforeCreatedAt.toIso8601String());
+    }
     final response =
         await query.order('created_at', ascending: false).limit(limit);
     return List<Map<String, dynamic>>.from(response);
   }
 
-  Future<List<Map<String, dynamic>>> _getSavedPostsRaw(String userId) async {
-    final response = await supabaseClient
+  Future<List<Map<String, dynamic>>> _getSavedPostsRaw(
+    String userId, {
+    int limit = 30,
+    String? beforeSavedAt,
+  }) async {
+    var query = supabaseClient
         .from('saved_posts')
-        .select('post_id, posts(id, image_url, caption, author_id)')
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
+        .select('post_id, created_at, posts(id, image_url, caption, author_id)')
+        .eq('user_id', userId);
+    // 키셋 페이지네이션: 저장 시각(saved_posts.created_at) 기준. 내 글 커서와 동일 방식.
+    if (beforeSavedAt != null) {
+      query = query.lt('created_at', beforeSavedAt);
+    }
+    final response =
+        await query.order('created_at', ascending: false).limit(limit);
     return (response as List)
-        .map((e) => e['posts'] as Map<String, dynamic>?)
+        .map((e) {
+          final post = e['posts'] as Map<String, dynamic>?;
+          if (post == null) return null;
+          // 저장 시각을 커서로 쓰도록 post 맵에 주입(post 자체 created_at과 구분).
+          return {...post, 'saved_at': e['created_at']};
+        })
         .whereType<Map<String, dynamic>>()
         .toList();
   }

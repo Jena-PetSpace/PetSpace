@@ -12,9 +12,7 @@ import '../../features/social/presentation/bloc/notifications_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/emotion/presentation/pages/emotion_analysis_page.dart';
 import '../../features/emotion/presentation/pages/emotion_result_loader_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/profile_edit_page.dart';
-import '../../features/profile/presentation/pages/settings_page.dart';
 import '../../features/social/presentation/pages/home_page.dart';
 import '../../features/social/presentation/pages/explore_page.dart';
 import '../../features/social/presentation/pages/notifications_page.dart';
@@ -41,7 +39,6 @@ import '../../features/onboarding/presentation/pages/splash_page.dart';
 import '../../features/profile/presentation/pages/community_guidelines_page.dart';
 import '../../features/profile/presentation/pages/privacy_policy_page.dart';
 import '../../features/my/presentation/pages/reward_store_page.dart';
-import '../../features/emotion/presentation/pages/emotion_calendar_page.dart';
 import '../../features/home/presentation/pages/hospital_search_page.dart';
 import '../../features/social/presentation/pages/channel_subscription_page.dart';
 import '../../features/pets/presentation/pages/public_pet_page.dart';
@@ -385,31 +382,9 @@ class AppRouter {
               },
             ),
             GoRoute(
-              path: '/profile',
-              name: 'profile',
-              builder: (context, state) => const ProfilePage(),
-              routes: [
-                GoRoute(
-                  path: '/edit',
-                  name: 'profile-edit',
-                  builder: (context, state) => const ProfileEditPage(),
-                ),
-                GoRoute(
-                  path: '/settings',
-                  name: 'settings',
-                  builder: (context, state) => const SettingsPage(),
-                ),
-              ],
-            ),
-            GoRoute(
               path: '/pets',
               name: 'pets',
               builder: (context, state) => const PetManagementPage(),
-            ),
-            GoRoute(
-              path: '/settings',
-              name: 'settings-direct',
-              builder: (context, state) => const SettingsPage(),
             ),
             GoRoute(
               path: '/settings/my',
@@ -617,26 +592,11 @@ class AppRouter {
                   name: 'emotion-history',
                   redirect: (_, __) => '/ai-history-page',
                 ),
-                GoRoute(
-                  path: 'calendar',
-                  name: 'emotion-calendar',
-                  builder: (_, __) => const EmotionCalendarPage(),
-                ),
               ],
             ),
             GoRoute(
               path: '/ai-history-page',
               name: 'ai-history-page',
-              builder: (context, state) {
-                return BlocProvider(
-                  create: (_) => sl<EmotionAnalysisBloc>(),
-                  child: const AiHistoryPage(),
-                );
-              },
-            ),
-            GoRoute(
-              path: '/ai-history',
-              name: 'ai-history',
               builder: (context, state) {
                 return BlocProvider(
                   create: (_) => sl<EmotionAnalysisBloc>(),
@@ -758,7 +718,9 @@ class AppRouter {
           return null;
         }
 
-        // 인증되지 않은 상태 (AuthUnauthenticated)
+        // 인증되지 않은 상태 (AuthUnauthenticated / AuthAccountDeleted)
+        // soft-delete 계정도 미인증과 동일하게 로그인 페이지로 보낸다.
+        // (복구 다이얼로그는 로그인 페이지의 BlocListener가 표시)
         log('User not authenticated', name: 'GoRouter');
         // 온보딩 페이지는 허용
         if (currentPath == '/onboarding' ||

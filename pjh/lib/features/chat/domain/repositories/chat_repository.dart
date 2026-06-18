@@ -105,4 +105,18 @@ abstract class ChatRepository {
   /// 채팅방 새 메시지 실시간 Stream (Supabase Realtime INSERT).
   /// 구독 취소(.cancel) 시 채널 자동 정리.
   Stream<ChatMessage> subscribeToRoomMessages(String roomId);
+
+  /// 채팅 상대 사용자 신고
+  Future<Either<Failure, void>> reportChatUser({
+    required String reportedUserId,
+    required String reporterId,
+    required String reason,
+  });
+
+  /// 개별 채팅 메시지 신고
+  Future<Either<Failure, void>> reportChatMessage({
+    required String messageId,
+    required String reporterId,
+    required String reason,
+  });
 }

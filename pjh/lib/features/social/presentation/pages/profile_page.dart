@@ -92,7 +92,7 @@ class _ProfilePageState extends State<ProfilePage>
                 IconButton(
                   icon: const Icon(Icons.settings_outlined),
                   tooltip: '설정',
-                  onPressed: () => context.push('/settings'),
+                  onPressed: () => context.push('/settings/my'),
                 ),
               ]
             : null,
@@ -585,7 +585,7 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   void _editProfile() async {
-    final updated = await context.push<bool>('/profile/edit');
+    final updated = await context.push<bool>('/my/edit-profile');
     if (updated == true && mounted) {
       // 프로필 정보 갱신
       context.read<ProfileBloc>().add(LoadUserProfileRequested(
@@ -596,7 +596,7 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   void _showSettings() {
-    context.push('/settings');
+    context.push('/settings/my');
   }
 
   void _sendMessage(SocialUser user) async {

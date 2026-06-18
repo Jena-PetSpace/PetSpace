@@ -27,6 +27,7 @@ import '../features/emotion/domain/usecases/save_emotion_analysis.dart';
 import '../features/emotion/domain/usecases/get_emotion_history.dart';
 import '../features/emotion/domain/usecases/get_emotion_statistics.dart';
 import '../features/emotion/domain/usecases/delete_emotion_analysis.dart';
+import '../features/emotion/domain/usecases/get_previous_analysis.dart';
 import '../features/emotion/data/datasources/emotion_ai_service.dart';
 import '../features/emotion/data/datasources/image_service.dart';
 import '../features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
@@ -92,6 +93,7 @@ import '../features/chat/domain/usecases/get_unread_count.dart';
 import '../features/chat/domain/usecases/search_users_for_chat.dart';
 import '../features/chat/domain/usecases/leave_chat_room.dart';
 import '../features/chat/domain/usecases/add_chat_members.dart';
+import '../features/chat/domain/usecases/report_chat_target.dart';
 import '../features/chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 import '../features/chat/presentation/bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../features/chat/presentation/bloc/chat_detail/chat_detail_bloc.dart';
@@ -213,6 +215,7 @@ Future<void> _initEmotion() async {
   sl.registerLazySingleton(() => GetEmotionHistory(sl()));
   sl.registerLazySingleton(() => GetEmotionStatistics(sl()));
   sl.registerLazySingleton(() => DeleteEmotionAnalysis(sl()));
+  sl.registerLazySingleton(() => GetPreviousAnalysis(sl()));
 
   // BLoC - factory로 등록: 페이지마다 새 인스턴스 생성 (singleton 재사용 시 closed 오류 방지)
   sl.registerFactory(
@@ -394,6 +397,7 @@ Future<void> _initChat() async {
     () => ChatRepositoryImpl(
       remoteDataSource: sl<ChatRemoteDataSource>(),
       networkInfo: sl<NetworkInfo>(),
+      blockService: sl<BlockService>(),
     ),
   );
 
@@ -409,6 +413,7 @@ Future<void> _initChat() async {
   sl.registerLazySingleton(() => SearchUsersForChat(sl<ChatRepository>()));
   sl.registerLazySingleton(() => LeaveChatRoom(sl<ChatRepository>()));
   sl.registerLazySingleton(() => AddChatMembers(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => ReportChatTarget(sl<ChatRepository>()));
 
   // BLoCs
   sl.registerFactory(

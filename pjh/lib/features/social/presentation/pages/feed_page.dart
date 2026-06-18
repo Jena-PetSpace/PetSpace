@@ -1,12 +1,16 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/haptic_refresh_indicator.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../domain/entities/post.dart';
 import '../bloc/feed_bloc.dart';
+import '../utils/feed_grid_filter.dart';
 import '../widgets/post_card.dart';
 import '../widgets/create_post_bottom_sheet.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
@@ -14,6 +18,9 @@ import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../../shared/widgets/network_error_widget.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../widgets/trending_hashtags_section.dart';
+
+/// 피드 표시 방식 — 위젯 로컬 상태(BLoC 무관).
+enum FeedViewMode { list, grid }
 
 class FeedPage extends StatefulWidget {
   final String? userId;
@@ -33,6 +40,9 @@ class FeedPage extends StatefulWidget {
 
 class _FeedPageState extends State<FeedPage> {
   final ScrollController _scrollController = ScrollController();
+
+  /// 리스트/그리드 토글 — 위젯 state. BLoC·페이지네이션과 무관. 기본 리스트.
+  FeedViewMode _viewMode = FeedViewMode.list;
 
   String? get _effectiveUserId {
     if (widget.userId != null && widget.userId!.isNotEmpty) {
@@ -148,22 +158,32 @@ class _FeedPageState extends State<FeedPage> {
       return _buildEmptyState();
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: EdgeInsets.symmetric(vertical: 8.h),
-      itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0) + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) return const TrendingHashtagsSection();
-        final postIndex = index - 1;
-        if (postIndex >= state.posts.length) {
-          return Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        }
-        final post = state.posts[postIndex];
-        return _buildPostCard(post);
-      },
+    // 토글 바만 위에 얹고, 아래는 _viewMode로 분기. 리스트 경로는 기존과 동일.
+    return Column(
+      children: [
+        _buildViewToggle(),
+        Expanded(
+          child: _viewMode == FeedViewMode.list
+              ? ListView.builder(
+                  controller: _scrollController,
+                  padding: EdgeInsets.symmetric(vertical: 8.h),
+                  itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0) + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) return const TrendingHashtagsSection();
+                    final postIndex = index - 1;
+                    if (postIndex >= state.posts.length) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        child: const Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final post = state.posts[postIndex];
+                    return _buildPostCard(post);
+                  },
+                )
+              : _buildPhotoGrid(state.posts),
+        ),
+      ],
     );
   }
 
@@ -172,21 +192,140 @@ class _FeedPageState extends State<FeedPage> {
       return _buildEmptyState();
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: EdgeInsets.symmetric(vertical: 8.h),
-      itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= state.posts.length) {
-          return Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.h),
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        }
+    return Column(
+      children: [
+        _buildViewToggle(),
+        Expanded(
+          child: _viewMode == FeedViewMode.list
+              ? ListView.builder(
+                  controller: _scrollController,
+                  padding: EdgeInsets.symmetric(vertical: 8.h),
+                  itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index >= state.posts.length) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        child: const Center(child: CircularProgressIndicator()),
+                      );
+                    }
 
-        final post = state.posts[index];
-        return _buildPostCard(post);
-      },
+                    final post = state.posts[index];
+                    return _buildPostCard(post);
+                  },
+                )
+              : _buildPhotoGrid(state.posts),
+        ),
+      ],
+    );
+  }
+
+  /// 리스트/그리드 토글 바. 위젯 state(_viewMode)만 바꾼다 — BLoC 무관.
+  Widget _buildViewToggle() {
+    Widget btn(FeedViewMode mode, IconData icon, String tooltip) {
+      final active = _viewMode == mode;
+      return IconButton(
+        tooltip: tooltip,
+        visualDensity: VisualDensity.compact,
+        icon: Icon(
+          icon,
+          size: 22.w,
+          color: active
+              ? AppTheme.primaryColor
+              : AppTheme.secondaryTextColor,
+        ),
+        onPressed: active ? null : () => setState(() => _viewMode = mode),
+      );
+    }
+
+    return Container(
+      color: AppTheme.surfaceColor,
+      padding: EdgeInsets.symmetric(horizontal: 8.w),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          btn(FeedViewMode.list, Icons.view_list_rounded, '리스트 보기'),
+          btn(FeedViewMode.grid, Icons.grid_view_rounded, '그리드 보기'),
+        ],
+      ),
+    );
+  }
+
+  /// 사진 그리드 — 이미지 있는 글만(렌더용 필터). 원본 posts·페이지네이션은
+  /// 변형하지 않으며, 무한스크롤은 공유 _scrollController로 원본 기준 트리거된다.
+  Widget _buildPhotoGrid(List<Post> posts) {
+    final gridPosts = feedGridPosts(posts);
+    if (gridPosts.isEmpty) {
+      return _buildGridEmptyState();
+    }
+    return GridView.builder(
+      controller: _scrollController,
+      padding: EdgeInsets.all(2.w),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 1,
+        crossAxisSpacing: 2,
+        mainAxisSpacing: 2,
+      ),
+      itemCount: gridPosts.length,
+      itemBuilder: (context, index) => _buildGridCell(gridPosts[index]),
+    );
+  }
+
+  Widget _buildGridCell(post) {
+    final imageUrl = post.imageUrls.first as String;
+    final hasMultiple = post.imageUrls.length > 1;
+    return GestureDetector(
+      onTap: () => context.push('/post/${post.id}'),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CachedNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: AppTheme.dividerColor,
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: AppTheme.dividerColor,
+              child: Icon(Icons.broken_image_outlined,
+                  color: AppTheme.secondaryTextColor, size: 20.w),
+            ),
+          ),
+          if (hasMultiple)
+            Positioned(
+              top: 4.w,
+              right: 4.w,
+              child: Icon(Icons.collections_rounded,
+                  size: 16.w, color: Colors.white),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 그리드인데 사진글이 0개일 때 — 리스트로 전환 유도.
+  Widget _buildGridEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.image_not_supported_outlined,
+              size: 48.w, color: AppTheme.secondaryTextColor),
+          SizedBox(height: 12.h),
+          Text('표시할 사진이 없어요',
+              style: TextStyle(
+                  fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
+          SizedBox(height: 12.h),
+          TextButton(
+            onPressed: () => setState(() => _viewMode = FeedViewMode.list),
+            child: Text('리스트로 보기',
+                style: TextStyle(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryColor)),
+          ),
+        ],
+      ),
     );
   }
 

@@ -62,7 +62,7 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.error_outline,
-                      size: 48.w, color: Colors.grey[400]),
+                      size: 48.w, color: AppTheme.lightTextColor),
                   SizedBox(height: 12.h),
                   Text(state.message,
                       style: TextStyle(
@@ -86,7 +86,8 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.psychology_outlined, size: 64.w, color: Colors.grey[300]),
+          Icon(Icons.psychology_outlined,
+              size: 64.w, color: AppTheme.lightTextColor),
           SizedBox(height: 16.h),
           Text(
             '감정분석 기록이 없습니다',

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import '../../../../config/injection_container.dart';
@@ -14,8 +15,10 @@ import '../../data/models/health_analysis_model.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../../domain/entities/health_analysis.dart';
 import '../../domain/repositories/emotion_repository.dart';
+import '../../domain/usecases/get_previous_analysis.dart';
 import '../bloc/emotion_analysis_bloc.dart';
 import '../widgets/pet_inline_dropdown.dart';
+import '../theme/emotion_result_tokens.dart';
 import 'emotion_result_page.dart';
 import 'health_result_page.dart';
 
@@ -404,7 +407,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
       statusWidget = Text('주의',
           style: TextStyle(
               fontSize: 8.5.sp,
-              color: const Color(0xFF854F0B),
+              color: EmotionResultTokens.amberDark,
               fontWeight: FontWeight.w500));
     } else if (s.status == '위험') {
       borderColor = AppTheme.highlightColor;
@@ -1035,7 +1038,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
       'good': (AppTheme.successColor.withValues(alpha: 0.1),
           AppTheme.successColor),
       'warn': (const Color(0xFFEF9F27).withValues(alpha: 0.1),
-          const Color(0xFF854F0B)),
+          EmotionResultTokens.amberDark),
       'bad': (AppTheme.errorColor.withValues(alpha: 0.1),
           AppTheme.errorColor),
     };
@@ -1046,7 +1049,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
     return Opacity(
       opacity: isDisabledInSelectMode ? 0.4 : 1.0,
       child: GestureDetector(
-        onTap: () {
+        onTap: () async {
           // selectMode: 감정 카드만 선택 가능. 건강 카드는 안내.
           if (widget.selectMode) {
             if (item.isEmotion && item.emotionData != null) {
@@ -1060,13 +1063,23 @@ class _AiHistoryPageState extends State<AiHistoryPage>
           }
           // 일반 모드: 결과 페이지로 진입
           if (item.isEmotion && item.emotionData != null) {
+            final analysis = item.emotionData!;
+            // 직전 분석 1건 조회 (과거 열람 맥락 — delta 비교가 자연스러움).
+            // 비교 UI는 부가 기능이라 300ms 타임아웃, 실패·지연 시 null로 진행.
+            EmotionAnalysis? previous;
+            try {
+              previous = await sl<GetPreviousAnalysis>()(current: analysis)
+                  .timeout(const Duration(milliseconds: 300));
+            } catch (_) {
+              previous = null;
+            }
+            if (!mounted) return;
             Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => BlocProvider(
                 create: (_) => sl<EmotionAnalysisBloc>(),
-                // previousAnalysis: 히스토리 진입은 delta 칩 불필요
                 child: EmotionResultPage(
-                  analysis: item.emotionData!,
-                  previousAnalysis: null,
+                  analysis: analysis,
+                  previousAnalysis: previous,
                   fromHistory: true,
                 ),
               ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -14,23 +13,10 @@ class AuthGuard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is AuthUnauthenticated) {
-          // 로그인 상태가 아니면 로그인 페이지로 리디렉션
-          context.go('/login');
-        } else if (state is AuthAuthenticated) {
-          // 인증되었지만 온보딩이 완료되지 않은 경우 온보딩으로 리디렉션
-          final userProfile = state.userProfile;
-          if (userProfile != null && !userProfile.isOnboardingCompleted) {
-            final currentLocation = GoRouterState.of(context).uri.toString();
-            if (currentLocation != '/onboarding') {
-              context.go('/onboarding');
-            }
-          }
-        }
-      },
-      child: BlocBuilder<AuthBloc, AuthState>(
+    // 네비게이션(미인증·soft-delete·온보딩 미완료 리디렉션)은
+    // GoRouter의 refreshListenable + redirect 단일 지점에서 처리한다.
+    // AuthGuard는 인증/로딩 상태에 따른 화면 표시(가드)만 담당한다.
+    return BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is AuthAuthenticated) {
             // 온보딩 완료 여부 체크
@@ -60,8 +46,6 @@ class AuthGuard extends StatelessWidget {
               ),
             );
           }
-        },
-      ),
-    );
+        });
   }
 }

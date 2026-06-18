@@ -67,7 +67,7 @@ class PostTypePickerSheet extends StatelessWidget {
                 width: 36.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: AppTheme.dividerColor,
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -105,7 +105,7 @@ class PostTypePickerSheet extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? AppTheme.primaryColor.withValues(alpha: 0.4)
-                : Colors.grey[200]!,
+                : AppTheme.dividerColor,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -123,7 +123,8 @@ class PostTypePickerSheet extends StatelessWidget {
               child: Icon(
                 item.icon,
                 size: 20.w,
-                color: isSelected ? AppTheme.primaryColor : Colors.grey[600],
+                color:
+                    isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
               ),
             ),
             SizedBox(width: 12.w),

@@ -16,6 +16,7 @@ class UserModel extends User {
     required super.settings,
     super.isOnboardingCompleted = false,
     super.emailConfirmedAt,
+    super.deletedAt,
   });
 
   factory UserModel.fromEntity(User user) {
@@ -32,6 +33,7 @@ class UserModel extends User {
       settings: UserSettingsModel.fromEntity(user.settings),
       isOnboardingCompleted: user.isOnboardingCompleted,
       emailConfirmedAt: user.emailConfirmedAt,
+      deletedAt: user.deletedAt,
     );
   }
 
@@ -60,6 +62,9 @@ class UserModel extends User {
       emailConfirmedAt: data['emailConfirmedAt'] != null
           ? DateTime.parse(data['emailConfirmedAt'])
           : null,
+      deletedAt: data['deleted_at'] != null
+          ? DateTime.parse(data['deleted_at'])
+          : null,
     );
   }
 
@@ -85,6 +90,9 @@ class UserModel extends User {
       emailConfirmedAt: map['emailConfirmedAt'] != null
           ? DateTime.parse(map['emailConfirmedAt'])
           : null,
+      deletedAt: map['deleted_at'] != null
+          ? DateTime.parse(map['deleted_at'])
+          : null,
     );
   }
 
@@ -101,6 +109,7 @@ class UserModel extends User {
       'following': following, // 팔로잉 목록
       'followers': followers, // 팔로워 목록
       'settings': (settings as UserSettingsModel).toMap(), // 사용자 설정
+      'deleted_at': deletedAt?.toIso8601String(),
     };
   }
 
@@ -118,6 +127,7 @@ class UserModel extends User {
     UserSettings? settings,
     bool? isOnboardingCompleted,
     DateTime? emailConfirmedAt,
+    DateTime? deletedAt,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -133,6 +143,7 @@ class UserModel extends User {
       isOnboardingCompleted:
           isOnboardingCompleted ?? this.isOnboardingCompleted,
       emailConfirmedAt: emailConfirmedAt ?? this.emailConfirmedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 }

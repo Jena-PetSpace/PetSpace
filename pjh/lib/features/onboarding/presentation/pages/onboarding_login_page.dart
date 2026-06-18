@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/rate_limit_countdown.dart';
+import '../../../auth/domain/entities/user.dart';
+import '../../../auth/domain/services/account_deletion_policy.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class OnboardingLoginPage extends StatefulWidget {
@@ -30,6 +32,20 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   bool _isAppleLoginInProgress = false; // 애플 로그인 중
   bool _isEmailLoginInProgress = false; // 이메일 로그인 중
   Duration? _rateLimitDuration; // Rate limit 남은 시간
+  bool _restoreDialogShown = false; // 복구 다이얼로그 중복 표시 가드
+
+  @override
+  void initState() {
+    super.initState();
+    // 이미 탈퇴 상태로 페이지 진입한 경우 (예: 앱 재시작 후 soft-deleted 세션)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = context.read<AuthBloc>().state;
+      if (state is AuthAccountDeleted) {
+        _showRestoreDialog(context, state.user);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -47,7 +63,16 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         developer.log('AuthBloc 상태 변경: ${state.runtimeType}',
             name: 'LoginPage');
 
-        if (state is AuthEmailVerificationRequired) {
+        if (state is AuthAccountDeleted) {
+          setState(() {
+            _isSigningUp = false;
+            _isKakaoLoginInProgress = false;
+            _isGoogleLoginInProgress = false;
+            _isAppleLoginInProgress = false;
+            _isEmailLoginInProgress = false;
+          });
+          _showRestoreDialog(context, state.user);
+        } else if (state is AuthEmailVerificationRequired) {
           // state의 user 객체에서 이메일을 가져옴
           final email = state.user.email;
           developer.log('이메일 인증 필요 상태 감지, 이메일: $email', name: 'LoginPage');
@@ -430,6 +455,43 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
           ),
       ],
     );
+  }
+
+  void _showRestoreDialog(BuildContext context, User user) {
+    if (_restoreDialogShown) return;
+    _restoreDialogShown = true;
+    final days =
+        AccountDeletionPolicy.remainingDays(user.deletedAt!, DateTime.now());
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('계정 복구'),
+        content: Text(
+          '탈퇴 처리된 계정입니다.\n'
+          '$days일 후 모든 데이터가 영구 삭제될 예정이에요.\n'
+          '계정을 복구할까요?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<AuthBloc>().add(AuthSignOutRequested());
+            },
+            child: const Text('나중에'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<AuthBloc>().add(AuthRestoreAccountRequested());
+            },
+            child: const Text('복구하기'),
+          ),
+        ],
+      ),
+    ).then((_) {
+      if (mounted) _restoreDialogShown = false;
+    });
   }
 
   void _kakaoLogin() {

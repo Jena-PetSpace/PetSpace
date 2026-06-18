@@ -107,6 +107,33 @@ class AppTheme {
   static const Color warningColor = Color(0xFFFF9800); // 경고 (주황)
   static const Color infoColor = Color(0xFF0077B6); // 정보 (accentColor 동일)
 
+  // === Semantic Tokens ===
+  static const Color success = Color(0xFF4CAF50);
+  static const Color warning = Color(0xFFFF9800);
+  static const Color danger  = Color(0xFFE53935);
+  static const Color info    = accentColor;
+
+  static const Color featureEmotion = Color(0xFFFF6F61);
+  static const Color featureHealth  = Color(0xFF1E3A5F);
+  static const Color featurePlay    = Color(0xFF7E57C2);
+  static const Color featureFortune = Color(0xFFFFB300);
+  static const Color featureQuiz    = Color(0xFF0077B6);
+  static const Color featureWalk    = Color(0xFF26A69A);
+
+  static const Color surfaceWarm = Color(0xFFFFF8E8);
+  static const Color surfaceCool = Color(0xFFF8F9FA);
+
+  // 파스텔 타일/뱃지 배경 팔레트 (settings·my 타일 색 승격 — 2026-06-12 확정)
+  static const Color tilePastelBlue     = Color(0xFFE6F1FB);
+  static const Color tilePastelGreen    = Color(0xFFEAF3DE);
+  static const Color tilePastelPeach    = Color(0xFFFAECE7);
+  static const Color tilePastelSand     = Color(0xFFF1EFE8);
+  static const Color tilePastelPink     = Color(0xFFFBEAF0);
+  static const Color tilePastelRose     = Color(0xFFFCEBEB);
+  static const Color tilePastelMint     = Color(0xFFE1F5EE);
+  static const Color tilePastelLavender = Color(0xFFEEEDFE);
+  static const Color tilePastelPurple   = Color(0xFFE9E3F5);
+
   // 중간 회색 계열 토큰
   static const Color dividerColor = Color(0xFFE0E0E0);
   static const Color disabledColor = Color(0xFFBDBDBD);

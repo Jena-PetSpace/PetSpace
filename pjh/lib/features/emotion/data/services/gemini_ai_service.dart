@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import '../../../../config/api_config.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../../domain/entities/health_analysis.dart';
@@ -11,8 +11,10 @@ import '../models/health_analysis_model.dart';
 
 class GeminiAIService {
   final Dio _dio;
-  static const String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+  // 키 보호: 앱은 Gemini를 직접 호출하지 않고 gemini-proxy Edge Function을 경유한다.
+  // 모델·엔드포인트·API 키는 프록시(서버)가 고정·보관한다.
+  static const String _proxyUrl =
+      'https://juukbctqzlrxfnivhgqe.supabase.co/functions/v1/gemini-proxy';
 
   static String _buildPrompt({
     String? petName,
@@ -99,8 +101,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     String? gender,
     String? additionalContext,
   }) async {
-    if (!ApiConfig.isGeminiConfigured) {
-      throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
+    if (Supabase.instance.client.auth.currentSession == null) {
+      throw const AnalysisException('로그인이 필요합니다.');
     }
 
     try {
@@ -153,8 +155,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     String? gender,
     String? additionalContext,
   }) async {
-    if (!ApiConfig.isGeminiConfigured) {
-      throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
+    if (Supabase.instance.client.auth.currentSession == null) {
+      throw const AnalysisException('로그인이 필요합니다.');
     }
     if (imageFiles.isEmpty) {
       throw const AnalysisException('분석할 이미지가 없습니다.');
@@ -222,7 +224,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 
   // B-4: 텍스트 전용 Gemini 호출 (이미지 없이, JSON 강제 아님)
   Future<String?> generateText(String prompt) async {
-    if (!ApiConfig.isGeminiConfigured) return null;
+    if (Supabase.instance.client.auth.currentSession == null) return null;
 
     try {
       final requestData = _buildTextRequest([
@@ -324,10 +326,20 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 
   Future<Map<String, dynamic>> _callApi(
       Map<String, dynamic> requestData) async {
+    // 로그인 세션의 access token으로 gemini-proxy 인증(서버에서 JWT 검증).
+    final accessToken =
+        Supabase.instance.client.auth.currentSession?.accessToken;
+    if (accessToken == null) {
+      throw const AnalysisException('로그인이 필요합니다.');
+    }
+
     final response = await _dio.post(
-      '$_baseUrl?key=${ApiConfig.geminiApiKey}',
+      _proxyUrl,
       data: requestData,
-      options: Options(headers: {'Content-Type': 'application/json'}),
+      options: Options(headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      }),
     );
 
     if (response.statusCode != 200) {
@@ -542,8 +554,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     required String userId,
     String? petId,
   }) async {
-    if (!ApiConfig.isGeminiConfigured) {
-      throw const AnalysisException('Gemini API가 설정되지 않았습니다.');
+    if (Supabase.instance.client.auth.currentSession == null) {
+      throw const AnalysisException('로그인이 필요합니다.');
     }
     if (imagePaths.isEmpty) {
       throw const AnalysisException('분석할 이미지가 없습니다.');

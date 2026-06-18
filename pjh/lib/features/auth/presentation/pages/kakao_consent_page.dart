@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+/// 카카오 브랜드 공식 컬러 — 디자인 토큰 아님 (브랜드 가이드 고정값)
+const Color _kakaoYellow = Color(0xFFFEE500);
+
 class KakaoConsentPage extends StatefulWidget {
   const KakaoConsentPage({super.key});
 
@@ -66,7 +69,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFEE500),
+                        color: _kakaoYellow,
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: const Icon(
@@ -311,7 +314,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                       : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _canProceed
-                        ? const Color(0xFFFEE500)
+                        ? _kakaoYellow
                         : Colors.grey[300],
                     foregroundColor: Colors.black87,
                     elevation: 0,
@@ -430,7 +433,7 @@ class _ThirdPartyConsentSheet extends StatelessWidget {
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: const Color(0xFFFEE500),
+                    backgroundColor: _kakaoYellow,
                     foregroundColor: Colors.black87,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

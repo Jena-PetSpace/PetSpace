@@ -564,7 +564,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                         itemCount: _places.length,
                         separatorBuilder: (_, __) => const Divider(
                           height: 1, thickness: 1,
-                          color: Color(0xFFF5F5F5),
+                          color: AppTheme.subtleBackground,
                           indent: 56,
                         ),
                         itemBuilder: (_, i) => _buildTile(_places[i], i + 1),

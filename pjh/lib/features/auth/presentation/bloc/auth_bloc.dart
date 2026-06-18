@@ -47,6 +47,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthSignUpWithEmailRequested>(_onSignUpWithEmailRequested);
     on<AuthSignOutRequested>(_onSignOutRequested);
     on<AuthDeleteAccountRequested>(_onDeleteAccountRequested);
+    on<AuthRestoreAccountRequested>(_onRestoreAccountRequested);
     on<AuthPasswordResetRequested>(_onPasswordResetRequested);
     on<AuthOnboardingCompleted>(_onOnboardingCompleted);
     on<AuthProfileRefreshRequested>(_onProfileRefreshRequested);
@@ -82,13 +83,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  /// 유저 상태 → AuthState 매핑 단일 지점 (탈퇴 > 이메일 미인증 > 정상 순)
+  AuthState _stateForUser(User user) {
+    if (user.isDeleted) return AuthAccountDeleted(user);
+    if (!user.isEmailConfirmed) return AuthEmailVerificationRequired(user);
+    return AuthAuthenticated(user);
+  }
+
   void _onAuthUserChanged(AuthUserChanged event, Emitter<AuthState> emit) {
     if (event.user != null) {
-      if (!event.user!.isEmailConfirmed) {
-        emit(AuthEmailVerificationRequired(event.user!));
-      } else {
-        emit(AuthAuthenticated(event.user!));
-      }
+      emit(_stateForUser(event.user!));
     } else {
       emit(AuthUnauthenticated());
     }
@@ -104,9 +108,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (user) {
-        AnalyticsService.instance.logLogin(method: 'google');
-        NotificationService().registerToken(user.id);
-        emit(AuthAuthenticated(user));
+        if (!user.isDeleted) {
+          AnalyticsService.instance.logLogin(method: 'google');
+          NotificationService().registerToken(user.id);
+        }
+        emit(_stateForUser(user));
       },
     );
   }
@@ -121,9 +127,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (user) {
-        AnalyticsService.instance.logLogin(method: 'kakao');
-        NotificationService().registerToken(user.id);
-        emit(AuthAuthenticated(user));
+        if (!user.isDeleted) {
+          AnalyticsService.instance.logLogin(method: 'kakao');
+          NotificationService().registerToken(user.id);
+        }
+        emit(_stateForUser(user));
       },
     );
   }
@@ -138,9 +146,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (user) {
-        AnalyticsService.instance.logLogin(method: 'apple');
-        NotificationService().registerToken(user.id);
-        emit(AuthAuthenticated(user));
+        if (!user.isDeleted) {
+          AnalyticsService.instance.logLogin(method: 'apple');
+          NotificationService().registerToken(user.id);
+        }
+        emit(_stateForUser(user));
       },
     );
   }
@@ -158,9 +168,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (user) {
-        AnalyticsService.instance.logLogin(method: 'email');
-        NotificationService().registerToken(user.id);
-        emit(AuthAuthenticated(user));
+        if (!user.isDeleted) {
+          AnalyticsService.instance.logLogin(method: 'email');
+          NotificationService().registerToken(user.id);
+        }
+        emit(_stateForUser(user));
       },
     );
   }
@@ -186,7 +198,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (user) {
         AnalyticsService.instance.logSignUp(method: 'email');
-        emit(AuthEmailVerificationRequired(user));
+        emit(_stateForUser(user));
       },
     );
   }
@@ -226,10 +238,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
 
+    // 탈퇴 전 토큰 비활성화 (실패해도 탈퇴 계속)
+    await NotificationService().deactivateToken();
+
     final result = await _authRepository.deleteAccount();
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (_) => emit(AuthUnauthenticated()),
+    );
+  }
+
+  Future<void> _onRestoreAccountRequested(
+    AuthRestoreAccountRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await _authRepository.restoreAccount();
+    await result.fold(
+      (failure) async => emit(AuthError(failure.message)),
+      (_) async {
+        final refreshed = await _authRepository.getCurrentUser();
+        refreshed.fold(
+          (failure) => emit(AuthError(failure.message)),
+          (user) => user != null
+              ? emit(AuthAuthenticated(user))
+              : emit(AuthUnauthenticated()),
+        );
+      },
     );
   }
 

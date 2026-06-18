@@ -132,12 +132,8 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
     }
   }
 
-  void _onReanalyze() {
-    // TODO(action): 입력 페이지로 이미지·petId prefill 후 이동
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('재분석은 준비 중입니다')),
-    );
-  }
+  // TODO(재분석): 입력 페이지 prefill(이미지·petId 전달) 구현 후
+  // NextActionCard에 onReanalyze 콜백을 다시 연결해 복원한다.
 
   void _onHealthCheck() {
     // 통합 분석 페이지로 이동하면서 건강분석 탭으로 진입.
@@ -248,7 +244,6 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
             _gap(),
             _section(NextActionCard(
               analysis: analysis,
-              onReanalyze: _onReanalyze,
               onHealthCheck: _onHealthCheck,
               onMemo: _onSave,
             )),

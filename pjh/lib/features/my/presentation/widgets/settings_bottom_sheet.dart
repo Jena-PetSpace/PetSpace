@@ -27,7 +27,7 @@ class SettingsBottomSheet extends StatelessWidget {
     return Container(
       constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       child: Column(
@@ -39,7 +39,7 @@ class SettingsBottomSheet extends StatelessWidget {
             width: 36.w,
             height: 4.h,
             decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
+              color: AppTheme.dividerColor,
               borderRadius: BorderRadius.circular(2.r),
             ),
           ),
@@ -55,19 +55,19 @@ class SettingsBottomSheet extends StatelessWidget {
                     _SettingsItem(
                       icon: Icons.pets_outlined,
                       label: '내 반려동물 관리',
-                      bgColor: const Color(0xFFE6F1FB),
+                      bgColor: AppTheme.tilePastelBlue,
                       onTap: () { Navigator.pop(context); context.push('/pets'); },
                     ),
                     _SettingsItem(
                       icon: Icons.bar_chart_outlined,
                       label: 'AI 분석 히스토리',
-                      bgColor: const Color(0xFFEAF3DE),
+                      bgColor: AppTheme.tilePastelGreen,
                       onTap: () { Navigator.pop(context); context.push('/ai-history-page'); },
                     ),
                     _SettingsItem(
                       icon: Icons.card_giftcard_outlined,
                       label: '리워드 스토어',
-                      bgColor: const Color(0xFFFAECE7),
+                      bgColor: AppTheme.tilePastelPeach,
                       onTap: () { Navigator.pop(context); context.push('/reward'); },
                     ),
                   ]),
@@ -77,25 +77,25 @@ class SettingsBottomSheet extends StatelessWidget {
                     _SettingsItem(
                       icon: Icons.edit_outlined,
                       label: '프로필 편집',
-                      bgColor: const Color(0xFFF1EFE8),
+                      bgColor: AppTheme.tilePastelSand,
                       onTap: () { Navigator.pop(context); context.push('/my/edit-profile'); },
                     ),
                     _SettingsItem(
                       icon: Icons.notifications_none_outlined,
                       label: '알림 설정',
-                      bgColor: const Color(0xFFFBEAF0),
+                      bgColor: AppTheme.tilePastelPink,
                       onTap: () { Navigator.pop(context); context.push('/my/notification-settings'); },
                     ),
                     _SettingsItem(
                       icon: Icons.lock_outline,
                       label: '개인정보처리방침',
-                      bgColor: const Color(0xFFF1EFE8),
+                      bgColor: AppTheme.tilePastelSand,
                       onTap: () { Navigator.pop(context); context.push('/privacy'); },
                     ),
                     _SettingsItem(
                       icon: Icons.info_outline,
                       label: '앱 정보 · 버전',
-                      bgColor: const Color(0xFFF1EFE8),
+                      bgColor: AppTheme.tilePastelSand,
                       onTap: () {
                         Navigator.pop(context);
                         showAboutDialog(
@@ -112,7 +112,7 @@ class SettingsBottomSheet extends StatelessWidget {
                     _SettingsItem(
                       icon: Icons.logout,
                       label: '로그아웃',
-                      bgColor: const Color(0xFFFCEBEB),
+                      bgColor: AppTheme.tilePastelRose,
                       textColor: AppTheme.errorColor,
                       showChevron: false,
                       onTap: () => _confirmLogout(context),
@@ -120,7 +120,7 @@ class SettingsBottomSheet extends StatelessWidget {
                     _SettingsItem(
                       icon: Icons.warning_amber,
                       label: '회원탈퇴',
-                      bgColor: const Color(0xFFFCEBEB),
+                      bgColor: AppTheme.tilePastelRose,
                       textColor: AppTheme.errorColor,
                       showChevron: false,
                       onTap: () => _confirmDelete(context),
@@ -184,7 +184,7 @@ class SettingsBottomSheet extends StatelessWidget {
     return Container(
       height: 0.5,
       margin: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
-      color: const Color(0xFFF0F0F0),
+      color: AppTheme.dividerColor,
     );
   }
 
@@ -210,20 +210,55 @@ class SettingsBottomSheet extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context) {
+    final authBloc = context.read<AuthBloc>();
+    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('회원탈퇴'),
-        content: const Text('탈퇴 시 모든 데이터가 삭제되며\n복구할 수 없습니다. 정말 탈퇴하시겠어요?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('탈퇴', style: TextStyle(color: AppTheme.errorColor)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('회원탈퇴'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '탈퇴 후 30일이 지나면 모든 데이터가 영구 삭제됩니다.\n'
+                '그 전까지는 다시 로그인하면 계정을 복구할 수 있어요.',
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: controller,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: "계속하려면 '탈퇴'를 입력하세요",
+                  isDense: true,
+                ),
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+            TextButton(
+              onPressed: controller.text.trim() == '탈퇴'
+                  ? () {
+                      Navigator.pop(ctx); // 다이얼로그 닫기
+                      Navigator.pop(context); // 시트도 닫기
+                      // 다이얼로그·시트가 완전히 해체된 다음 프레임에 이벤트 발행 —
+                      // pop과 미인증 전환(트리 교체)이 같은 프레임에 겹쳐
+                      // InheritedWidget deactivate assertion이 터지는 것을 방지.
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        authBloc.add(AuthDeleteAccountRequested());
+                      });
+                    }
+                  : null,
+              child: const Text('탈퇴',
+                  style: TextStyle(color: AppTheme.errorColor)),
+            ),
+          ],
+        ),
       ),
-    );
+    ).then((_) => controller.dispose());
   }
 }
 
