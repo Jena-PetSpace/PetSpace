@@ -150,8 +150,6 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
               UserBadgesSection(userId: user.uid),
               // MBTI 성격 유형 뱃지 (결과 있는 pet 만, 없으면 자동 숨김)
               const MyMbtiBadgeSection(),
-              // 내 반려동물 라이프 요약 (분석·건강) — 고정 영역, 가로 스크롤
-              MyPetSummarySection(userId: user.uid),
               // 탭 바 (고정)
               Container(
                 color: AppTheme.surfaceColor,
@@ -177,6 +175,8 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                       onLoadInitial: _loadMyPostsInitial,
                       onLoadMore: _loadMyPostsMore,
                       isMyPosts: true,
+                      // 펫 요약은 '내 글' 탭 그리드 상단 헤더로(함께 스크롤).
+                      header: MyPetSummarySection(userId: user.uid),
                     ),
                     _buildLazyGrid(
                       onLoadInitial: _loadSavedPostsInitial,
@@ -198,6 +198,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
     required Future<List<Map<String, dynamic>>> Function() onLoadInitial,
     required Future<List<Map<String, dynamic>>> Function() onLoadMore,
     required bool isMyPosts,
+    Widget? header,
   }) {
     return LazyGridView<Map<String, dynamic>>(
       onLoadInitial: onLoadInitial,
@@ -207,6 +208,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
       crossAxisSpacing: 1.5,
       childAspectRatio: 1.0,
       padding: EdgeInsets.zero,
+      header: header,
       emptyWidget: _buildEmptyState(isMyPosts),
       itemBuilder: (context, post, i) {
         final postId = post['id'] as String;

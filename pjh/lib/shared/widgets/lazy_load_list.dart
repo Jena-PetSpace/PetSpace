@@ -366,6 +366,11 @@ class LazyGridView<T> extends StatefulWidget {
   final EdgeInsets? padding;
   final Widget? emptyWidget;
 
+  /// 그리드 위에 함께 스크롤되는 헤더(선택). null이면 기존 GridView.builder 경로
+  /// 그대로(동작 무변경). 지정 시 CustomScrollView로 헤더+그리드를 한 스크롤로 묶되
+  /// 페이지네이션(_onScroll)·controller는 동일하게 유지한다.
+  final Widget? header;
+
   const LazyGridView({
     super.key,
     required this.onLoadInitial,
@@ -377,6 +382,7 @@ class LazyGridView<T> extends StatefulWidget {
     this.childAspectRatio = 1,
     this.padding,
     this.emptyWidget,
+    this.header,
   });
 
   @override
@@ -456,6 +462,14 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
   @override
   Widget build(BuildContext context) {
+    // 헤더가 있으면 헤더+그리드를 한 스크롤(CustomScrollView)로 묶는다.
+    if (widget.header != null) {
+      return RefreshIndicator(
+        onRefresh: _loadInitialData,
+        child: _buildWithHeader(),
+      );
+    }
+
     if (_isLoading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -484,6 +498,51 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
           return widget.itemBuilder(context, _items[index], index);
         },
       ),
+    );
+  }
+
+  /// 헤더 + 그리드를 같은 ScrollController로 스크롤. 빈 상태에도 헤더는 노출.
+  Widget _buildWithHeader() {
+    final showGrid = !(_isLoading && _items.isEmpty);
+    final showEmpty =
+        !_isLoading && _items.isEmpty && widget.emptyWidget != null;
+
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        SliverToBoxAdapter(child: widget.header),
+        if (_isLoading && _items.isEmpty)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          )
+        else if (showEmpty)
+          SliverToBoxAdapter(child: widget.emptyWidget!)
+        else if (showGrid)
+          SliverPadding(
+            padding: widget.padding ?? EdgeInsets.zero,
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: widget.crossAxisCount,
+                mainAxisSpacing: widget.mainAxisSpacing,
+                crossAxisSpacing: widget.crossAxisSpacing,
+                childAspectRatio: widget.childAspectRatio,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index >= _items.length) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return widget.itemBuilder(context, _items[index], index);
+                },
+                childCount:
+                    _items.length + (_isLoadingMore ? widget.crossAxisCount : 0),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
