@@ -30,7 +30,7 @@ class MyPetSummarySection extends StatelessWidget {
 
         return Container(
           color: AppTheme.surfaceColor,
-          padding: EdgeInsets.fromLTRB(16.w, 14.h, 0, 12.h),
+          padding: EdgeInsets.fromLTRB(16.w, 10.h, 0, 8.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -38,7 +38,7 @@ class MyPetSummarySection extends StatelessWidget {
                 padding: EdgeInsets.only(right: 16.w),
                 child: Row(
                   children: [
-                    Text('🐾', style: TextStyle(fontSize: 15.sp)),
+                    Text('🐾', style: TextStyle(fontSize: 14.sp)),
                     SizedBox(width: 6.w),
                     Text(
                       '내 반려동물',
@@ -51,12 +51,12 @@ class MyPetSummarySection extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(height: 10.h),
+              SizedBox(height: 8.h),
               if (pets.isEmpty)
                 _buildEmptyState(context)
               else
                 SizedBox(
-                  height: 132.h,
+                  height: 112.h,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     padding: EdgeInsets.only(right: 16.w),
@@ -181,7 +181,7 @@ class _PetSummaryCardState extends State<_PetSummaryCard> {
       onTap: () => context.push('/pets'),
       child: Container(
         width: 230.w,
-        padding: EdgeInsets.all(12.w),
+        padding: EdgeInsets.all(11.w),
         decoration: BoxDecoration(
           color: AppTheme.cardColor,
           borderRadius: BorderRadius.circular(14.r),
@@ -224,7 +224,7 @@ class _PetSummaryCardState extends State<_PetSummaryCard> {
                 ),
               ],
             ),
-            SizedBox(height: 10.h),
+            SizedBox(height: 8.h),
             // 분석·건강 요약 (lazy)
             FutureBuilder<PetLifeSummary>(
               future: _summaryFuture,
@@ -263,8 +263,8 @@ class _PetSummaryCardState extends State<_PetSummaryCard> {
   Widget _avatar(Pet pet) {
     final url = pet.avatarUrl;
     return Container(
-      width: 40.w,
-      height: 40.w,
+      width: 36.w,
+      height: 36.w,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppTheme.primaryColor.withValues(alpha: 0.1),
