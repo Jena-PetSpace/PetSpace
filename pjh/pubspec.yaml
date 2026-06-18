@@ -110,6 +110,7 @@ flutter:
     - assets/lottie/
     - assets/svg/
     - assets/data/
+    - assets/fonts/   # PDF 생성 시 rootBundle.load 로 Pretendard ttf 직접 로드(health_pdf_generator)
 
   fonts:
     - family: Pretendard
