@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/utils/share_origin.dart';
 import '../../../mbti/presentation/theme/mbti_theme.dart';
 import '../../domain/entities/daily_fortune.dart';
 import 'fortune_share_card.dart';
@@ -129,6 +130,8 @@ class FortuneShareHelper {
       ),
     );
 
+    // iPad 공유 popover anchor — async gap 전에 캡처.
+    final origin = shareOrigin(context);
     Overlay.of(context).insert(overlay);
     // 이미지 디코드/레이아웃 완료 대기
     await Future.delayed(const Duration(milliseconds: 250));
@@ -148,6 +151,7 @@ class FortuneShareHelper {
         [XFile(file.path)],
         text: '#펫스페이스 #오늘의운세\n우리 아이의 오늘 운세를 봤어요! 🔮🐾',
         subject: '반려동물 오늘의 운세',
+        sharePositionOrigin: origin,
       );
 
       // 분석 이벤트(작업 5 에서 연결). 식별 정보 미포함.

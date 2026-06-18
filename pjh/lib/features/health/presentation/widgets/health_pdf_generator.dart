@@ -1,3 +1,5 @@
+import 'dart:ui' show Rect;
+
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -18,6 +20,7 @@ class HealthPdfGenerator {
     required List<HealthRecord> records,
     EmotionAnalysis? latestAnalysis,
     DateTime? now,
+    Rect? shareAnchor, // iPad 공유 popover anchor(없으면 iPadOS 크래시)
   }) async {
     final data = buildHealthPdfData(records);
     final regular = pw.Font.ttf(
@@ -66,6 +69,7 @@ class HealthPdfGenerator {
     await Printing.sharePdf(
       bytes: await doc.save(),
       filename: '${pet.name}_건강요약서.pdf',
+      bounds: shareAnchor,
     );
   }
 

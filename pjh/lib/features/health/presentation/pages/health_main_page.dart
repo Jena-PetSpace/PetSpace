@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/utils/share_origin.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
@@ -309,6 +310,9 @@ class _HealthMainViewState extends State<_HealthMainView> {
     final userId =
         authState is AuthAuthenticated ? authState.user.uid : null;
 
+    // iPad 공유 popover anchor — async gap 전에 캡처(없으면 iPadOS 크래시).
+    final shareAnchor = shareOrigin(context);
+
     // 최근 AI 감정 분석 1건(선택, 읽기 전용).
     EmotionAnalysis? latest;
     if (userId != null) {
@@ -326,6 +330,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
         ownerName: ownerName,
         records: records,
         latestAnalysis: latest,
+        shareAnchor: shareAnchor,
       );
     } catch (e) {
       if (context.mounted) {

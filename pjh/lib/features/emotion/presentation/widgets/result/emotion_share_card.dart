@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../../core/utils/share_origin.dart';
 import '../../../../../shared/themes/app_theme.dart';
 import '../../../domain/entities/emotion_analysis.dart';
 import '../../../domain/entities/health_analysis.dart';
@@ -34,6 +35,8 @@ class EmotionShareHelper {
       ),
     );
 
+    // iPad 공유 popover anchor — async gap 전에 캡처.
+    final origin = shareOrigin(context);
     Overlay.of(context).insert(overlay);
     await Future.delayed(const Duration(milliseconds: 100));
 
@@ -55,6 +58,7 @@ class EmotionShareHelper {
         [XFile(file.path)],
         text: '#펫스페이스 #반려동물감정분석 #AI감정분석\n우리 아이의 오늘 감정을 분석했어요! 🐾',
         subject: '반려동물 AI 감정 분석 결과',
+        sharePositionOrigin: origin,
       );
     } finally {
       overlay.remove();
@@ -277,6 +281,8 @@ class HealthShareHelper {
       ),
     );
 
+    // iPad 공유 popover anchor — async gap 전에 캡처.
+    final origin = shareOrigin(context);
     Overlay.of(context).insert(overlay);
     await Future.delayed(const Duration(milliseconds: 100));
 
@@ -295,6 +301,7 @@ class HealthShareHelper {
         [XFile(file.path)],
         text: '#펫스페이스 #반려동물건강분석 #AI건강체크\n우리 아이 건강 상태를 AI로 확인했어요! 🐾',
         subject: '반려동물 AI 건강 분석 결과',
+        sharePositionOrigin: origin,
       );
     } finally {
       overlay.remove();

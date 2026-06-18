@@ -327,10 +327,22 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
   Future<Map<String, dynamic>> _callApi(
       Map<String, dynamic> requestData) async {
     // 로그인 세션의 access token으로 gemini-proxy 인증(서버에서 JWT 검증).
-    final accessToken =
-        Supabase.instance.client.auth.currentSession?.accessToken;
+    final auth = Supabase.instance.client.auth;
+    var session = auth.currentSession;
+    if (session == null) {
+      throw const AnalysisException('로그인이 필요합니다. 다시 로그인해주세요.');
+    }
+    // 만료된 access token이면 proxy에서 401이 나므로 사전 갱신 시도(재로그인 유도).
+    if (session.isExpired) {
+      try {
+        session = (await auth.refreshSession()).session;
+      } catch (_) {
+        throw const AnalysisException('로그인이 만료되었습니다. 다시 로그인해주세요.');
+      }
+    }
+    final accessToken = session?.accessToken;
     if (accessToken == null) {
-      throw const AnalysisException('로그인이 필요합니다.');
+      throw const AnalysisException('로그인이 만료되었습니다. 다시 로그인해주세요.');
     }
 
     final response = await _dio.post(
@@ -504,7 +516,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     if (e.response?.statusCode == 400) {
       return const AnalysisException('잘못된 요청입니다. 이미지 형식을 확인해주세요.');
     } else if (e.response?.statusCode == 401) {
-      return const AnalysisException('API 키가 유효하지 않습니다.');
+      // proxy 전환 후 401 = Supabase 세션 만료/무효(서버 JWT 검증 실패).
+      return const AnalysisException('로그인이 만료되었습니다. 다시 로그인해주세요.');
     } else if (e.response?.statusCode == 429) {
       return const AnalysisException('API 사용량 한도를 초과했습니다.');
     } else if (e.type == DioExceptionType.connectionTimeout) {

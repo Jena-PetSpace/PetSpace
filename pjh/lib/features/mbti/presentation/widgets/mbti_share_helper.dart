@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/utils/share_origin.dart';
 import '../../domain/entities/mbti_content.dart';
 import '../../domain/entities/pet_mbti_result.dart';
 import '../theme/mbti_theme.dart';
@@ -114,6 +115,8 @@ class MbtiShareHelper {
     Uint8List? photoBytes,
     required bool includePhoto,
   }) async {
+    // iPad 공유 popover anchor — async gap 전에 캡처.
+    final origin = shareOrigin(context);
     final overlay = OverlayEntry(
       builder: (_) => Positioned(
         left: -2000, // 화면 밖
@@ -150,6 +153,7 @@ class MbtiShareHelper {
         [XFile(file.path)],
         text: '#펫스페이스 #반려동물MBTI\n우리 아이의 성격 유형을 알아봤어요! 🐾',
         subject: '반려동물 성격 유형 결과',
+        sharePositionOrigin: origin,
       );
 
       // 공유율 집계(익명). 식별 정보 미포함.

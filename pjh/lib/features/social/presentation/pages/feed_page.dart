@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/utils/share_origin.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/haptic_refresh_indicator.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -456,6 +457,9 @@ class _FeedPageState extends State<FeedPage> {
     final caption = post.caption ?? '';
     final preview =
         caption.length > 100 ? '${caption.substring(0, 100)}...' : caption;
-    Share.share('$preview\n\nPetSpace에서 확인하세요!');
+    Share.share(
+      '$preview\n\nPetSpace에서 확인하세요!',
+      sharePositionOrigin: shareOrigin(context),
+    );
   }
 }

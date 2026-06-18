@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/utils/share_origin.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
@@ -216,7 +217,10 @@ class _LocationPostsPageState extends State<LocationPostsPage> {
             onComment: () => context.push('/post/${post.id}'),
             onShare: () {
               final loc = widget.locationName ?? '';
-              Share.share('PetSpace에서 확인하세요!${loc.isNotEmpty ? "\n📍 $loc" : ""}');
+              Share.share(
+                'PetSpace에서 확인하세요!${loc.isNotEmpty ? "\n📍 $loc" : ""}',
+                sharePositionOrigin: shareOrigin(context),
+              );
             },
             onEdit: () {
               showModalBottomSheet(

@@ -78,6 +78,10 @@ extension _HospitalActions on _HospitalSearchPageState {
         ? place.placeUrl.replaceFirst(RegExp(r'^http://'), 'https://')
         : 'https://map.kakao.com/link/search/${Uri.encodeComponent(place.name)}';
     final text = '${place.name}\n${place.address}\n$url';
-    await Share.share(text, subject: place.name);
+    await Share.share(
+      text,
+      subject: place.name,
+      sharePositionOrigin: shareOrigin(context),
+    );
   }
 }
