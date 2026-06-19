@@ -20,10 +20,10 @@ class MbtiTheme {
   static const Color textSecondary = AppTheme.secondaryTextColor;
 
   // 16유형 그룹 색상 (JSON groups.color 키 ↔ 실제 Color)
-  static const Color groupPurple = AppTheme.fearColor; // 분석가(NT) — 딥 퍼플, AppTheme.fearColor(0xFF6B3FA0)
+  static const Color groupPurple = AppTheme.fearColor; // 분석가(NT) — 딥 퍼플, AppTheme.fearAppTheme.fearColor
   static const Color groupCoral = coral; // 외교관(NF)
   static const Color groupNavy = navy; // 관리자(SJ)
-  static const Color groupTeal = AppTheme.calmColor; // 탐험가(SP) — 틸 그린, AppTheme.calmColor(0xFF2E7D6B)
+  static const Color groupTeal = AppTheme.calmColor; // 탐험가(SP) — 틸 그린, AppTheme.calmAppTheme.calmColor
 
   /// JSON groups.color 문자열 → Color.
   static Color colorFromKey(String? key) {

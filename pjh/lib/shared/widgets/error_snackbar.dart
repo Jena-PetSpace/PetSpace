@@ -29,7 +29,7 @@ class ErrorSnackbarConfig {
         );
       case ErrorSeverity.warning:
         return const ErrorSnackbarConfig(
-          backgroundColor: Color(0xFFFF9800), // Orange
+          backgroundColor: AppTheme.warningColor, // Orange
           textColor: Colors.white,
           icon: Icons.warning_amber_outlined,
           duration: Duration(seconds: 4),

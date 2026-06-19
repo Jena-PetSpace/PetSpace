@@ -27,13 +27,13 @@ class HomeQuickActions extends StatelessWidget {
         // 플레이스 = 기존 동물병원 찾기
         icon: Icons.place_rounded,
         label: '플레이스',
-        color: const Color(0xFF4CAF50),
+        color: AppTheme.successColor,
         onTap: () => context.push('/hospital'),
       ),
       _QuickAction(
         icon: Icons.psychology_rounded,
         label: 'MBTI 검사',
-        color: const Color(0xFF7E57C2),
+        color: AppTheme.featurePlay,
         // push로 진입해야 뒤로가기(앱·하드웨어)로 홈 복귀 가능
         onTap: () => _openMbti(context),
       ),
@@ -47,7 +47,7 @@ class HomeQuickActions extends StatelessWidget {
       _QuickAction(
         icon: Icons.auto_awesome_rounded,
         label: '오늘의 운세',
-        color: const Color(0xFFFF9800),
+        color: AppTheme.warningColor,
         onTap: () => _openFortune(context),
       ),
       _QuickAction(

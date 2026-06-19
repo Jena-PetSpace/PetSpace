@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../pets/domain/entities/pet.dart';
@@ -73,7 +74,7 @@ class PetPassportCard extends StatelessWidget {
   static const Color valueBlack = Color(0xFF1A1A1A);
 
   /// 코랄 포인트(버튼). 시안 샘플 기준 밝은 코랄.
-  static const Color coral = Color(0xFFFF6F61);
+  static const Color coral = AppTheme.highlightColor;
 
   /// 오늘의 기분 강조색(살짝 진한 코랄, 가독성).
   static const Color moodCoral = Color(0xFFE8553F);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 import '../../domain/entities/health_analysis.dart' show HealthArea;
 
@@ -11,7 +12,7 @@ class EmotionResultTokens {
   EmotionResultTokens._();
 
   // ============ 배경 ============
-  static const Color background = Color(0xFFFFF8E8);      // 베이지
+  static const Color background = AppTheme.surfaceWarm;      // 베이지
   static const Color cardSurface = Colors.white;
   static const Color dividerLight = Color(0xFFF2EAD3);
 

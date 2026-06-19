@@ -20,11 +20,11 @@ class _HotTopicBannerState extends State<HotTopicBanner> {
 
   // 태그별 이모지/색상
   static const _tagMeta = <String, Map<String, dynamic>>{
-    'health':    {'emoji': '🏥', 'label': '건강',   'color': Color(0xFF4CAF50)},
+    'health':    {'emoji': '🏥', 'label': '건강',   'color': AppTheme.successColor},
     'training':  {'emoji': '🎯', 'label': '훈련',   'color': Color(0xFF2196F3)},
-    'food':      {'emoji': '🍖', 'label': '먹거리', 'color': Color(0xFFFF9800)},
+    'food':      {'emoji': '🍖', 'label': '먹거리', 'color': AppTheme.warningColor},
     'life':      {'emoji': '🏡', 'label': '일상',   'color': Color(0xFF9C27B0)},
-    'magazine':  {'emoji': '📰', 'label': '매거진', 'color': Color(0xFF1E3A5F)},
+    'magazine':  {'emoji': '📰', 'label': '매거진', 'color': AppTheme.primaryColor},
     'walk':      {'emoji': '🐾', 'label': '산책',   'color': Color(0xFF009688)},
     'grooming':  {'emoji': '✂️', 'label': '미용',   'color': Color(0xFFE91E63)},
     'play':      {'emoji': '🎾', 'label': '놀이',   'color': Color(0xFFFF5722)},

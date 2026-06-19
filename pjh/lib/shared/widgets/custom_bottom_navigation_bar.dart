@@ -75,7 +75,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
             children: [
               Icon(
                 isSelected ? item.selectedIcon : item.icon,
-                color: isSelected ? AppTheme.primaryColor : const Color(0xFFBDBDBD),
+                color: isSelected ? AppTheme.primaryColor : AppTheme.lightTextColor,
                 size: 24.w,
               ),
               SizedBox(height: 3.h),
@@ -84,7 +84,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10.sp,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? AppTheme.primaryColor : const Color(0xFFBDBDBD),
+                  color: isSelected ? AppTheme.primaryColor : AppTheme.lightTextColor,
                 ),
               ),
             ],

@@ -368,7 +368,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       body: Column(
         children: [
           _buildSearchBar(),
-          const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+          const Divider(height: 1, thickness: 1, color: AppTheme.neutral200),
           Expanded(
             child: Stack(
               children: [
@@ -553,7 +553,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   ],
                 ),
               ),
-              const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
+              const Divider(height: 1, thickness: 1, color: AppTheme.neutral200),
               // 목록
               Expanded(
                 child: _places.isEmpty
