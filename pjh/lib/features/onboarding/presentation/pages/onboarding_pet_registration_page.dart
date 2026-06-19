@@ -807,10 +807,10 @@ class _OnboardingPetRegistrationPageState
             ),
           );
 
-          // 다음 페이지로 이동
+          // 다음 페이지로 이동 (감정 분석 가이드 튜토리얼)
           await Future.delayed(const Duration(milliseconds: 500));
           if (mounted) {
-            context.go('/onboarding/complete');
+            context.go('/onboarding/tutorial');
           }
         } else {
           // 일부 실패
@@ -842,6 +842,6 @@ class _OnboardingPetRegistrationPageState
   }
 
   void _skip() {
-    context.go('/onboarding/complete');
+    context.go('/onboarding/tutorial');
   }
 }

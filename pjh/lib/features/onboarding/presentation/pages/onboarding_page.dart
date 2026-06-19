@@ -103,7 +103,7 @@ class OnboardingPage extends StatelessWidget {
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {
-            context.go('/onboarding/login');
+            context.go('/onboarding/slides');
           },
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
