@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../onboarding/presentation/widgets/onboarding_step_header.dart';
 import 'terms_detail_page.dart';
 
 class TermsAgreementPage extends StatefulWidget {
@@ -41,16 +42,12 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      appBar: OnboardingStepHeader(
+        title: '약관 동의',
+        step: 1,
+        totalSteps: 3,
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            // 로그인 페이지로 돌아가기
-            context.go('/onboarding/login');
-          },
-        ),
+        onBack: () => context.go('/onboarding/login'),
       ),
       body: SafeArea(
         child: Padding(

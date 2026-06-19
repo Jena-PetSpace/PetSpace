@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../widgets/onboarding_step_header.dart';
 import '../../../pets/domain/entities/pet.dart' as pets;
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_event.dart';
@@ -52,27 +53,18 @@ class _OnboardingPetRegistrationPageState
       create: (_) => di.sl<PetBloc>(),
       child: Scaffold(
         backgroundColor: AppTheme.backgroundColor,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go('/onboarding/profile');
-              }
-            },
-          ),
-          title: const Text(
-            '반려동물 등록',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          // 하단 '나중에 등록하기'와 중복되던 앱바 '건너뛰기' 제거(B-08)
+        // 하단 '나중에 등록하기'와 중복되던 앱바 '건너뛰기'는 제거됨(B-08)
+        appBar: OnboardingStepHeader(
+          title: '반려동물 등록',
+          step: 3,
+          totalSteps: 3,
+          onBack: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/onboarding/profile');
+            }
+          },
         ),
         body: SafeArea(
           child: Padding(

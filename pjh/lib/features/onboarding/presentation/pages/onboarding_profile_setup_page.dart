@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../widgets/onboarding_step_header.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../config/injection_container.dart' as di;
@@ -37,26 +38,17 @@ class _OnboardingProfileSetupPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/onboarding/login');
-            }
-          },
-        ),
-        title: const Text(
-          '프로필 설정',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+      appBar: OnboardingStepHeader(
+        title: '프로필 설정',
+        step: 2,
+        totalSteps: 3,
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/onboarding/login');
+          }
+        },
       ),
       body: SafeArea(
         child: SingleChildScrollView(

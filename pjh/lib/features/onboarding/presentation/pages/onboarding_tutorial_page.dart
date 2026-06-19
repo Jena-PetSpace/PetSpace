@@ -87,35 +87,25 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
   }
 
   Widget _buildProgressIndicator() {
+    // 튜토리얼은 스킵 가능한 '가이드'이므로 의무 가입단계(세그먼트바 + N/3)와
+    // 구분되도록 콘텐츠 페이지 닷(캐러셀 표기)을 사용한다. (안 A — 구분)
     return Container(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        children: [
-          Row(
-            children: List.generate(_totalPages, (index) {
-              return Expanded(
-                child: Container(
-                  margin: EdgeInsets.symmetric(horizontal: 2.w),
-                  height: 4.h,
-                  decoration: BoxDecoration(
-                    color: index <= _currentPage
-                        ? AppTheme.primaryColor
-                        : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2.r),
-                  ),
-                ),
-              );
-            }),
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            '${_currentPage + 1} / $_totalPages',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14.sp,
+      padding: EdgeInsets.symmetric(vertical: 20.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(_totalPages, (index) {
+          final active = index == _currentPage;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: EdgeInsets.symmetric(horizontal: 4.w),
+            width: active ? 24.w : 8.w,
+            height: 8.h,
+            decoration: BoxDecoration(
+              color: active ? AppTheme.primaryColor : Colors.grey[300],
+              borderRadius: BorderRadius.circular(4.r),
             ),
-          ),
-        ],
+          );
+        }),
       ),
     );
   }
