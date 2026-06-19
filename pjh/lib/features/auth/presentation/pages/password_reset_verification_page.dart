@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/icon_badge_circle.dart';
+import '../../../../shared/widgets/info_box.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class PasswordResetVerificationPage extends StatefulWidget {
@@ -403,76 +404,17 @@ class _PasswordResetVerificationPageState
               const SizedBox(height: 24),
 
               // 안내 사항
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.subColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.subColor.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.info_outline,
-                          color: AppTheme.accentColor,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '인증 안내',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoItem('인증 코드는 10분간 유효합니다'),
-                    _buildInfoItem('이메일이 오지 않으면 스팸함을 확인해주세요'),
-                    _buildInfoItem('재발송은 60초 후에 가능합니다'),
-                  ],
-                ),
+              const InfoBox(
+                title: '인증 안내',
+                items: [
+                  '인증 코드는 10분간 유효합니다',
+                  '이메일이 오지 않으면 스팸함을 확인해주세요',
+                  '재발송은 60초 후에 가능합니다',
+                ],
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            margin: const EdgeInsets.only(top: 6),
-            decoration: const BoxDecoration(
-              color: AppTheme.secondaryColor,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

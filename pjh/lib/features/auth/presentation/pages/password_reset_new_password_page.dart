@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/icon_badge_circle.dart';
+import '../../../../shared/widgets/info_box.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class PasswordResetNewPasswordPage extends StatefulWidget {
@@ -337,77 +338,18 @@ class _PasswordResetNewPasswordPageState
                 const SizedBox(height: 24),
 
                 // 안내 사항
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.subColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppTheme.subColor.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.info_outline,
-                            color: AppTheme.accentColor,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '비밀번호 안내',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInfoItem('최소 6자 이상 입력해주세요'),
-                      _buildInfoItem('영문, 숫자, 특수문자를 조합하면 더 안전합니다'),
-                      _buildInfoItem('이전에 사용한 비밀번호와 다르게 설정해주세요'),
-                    ],
-                  ),
+                const InfoBox(
+                  title: '비밀번호 안내',
+                  items: [
+                    '최소 6자 이상 입력해주세요',
+                    '영문, 숫자, 특수문자를 조합하면 더 안전합니다',
+                    '이전에 사용한 비밀번호와 다르게 설정해주세요',
+                  ],
                 ),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoItem(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            margin: const EdgeInsets.only(top: 6),
-            decoration: const BoxDecoration(
-              color: AppTheme.secondaryColor,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/info_box.dart';
 import '../../../../shared/widgets/petspace_hero_header.dart';
 import '../../../../shared/widgets/rate_limit_countdown.dart';
 import '../../../auth/domain/entities/user.dart';
@@ -387,6 +388,15 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                 }
                 return null;
               },
+            ),
+            SizedBox(height: 16.h),
+            // 비밀번호 규칙 안내 (B-04) — password-reset 화면과 동일한 안내 컴포넌트 재사용
+            const InfoBox(
+              title: '비밀번호 안내',
+              items: [
+                '최소 6자 이상 입력해주세요',
+                '영문, 숫자, 특수문자를 조합하면 더 안전합니다',
+              ],
             ),
           ],
           SizedBox(height: 24.h),
