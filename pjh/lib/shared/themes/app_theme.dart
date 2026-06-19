@@ -23,6 +23,20 @@ class AppTheme {
   static const Color secondaryTextColor = Color(0xFF757575);
   static const Color lightTextColor = Color(0xFFBDBDBD);
 
+  // Neutral 스케일 — Material `Colors.grey[*]`와 동일한 값.
+  // 화면 곳곳의 `Colors.grey[N]` 하드코딩을 토큰으로 치환하기 위한 ramp.
+  // (값이 동일하므로 치환 시 시각 변화 0. STEP 2)
+  static const Color neutral50 = Color(0xFFFAFAFA);
+  static const Color neutral100 = Color(0xFFF5F5F5);
+  static const Color neutral200 = Color(0xFFEEEEEE);
+  static const Color neutral300 = Color(0xFFE0E0E0);
+  static const Color neutral400 = Color(0xFFBDBDBD);
+  static const Color neutral500 = Color(0xFF9E9E9E);
+  static const Color neutral600 = Color(0xFF757575);
+  static const Color neutral700 = Color(0xFF616161);
+  static const Color neutral800 = Color(0xFF424242);
+  static const Color neutral900 = Color(0xFF212121);
+
   // 감정별 컬러 (JENA 브랜드 컬러 기반)
   static const Color happinessColor = Color(0xFF5BC0EB); // 하늘색 (기쁨)
   static const Color sadnessColor = Color(0xFF2C4482); // 인디고 (슬픔)
