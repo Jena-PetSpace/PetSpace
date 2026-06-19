@@ -48,6 +48,15 @@
 -keep class com.google.firebase.crashlytics.** { *; }
 -keepattributes SourceFile,LineNumberTable
 
+# Crashlytics buildtools가 참조하는 optional 클래스 (런타임 미사용 — R8 missing_rules 반영)
+-dontwarn afu.org.checkerframework.**
+-dontwarn com.google.firebase.crashlytics.buildtools.reloc.**
+-dontwarn org.checkerframework.**
+-dontwarn javax.lang.model.element.Modifier
+-dontwarn javax.naming.**
+-dontwarn javax.servlet.**
+-dontwarn org.ietf.jgss.**
+
 # Ktor (Supabase Kotlin SDK 내부)
 -keep class io.ktor.** { *; }
 -dontwarn io.ktor.**
