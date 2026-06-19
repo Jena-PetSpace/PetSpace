@@ -34,6 +34,9 @@ pjh/lib/config/secrets.dart
 # Supabase local
 supabase/.temp/
 
+# UI 리뷰 루프 캡처 (리뷰용 임시 산출물 — 리포에 포함 안 함)
+docs/design/captures/
+
 # Android 릴리즈 서명 키 (절대 커밋 금지)
 pjh/android/key.properties
 pjh/android/petspace-release.jks
