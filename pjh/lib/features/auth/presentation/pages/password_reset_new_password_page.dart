@@ -310,7 +310,7 @@ class _PasswordResetNewPasswordPageState
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _resetPassword,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accentColor,
+                      // 버튼 주색은 테마 기본(navy/primary) 상속 — accent는 강조/링크용 (STEP 2-0)
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
