@@ -71,7 +71,7 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
               width: 40.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppTheme.neutral300,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -103,7 +103,7 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
     if (_users!.isEmpty) {
       return Center(
         child: Text('아직 좋아요가 없습니다',
-            style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
+            style: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500)),
       );
     }
 

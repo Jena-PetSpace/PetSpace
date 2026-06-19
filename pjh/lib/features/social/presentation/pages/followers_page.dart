@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
@@ -140,7 +141,7 @@ class _FollowersPageState extends State<FollowersPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64.w, color: Colors.grey),
+            Icon(Icons.error_outline, size: 64.w, color: AppTheme.neutral500),
             SizedBox(height: 16.h),
             Text(_followersError!, style: TextStyle(fontSize: 14.sp)),
             SizedBox(height: 16.h),
@@ -159,11 +160,11 @@ class _FollowersPageState extends State<FollowersPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people_outline, size: 64.w, color: Colors.grey),
+            Icon(Icons.people_outline, size: 64.w, color: AppTheme.neutral500),
             SizedBox(height: 16.h),
             Text(
               '아직 팔로워가 없습니다',
-              style: TextStyle(fontSize: 16.sp, color: Colors.grey),
+              style: TextStyle(fontSize: 16.sp, color: AppTheme.neutral500),
             ),
           ],
         ),
@@ -196,7 +197,7 @@ class _FollowersPageState extends State<FollowersPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64.w, color: Colors.grey),
+            Icon(Icons.error_outline, size: 64.w, color: AppTheme.neutral500),
             SizedBox(height: 16.h),
             Text(_followingError!, style: TextStyle(fontSize: 14.sp)),
             SizedBox(height: 16.h),
@@ -215,11 +216,11 @@ class _FollowersPageState extends State<FollowersPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_add_outlined, size: 64.w, color: Colors.grey),
+            Icon(Icons.person_add_outlined, size: 64.w, color: AppTheme.neutral500),
             SizedBox(height: 16.h),
             Text(
               '아직 팔로잉이 없습니다',
-              style: TextStyle(fontSize: 16.sp, color: Colors.grey),
+              style: TextStyle(fontSize: 16.sp, color: AppTheme.neutral500),
             ),
           ],
         ),

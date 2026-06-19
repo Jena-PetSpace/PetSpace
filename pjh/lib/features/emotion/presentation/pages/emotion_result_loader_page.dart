@@ -102,7 +102,7 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 48.w, color: Colors.grey[400]),
+              Icon(Icons.error_outline, size: 48.w, color: AppTheme.neutral400),
               SizedBox(height: 12.h),
               Text(
                 _error ?? '분석 결과를 불러올 수 없습니다',

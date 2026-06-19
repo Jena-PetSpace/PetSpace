@@ -300,7 +300,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
             SizedBox(height: 8.h),
             Text(
               _getEmotionSummary(widget.emotionAnalysis!),
-              style: TextStyle(color: Colors.grey[700], fontSize: 14.sp),
+              style: TextStyle(color: AppTheme.neutral700, fontSize: 14.sp),
             ),
           ],
         ],
@@ -339,10 +339,10 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
           decoration: InputDecoration(
             hintText: '반려동물과의 특별한 순간을 공유해보세요...',
             hintStyle:
-                TextStyle(color: Colors.grey[400], fontSize: 14.sp),
+                TextStyle(color: AppTheme.neutral400, fontSize: 14.sp),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderSide: const BorderSide(color: AppTheme.neutral300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
@@ -350,7 +350,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
                   const BorderSide(color: AppTheme.primaryColor, width: 2),
             ),
             filled: true,
-            fillColor: Colors.grey[50],
+            fillColor: AppTheme.neutral50,
             contentPadding: EdgeInsets.all(16.w),
           ),
           maxLines: 6,
@@ -386,7 +386,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
             ActionChip(
               label: Text('+ 추가', style: TextStyle(fontSize: 12.sp)),
               onPressed: _showAddHashtagDialog,
-              backgroundColor: Colors.grey[100],
+              backgroundColor: AppTheme.neutral100,
             ),
           ],
         ),
@@ -398,9 +398,9 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: AppTheme.neutral50,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppTheme.neutral200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -449,9 +449,9 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: AppTheme.neutral50,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: AppTheme.neutral200),
         ),
         child: Row(
           children: [
@@ -475,7 +475,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
             if (_location != null)
               GestureDetector(
                 onTap: () => setState(() => _location = null),
-                child: Icon(Icons.close, size: 18.w, color: Colors.grey[400]),
+                child: Icon(Icons.close, size: 18.w, color: AppTheme.neutral400),
               ),
           ],
         ),

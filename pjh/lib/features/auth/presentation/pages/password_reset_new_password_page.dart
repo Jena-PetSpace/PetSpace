@@ -206,11 +206,11 @@ class _PasswordResetNewPasswordPageState
                 const SizedBox(height: 16),
 
                 // 설명
-                Text(
+                const Text(
                   '안전한 비밀번호를 설정하여\n계정을 보호하세요',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.grey[600],
+                    color: AppTheme.neutral600,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,

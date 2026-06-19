@@ -44,7 +44,7 @@ class HealthAreaChips extends StatelessWidget {
                   color: isOn ? AppTheme.primaryColor : Colors.white,
                   borderRadius: BorderRadius.circular(20.r),
                   border: Border.all(
-                    color: isOn ? AppTheme.primaryColor : Colors.grey.shade300,
+                    color: isOn ? AppTheme.primaryColor : AppTheme.neutral300,
                   ),
                 ),
                 child: Text(

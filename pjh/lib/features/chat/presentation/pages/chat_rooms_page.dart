@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -88,7 +89,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                 separatorBuilder: (_, __) => Divider(
                   height: 1,
                   indent: 72.w,
-                  color: Colors.grey[200],
+                  color: AppTheme.neutral200,
                 ),
                 itemBuilder: (context, index) {
                   final room = state.rooms[index];
@@ -125,7 +126,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 64.w, color: Colors.grey[300]),
+          Icon(Icons.chat_bubble_outline, size: 64.w, color: AppTheme.neutral300),
           SizedBox(height: 16.h),
           Text(
             '아직 채팅이 없습니다',
@@ -134,7 +135,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
           SizedBox(height: 8.h),
           Text(
             '새 채팅을 시작해보세요!',
-            style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+            style: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
           ),
           SizedBox(height: 24.h),
           ElevatedButton.icon(
@@ -163,7 +164,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
               width: 40.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppTheme.neutral300,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -273,9 +274,9 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64.w, color: Colors.grey),
+          Icon(Icons.error_outline, size: 64.w, color: AppTheme.neutral500),
           SizedBox(height: 16.h),
-          Text(message, style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
+          Text(message, style: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500)),
           SizedBox(height: 16.h),
           ElevatedButton(
             onPressed: () {

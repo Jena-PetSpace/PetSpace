@@ -171,7 +171,7 @@ class _CollectionPickerSheetState extends State<CollectionPickerSheet> {
               width: 40.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppTheme.neutral300,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -290,7 +290,7 @@ class _CollectionTile extends StatelessWidget {
           ? Icon(Icons.check_circle_rounded,
               color: AppTheme.primaryColor, size: 22.w)
           : Icon(Icons.circle_outlined,
-              color: Colors.grey[300], size: 22.w),
+              color: AppTheme.neutral300, size: 22.w),
       onTap: onTap,
     );
   }

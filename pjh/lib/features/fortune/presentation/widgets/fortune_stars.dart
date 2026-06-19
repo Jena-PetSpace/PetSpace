@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../mbti/presentation/theme/mbti_theme.dart';
@@ -24,7 +25,7 @@ class FortuneStars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final filled = filledColor ?? MbtiTheme.coral;
-    final empty = Colors.grey.shade300;
+    const empty = AppTheme.neutral300;
     final clamped = star.clamp(1, 5);
     return Row(
       mainAxisSize: MainAxisSize.min,

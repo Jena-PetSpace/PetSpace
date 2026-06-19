@@ -204,7 +204,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
               style: TextStyle(
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
+                color: AppTheme.neutral600,
               ),
             ),
           ),

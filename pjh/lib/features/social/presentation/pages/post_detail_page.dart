@@ -677,7 +677,7 @@ class _MultiImageCarouselState extends State<_MultiImageCarousel> {
                 decoration: BoxDecoration(
                   color: _current == i
                       ? AppTheme.primaryColor
-                      : Colors.grey[300],
+                      : AppTheme.neutral300,
                   borderRadius: BorderRadius.circular(3.r),
                 ),
               );

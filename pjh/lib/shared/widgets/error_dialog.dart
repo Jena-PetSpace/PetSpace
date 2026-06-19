@@ -50,7 +50,7 @@ class ErrorDialog extends StatelessWidget {
               failure.message,
               style: TextStyle(
                 fontSize: 14.sp,
-                color: Colors.grey[700],
+                color: AppTheme.neutral700,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -77,7 +77,7 @@ class ErrorDialog extends StatelessWidget {
       color = Colors.red;
     } else if (failure is NotFoundFailure) {
       icon = Icons.search_off;
-      color = Colors.grey;
+      color = AppTheme.neutral500;
     } else if (failure is ValidationFailure) {
       icon = Icons.warning_amber;
       color = Colors.amber;
@@ -211,7 +211,7 @@ class ErrorBottomSheet extends StatelessWidget {
             width: 40.w,
             height: 4.h,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: AppTheme.neutral300,
               borderRadius: BorderRadius.circular(2.r),
             ),
           ),

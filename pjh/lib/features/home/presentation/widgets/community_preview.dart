@@ -221,7 +221,7 @@ class _CommunityPreviewState extends State<CommunityPreview> {
         child: Container(
           height: 90.h,
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: AppTheme.neutral200,
             borderRadius: BorderRadius.circular(12.r),
           ),
         ),

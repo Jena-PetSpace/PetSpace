@@ -58,17 +58,17 @@ class RecentEmotionCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${(dominantValue * 100).toInt()}% 확률',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: AppTheme.neutral600,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _formatDateTime(analysis.analyzedAt),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[500],
+                        color: AppTheme.neutral500,
                       ),
                     ),
                   ],

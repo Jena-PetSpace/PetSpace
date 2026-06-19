@@ -100,7 +100,7 @@ class PostTypePickerSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? AppTheme.primaryColor.withValues(alpha: 0.06)
-              : Colors.grey[50],
+              : AppTheme.neutral50,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
             color: isSelected
@@ -117,7 +117,7 @@ class PostTypePickerSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppTheme.primaryColor.withValues(alpha: 0.12)
-                    : Colors.grey[100],
+                    : AppTheme.neutral100,
                 shape: BoxShape.circle,
               ),
               child: Icon(

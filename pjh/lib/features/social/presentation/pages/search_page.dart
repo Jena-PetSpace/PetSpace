@@ -122,7 +122,7 @@ class _SearchPageState extends State<SearchPage>
                 borderSide: BorderSide.none,
               ),
               filled: true,
-              fillColor: Colors.grey[100],
+              fillColor: AppTheme.neutral100,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16.w,
                 vertical: 12.h,
@@ -156,16 +156,16 @@ class _SearchPageState extends State<SearchPage>
           children: [
             // 탭 바
             Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(
-                  bottom: BorderSide(color: Colors.grey[200]!),
+                  bottom: BorderSide(color: AppTheme.neutral200),
                 ),
               ),
               child: TabBar(
                 controller: _tabController,
                 labelColor: AppTheme.primaryColor,
-                unselectedLabelColor: Colors.grey,
+                unselectedLabelColor: AppTheme.neutral500,
                 indicatorColor: AppTheme.primaryColor,
                 tabs: const [
                   Tab(text: '사용자'),
@@ -214,11 +214,11 @@ class _SearchPageState extends State<SearchPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, size: 60.w, color: Colors.grey[400]),
+                Icon(Icons.error_outline, size: 60.w, color: AppTheme.neutral400),
                 SizedBox(height: 16.h),
                 Text(
                   state.message,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14.sp),
+                  style: TextStyle(color: AppTheme.neutral600, fontSize: 14.sp),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -290,7 +290,7 @@ class _SearchPageState extends State<SearchPage>
           return Center(
             child: Text(
               state.message,
-              style: TextStyle(color: Colors.grey[600]),
+              style: const TextStyle(color: AppTheme.neutral600),
             ),
           );
         }
@@ -355,9 +355,9 @@ class _SearchPageState extends State<SearchPage>
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: AppTheme.neutral50,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: AppTheme.neutral200),
         ),
         child: Row(
           children: [
@@ -365,14 +365,14 @@ class _SearchPageState extends State<SearchPage>
               width: 24.w,
               height: 24.w,
               decoration: BoxDecoration(
-                color: rank <= 3 ? AppTheme.primaryColor : Colors.grey[300],
+                color: rank <= 3 ? AppTheme.primaryColor : AppTheme.neutral300,
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(
                   '$rank',
                   style: TextStyle(
-                    color: rank <= 3 ? Colors.white : Colors.grey[700],
+                    color: rank <= 3 ? Colors.white : AppTheme.neutral700,
                     fontSize: 12.sp,
                     fontWeight: FontWeight.bold,
                   ),
@@ -407,7 +407,7 @@ class _SearchPageState extends State<SearchPage>
           return Center(
             child: Text(
               state.message,
-              style: TextStyle(color: Colors.grey[600]),
+              style: const TextStyle(color: AppTheme.neutral600),
             ),
           );
         }

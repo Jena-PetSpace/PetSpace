@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -275,7 +276,7 @@ class _IntroView extends StatelessWidget {
             if (i < items.length - 1)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 14.h),
-                child: Divider(height: 1, color: Colors.grey.shade200),
+                child: const Divider(height: 1, color: AppTheme.neutral200),
               ),
           ],
         ],
@@ -290,7 +291,7 @@ class _IntroView extends StatelessWidget {
       decoration: BoxDecoration(
         color: MbtiTheme.bg,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppTheme.neutral200),
       ),
       child: Text(
         disclaimer,
@@ -453,7 +454,7 @@ class _QuestionView extends StatelessWidget {
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: MbtiTheme.coral,
-                  disabledBackgroundColor: Colors.grey.shade300,
+                  disabledBackgroundColor: AppTheme.neutral300,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14.r)),
                 ),

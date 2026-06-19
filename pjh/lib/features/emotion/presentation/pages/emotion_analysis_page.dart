@@ -337,7 +337,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                       '여러 장일수록 더 정확해요',
                       style: TextStyle(
                         fontSize: 11.sp,
-                        color: Colors.grey[500],
+                        color: AppTheme.neutral500,
                       ),
                     ),
                   ],
@@ -375,7 +375,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryColor,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: Colors.grey.shade300,
+                      disabledBackgroundColor: AppTheme.neutral300,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14.r),
                       ),

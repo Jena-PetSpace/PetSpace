@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// 로컬 파일 경로 또는 네트워크 URL 목록을 받아
@@ -80,11 +81,11 @@ class _MultiImageGalleryWidgetState extends State<MultiImageGalleryWidget> {
       width: double.infinity,
       height: widget.height.h,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: AppTheme.neutral200,
         borderRadius: widget.borderRadius ?? BorderRadius.circular(16.r),
       ),
       child: Icon(Icons.image_not_supported_outlined,
-          size: 40.w, color: Colors.grey.shade400),
+          size: 40.w, color: AppTheme.neutral400),
     );
   }
 

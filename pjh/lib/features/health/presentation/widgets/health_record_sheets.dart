@@ -485,7 +485,7 @@ extension _HealthMainSheets on _HealthMainViewState {
       case HealthRecordStatus.overdue:
         return Colors.red;
       case HealthRecordStatus.cancelled:
-        return Colors.grey;
+        return AppTheme.neutral500;
     }
   }
 

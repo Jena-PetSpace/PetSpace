@@ -169,14 +169,14 @@ class _CommentsPageState extends State<CommentsPage> {
           Icon(
             Icons.comment_outlined,
             size: 64.w,
-            color: Colors.grey[400],
+            color: AppTheme.neutral400,
           ),
           SizedBox(height: 16.h),
           Text(
             '아직 댓글이 없습니다',
             style: TextStyle(
               fontSize: 18.sp,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
             ),
           ),
           SizedBox(height: 8.h),
@@ -184,7 +184,7 @@ class _CommentsPageState extends State<CommentsPage> {
             '첫 번째 댓글을 작성해보세요!',
             style: TextStyle(
               fontSize: 14.sp,
-              color: Colors.grey[500],
+              color: AppTheme.neutral500,
             ),
           ),
         ],
@@ -207,7 +207,7 @@ class _CommentsPageState extends State<CommentsPage> {
             '오류가 발생했습니다',
             style: TextStyle(
               fontSize: 18.sp,
-              color: Colors.grey[800],
+              color: AppTheme.neutral800,
             ),
           ),
           SizedBox(height: 8.h),
@@ -215,7 +215,7 @@ class _CommentsPageState extends State<CommentsPage> {
             message,
             style: TextStyle(
               fontSize: 14.sp,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
             ),
             textAlign: TextAlign.center,
           ),
@@ -236,10 +236,10 @@ class _CommentsPageState extends State<CommentsPage> {
   Widget _buildCommentInput() {
     return Container(
       padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
-          top: BorderSide(color: Colors.grey[300]!),
+          top: BorderSide(color: AppTheme.neutral300),
         ),
       ),
       child: SafeArea(
@@ -274,7 +274,7 @@ class _CommentsPageState extends State<CommentsPage> {
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Colors.grey[100],
+                  fillColor: AppTheme.neutral100,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 16.w,
                     vertical: 8.h,

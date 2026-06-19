@@ -152,7 +152,7 @@ class EmotionBarChart extends StatelessWidget {
             drawVerticalLine: false,
             getDrawingHorizontalLine: (value) {
               return FlLine(
-                color: Colors.grey.withValues(alpha: 0.3),
+                color: AppTheme.neutral500.withValues(alpha: 0.3),
                 strokeWidth: 1,
               );
             },

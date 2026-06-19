@@ -399,7 +399,7 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
               ? '${_selectedBirthDate!.year}.${_selectedBirthDate!.month.toString().padLeft(2, '0')}.${_selectedBirthDate!.day.toString().padLeft(2, '0')}'
               : '생년월일을 선택해주세요',
           style: TextStyle(
-            color: _selectedBirthDate != null ? Colors.black : Colors.grey[600],
+            color: _selectedBirthDate != null ? Colors.black : AppTheme.neutral600,
           ),
         ),
       ),
@@ -442,7 +442,7 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
         SizedBox(height: 4.h),
         Text(
           '여권 카드 표기에 사용돼요. 비워두면 기본 이름으로 표시됩니다.',
-          style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+          style: TextStyle(fontSize: 12.sp, color: AppTheme.neutral600),
         ),
         SizedBox(height: 16.h),
         // 영문 성

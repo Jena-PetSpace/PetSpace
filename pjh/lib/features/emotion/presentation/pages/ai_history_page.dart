@@ -389,10 +389,10 @@ class _AiHistoryPageState extends State<AiHistoryPage>
     if (!s.hasData) {
       borderColor = AppTheme.dividerColor;
       bgColor = const Color(0xFFF9F9F9);
-      iconColor = Colors.grey.shade300;
+      iconColor = AppTheme.neutral300;
       statusWidget = Text('미분석',
           style:
-              TextStyle(fontSize: 8.5.sp, color: Colors.grey.shade400));
+              TextStyle(fontSize: 8.5.sp, color: AppTheme.neutral400));
     } else if (s.status == '양호') {
       borderColor = AppTheme.successColor;
       iconColor = AppTheme.successColor;
@@ -496,7 +496,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
           if (s.date != null)
             Text('${s.date!.month}/${s.date!.day}',
                 style: TextStyle(
-                    fontSize: 7.5.sp, color: Colors.grey.shade400)),
+                    fontSize: 7.5.sp, color: AppTheme.neutral400)),
         ]),
       ),
     );
@@ -610,7 +610,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                             height: 4.h,
                             child: LinearProgressIndicator(
                               value: score,
-                              backgroundColor: Colors.grey.shade100,
+                              backgroundColor: AppTheme.neutral100,
                               color: barColor.withValues(
                                   alpha: isLast ? 1.0 : 0.5),
                             ),
@@ -645,7 +645,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
               const Spacer(),
               Text('바 길이 = 긍정 비율',
                   style: TextStyle(
-                      fontSize: 8.5.sp, color: Colors.grey.shade400)),
+                      fontSize: 8.5.sp, color: AppTheme.neutral400)),
             ]),
           ]),
         );
@@ -1043,7 +1043,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
           AppTheme.errorColor),
     };
     final (bgColor, textColor) =
-        colors[item.badgeType] ?? (Colors.grey.shade100, Colors.grey);
+        colors[item.badgeType] ?? (AppTheme.neutral100, AppTheme.neutral500);
 
     final isDisabledInSelectMode = widget.selectMode && !item.isEmotion;
     return Opacity(

@@ -409,7 +409,7 @@ class _ProfilePageState extends State<ProfilePage>
             label: Text(isFollowing ? '팔로우 중' : '팔로우',
                 style: TextStyle(fontSize: 14.sp)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isFollowing ? Colors.grey : Colors.white,
+              backgroundColor: isFollowing ? AppTheme.neutral500 : Colors.white,
               foregroundColor:
                   isFollowing ? Colors.white : AppTheme.primaryColor,
             ),
@@ -457,7 +457,7 @@ class _ProfilePageState extends State<ProfilePage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.people_outline, size: 48.w, color: Colors.grey[300]),
+                Icon(Icons.people_outline, size: 48.w, color: AppTheme.neutral300),
                 SizedBox(height: 12.h),
                 Text(
                   isFollowers ? '아직 팔로워가 없습니다' : '아직 팔로잉이 없습니다',
@@ -532,7 +532,7 @@ class _ProfilePageState extends State<ProfilePage>
             '오류가 발생했습니다',
             style: TextStyle(
               fontSize: 18.sp,
-              color: Colors.grey[800],
+              color: AppTheme.neutral800,
             ),
           ),
           SizedBox(height: 8.h),
@@ -540,7 +540,7 @@ class _ProfilePageState extends State<ProfilePage>
             message,
             style: TextStyle(
               fontSize: 14.sp,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
             ),
             textAlign: TextAlign.center,
           ),

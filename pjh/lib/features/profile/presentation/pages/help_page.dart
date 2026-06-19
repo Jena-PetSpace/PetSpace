@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -58,7 +59,7 @@ class HelpPage extends StatelessWidget {
             padding: EdgeInsets.all(16.w),
             child: Text(
               '앱 버전: 1.0.0',
-              style: TextStyle(fontSize: 12.sp, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 12.sp, color: AppTheme.neutral500),
               textAlign: TextAlign.center,
             ),
           ),
@@ -89,7 +90,7 @@ class HelpPage extends StatelessWidget {
                       EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                   child: Text(
                     item.answer,
-                    style: TextStyle(fontSize: 13.sp, color: Colors.grey[700]),
+                    style: TextStyle(fontSize: 13.sp, color: AppTheme.neutral700),
                   ),
                 ),
               ],

@@ -76,7 +76,7 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                     border: Border.all(
                       color: _allAgreed
                           ? AppTheme.primaryColor
-                          : Colors.grey.shade300,
+                          : AppTheme.neutral300,
                       width: 1.5,
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -88,7 +88,7 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                     children: [
                       Icon(
                         _allAgreed ? Icons.check_circle : Icons.circle_outlined,
-                        color: _allAgreed ? AppTheme.primaryColor : Colors.grey,
+                        color: _allAgreed ? AppTheme.primaryColor : AppTheme.neutral500,
                         size: 24,
                       ),
                       const SizedBox(width: 12),
@@ -279,15 +279,15 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
               const Spacer(),
 
               // 안내 문구
-              Center(
+              const Center(
                 child: Padding(
                   padding:
-                      const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                      EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                   child: Text(
                     '\'선택\' 항목에 동의하지 않아도 서비스 이용이 가능합니다.\n개인정보 수집 및 이용에 대한 동의를 거부할 권리가 있으나,\n동의 거부시 회원제 서비스 이용이 제한됩니다.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade600,
+                      color: AppTheme.neutral600,
                       height: 1.5,
                     ),
                     textAlign: TextAlign.center,
@@ -309,13 +309,13 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _canProceed
                         ? AppTheme.primaryColor
-                        : Colors.grey.shade300,
+                        : AppTheme.neutral300,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    disabledBackgroundColor: Colors.grey.shade300,
+                    disabledBackgroundColor: AppTheme.neutral300,
                   ),
                   child: const Text(
                     '다음',
@@ -350,7 +350,7 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
             children: [
               Icon(
                 value ? Icons.check_circle : Icons.circle_outlined,
-                color: value ? AppTheme.accentColor : Colors.grey,
+                color: value ? AppTheme.accentColor : AppTheme.neutral500,
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -365,7 +365,7 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
                       text: isRequired ? '(필수) ' : '(선택) ',
                       style: TextStyle(
                         color:
-                            isRequired ? AppTheme.highlightColor : Colors.grey,
+                            isRequired ? AppTheme.highlightColor : AppTheme.neutral500,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

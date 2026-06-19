@@ -422,7 +422,7 @@ class _FeedPageState extends State<FeedPage> {
             message,
             style: TextStyle(
               fontSize: 14.sp,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
             ),
             textAlign: TextAlign.center,
           ),

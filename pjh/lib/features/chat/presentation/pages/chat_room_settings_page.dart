@@ -313,14 +313,14 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
         children: [
           CircleAvatar(
             radius: 48.r,
-            backgroundColor: Colors.grey[200],
+            backgroundColor: AppTheme.neutral200,
             backgroundImage: _pendingPhotoFile != null
                 ? FileImage(_pendingPhotoFile!)
                 : (_currentPhotoUrl != null
                     ? CachedNetworkImageProvider(_currentPhotoUrl!)
                     : null) as ImageProvider?,
             child: _pendingPhotoFile == null && _currentPhotoUrl == null
-                ? Icon(Icons.group, size: 40.w, color: Colors.grey[500])
+                ? Icon(Icons.group, size: 40.w, color: AppTheme.neutral500)
                 : null,
           ),
           Positioned(
@@ -426,7 +426,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
             child: OutlinedButton(
               onPressed: _goBack,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.grey),
+                side: const BorderSide(color: AppTheme.neutral500),
                 padding: EdgeInsets.symmetric(vertical: 12.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.r),
@@ -434,7 +434,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
               ),
               child: Text(
                 '취소',
-                style: TextStyle(fontSize: 15.sp, color: Colors.grey[700]),
+                style: TextStyle(fontSize: 15.sp, color: AppTheme.neutral700),
               ),
             ),
           ),
@@ -487,12 +487,12 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     return ListTile(
       leading: CircleAvatar(
         radius: 20.r,
-        backgroundColor: Colors.grey[200],
+        backgroundColor: AppTheme.neutral200,
         backgroundImage: participant.photoUrl != null
             ? CachedNetworkImageProvider(participant.photoUrl!)
             : null,
         child: participant.photoUrl == null
-            ? Icon(Icons.person, size: 20.w, color: Colors.grey[500])
+            ? Icon(Icons.person, size: 20.w, color: AppTheme.neutral500)
             : null,
       ),
       title: Row(
@@ -708,7 +708,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
             width: 40.w,
             height: 4.h,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: AppTheme.neutral300,
               borderRadius: BorderRadius.circular(2.r),
             ),
           ),
@@ -756,13 +756,13 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                   return Chip(
                     avatar: CircleAvatar(
                       radius: 12.r,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor: AppTheme.neutral200,
                       backgroundImage: user.photoUrl != null
                           ? NetworkImage(user.photoUrl!)
                           : null,
                       child: user.photoUrl == null
                           ? Icon(Icons.person,
-                              size: 12.w, color: Colors.grey[500])
+                              size: 12.w, color: AppTheme.neutral500)
                           : null,
                     ),
                     label: Text(
@@ -783,7 +783,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
               onChanged: (value) => _searchUsers(value),
               decoration: InputDecoration(
                 hintText: '닉네임 또는 반려동물 이름으로 검색',
-                hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                hintStyle: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -814,7 +814,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                           _searchController.text.isEmpty
                               ? '사용자를 검색하세요'
                               : '검색 결과가 없습니다',
-                          style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                          style: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
                         ),
                       )
                     : ListView.builder(
@@ -827,13 +827,13 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                           return ListTile(
                             leading: CircleAvatar(
                               radius: 20.r,
-                              backgroundColor: Colors.grey[200],
+                              backgroundColor: AppTheme.neutral200,
                               backgroundImage: user.photoUrl != null
                                   ? NetworkImage(user.photoUrl!)
                                   : null,
                               child: user.photoUrl == null
                                   ? Icon(Icons.person,
-                                      size: 20.w, color: Colors.grey[500])
+                                      size: 20.w, color: AppTheme.neutral500)
                                   : null,
                             ),
                             title: Text(
@@ -844,8 +844,8 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                                 ? Icon(Icons.check_circle,
                                     color:
                                         Theme.of(context).colorScheme.primary)
-                                : Icon(Icons.circle_outlined,
-                                    color: Colors.grey[400]),
+                                : const Icon(Icons.circle_outlined,
+                                    color: AppTheme.neutral400),
                             onTap: () => _toggleUser(user),
                           );
                         },

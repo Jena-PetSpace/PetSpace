@@ -10,7 +10,7 @@ extension _HospitalUI on _HospitalSearchPageState {
         children: [
           _buildOverlayIconButton(
             icon: _isFollowingLocation ? Icons.my_location : Icons.location_searching,
-            color: _isFollowingLocation ? AppTheme.primaryColor : Colors.grey[600]!,
+            color: _isFollowingLocation ? AppTheme.primaryColor : AppTheme.neutral600,
             onTap: _moveToMyLocation,
           ),
           SizedBox(height: 8.h),
@@ -184,7 +184,7 @@ extension _HospitalUI on _HospitalSearchPageState {
                 width: 36.w, height: 4.h,
                 margin: EdgeInsets.only(right: 12.w),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: AppTheme.neutral500.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
@@ -262,7 +262,7 @@ extension _HospitalUI on _HospitalSearchPageState {
                   child: Icon(
                     isFav ? Icons.bookmark : Icons.bookmark_border,
                     size: 22.w,
-                    color: isFav ? AppTheme.primaryColor : Colors.grey[400],
+                    color: isFav ? AppTheme.primaryColor : AppTheme.neutral400,
                   ),
                 ),
               ),
@@ -332,7 +332,7 @@ extension _HospitalUI on _HospitalSearchPageState {
               Expanded(child: _buildActionButton(
                 icon: Icons.phone,
                 label: '전화',
-                color: place.phone.isNotEmpty ? AppTheme.successColor : Colors.grey[400]!,
+                color: place.phone.isNotEmpty ? AppTheme.successColor : AppTheme.neutral400,
                 onTap: place.phone.isNotEmpty
                     ? () => _callPhone(place.phone)
                     : () => _showSnack('전화번호 정보가 없습니다'),
@@ -360,7 +360,7 @@ extension _HospitalUI on _HospitalSearchPageState {
               Expanded(child: _buildActionButton(
                 icon: Icons.share_outlined,
                 label: '공유',
-                color: Colors.grey[600]!,
+                color: AppTheme.neutral600,
                 onTap: () => _sharePlace(place),
               )),
             ]),
@@ -407,11 +407,11 @@ extension _HospitalUI on _HospitalSearchPageState {
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16.r),
-              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+              borderSide: const BorderSide(color: AppTheme.neutral200, width: 1),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16.r),
-              borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+              borderSide: const BorderSide(color: AppTheme.neutral200, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16.r),
@@ -462,7 +462,7 @@ extension _HospitalUI on _HospitalSearchPageState {
                   color: selected ? AppTheme.primaryColor : Colors.white,
                   borderRadius: BorderRadius.circular(20.r),
                   border: Border.all(
-                    color: selected ? AppTheme.primaryColor : Colors.grey.shade300,
+                    color: selected ? AppTheme.primaryColor : AppTheme.neutral300,
                     width: 1.5,
                   ),
                   boxShadow: selected ? [
@@ -522,7 +522,7 @@ extension _HospitalUI on _HospitalSearchPageState {
           color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.06) : Colors.white,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.12),
+            color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.3) : AppTheme.neutral500.withValues(alpha: 0.12),
             width: isSelected ? 1.5 : 1,
           ),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4, offset: const Offset(0, 1))],
@@ -562,7 +562,7 @@ extension _HospitalUI on _HospitalSearchPageState {
               child: Icon(
                 isFav ? Icons.bookmark : Icons.bookmark_border,
                 size: 16.w,
-                color: isFav ? AppTheme.primaryColor : Colors.grey[400],
+                color: isFav ? AppTheme.primaryColor : AppTheme.neutral400,
               ),
             ),
           ]),

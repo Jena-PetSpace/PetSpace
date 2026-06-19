@@ -125,10 +125,10 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
           style: TextStyle(fontSize: 14.sp),
           decoration: InputDecoration(
             hintText: '게시물 내용을 입력하세요...',
-            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14.sp),
+            hintStyle: TextStyle(color: AppTheme.neutral400, fontSize: 14.sp),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderSide: const BorderSide(color: AppTheme.neutral300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
@@ -136,7 +136,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
                   const BorderSide(color: AppTheme.primaryColor, width: 2),
             ),
             filled: true,
-            fillColor: Colors.grey[50],
+            fillColor: AppTheme.neutral50,
             contentPadding: EdgeInsets.all(16.w),
           ),
         ),
@@ -178,7 +178,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
             ActionChip(
               label: Text('+ 추가', style: TextStyle(fontSize: 12.sp)),
               onPressed: _showAddHashtagDialog,
-              backgroundColor: Colors.grey[100],
+              backgroundColor: AppTheme.neutral100,
             ),
           ],
         ),
@@ -190,9 +190,9 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: AppTheme.neutral50,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppTheme.neutral200),
       ),
       child: Row(
         children: [

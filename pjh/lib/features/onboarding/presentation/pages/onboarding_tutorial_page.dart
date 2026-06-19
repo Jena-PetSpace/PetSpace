@@ -91,7 +91,7 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
             width: active ? 24.w : 8.w,
             height: 8.h,
             decoration: BoxDecoration(
-              color: active ? AppTheme.primaryColor : Colors.grey[300],
+              color: active ? AppTheme.primaryColor : AppTheme.neutral300,
               borderRadius: BorderRadius.circular(4.r),
             ),
           );
@@ -125,7 +125,7 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
             'AI가 반려동물의 표정과 행동을 분석하여\n감정 상태를 알려드립니다',
             style: TextStyle(
               fontSize: 16.sp,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
               height: 1.5,
             ),
             textAlign: TextAlign.center,
@@ -182,7 +182,7 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
             '더 정확한 감정 분석을 위한 사진 촬영 방법',
             style: TextStyle(
               fontSize: 16.sp,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
             ),
           ),
           SizedBox(height: 32.h),
@@ -266,7 +266,7 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
                   description,
                   style: TextStyle(
                     fontSize: 14.sp,
-                    color: Colors.grey[700],
+                    color: AppTheme.neutral700,
                   ),
                 ),
               ],
@@ -296,7 +296,7 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
             'AI가 반려동물의 감정을 분석하는 방법',
             style: TextStyle(
               fontSize: 16.sp,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
             ),
           ),
           SizedBox(height: 32.h),
@@ -365,9 +365,9 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
           child: Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: AppTheme.neutral50,
               borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Colors.grey[200]!),
+              border: Border.all(color: AppTheme.neutral200),
             ),
             child: Row(
               children: [
@@ -393,7 +393,7 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
                         description,
                         style: TextStyle(
                           fontSize: 14.sp,
-                          color: Colors.grey[600],
+                          color: AppTheme.neutral600,
                         ),
                       ),
                     ],
@@ -435,7 +435,7 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
             '이제 반려동물의 감정을 분석해보세요!\n첫 번째 분석을 시작해볼까요?',
             style: TextStyle(
               fontSize: 16.sp,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
               height: 1.5,
             ),
             textAlign: TextAlign.center,

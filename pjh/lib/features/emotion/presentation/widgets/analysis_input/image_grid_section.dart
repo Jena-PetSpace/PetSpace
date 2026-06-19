@@ -35,7 +35,7 @@ class ImageGridSection extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(14.r),
             border: Border.all(
-              color: Colors.grey.shade200,
+              color: AppTheme.neutral200,
               width: 1.5,
             ),
           ),

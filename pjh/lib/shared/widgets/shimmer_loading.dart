@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -22,8 +23,8 @@ class _PostCardShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: AppTheme.neutral300,
+      highlightColor: AppTheme.neutral100,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         child: Column(
@@ -82,8 +83,8 @@ class ProfileShimmerLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: AppTheme.neutral300,
+      highlightColor: AppTheme.neutral100,
       child: Padding(
         padding: EdgeInsets.all(16.w),
         child: Column(
@@ -134,8 +135,8 @@ class NotificationShimmerLoading extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 5,
       itemBuilder: (_, __) => Shimmer.fromColors(
-        baseColor: Colors.grey[300]!,
-        highlightColor: Colors.grey[100]!,
+        baseColor: AppTheme.neutral300,
+        highlightColor: AppTheme.neutral100,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
           child: Row(
@@ -182,8 +183,8 @@ class SearchShimmerLoading extends StatelessWidget {
       children: [
         // 유저 섹션
         ...List.generate(3, (_) => Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
+          baseColor: AppTheme.neutral300,
+          highlightColor: AppTheme.neutral100,
           child: Padding(
             padding: EdgeInsets.only(bottom: 14.h),
             child: Row(children: [
@@ -200,8 +201,8 @@ class SearchShimmerLoading extends StatelessWidget {
         Divider(height: 20.h),
         // 게시글 섹션
         ...List.generate(2, (_) => Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
-          highlightColor: Colors.grey[100]!,
+          baseColor: AppTheme.neutral300,
+          highlightColor: AppTheme.neutral100,
           child: Padding(
             padding: EdgeInsets.only(bottom: 16.h),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -231,8 +232,8 @@ class PostDetailShimmerLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: AppTheme.neutral300,
+      highlightColor: AppTheme.neutral100,
       child: SingleChildScrollView(
         physics: const NeverScrollableScrollPhysics(),
         padding: EdgeInsets.all(16.w),
@@ -297,8 +298,8 @@ class CommentShimmerLoading extends StatelessWidget {
       itemCount: 5,
       padding: EdgeInsets.symmetric(vertical: 8.h),
       itemBuilder: (_, __) => Shimmer.fromColors(
-        baseColor: Colors.grey[300]!,
-        highlightColor: Colors.grey[100]!,
+        baseColor: AppTheme.neutral300,
+        highlightColor: AppTheme.neutral100,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

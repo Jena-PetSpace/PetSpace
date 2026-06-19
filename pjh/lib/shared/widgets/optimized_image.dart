@@ -113,12 +113,12 @@ class OptimizedImage extends StatelessWidget {
 
   Widget _buildDefaultPlaceholder() {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: AppTheme.neutral300,
+      highlightColor: AppTheme.neutral100,
       child: Container(
         width: width,
         height: height,
-        color: Colors.grey[300],
+        color: AppTheme.neutral300,
       ),
     );
   }
@@ -127,10 +127,10 @@ class OptimizedImage extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      color: Colors.grey[200],
+      color: AppTheme.neutral200,
       child: Icon(
         Icons.broken_image_outlined,
-        color: Colors.grey,
+        color: AppTheme.neutral500,
         size: 32.w,
       ),
     );
@@ -176,14 +176,14 @@ class OptimizedProfileImage extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      baseColor: AppTheme.neutral300,
+      highlightColor: AppTheme.neutral100,
       child: Container(
         width: radius * 2,
         height: radius * 2,
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.grey,
+          color: AppTheme.neutral500,
         ),
       ),
     );

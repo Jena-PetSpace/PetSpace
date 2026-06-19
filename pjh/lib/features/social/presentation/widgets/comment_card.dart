@@ -110,7 +110,7 @@ class CommentCard extends StatelessWidget {
                       : Icons.favorite_border,
                   size: 14.w,
                   color:
-                      comment.isLikedByCurrentUser ? Colors.red : Colors.grey,
+                      comment.isLikedByCurrentUser ? Colors.red : AppTheme.neutral500,
                 ),
                 if (comment.likesCount > 0) ...[
                   SizedBox(width: 4.w),
@@ -118,7 +118,7 @@ class CommentCard extends StatelessWidget {
                     '${comment.likesCount}',
                     style: TextStyle(
                       fontSize: 11.sp,
-                      color: Colors.grey,
+                      color: AppTheme.neutral500,
                     ),
                   ),
                 ],
@@ -136,7 +136,7 @@ class CommentCard extends StatelessWidget {
               '답글',
               style: TextStyle(
                 fontSize: 11.sp,
-                color: Colors.grey,
+                color: AppTheme.neutral500,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -148,7 +148,7 @@ class CommentCard extends StatelessWidget {
             icon: Icon(
               Icons.more_horiz,
               size: 16.w,
-              color: Colors.grey,
+              color: AppTheme.neutral500,
             ),
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -194,7 +194,7 @@ class CommentCard extends StatelessWidget {
       padding: EdgeInsets.only(left: 16.w),
       decoration: const BoxDecoration(
         border: Border(
-          left: BorderSide(color: Colors.grey, width: 1),
+          left: BorderSide(color: AppTheme.neutral500, width: 1),
         ),
       ),
       child: Column(

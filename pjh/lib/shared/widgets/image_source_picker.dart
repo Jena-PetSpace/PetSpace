@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/themes/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -102,7 +103,7 @@ class ImageSourcePicker {
               width: 40.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppTheme.neutral300,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),

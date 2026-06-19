@@ -45,12 +45,12 @@ class OnboardingPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             '반려동물과의 특별한 순간들을\n기록하고 공유해보세요',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
               height: 1.5,
             ),
           ),

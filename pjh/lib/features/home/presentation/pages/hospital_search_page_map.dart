@@ -4,7 +4,7 @@ extension _HospitalMap on _HospitalSearchPageState {
   Widget _buildMap() {
     if (_position == null && _locationError == null) {
       return Container(
-        color: Colors.grey[100],
+        color: AppTheme.neutral100,
         child: const Center(
           child: CircularProgressIndicator(color: AppTheme.primaryColor),
         ),

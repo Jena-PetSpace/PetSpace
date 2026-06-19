@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -59,9 +60,9 @@ class FeedPreviewWidget extends StatelessWidget {
                             ),
                             Text(
                               _formatDateTime(post.createdAt),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[600],
+                                color: AppTheme.neutral600,
                               ),
                             ),
                           ],
@@ -92,14 +93,14 @@ class FeedPreviewWidget extends StatelessWidget {
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
                           height: 200,
-                          color: Colors.grey[200],
+                          color: AppTheme.neutral200,
                           child: const Center(
                             child: CircularProgressIndicator(),
                           ),
                         ),
                         errorWidget: (context, url, error) => Container(
                           height: 200,
-                          color: Colors.grey[200],
+                          color: AppTheme.neutral200,
                           child: const Icon(Icons.error),
                         ),
                       ),
@@ -118,28 +119,28 @@ class FeedPreviewWidget extends StatelessWidget {
                         size: 20,
                         color: post.isLikedByCurrentUser
                             ? Colors.red
-                            : Colors.grey[600],
+                            : AppTheme.neutral600,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${post.likesCount}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[700],
+                          color: AppTheme.neutral700,
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Icon(
+                      const Icon(
                         Icons.chat_bubble_outline,
                         size: 20,
-                        color: Colors.grey[600],
+                        color: AppTheme.neutral600,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${post.commentsCount}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[700],
+                          color: AppTheme.neutral700,
                         ),
                       ),
                     ],

@@ -119,7 +119,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
           SizedBox(height: 8.h),
           Text(
             '시행일: 2026년 5월 7일',
-            style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 12.sp, color: AppTheme.neutral600),
           ),
         ],
       ),
@@ -182,7 +182,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
       margin: EdgeInsets.only(top: 20.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: AppTheme.neutral100,
         borderRadius: BorderRadius.circular(10.r),
       ),
       child: Column(
@@ -200,7 +200,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
             '심각한 위반 또는 긴급 사안은 [설정 → 도움말] 에서 문의해주세요.\n앱 내 신고 기능과 별도로 직접 처리해드립니다.',
             style: TextStyle(
               fontSize: 12.sp,
-              color: Colors.grey[700],
+              color: AppTheme.neutral700,
               height: 1.5,
             ),
           ),

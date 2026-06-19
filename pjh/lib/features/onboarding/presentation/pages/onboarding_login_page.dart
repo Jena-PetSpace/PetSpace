@@ -257,7 +257,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
           backgroundColor: color,
           foregroundColor: textColor,
           elevation: 0,
-          side: hasBorder ? BorderSide(color: Colors.grey[300]!) : null,
+          side: hasBorder ? const BorderSide(color: AppTheme.neutral300) : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.r),
           ),
@@ -274,18 +274,18 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
 
     return Row(
       children: [
-        Expanded(child: Divider(color: Colors.grey[300])),
+        const Expanded(child: Divider(color: AppTheme.neutral300)),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
             '또는',
             style: TextStyle(
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
               fontSize: 14.sp,
             ),
           ),
         ),
-        Expanded(child: Divider(color: Colors.grey[300])),
+        const Expanded(child: Divider(color: AppTheme.neutral300)),
       ],
     );
   }
@@ -445,10 +445,10 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         if (_isLogin)
           TextButton(
             onPressed: _forgotPassword,
-            child: Text(
+            child: const Text(
               '비밀번호를 잊으셨나요?',
               style: TextStyle(
-                color: Colors.grey[600],
+                color: AppTheme.neutral600,
               ),
             ),
           ),

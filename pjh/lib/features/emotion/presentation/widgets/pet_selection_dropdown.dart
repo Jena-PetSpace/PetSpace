@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import '../../../pets/domain/entities/pet.dart';
 
 class PetSelectionDropdown extends StatelessWidget {
@@ -43,8 +44,8 @@ class PetSelectionDropdown extends StatelessWidget {
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+      decoration: const BoxDecoration(
+        color: AppTheme.neutral100,
         shape: BoxShape.circle,
       ),
       alignment: Alignment.center,
@@ -63,7 +64,7 @@ class PetSelectionDropdown extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: AppTheme.neutral300),
             borderRadius: BorderRadius.circular(12),
           ),
           child: DropdownButtonHideUnderline(
@@ -94,9 +95,9 @@ class PetSelectionDropdown extends StatelessWidget {
                             ),
                             Text(
                               '${pet.typeDisplayName} • ${pet.breed ?? '품종 미상'} • ${pet.displayAge}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: AppTheme.neutral600,
                               ),
                             ),
                           ],
@@ -118,12 +119,12 @@ class PetSelectionDropdown extends StatelessWidget {
             decoration: BoxDecoration(
               color: analyzeWithoutPet
                   ? Colors.orange.shade50
-                  : Colors.grey.shade50,
+                  : AppTheme.neutral50,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: analyzeWithoutPet
                     ? Colors.orange.shade300
-                    : Colors.grey.shade300,
+                    : AppTheme.neutral300,
               ),
             ),
             child: Row(
@@ -132,14 +133,14 @@ class PetSelectionDropdown extends StatelessWidget {
                   analyzeWithoutPet
                       ? Icons.check_box
                       : Icons.check_box_outline_blank,
-                  color: analyzeWithoutPet ? Colors.orange : Colors.grey,
+                  color: analyzeWithoutPet ? Colors.orange : AppTheme.neutral500,
                 ),
                 const SizedBox(width: 12),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         '등록된 반려동물 없이 분석',
                         style: TextStyle(
                           fontSize: 16,
@@ -150,7 +151,7 @@ class PetSelectionDropdown extends StatelessWidget {
                         '반려동물을 등록하지 않았거나, 특정 반려동물을 선택하지 않고 분석합니다',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: AppTheme.neutral600,
                         ),
                       ),
                     ],

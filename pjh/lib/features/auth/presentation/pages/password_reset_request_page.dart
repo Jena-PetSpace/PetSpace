@@ -121,11 +121,11 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
                 const SizedBox(height: 16),
 
                 // 설명
-                Text(
+                const Text(
                   '가입하신 이메일 주소를 입력하시면\n인증 코드를 발송해드립니다',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.grey[600],
+                    color: AppTheme.neutral600,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,

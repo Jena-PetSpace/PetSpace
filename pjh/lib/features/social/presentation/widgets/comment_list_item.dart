@@ -83,7 +83,7 @@ class CommentListItem extends StatelessWidget {
                     Text(
                       _formatDateTime(c.createdAt),
                       style:
-                          TextStyle(fontSize: 11.sp, color: Colors.grey[500]),
+                          TextStyle(fontSize: 11.sp, color: AppTheme.neutral500),
                     ),
                     const Spacer(),
                     if (c.authorId == currentUserId)
@@ -92,7 +92,7 @@ class CommentListItem extends StatelessWidget {
                             ? _showDeleteReplyConfirmation(context, c.id)
                             : _showDeleteConfirmation(context),
                         child: Icon(Icons.delete_outline,
-                            size: 16.w, color: Colors.grey[400]),
+                            size: 16.w, color: AppTheme.neutral400),
                       ),
                   ],
                 ),
@@ -104,7 +104,7 @@ class CommentListItem extends StatelessWidget {
                   Text('(수정됨)',
                       style: TextStyle(
                           fontSize: 11.sp,
-                          color: Colors.grey[400],
+                          color: AppTheme.neutral400,
                           fontStyle: FontStyle.italic)),
                 ],
                 SizedBox(height: 6.h),
@@ -126,13 +126,13 @@ class CommentListItem extends StatelessWidget {
                             size: 14.w,
                             color: c.isLikedByCurrentUser
                                 ? AppTheme.highlightColor
-                                : Colors.grey[400],
+                                : AppTheme.neutral400,
                           ),
                           if (c.likesCount > 0) ...[
                             SizedBox(width: 3.w),
                             Text('${c.likesCount}',
                                 style: TextStyle(
-                                    fontSize: 11.sp, color: Colors.grey[500])),
+                                    fontSize: 11.sp, color: AppTheme.neutral500)),
                           ],
                         ],
                       ),
@@ -145,7 +145,7 @@ class CommentListItem extends StatelessWidget {
                           '답글',
                           style: TextStyle(
                               fontSize: 12.sp,
-                              color: Colors.grey[500],
+                              color: AppTheme.neutral500,
                               fontWeight: FontWeight.w500),
                         ),
                       ),

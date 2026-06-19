@@ -69,18 +69,18 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
   }
 
   Widget _buildSlide1() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
+    return const Padding(
+      padding: EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const IconBadgeCircle(
+          IconBadgeCircle(
             icon: Icons.pets,
             size: 200,
             tone: BadgeTone.neutral,
           ),
-          const SizedBox(height: 48),
-          const Text(
+          SizedBox(height: 48),
+          Text(
             '반려동물과의\n특별한 순간을 기록하세요',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -89,13 +89,13 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
               height: 1.3,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             '사진과 함께 일상의 소중한 순간들을\n펫페이스에 담아보세요',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
               height: 1.5,
             ),
           ),
@@ -105,18 +105,18 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
   }
 
   Widget _buildSlide2() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
+    return const Padding(
+      padding: EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const IconBadgeCircle(
+          IconBadgeCircle(
             icon: Icons.psychology,
             size: 200,
             tone: BadgeTone.neutral,
           ),
-          const SizedBox(height: 48),
-          const Text(
+          SizedBox(height: 48),
+          Text(
             'AI가 분석하는\n반려동물의 감정',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -125,13 +125,13 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
               height: 1.3,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             '첨단 AI 기술로 반려동물의 표정과 행동을\n분석하여 감정 상태를 알려드려요',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
               height: 1.5,
             ),
           ),
@@ -141,18 +141,18 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
   }
 
   Widget _buildSlide3() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
+    return const Padding(
+      padding: EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const IconBadgeCircle(
+          IconBadgeCircle(
             icon: Icons.people,
             size: 200,
             tone: BadgeTone.neutral,
           ),
-          const SizedBox(height: 48),
-          const Text(
+          SizedBox(height: 48),
+          Text(
             '반려인들과\n소통하고 공유하세요',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -161,13 +161,13 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
               height: 1.3,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             '다른 반려인들과 경험을 나누고\n함께 성장하는 커뮤니티에 참여해보세요',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
               height: 1.5,
             ),
           ),
@@ -201,7 +201,7 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
           decoration: BoxDecoration(
             color: _currentPage == index
                 ? AppTheme.primaryColor
-                : Colors.grey[300],
+                : AppTheme.neutral300,
             borderRadius: BorderRadius.circular(4),
           ),
         );

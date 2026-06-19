@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// 감정분석 결과 페이지에 노출하는 면책(Disclaimer) 배너.
@@ -23,20 +24,20 @@ class EmotionDisclaimerBanner extends StatelessWidget {
         margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
         decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.08),
+          color: AppTheme.neutral500.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(8.r),
         ),
         child: Row(
           children: [
             Icon(Icons.info_outline,
-                size: 14.sp, color: Colors.grey[600]),
+                size: 14.sp, color: AppTheme.neutral600),
             SizedBox(width: 6.w),
             Expanded(
               child: Text(
                 '본 분석은 참고용이며 수의학적 진단을 대체하지 않습니다.',
                 style: TextStyle(
                   fontSize: 11.sp,
-                  color: Colors.grey[700],
+                  color: AppTheme.neutral700,
                   height: 1.3,
                 ),
               ),

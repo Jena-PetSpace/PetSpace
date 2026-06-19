@@ -240,7 +240,7 @@ class ConfirmationDialog extends StatelessWidget {
           },
           child: Text(
             cancelText,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14.sp),
+            style: TextStyle(color: AppTheme.neutral600, fontSize: 14.sp),
           ),
         ),
         ElevatedButton(
@@ -313,7 +313,7 @@ class EmptyStateWidget extends StatelessWidget {
             Icon(
               icon,
               size: 80.w,
-              color: iconColor ?? Colors.grey[400],
+              color: iconColor ?? AppTheme.neutral400,
             ),
             SizedBox(height: 24.h),
             Text(
@@ -331,7 +331,7 @@ class EmptyStateWidget extends StatelessWidget {
                 subtitle!,
                 style: TextStyle(
                   fontSize: 16.sp,
-                  color: Colors.grey[600],
+                  color: AppTheme.neutral600,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -385,7 +385,7 @@ class SectionHeader extends StatelessWidget {
                     subtitle!,
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: Colors.grey[600],
+                      color: AppTheme.neutral600,
                     ),
                   ),
                 ],
@@ -444,7 +444,7 @@ class StatusIndicator extends StatelessWidget {
       case StatusType.online:
         return _StatusColors(Colors.green, Colors.green);
       case StatusType.offline:
-        return _StatusColors(Colors.grey, Colors.grey);
+        return _StatusColors(AppTheme.neutral500, AppTheme.neutral500);
       case StatusType.away:
         return _StatusColors(Colors.yellow, Colors.orange);
       case StatusType.busy:
@@ -479,7 +479,7 @@ class ProgressSteps extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = activeColor ?? AppTheme.primaryColor;
-    final inactive = inactiveColor ?? Colors.grey[300]!;
+    final inactive = inactiveColor ?? AppTheme.neutral300;
 
     return Row(
       children: [
@@ -502,7 +502,7 @@ class ProgressSteps extends StatelessWidget {
                             style: TextStyle(
                               color: i == currentStep
                                   ? Colors.white
-                                  : Colors.grey[600],
+                                  : AppTheme.neutral600,
                               fontWeight: FontWeight.w600,
                               fontSize: 14.sp,
                             ),

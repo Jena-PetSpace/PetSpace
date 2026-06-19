@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 typedef LazyLoadCallback = Future<List<T>> Function<T>();
@@ -202,7 +203,7 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
           child: Text(
             '모든 항목을 불러왔습니다',
             style: TextStyle(
-              color: Colors.grey,
+              color: AppTheme.neutral500,
               fontSize: 14.sp,
             ),
           ),
@@ -247,7 +248,7 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
               _errorMessage!,
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.grey,
+                color: AppTheme.neutral500,
               ),
               textAlign: TextAlign.center,
             ),
@@ -269,14 +270,14 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
           Icon(
             Icons.inbox_outlined,
             size: 64.w,
-            color: Colors.grey,
+            color: AppTheme.neutral500,
           ),
           SizedBox(height: 16.h),
           Text(
             '표시할 항목이 없습니다',
             style: TextStyle(
               fontSize: 16.sp,
-              color: Colors.grey,
+              color: AppTheme.neutral500,
             ),
           ),
         ],

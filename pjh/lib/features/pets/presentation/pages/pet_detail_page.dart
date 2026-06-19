@@ -215,9 +215,9 @@ class PetDetailPage extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: AppTheme.neutral50,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: AppTheme.neutral200),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -288,7 +288,7 @@ class PetDetailPage extends StatelessWidget {
     return Container(
       width: 1,
       height: 50.h,
-      color: Colors.grey[300],
+      color: AppTheme.neutral300,
     );
   }
 
@@ -317,9 +317,9 @@ class PetDetailPage extends StatelessWidget {
           width: double.infinity,
           padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: AppTheme.neutral50,
             borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: AppTheme.neutral200),
           ),
           child: Text(
             pet.description!,

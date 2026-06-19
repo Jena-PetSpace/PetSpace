@@ -32,9 +32,9 @@ class TermsDetailPage extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 child: Text(
                   content,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[800],
+                    color: AppTheme.neutral800,
                     height: 1.6,
                   ),
                 ),

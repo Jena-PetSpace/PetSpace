@@ -25,10 +25,10 @@ class StatisticsSummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   '주간 통계',
                   style: TextStyle(
                     fontSize: 16,
@@ -39,7 +39,7 @@ class StatisticsSummaryCard extends StatelessWidget {
                   '최근 7일',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: AppTheme.neutral600,
                   ),
                 ),
               ],
@@ -115,7 +115,7 @@ class StatisticsSummaryCard extends StatelessWidget {
               Expanded(
                 child: LinearProgressIndicator(
                   value: value,
-                  backgroundColor: Colors.grey[200],
+                  backgroundColor: AppTheme.neutral200,
                   valueColor: AlwaysStoppedAnimation(
                     AppTheme.getEmotionColor(emotion['name'] as String),
                   ),
@@ -187,9 +187,9 @@ class _StatisticItem extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
-              color: Colors.grey[700],
+              color: AppTheme.neutral700,
             ),
           ),
           const SizedBox(height: 4),

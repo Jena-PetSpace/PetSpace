@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/chat_room.dart';
@@ -82,7 +83,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
                                   '$memberCount',
                                   style: TextStyle(
                                     fontSize: 13.sp,
-                                    color: Colors.grey,
+                                    color: AppTheme.neutral500,
                                   ),
                                 ),
                               ),
@@ -92,7 +93,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
                                 child: Icon(
                                   Icons.notifications_off_outlined,
                                   size: 14.w,
-                                  color: Colors.grey,
+                                  color: AppTheme.neutral500,
                                 ),
                               ),
                           ],
@@ -103,7 +104,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
                           _formatTime(widget.room.lastMessageAt!),
                           style: TextStyle(
                             fontSize: 12.sp,
-                            color: Colors.grey,
+                            color: AppTheme.neutral500,
                           ),
                         ),
                     ],
@@ -116,7 +117,7 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
                           widget.room.lastMessage ?? '',
                           style: TextStyle(
                             fontSize: 13.sp,
-                            color: Colors.grey[600],
+                            color: AppTheme.neutral600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -167,10 +168,10 @@ class _ChatRoomTileState extends State<ChatRoomTile> {
 
     return CircleAvatar(
       radius: 24.r,
-      backgroundColor: Colors.grey[200],
+      backgroundColor: AppTheme.neutral200,
       backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
       child: avatarUrl == null
-          ? Icon(Icons.person, size: 24.w, color: Colors.grey[500])
+          ? Icon(Icons.person, size: 24.w, color: AppTheme.neutral500)
           : null,
     );
   }

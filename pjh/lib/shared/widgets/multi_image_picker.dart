@@ -70,7 +70,7 @@ class MultiImagePicker extends StatelessWidget {
               width: 40.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppTheme.neutral300,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -117,27 +117,27 @@ class MultiImagePicker extends StatelessWidget {
             height: 220.h,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: AppTheme.neutral100,
               borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: AppTheme.neutral300),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.add_photo_alternate,
-                    size: 52.w, color: Colors.grey[400]),
+                    size: 52.w, color: AppTheme.neutral400),
                 SizedBox(height: 10.h),
                 Text(
                   '사진 추가하기',
                   style: TextStyle(
-                      color: Colors.grey[600],
+                      color: AppTheme.neutral600,
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w500),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   '최대 $maxImages장 선택 가능',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 12.sp),
+                  style: TextStyle(color: AppTheme.neutral400, fontSize: 12.sp),
                 ),
               ],
             ),
@@ -277,18 +277,18 @@ class _AddButton extends StatelessWidget {
         width: 80.w,
         margin: EdgeInsets.only(right: 4.w),
         decoration: BoxDecoration(
-          color: Colors.grey[100],
+          color: AppTheme.neutral100,
           borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: AppTheme.neutral300),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_photo_alternate, size: 28.w, color: Colors.grey[500]),
+            Icon(Icons.add_photo_alternate, size: 28.w, color: AppTheme.neutral500),
             SizedBox(height: 6.h),
             Text(
               '추가',
-              style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12.sp, color: AppTheme.neutral600),
             ),
           ],
         ),

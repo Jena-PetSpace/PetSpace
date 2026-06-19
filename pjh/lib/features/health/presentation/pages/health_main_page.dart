@@ -483,7 +483,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
           Icon(Icons.error_outline, size: 64.w, color: Colors.red),
           SizedBox(height: 16.h),
           Text(message,
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 14.sp, color: AppTheme.neutral600),
               textAlign: TextAlign.center),
           SizedBox(height: 16.h),
           ElevatedButton(

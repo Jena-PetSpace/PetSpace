@@ -124,7 +124,7 @@ class ManualBreedSelector extends StatelessWidget {
                   labelText: '품종',
                   labelStyle: TextStyle(fontSize: 13.sp),
                   hintText: '입력하여 검색하거나 목록에서 선택',
-                  hintStyle: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                  hintStyle: TextStyle(fontSize: 12.sp, color: AppTheme.neutral500),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10.r),
                   ),
@@ -135,14 +135,14 @@ class ManualBreedSelector extends StatelessWidget {
                   isDense: true,
                   suffixIcon: selectedBreed != null
                       ? IconButton(
-                          icon: Icon(Icons.clear, size: 16.w, color: Colors.grey),
+                          icon: Icon(Icons.clear, size: 16.w, color: AppTheme.neutral500),
                           onPressed: () {
                             onBreedSelected(null);
                             customBreedCtrl.clear();
                             controller.clear();
                           },
                         )
-                      : Icon(Icons.arrow_drop_down, size: 20.w, color: Colors.grey),
+                      : Icon(Icons.arrow_drop_down, size: 20.w, color: AppTheme.neutral500),
                 ),
               );
             },
@@ -203,7 +203,7 @@ class ManualBreedSelector extends StatelessWidget {
                 labelText: '품종 직접 입력',
                 labelStyle: TextStyle(fontSize: 13.sp),
                 hintText: '예: 비숑프리제',
-                hintStyle: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                hintStyle: TextStyle(fontSize: 12.sp, color: AppTheme.neutral500),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.r),
                 ),
@@ -217,7 +217,7 @@ class ManualBreedSelector extends StatelessWidget {
         SizedBox(height: 4.h),
         Text(
           '품종을 선택하면 더 정확한 분석이 가능해요',
-          style: TextStyle(fontSize: 11.sp, color: Colors.grey[500]),
+          style: TextStyle(fontSize: 11.sp, color: AppTheme.neutral500),
         ),
       ],
     );
@@ -247,10 +247,10 @@ class _TypeChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? AppTheme.primaryColor.withValues(alpha: 0.1)
-              : Colors.grey.shade100,
+              : AppTheme.neutral100,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : Colors.grey.shade300,
+            color: isSelected ? AppTheme.primaryColor : AppTheme.neutral300,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -259,7 +259,7 @@ class _TypeChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 13.sp,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? AppTheme.primaryColor : Colors.grey[600],
+            color: isSelected ? AppTheme.primaryColor : AppTheme.neutral600,
           ),
         ),
       ),

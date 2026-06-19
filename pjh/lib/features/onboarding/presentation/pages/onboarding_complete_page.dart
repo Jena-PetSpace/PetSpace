@@ -167,7 +167,7 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
             '펫페이스 설정이 완료되었습니다\n이제 반려동물과의 특별한 순간들을\n기록하고 공유해보세요',
             style: TextStyle(
               fontSize: 16.sp,
-              color: Colors.grey[600],
+              color: AppTheme.neutral600,
               height: 1.6,
             ),
             textAlign: TextAlign.center,
@@ -187,7 +187,7 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
           borderRadius: BorderRadius.circular(16.r),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
+              color: AppTheme.neutral500.withValues(alpha: 0.1),
               blurRadius: 10.r,
               spreadRadius: 2.r,
             ),
@@ -200,7 +200,7 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
               style: TextStyle(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
+                color: AppTheme.neutral800,
               ),
             ),
             SizedBox(height: 20.h),
@@ -263,7 +263,7 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
                 description,
                 style: TextStyle(
                   fontSize: 12.sp,
-                  color: Colors.grey[600],
+                  color: AppTheme.neutral600,
                 ),
               ),
             ],

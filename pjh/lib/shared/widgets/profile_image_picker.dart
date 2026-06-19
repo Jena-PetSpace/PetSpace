@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'image_source_picker.dart';
 
@@ -33,10 +34,10 @@ class ProfileImagePicker extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: radius,
-              backgroundColor: Colors.grey[300],
+              backgroundColor: AppTheme.neutral300,
               backgroundImage: _getImageProvider(),
               child: _getImageProvider() == null
-                  ? Icon(Icons.person, size: radius, color: Colors.grey[600])
+                  ? Icon(Icons.person, size: radius, color: AppTheme.neutral600)
                   : null,
             ),
             Positioned(

@@ -123,7 +123,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
         border: InputBorder.none,
         hintStyle: TextStyle(
           fontSize: 16.sp,
-          color: Colors.grey,
+          color: AppTheme.neutral500,
         ),
       ),
       style: TextStyle(fontSize: 16.sp),
@@ -221,7 +221,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
           color:
               isSelected ? AppTheme.primaryColor.withValues(alpha: 0.1) : null,
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
+            color: isSelected ? AppTheme.primaryColor : AppTheme.neutral300,
           ),
           borderRadius: BorderRadius.circular(20.r),
         ),
@@ -231,14 +231,14 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
             Icon(
               icon,
               size: 16.w,
-              color: isSelected ? AppTheme.primaryColor : Colors.grey,
+              color: isSelected ? AppTheme.primaryColor : AppTheme.neutral500,
             ),
             SizedBox(width: 4.w),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12.sp,
-                color: isSelected ? AppTheme.primaryColor : Colors.grey,
+                color: isSelected ? AppTheme.primaryColor : AppTheme.neutral500,
               ),
             ),
           ],
@@ -331,7 +331,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
               _attachedEmotion = null;
               _postType = PostType.text;
             }),
-            child: Icon(Icons.close, size: 18.w, color: Colors.grey),
+            child: Icon(Icons.close, size: 18.w, color: AppTheme.neutral500),
           ),
         ],
       ),

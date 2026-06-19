@@ -40,12 +40,12 @@ extension _PostCardMedia on _PostCardState {
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   height: 300.h,
-                  color: Colors.grey[200],
+                  color: AppTheme.neutral200,
                   child: const Center(child: CircularProgressIndicator()),
                 ),
                 errorWidget: (context, url, error) => Container(
                   height: 300.h,
-                  color: Colors.grey[200],
+                  color: AppTheme.neutral200,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -53,7 +53,7 @@ extension _PostCardMedia on _PostCardState {
                       SizedBox(height: 8.h),
                       Text('이미지 로드 실패',
                           style: TextStyle(
-                              color: Colors.grey[600], fontSize: 14.sp)),
+                              color: AppTheme.neutral600, fontSize: 14.sp)),
                     ],
                   ),
                 ),
@@ -90,12 +90,12 @@ extension _PostCardMedia on _PostCardState {
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
                           height: 300.h,
-                          color: Colors.grey[200],
+                          color: AppTheme.neutral200,
                           child: const Center(child: CircularProgressIndicator()),
                         ),
                         errorWidget: (context, url, error) => Container(
                           height: 300.h,
-                          color: Colors.grey[200],
+                          color: AppTheme.neutral200,
                           child: Icon(Icons.error, color: Colors.red, size: 24.w),
                         ),
                       ),
@@ -118,7 +118,7 @@ extension _PostCardMedia on _PostCardState {
                   shape: BoxShape.circle,
                   color: _currentImageIndex == index
                       ? AppTheme.primaryColor
-                      : Colors.grey[300],
+                      : AppTheme.neutral300,
                 ),
               );
             }),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -361,7 +362,7 @@ class _ResultContent extends StatelessWidget {
       decoration: BoxDecoration(
         color: MbtiTheme.bg,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppTheme.neutral200),
       ),
       child: Text(
         content.disclaimer,

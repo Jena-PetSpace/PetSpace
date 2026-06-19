@@ -69,7 +69,7 @@ class AdditionalInputSection extends StatelessWidget {
             buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
             decoration: InputDecoration(
               hintText: '장소, 상황, 특이사항 등\nex) 산책 직후, 방금 목욕을 마쳤어요',
-              hintStyle: TextStyle(fontSize: 11.sp, color: Colors.grey),
+              hintStyle: TextStyle(fontSize: 11.sp, color: AppTheme.neutral500),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.r),
               ),

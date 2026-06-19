@@ -265,9 +265,9 @@ class _OnboardingEmailVerificationPageState
               // 설명
               Text(
                 '${widget.email}로\n발송된 6자리 인증 코드를 입력해주세요',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
-                  color: Colors.grey[600],
+                  color: AppTheme.neutral600,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -301,15 +301,15 @@ class _OnboardingEmailVerificationPageState
                               const EdgeInsets.symmetric(vertical: 16),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Colors.grey[300]!,
+                            borderSide: const BorderSide(
+                              color: AppTheme.neutral300,
                               width: 2,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Colors.grey[300]!,
+                            borderSide: const BorderSide(
+                              color: AppTheme.neutral300,
                               width: 2,
                             ),
                           ),
@@ -395,10 +395,10 @@ class _OnboardingEmailVerificationPageState
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  const Text(
                     '인증 코드를 받지 못하셨나요?',
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: AppTheme.neutral600,
                       fontSize: 14,
                     ),
                   ),
@@ -411,7 +411,7 @@ class _OnboardingEmailVerificationPageState
                       _resendCountdown > 0 ? '재발송 ($_resendCountdown초)' : '재발송',
                       style: TextStyle(
                         color: (_isResending || _resendCountdown > 0)
-                            ? Colors.grey
+                            ? AppTheme.neutral500
                             : AppTheme.accentColor,
                         fontWeight: FontWeight.w600,
                       ),

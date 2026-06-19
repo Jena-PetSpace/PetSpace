@@ -255,14 +255,14 @@ class AnalysisGuidePage extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(10.w),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: AppTheme.neutral100,
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(Icons.info_outline,
-                              size: 14.w, color: Colors.grey[500]),
+                              size: 14.w, color: AppTheme.neutral500),
                           SizedBox(width: 6.w),
                           Expanded(
                             child: Text(
@@ -270,7 +270,7 @@ class AnalysisGuidePage extends StatelessWidget {
                               '이상 징후가 지속되면 동물병원을 방문해주세요.',
                               style: TextStyle(
                                 fontSize: 10.sp,
-                                color: Colors.grey[500],
+                                color: AppTheme.neutral500,
                                 height: 1.5,
                               ),
                             ),

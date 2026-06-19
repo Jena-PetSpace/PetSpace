@@ -379,11 +379,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.error_outline,
-                            size: 48.w, color: Colors.grey),
+                            size: 48.w, color: AppTheme.neutral500),
                         SizedBox(height: 12.h),
                         Text(state.message,
                             style:
-                                TextStyle(fontSize: 14.sp, color: Colors.grey)),
+                                TextStyle(fontSize: 14.sp, color: AppTheme.neutral500)),
                         SizedBox(height: 12.h),
                         ElevatedButton(
                           onPressed: () {
@@ -444,7 +444,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       return Center(
         child: Text(
           '첫 메시지를 보내보세요!',
-          style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+          style: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
         ),
       );
     }
@@ -528,12 +528,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         margin: EdgeInsets.symmetric(vertical: 12.h),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: Colors.grey[300],
+          color: AppTheme.neutral300,
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Text(
           text,
-          style: TextStyle(fontSize: 12.sp, color: Colors.grey[700]),
+          style: TextStyle(fontSize: 12.sp, color: AppTheme.neutral700),
         ),
       ),
     );

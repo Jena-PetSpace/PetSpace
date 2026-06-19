@@ -106,7 +106,7 @@ class _OnboardingPetRegistrationPageState
           '반려동물의 정보를 입력하면 더 정확한 감정 분석을 받을 수 있어요',
           style: TextStyle(
             fontSize: 16.sp,
-            color: Colors.grey[600],
+            color: AppTheme.neutral600,
           ),
         ),
       ],
@@ -152,7 +152,7 @@ class _OnboardingPetRegistrationPageState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: AppTheme.neutral300),
       ),
       child: Row(
         children: [
@@ -179,7 +179,7 @@ class _OnboardingPetRegistrationPageState
                 Text(
                   '${pet['type'] == PetType.dog ? '강아지' : '고양이'} • ${pet['breed']} • ${pet['gender']}',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: AppTheme.neutral600,
                     fontSize: 12.sp,
                   ),
                 ),
@@ -354,10 +354,10 @@ class _OnboardingPetRegistrationPageState
         decoration: BoxDecoration(
           color: isSelected
               ? AppTheme.primaryColor.withValues(alpha: 0.1)
-              : Colors.grey[100],
+              : AppTheme.neutral100,
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
+            color: isSelected ? AppTheme.primaryColor : AppTheme.neutral300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -366,13 +366,13 @@ class _OnboardingPetRegistrationPageState
             Icon(
               icon,
               size: 32.w,
-              color: isSelected ? AppTheme.primaryColor : Colors.grey[600],
+              color: isSelected ? AppTheme.primaryColor : AppTheme.neutral600,
             ),
             SizedBox(height: 8.h),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? AppTheme.primaryColor : Colors.grey[700],
+                color: isSelected ? AppTheme.primaryColor : AppTheme.neutral700,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 fontSize: 14.sp,
               ),
@@ -490,17 +490,17 @@ class _OnboardingPetRegistrationPageState
         decoration: BoxDecoration(
           color: isSelected
               ? AppTheme.primaryColor.withValues(alpha: 0.1)
-              : Colors.grey[100],
+              : AppTheme.neutral100,
           borderRadius: BorderRadius.circular(8.r),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : Colors.grey[300]!,
+            color: isSelected ? AppTheme.primaryColor : AppTheme.neutral300,
           ),
         ),
         child: Center(
           child: Text(
             gender,
             style: TextStyle(
-              color: isSelected ? AppTheme.primaryColor : Colors.grey[700],
+              color: isSelected ? AppTheme.primaryColor : AppTheme.neutral700,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               fontSize: 14.sp,
             ),
@@ -516,19 +516,19 @@ class _OnboardingPetRegistrationPageState
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: AppTheme.neutral300),
           borderRadius: BorderRadius.circular(8.r),
         ),
         child: Row(
           children: [
-            Icon(Icons.calendar_today, color: Colors.grey[600], size: 24.w),
+            Icon(Icons.calendar_today, color: AppTheme.neutral600, size: 24.w),
             SizedBox(width: 12.w),
             Text(
               _birthDate == null
                   ? '생년월일 (선택)'
                   : '${_birthDate!.year}년 ${_birthDate!.month}월 ${_birthDate!.day}일',
               style: TextStyle(
-                color: _birthDate == null ? Colors.grey[600] : Colors.black,
+                color: _birthDate == null ? AppTheme.neutral600 : Colors.black,
                 fontSize: 16.sp,
               ),
             ),
@@ -575,7 +575,7 @@ class _OnboardingPetRegistrationPageState
               '나중에 등록하기',
               style: TextStyle(
                 fontSize: 14.sp,
-                color: Colors.grey[600],
+                color: AppTheme.neutral600,
               ),
             ),
           ),

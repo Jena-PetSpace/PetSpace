@@ -88,13 +88,13 @@ class _PetManagementPageState extends State<PetManagementPage> {
             Icon(
               Icons.error_outline,
               size: 64.w,
-              color: Colors.grey[400],
+              color: AppTheme.neutral400,
             ),
             SizedBox(height: 16.h),
             Text(
               message,
               style: TextStyle(
-                color: Colors.grey[600],
+                color: AppTheme.neutral600,
                 fontSize: 16.sp,
               ),
               textAlign: TextAlign.center,

@@ -137,7 +137,7 @@ class _EmotionTrendPageState extends State<EmotionTrendPage>
             SizedBox(height: 16.h),
             LinearProgressIndicator(
               value: _trend.trendStrength,
-              backgroundColor: Colors.grey[300],
+              backgroundColor: AppTheme.neutral300,
               valueColor: AlwaysStoppedAnimation<Color>(trendColor),
             ),
             SizedBox(height: 8.h),

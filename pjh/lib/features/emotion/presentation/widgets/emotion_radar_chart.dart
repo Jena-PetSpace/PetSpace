@@ -44,11 +44,11 @@ class EmotionRadarChart extends StatelessWidget {
             fontSize: 10.sp,
           ),
           tickBorderData: BorderSide(
-            color: Colors.grey.withValues(alpha: 0.3),
+            color: AppTheme.neutral500.withValues(alpha: 0.3),
             width: 1,
           ),
           gridBorderData: BorderSide(
-            color: Colors.grey.withValues(alpha: 0.3),
+            color: AppTheme.neutral500.withValues(alpha: 0.3),
             width: 1,
           ),
           radarBorderData: const BorderSide(color: Colors.transparent),
@@ -148,7 +148,7 @@ class EmotionIntensityGauge extends StatelessWidget {
               Container(
                 height: 8.h,
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.2),
+                  color: AppTheme.neutral500.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4.r),
                 ),
               ),
@@ -340,7 +340,7 @@ class EmotionComparisonBar extends StatelessWidget {
                         Container(
                           height: 6.h,
                           decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.15),
+                            color: AppTheme.neutral500.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(3.r),
                           ),
                         ),

@@ -201,14 +201,14 @@ class PetCard extends StatelessWidget {
         Icon(
           icon,
           size: 14.w,
-          color: color ?? Colors.grey[600],
+          color: color ?? AppTheme.neutral600,
         ),
         SizedBox(width: 4.w),
         Text(
           label,
           style: TextStyle(
             fontSize: 12.sp,
-            color: color ?? Colors.grey[600],
+            color: color ?? AppTheme.neutral600,
           ),
         ),
       ],
@@ -265,14 +265,14 @@ class PetCard extends StatelessWidget {
       ],
       child: Container(
         padding: EdgeInsets.all(8.w),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.grey[100],
+          color: AppTheme.neutral100,
         ),
         child: Icon(
           Icons.more_vert,
           size: 20.w,
-          color: Colors.grey,
+          color: AppTheme.neutral500,
         ),
       ),
     );

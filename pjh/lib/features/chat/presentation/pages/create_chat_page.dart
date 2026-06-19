@@ -206,11 +206,11 @@ class _CreateChatPageState extends State<CreateChatPage> {
           return Chip(
             avatar: CircleAvatar(
               radius: 12.r,
-              backgroundColor: Colors.grey[200],
+              backgroundColor: AppTheme.neutral200,
               backgroundImage:
                   user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
               child: user.photoUrl == null
-                  ? Icon(Icons.person, size: 12.w, color: Colors.grey[500])
+                  ? Icon(Icons.person, size: 12.w, color: AppTheme.neutral500)
                   : null,
             ),
             label: Text(
@@ -233,7 +233,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
         controller: _groupNameController,
         decoration: InputDecoration(
           hintText: '그룹 채팅방 이름 (선택)',
-          hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
+          hintStyle: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
           prefixIcon: const Icon(Icons.group),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.r),
@@ -253,7 +253,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
         onChanged: (value) => _searchUsers(value),
         decoration: InputDecoration(
           hintText: '닉네임 또는 반려동물 이름으로 검색',
-          hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
+          hintStyle: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
           prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
@@ -287,16 +287,16 @@ class _CreateChatPageState extends State<CreateChatPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people_outline, size: 48.w, color: Colors.grey[300]),
+            Icon(Icons.people_outline, size: 48.w, color: AppTheme.neutral300),
             SizedBox(height: 12.h),
             Text(
               '팔로잉한 사용자가 없습니다',
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+              style: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
             ),
             SizedBox(height: 4.h),
             Text(
               '닉네임 또는 반려동물 이름으로 검색하세요',
-              style: TextStyle(fontSize: 12.sp, color: Colors.grey[400]),
+              style: TextStyle(fontSize: 12.sp, color: AppTheme.neutral400),
             ),
           ],
         ),
@@ -341,11 +341,11 @@ class _CreateChatPageState extends State<CreateChatPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 48.w, color: Colors.grey[300]),
+            Icon(Icons.search_off, size: 48.w, color: AppTheme.neutral300),
             SizedBox(height: 12.h),
             Text(
               '검색 결과가 없습니다',
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+              style: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
             ),
           ],
         ),
@@ -367,11 +367,11 @@ class _CreateChatPageState extends State<CreateChatPage> {
     return ListTile(
       leading: CircleAvatar(
         radius: 20.r,
-        backgroundColor: Colors.grey[200],
+        backgroundColor: AppTheme.neutral200,
         backgroundImage:
             user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
         child: user.photoUrl == null
-            ? Icon(Icons.person, size: 20.w, color: Colors.grey[500])
+            ? Icon(Icons.person, size: 20.w, color: AppTheme.neutral500)
             : null,
       ),
       title: Text(
@@ -381,7 +381,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
       trailing: isSelected
           ? Icon(Icons.check_circle,
               color: Theme.of(context).colorScheme.primary)
-          : Icon(Icons.circle_outlined, color: Colors.grey[400]),
+          : const Icon(Icons.circle_outlined, color: AppTheme.neutral400),
       onTap: () => _toggleUserSelection(user),
     );
   }

@@ -185,7 +185,7 @@ class _HotTopicBannerState extends State<HotTopicBanner> {
     return Container(
       height: 48.h,
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: AppTheme.neutral200,
         borderRadius: BorderRadius.circular(14.r),
       ),
     );

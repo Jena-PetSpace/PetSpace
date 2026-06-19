@@ -73,7 +73,7 @@ class UploadProgressWidget extends StatelessWidget {
                 Expanded(
                   child: LinearProgressIndicator(
                     value: progress,
-                    backgroundColor: Colors.grey[300],
+                    backgroundColor: AppTheme.neutral300,
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       AppTheme.primaryColor,
                     ),
@@ -84,7 +84,7 @@ class UploadProgressWidget extends StatelessWidget {
                   '${(progress * 100).toInt()}%',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: Colors.grey[600],
+                    color: AppTheme.neutral600,
                   ),
                 ),
               ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:go_router/go_router.dart';
 
 /// 카카오 브랜드 공식 컬러 — 디자인 토큰 아님 (브랜드 가이드 고정값)
@@ -61,7 +62,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
             // 상단 카카오 브랜딩
             Container(
               padding: const EdgeInsets.symmetric(vertical: 20),
-              color: Colors.grey[50],
+              color: AppTheme.neutral50,
               child: Center(
                 child: Column(
                   children: [
@@ -130,7 +131,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                                 '(주)제나',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey,
+                                  color: AppTheme.neutral500,
                                 ),
                               ),
                             ],
@@ -149,7 +150,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                           border: Border.all(
                             color: _allAgreed
                                 ? Colors.orange
-                                : Colors.grey.shade300,
+                                : AppTheme.neutral300,
                             width: 1.5,
                           ),
                           borderRadius: BorderRadius.circular(12),
@@ -160,7 +161,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                               _allAgreed
                                   ? Icons.check_circle
                                   : Icons.circle_outlined,
-                              color: _allAgreed ? Colors.orange : Colors.grey,
+                              color: _allAgreed ? Colors.orange : AppTheme.neutral500,
                               size: 24,
                             ),
                             const SizedBox(width: 12),
@@ -177,13 +178,13 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                     ),
                     const SizedBox(height: 8),
 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         '전체 동의는 선택 항목에 대한 동의를 포함하고 있으며, 선택 항목에 동의하지 않아도 서비스 이용이 가능합니다.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: AppTheme.neutral600,
                           height: 1.5,
                         ),
                       ),
@@ -220,7 +221,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: AppTheme.neutral50,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
@@ -234,22 +235,22 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Text(
+                          const Text(
                             '펫페이스 서비스 제공을 위해 권한받은 정보를 수집 및 이용합니다. 또한 지속적인 서비스 제공을 위해 카카오에게 정보를 요청합니다. 해당 정보는 동의 철회 시 지체없이 파기됩니다.',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: AppTheme.neutral700,
                               height: 1.5,
                             ),
                           ),
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              Text(
+                              const Text(
                                 '[필수] 카카오 개인정보 제3자 제공 동의',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[700],
+                                  color: AppTheme.neutral700,
                                 ),
                               ),
                               const Spacer(),
@@ -266,11 +267,11 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                                     builder: (_) => _ThirdPartyConsentSheet(),
                                   );
                                 },
-                                child: Text(
+                                child: const Text(
                                   '보기',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[600],
+                                    color: AppTheme.neutral600,
                                     decoration: TextDecoration.underline,
                                   ),
                                 ),
@@ -315,13 +316,13 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                       : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
-                        _canProceed ? _kakaoYellow : Colors.grey[300],
+                        _canProceed ? _kakaoYellow : AppTheme.neutral300,
                     foregroundColor: Colors.black87,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    disabledBackgroundColor: Colors.grey[300],
+                    disabledBackgroundColor: AppTheme.neutral300,
                   ),
                   child: const Text(
                     '동의하고 계속하기',
@@ -351,7 +352,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
         children: [
           Icon(
             value ? Icons.check_circle : Icons.circle_outlined,
-            color: value ? Colors.orange : Colors.grey,
+            color: value ? Colors.orange : AppTheme.neutral500,
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -366,7 +367,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                   TextSpan(
                     text: isRequired ? '[필수] ' : '[선택] ',
                     style: TextStyle(
-                      color: isRequired ? Colors.orange : Colors.grey,
+                      color: isRequired ? Colors.orange : AppTheme.neutral500,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -401,7 +402,7 @@ class _ThirdPartyConsentSheet extends StatelessWidget {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: AppTheme.neutral300,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -412,7 +413,7 @@ class _ThirdPartyConsentSheet extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              Text(
+              const Text(
                 '펫페이스(PetSpace)는 원활한 서비스 제공을 위해 카카오(주)로부터 아래와 같이 회원 정보를 제공받습니다.\n\n'
                 '1. 제공받는 항목\n'
                 '   - 필수: 프로필 정보(닉네임/프로필 사진)\n'
@@ -425,7 +426,7 @@ class _ThirdPartyConsentSheet extends StatelessWidget {
                 '   - 관련 법령에 의해 일정 기간 보관이 필요한 경우 해당 기간 동안 보관\n\n'
                 '이용자는 본 동의를 거부할 수 있으며, 동의 거부 시 카카오 간편 로그인을 이용할 수 없습니다.',
                 style: TextStyle(
-                    fontSize: 13, color: Colors.grey[700], height: 1.6),
+                    fontSize: 13, color: AppTheme.neutral700, height: 1.6),
               ),
               const SizedBox(height: 20),
               SizedBox(

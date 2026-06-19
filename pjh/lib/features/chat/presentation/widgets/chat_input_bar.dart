@@ -110,13 +110,13 @@ class _ChatInputBarState extends State<ChatInputBar> {
             onPressed: _showImageSourceSheet,
             icon: Icon(Icons.add_photo_alternate_outlined, size: 24.w),
             tooltip: '사진 선택',
-            color: Colors.grey[600],
+            color: AppTheme.neutral600,
           ),
           Expanded(
             child: Container(
               constraints: BoxConstraints(maxHeight: 100.h),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: AppTheme.neutral100,
                 borderRadius: BorderRadius.circular(20.r),
               ),
               child: TextField(
@@ -127,7 +127,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 onSubmitted: (_) => _handleSendText(),
                 decoration: InputDecoration(
                   hintText: '메시지를 입력하세요',
-                  hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                  hintStyle: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 16.w,
@@ -155,7 +155,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                     size: 24.w,
                     color: _hasText
                         ? Theme.of(context).colorScheme.primary
-                        : Colors.grey[400],
+                        : AppTheme.neutral400,
                   ),
                 ),
         ],
@@ -277,7 +277,7 @@ class _ImagePreviewDialogState extends State<_ImagePreviewDialog> {
                       shape: BoxShape.circle,
                       color: index == _currentPage
                           ? AppTheme.primaryColor
-                          : Colors.grey[300],
+                          : AppTheme.neutral300,
                     ),
                   ),
                 ),
@@ -303,7 +303,7 @@ class _ImagePreviewDialogState extends State<_ImagePreviewDialog> {
                       '취소',
                       style: TextStyle(
                         fontSize: 15.sp,
-                        color: Colors.grey[600],
+                        color: AppTheme.neutral600,
                       ),
                     ),
                   ),

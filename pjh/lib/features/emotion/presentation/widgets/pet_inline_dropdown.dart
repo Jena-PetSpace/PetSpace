@@ -206,7 +206,7 @@ class _PetInlineDropdownState extends State<PetInlineDropdown> {
       height: size,
       decoration: BoxDecoration(
         color: pet == null
-            ? Colors.grey.shade100
+            ? AppTheme.neutral100
             : AppTheme.primaryColor.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),

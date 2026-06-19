@@ -147,7 +147,7 @@ extension _PostCardActions on _PostCardState {
                   Icon(Icons.location_on, size: 16.w,
                       color: (post.locationLat != null && post.locationLng != null)
                           ? AppTheme.primaryColor
-                          : Colors.grey),
+                          : AppTheme.neutral500),
                   SizedBox(width: 4.w),
                   Text(
                     post.location!,
@@ -155,7 +155,7 @@ extension _PostCardActions on _PostCardState {
                       fontSize: 12.sp,
                       color: (post.locationLat != null && post.locationLng != null)
                           ? AppTheme.primaryColor
-                          : Colors.grey,
+                          : AppTheme.neutral500,
                     ),
                   ),
                 ],

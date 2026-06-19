@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfileStatsCard extends StatelessWidget {
@@ -60,7 +61,7 @@ class ProfileStatsCard extends StatelessWidget {
     return Container(
       height: 30.h,
       width: 1,
-      color: Colors.grey[300],
+      color: AppTheme.neutral300,
     );
   }
 

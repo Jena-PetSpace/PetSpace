@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 import '../../../mbti/presentation/theme/mbti_theme.dart';
 import '../../domain/entities/daily_fortune.dart';
@@ -235,7 +236,7 @@ class FortuneShareCard extends StatelessWidget {
           Icon(
             i <= clamped ? Icons.star_rounded : Icons.star_outline_rounded,
             size: size,
-            color: i <= clamped ? filled : Colors.grey.shade300,
+            color: i <= clamped ? filled : AppTheme.neutral300,
           ),
       ],
     );

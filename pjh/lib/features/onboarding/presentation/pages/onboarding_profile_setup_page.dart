@@ -78,22 +78,22 @@ class _OnboardingProfileSetupPageState
   }
 
   Widget _buildHeader() {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '프로필을 설정해주세요',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(
           '다른 사용자들에게 보여질 정보입니다',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey[600],
+            color: AppTheme.neutral600,
           ),
         ),
       ],
