@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/icon_badge_circle.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class OnboardingSlidesPage extends StatefulWidget {
@@ -73,18 +74,10 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.pets,
-              size: 100,
-              color: AppTheme.primaryColor,
-            ),
+          const IconBadgeCircle(
+            icon: Icons.pets,
+            size: 200,
+            tone: BadgeTone.neutral,
           ),
           const SizedBox(height: 48),
           const Text(
@@ -117,18 +110,10 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              color: AppTheme.highlightColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.psychology,
-              size: 100,
-              color: AppTheme.highlightColor,
-            ),
+          const IconBadgeCircle(
+            icon: Icons.psychology,
+            size: 200,
+            tone: BadgeTone.neutral,
           ),
           const SizedBox(height: 48),
           const Text(
@@ -161,18 +146,10 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              color: AppTheme.subColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.people,
-              size: 100,
-              color: AppTheme.subColor,
-            ),
+          const IconBadgeCircle(
+            icon: Icons.people,
+            size: 200,
+            tone: BadgeTone.neutral,
           ),
           const SizedBox(height: 48),
           const Text(

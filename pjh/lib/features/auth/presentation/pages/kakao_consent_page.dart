@@ -260,7 +260,8 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                                     context: context,
                                     isScrollControlled: true,
                                     shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(16)),
                                     ),
                                     builder: (_) => _ThirdPartyConsentSheet(),
                                   );
@@ -313,9 +314,8 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _canProceed
-                        ? _kakaoYellow
-                        : Colors.grey[300],
+                    backgroundColor:
+                        _canProceed ? _kakaoYellow : Colors.grey[300],
                     foregroundColor: Colors.black87,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -424,7 +424,8 @@ class _ThirdPartyConsentSheet extends StatelessWidget {
                 '   - 회원 탈퇴 시까지\n'
                 '   - 관련 법령에 의해 일정 기간 보관이 필요한 경우 해당 기간 동안 보관\n\n'
                 '이용자는 본 동의를 거부할 수 있으며, 동의 거부 시 카카오 간편 로그인을 이용할 수 없습니다.',
-                style: TextStyle(fontSize: 13, color: Colors.grey[700], height: 1.6),
+                style: TextStyle(
+                    fontSize: 13, color: Colors.grey[700], height: 1.6),
               ),
               const SizedBox(height: 20),
               SizedBox(

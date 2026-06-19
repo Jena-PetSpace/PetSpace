@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/icon_badge_circle.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class PasswordResetRequestPage extends StatefulWidget {
@@ -97,20 +98,12 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
               children: [
                 const SizedBox(height: 20),
 
-                // 아이콘
-                Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentColor.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.lock_reset,
-                      size: 50,
-                      color: AppTheme.accentColor,
-                    ),
+                // 아이콘 (인증·보안 맥락 → feature 톤)
+                const Center(
+                  child: IconBadgeCircle(
+                    icon: Icons.lock_reset,
+                    size: 100,
+                    tone: BadgeTone.feature,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -148,7 +141,8 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    prefixIcon: const Icon(Icons.email),
+                    prefixIcon: const Icon(Icons.email,
+                        color: AppTheme.secondaryTextColor),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {

@@ -187,7 +187,7 @@ class _OnboardingProfileSetupPageState
             labelText: '닉네임 *',
             hintText: '사용하실 닉네임을 입력해주세요',
             border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.person),
+            prefixIcon: Icon(Icons.person, color: AppTheme.secondaryTextColor),
           ),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
@@ -211,7 +211,7 @@ class _OnboardingProfileSetupPageState
             labelText: '자기소개 (선택)',
             hintText: '간단한 자기소개를 작성해보세요',
             border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.edit),
+            prefixIcon: Icon(Icons.edit, color: AppTheme.secondaryTextColor),
             alignLabelWithHint: true,
           ),
         ),

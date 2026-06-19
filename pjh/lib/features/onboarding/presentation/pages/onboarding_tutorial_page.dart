@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/icon_badge_circle.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class OnboardingTutorialPage extends StatefulWidget {
@@ -105,18 +106,10 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 150.w,
-            height: 150.w,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.psychology,
-              size: 80.w,
-              color: AppTheme.primaryColor,
-            ),
+          IconBadgeCircle(
+            icon: Icons.psychology,
+            size: 150.w,
+            tone: BadgeTone.neutral,
           ),
           SizedBox(height: 40.h),
           Text(
@@ -420,18 +413,13 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 150.w,
-            height: 150.w,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.star,
-              size: 80.w,
-              color: AppTheme.primaryColor,
-            ),
+          // 완료/성공 비주얼은 complete 기준(발바닥 + 성공 체크)으로 통일 — 회색 별 폐기
+          IconBadgeCircle(
+            icon: Icons.pets,
+            size: 150.w,
+            tone: BadgeTone.success,
+            ring: true,
+            cornerBadge: SuccessCheckBadge(size: 40.w),
           ),
           SizedBox(height: 40.h),
           Text(

@@ -213,7 +213,8 @@ class _OnboardingPetRegistrationPageState
                 labelText: '이름 *',
                 hintText: '반려동물의 이름을 입력해주세요',
                 border: const OutlineInputBorder(),
-                prefixIcon: Icon(Icons.pets, size: 24.w),
+                prefixIcon: Icon(Icons.pets,
+                    size: 24.w, color: AppTheme.secondaryTextColor),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -390,7 +391,8 @@ class _OnboardingPetRegistrationPageState
           labelText: '품종 (선택)',
           hintText: '먼저 반려동물 종류를 선택해주세요',
           border: const OutlineInputBorder(),
-          prefixIcon: Icon(Icons.category, size: 24.w),
+          prefixIcon:
+              Icon(Icons.pets, size: 24.w, color: AppTheme.secondaryTextColor),
         ),
       );
     }
@@ -405,7 +407,8 @@ class _OnboardingPetRegistrationPageState
           decoration: InputDecoration(
             labelText: '품종 (선택)',
             border: const OutlineInputBorder(),
-            prefixIcon: Icon(Icons.category, size: 24.w),
+            prefixIcon: Icon(Icons.pets,
+                size: 24.w, color: AppTheme.secondaryTextColor),
           ),
           hint: const Text('품종을 선택하세요'),
           items: breeds.map((String breed) {
@@ -432,7 +435,8 @@ class _OnboardingPetRegistrationPageState
               labelText: '품종 직접 입력',
               hintText: '예: 믹스견, 코숏 등',
               border: const OutlineInputBorder(),
-              prefixIcon: Icon(Icons.edit, size: 24.w),
+              prefixIcon: Icon(Icons.edit,
+                  size: 24.w, color: AppTheme.secondaryTextColor),
             ),
             validator: (value) {
               if (_isCustomBreed && (value == null || value.trim().isEmpty)) {

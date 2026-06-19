@@ -142,15 +142,18 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
           children: [
             // ── 배경 장식 링 (화이트 7% opacity, 깊이감) ──
             Positioned(
-              top: -80, right: -100,
+              top: -80,
+              right: -100,
               child: _DecoRing(size: 300.r),
             ),
             Positioned(
-              bottom: -40, left: -80,
+              bottom: -40,
+              left: -80,
               child: _DecoRing(size: 220.r),
             ),
             Positioned(
-              top: 100, left: -50,
+              top: 100,
+              left: -50,
               child: _DecoRing(size: 140.r),
             ),
 
@@ -260,7 +263,8 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
             // ── 하단: 3dot 로딩 인디케이터 + JENA Team (home indicator 영역 회피) ──
             Positioned(
               bottom: 48.h + MediaQuery.of(context).padding.bottom,
-              left: 0, right: 0,
+              left: 0,
+              right: 0,
               child: Column(
                 children: [
                   Row(
@@ -297,7 +301,8 @@ class _DecoRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size, height: size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
@@ -354,7 +359,8 @@ class _LoadingDotState extends State<_LoadingDot>
       child: FadeTransition(
         opacity: _anim,
         child: Container(
-          width: 5.w, height: 5.w,
+          width: 5.w,
+          height: 5.w,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
             color: AppTheme.highlightColor,

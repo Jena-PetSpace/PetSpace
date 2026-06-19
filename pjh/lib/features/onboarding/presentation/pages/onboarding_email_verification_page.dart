@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/icon_badge_circle.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class OnboardingEmailVerificationPage extends StatefulWidget {
@@ -28,7 +29,8 @@ class _OnboardingEmailVerificationPageState
       List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   // KeyboardListener 전용 FocusNode (dispose 관리)
-  final List<FocusNode> _keyboardListenerNodes = List.generate(6, (_) => FocusNode());
+  final List<FocusNode> _keyboardListenerNodes =
+      List.generate(6, (_) => FocusNode());
 
   bool _isVerifying = false;
   bool _isResending = false;
@@ -238,20 +240,12 @@ class _OnboardingEmailVerificationPageState
             children: [
               const SizedBox(height: 20),
 
-              // 이메일 아이콘
-              Center(
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.mark_email_read_outlined,
-                    size: 50,
-                    color: AppTheme.accentColor,
-                  ),
+              // 이메일 아이콘 (인증·보안 맥락 → feature 톤)
+              const Center(
+                child: IconBadgeCircle(
+                  icon: Icons.mark_email_read_outlined,
+                  size: 100,
+                  tone: BadgeTone.feature,
                 ),
               ),
               const SizedBox(height: 32),

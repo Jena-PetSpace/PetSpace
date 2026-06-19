@@ -187,8 +187,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   Widget _buildHeader() {
     return PetSpaceHeroHeader(
       title: _isLogin ? '로그인' : '회원가입',
-      subtitle:
-          _isLogin ? '펫페이스에 오신 것을 환영합니다' : '새로운 계정을 만들어보세요',
+      subtitle: _isLogin ? '펫페이스에 오신 것을 환영합니다' : '새로운 계정을 만들어보세요',
     );
   }
 
@@ -303,7 +302,8 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                 labelText: '성명',
                 hintText: '실명을 입력해주세요',
                 border: const OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person, size: 24.w),
+                prefixIcon: Icon(Icons.person,
+                    size: 24.w, color: AppTheme.secondaryTextColor),
               ),
               validator: (value) {
                 if (!_isLogin) {
@@ -329,7 +329,8 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
               labelText: '이메일',
               hintText: 'example@email.com',
               border: const OutlineInputBorder(),
-              prefixIcon: Icon(Icons.email, size: 24.w),
+              prefixIcon: Icon(Icons.email,
+                  size: 24.w, color: AppTheme.secondaryTextColor),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -349,7 +350,8 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
               labelText: '비밀번호',
               hintText: '비밀번호를 입력하세요',
               border: const OutlineInputBorder(),
-              prefixIcon: Icon(Icons.lock, size: 24.w),
+              prefixIcon: Icon(Icons.lock,
+                  size: 24.w, color: AppTheme.secondaryTextColor),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -371,7 +373,8 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                 labelText: '비밀번호 확인',
                 hintText: '비밀번호를 다시 입력하세요',
                 border: const OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock_outline, size: 24.w),
+                prefixIcon: Icon(Icons.lock_outline,
+                    size: 24.w, color: AppTheme.secondaryTextColor),
               ),
               validator: (value) {
                 if (!_isLogin) {
