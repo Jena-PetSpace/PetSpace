@@ -175,24 +175,14 @@ class _OnboardingProfileSetupPageState
   }
 
   Widget _buildAvatarPlaceholder() {
-    return const Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.add_a_photo,
-          size: 40,
-          color: AppTheme.primaryColor,
-        ),
-        SizedBox(height: 8),
-        Text(
-          '프로필 사진',
-          style: TextStyle(
-            color: AppTheme.primaryColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+    // 원형(120px) 안에 텍스트를 넣으면 곡면 가장자리/카메라 배지와 겹쳐 잘리므로
+    // 아이콘만 중앙 배치한다. '사진 추가' 의도는 우하단 카메라 배지로 전달.
+    return const Center(
+      child: Icon(
+        Icons.add_a_photo,
+        size: 40,
+        color: AppTheme.primaryColor,
+      ),
     );
   }
 

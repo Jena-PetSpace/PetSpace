@@ -57,24 +57,36 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(24.w),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(flex: 2),
-              _buildSuccessAnimation(),
-              SizedBox(height: 24.h),
-              _buildWelcomeMessage(),
-              SizedBox(height: 24.h),
-              _buildFeatureHighlights(),
-              SizedBox(height: 16.h),
-              _buildFirstAnalysisCta(),
-              const Spacer(flex: 3),
-              _buildActionButtons(),
-              SizedBox(height: 16.h),
-            ],
-          ),
+        // 작은 화면(예: iPhone 17 Pro 402×874)에서 고정 Column이 19px 넘치던 문제 수정.
+        // 뷰포트보다 콘텐츠가 크면 스크롤되고, 작으면 Spacer로 중앙 정렬 유지.
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.all(24.w),
+                    child: Column(
+                      children: [
+                        const Spacer(flex: 2),
+                        _buildSuccessAnimation(),
+                        SizedBox(height: 24.h),
+                        _buildWelcomeMessage(),
+                        SizedBox(height: 24.h),
+                        _buildFeatureHighlights(),
+                        SizedBox(height: 16.h),
+                        _buildFirstAnalysisCta(),
+                        const Spacer(flex: 3),
+                        _buildActionButtons(),
+                        SizedBox(height: 16.h),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

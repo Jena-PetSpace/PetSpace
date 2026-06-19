@@ -72,18 +72,7 @@ class _OnboardingPetRegistrationPageState
               fontWeight: FontWeight.bold,
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: _skip,
-              child: Text(
-                '건너뛰기',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-          ],
+          // 하단 '나중에 등록하기'와 중복되던 앱바 '건너뛰기' 제거(B-08)
         ),
         body: SafeArea(
           child: Padding(
