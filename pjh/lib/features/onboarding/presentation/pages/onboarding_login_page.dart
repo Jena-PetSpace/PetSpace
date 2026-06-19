@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_hero_header.dart';
 import '../../../../shared/widgets/rate_limit_countdown.dart';
 import '../../../auth/domain/entities/user.dart';
 import '../../../auth/domain/services/account_deletion_policy.dart';
@@ -184,25 +185,10 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   }
 
   Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _isLogin ? '로그인' : '회원가입',
-          style: TextStyle(
-            fontSize: 28.sp,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
+    return PetSpaceHeroHeader(
+      title: _isLogin ? '로그인' : '회원가입',
+      subtitle:
           _isLogin ? '펫페이스에 오신 것을 환영합니다' : '새로운 계정을 만들어보세요',
-          style: TextStyle(
-            fontSize: 16.sp,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
     );
   }
 

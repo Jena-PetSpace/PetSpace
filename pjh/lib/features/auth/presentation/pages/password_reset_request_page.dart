@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class PasswordResetRequestPage extends StatefulWidget {
   const PasswordResetRequestPage({super.key});
@@ -82,17 +83,9 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.go('/onboarding/login'),
-        ),
-        title: const Text(
-          '비밀번호 찾기',
-          style: TextStyle(color: Colors.black),
-        ),
+      appBar: PetSpaceAppBar.page(
+        title: '비밀번호 찾기',
+        onBack: () => context.go('/onboarding/login'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

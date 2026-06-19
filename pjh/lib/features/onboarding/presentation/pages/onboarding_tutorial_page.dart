@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class OnboardingTutorialPage extends StatefulWidget {
   const OnboardingTutorialPage({super.key});
@@ -26,38 +27,26 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/onboarding/pet-registration');
-            }
-          },
-        ),
-        title: const Text(
-          '감정 분석 가이드',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _skip,
-            child: Text(
-              '건너뛰기',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
+      appBar: PetSpaceAppBar.page(
+        title: '감정 분석 가이드',
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/onboarding/pet-registration');
+          }
+        },
+        trailing: TextButton(
+          onPressed: _skip,
+          child: Text(
+            '건너뛰기',
+            style: TextStyle(
+              color: AppTheme.secondaryTextColor,
+              fontWeight: FontWeight.w500,
+              fontSize: 14.sp,
             ),
           ),
-        ],
+        ),
       ),
       body: SafeArea(
         child: Column(

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
-import '../../../onboarding/presentation/widgets/onboarding_step_header.dart';
+import '../../../../shared/widgets/petspace_app_bar.dart';
 import 'terms_detail_page.dart';
 
 class TermsAgreementPage extends StatefulWidget {
@@ -42,7 +42,7 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: OnboardingStepHeader(
+      appBar: PetSpaceAppBar.steps(
         title: '약관 동의',
         step: 1,
         totalSteps: 3,

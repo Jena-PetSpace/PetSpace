@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
-import '../widgets/onboarding_step_header.dart';
+import '../../../../shared/widgets/petspace_app_bar.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../config/injection_container.dart' as di;
@@ -38,7 +38,7 @@ class _OnboardingProfileSetupPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: OnboardingStepHeader(
+      appBar: PetSpaceAppBar.steps(
         title: '프로필 설정',
         step: 2,
         totalSteps: 3,

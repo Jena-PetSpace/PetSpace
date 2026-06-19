@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
 
 import '../../../../shared/themes/app_theme.dart';
-import '../widgets/onboarding_step_header.dart';
+import '../../../../shared/widgets/petspace_app_bar.dart';
 import '../../../pets/domain/entities/pet.dart' as pets;
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_event.dart';
@@ -54,7 +54,7 @@ class _OnboardingPetRegistrationPageState
       child: Scaffold(
         backgroundColor: AppTheme.backgroundColor,
         // 하단 '나중에 등록하기'와 중복되던 앱바 '건너뛰기'는 제거됨(B-08)
-        appBar: OnboardingStepHeader(
+        appBar: PetSpaceAppBar.steps(
           title: '반려동물 등록',
           step: 3,
           totalSteps: 3,

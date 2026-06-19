@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class OnboardingSlidesPage extends StatefulWidget {
   const OnboardingSlidesPage({super.key});
@@ -25,22 +28,19 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          TextButton(
-            onPressed: _skip,
-            child: Text(
-              '건너뛰기',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
+      appBar: PetSpaceAppBar.page(
+        title: '',
+        trailing: TextButton(
+          onPressed: _skip,
+          child: Text(
+            '건너뛰기',
+            style: TextStyle(
+              color: AppTheme.secondaryTextColor,
+              fontWeight: FontWeight.w500,
+              fontSize: 14.sp,
             ),
           ),
-        ],
+        ),
       ),
       body: SafeArea(
         child: Column(

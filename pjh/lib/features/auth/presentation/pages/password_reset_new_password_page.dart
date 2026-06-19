@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class PasswordResetNewPasswordPage extends StatefulWidget {
   final String email;
@@ -160,23 +161,16 @@ class _PasswordResetNewPasswordPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () async {
-            // 로그아웃 후 로그인 페이지로 이동
-            await Supabase.instance.client.auth.signOut();
-            if (context.mounted) {
-              context.go('/onboarding/login');
-            }
-          },
-        ),
-        title: const Text(
-          '새 비밀번호 설정',
-          style: TextStyle(color: Colors.black),
-        ),
+      appBar: PetSpaceAppBar.page(
+        // 본문에 대형 '새 비밀번호 설정' 제목이 있어 앱바 타이틀은 비움(STEP 1-C에서 본문 정리)
+        title: '',
+        onBack: () async {
+          // 로그아웃 후 로그인 페이지로 이동
+          await Supabase.instance.client.auth.signOut();
+          if (context.mounted) {
+            context.go('/onboarding/login');
+          }
+        },
       ),
       body: SafeArea(
         child: SingleChildScrollView(
