@@ -10,8 +10,8 @@ plugins {
 }
 
 android {
-    namespace = "com.petspace.app"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "com.jena.petspace"
+    compileSdk = 36                          // Play 요구사항: API 35+ (36으로 상향)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -49,10 +49,10 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.petspace.app"
+        applicationId = "com.jena.petspace"
         minSdk = flutter.minSdkVersion                      // Android 5.0+ (Lollipop)
-        targetSdk = 34                   // Android 14
-        versionCode = 1
+        targetSdk = 36                   // Android 16 (Play 요구사항: API 35+)
+        versionCode = 3                  // Play 업로드용 — 1·2 이미 사용됨(재사용 불가)
         versionName = "1.0.0"
         multiDexEnabled = true
     }

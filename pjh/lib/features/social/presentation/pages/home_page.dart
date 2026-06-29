@@ -17,10 +17,11 @@ import '../../../home/presentation/widgets/home_dashboard_header.dart';
 import '../../../home/presentation/widgets/home_quick_actions.dart';
 import '../../../home/presentation/widgets/home_ad_banner.dart';
 import '../../../home/presentation/widgets/home_news_section.dart';
-import '../../../home/presentation/widgets/home_quest_card.dart';
-import '../../../mbti/presentation/widgets/home_mbti_card.dart';
-import '../../../fortune/presentation/widgets/home_fortune_card.dart';
-import '../../../quiz/presentation/widgets/home_quiz_card.dart';
+// 2026-06-29: 홈 하단 레거시 카드(MBTI·운세·퀴즈·퀘스트) 숨김에 따라 import 비활성.
+// import '../../../home/presentation/widgets/home_quest_card.dart';
+// import '../../../mbti/presentation/widgets/home_mbti_card.dart';
+// import '../../../fortune/presentation/widgets/home_fortune_card.dart';
+// import '../../../quiz/presentation/widgets/home_quiz_card.dart';
 import '../../../home/presentation/widgets/category_filter_chips.dart';
 import '../../../home/presentation/widgets/hot_issue_card.dart';
 import '../../../home/presentation/widgets/magazine_grid.dart';
@@ -183,12 +184,13 @@ class _HomePageState extends State<HomePage> {
             // ── (임시 배치) 기존 홈 카드들 — 스크롤 하단 ──
             //   MBTI·운세·퀴즈·퀘스트. 시안엔 없던 영역이라
             //   실제 화면에서 위치를 확인한 뒤 최종 자리를 정한다.
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 28.h),
-                child: _buildLegacyCardsSection(),
-              ),
-            ),
+            //   2026-06-29: 출시 버전에서 일단 숨김 처리(주석). 되살리려면 주석 해제.
+            // SliverToBoxAdapter(
+            //   child: Padding(
+            //     padding: EdgeInsets.only(top: 28.h),
+            //     child: _buildLegacyCardsSection(),
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -244,18 +246,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   // 시안엔 없던 기존 홈 카드들 — 위치 확인용으로 스크롤 하단에 임시 배치.
-  Widget _buildLegacyCardsSection() {
-    return Column(
-      children: [
-        const HomeMbtiCard(),
-        SizedBox(height: 16.h),
-        const HomeFortuneCard(),
-        SizedBox(height: 16.h),
-        const HomeQuizCard(),
-        SizedBox(height: 16.h),
-        HomeQuestCard(checkNotifier: _questCheckNotifier),
-        SizedBox(height: 32.h),
-      ],
-    );
-  }
+  // 2026-06-29: 출시 버전에서 숨김 처리. 위 SliverToBoxAdapter 주석과 함께 되살릴 것.
+  // Widget _buildLegacyCardsSection() {
+  //   return Column(
+  //     children: [
+  //       const HomeMbtiCard(),
+  //       SizedBox(height: 16.h),
+  //       const HomeFortuneCard(),
+  //       SizedBox(height: 16.h),
+  //       const HomeQuizCard(),
+  //       SizedBox(height: 16.h),
+  //       HomeQuestCard(checkNotifier: _questCheckNotifier),
+  //       SizedBox(height: 32.h),
+  //     ],
+  //   );
+  // }
 }

@@ -1,4 +1,4 @@
-package com.petspace.app
+package com.jena.petspace
 
 import android.content.pm.PackageManager
 import android.os.Bundle
