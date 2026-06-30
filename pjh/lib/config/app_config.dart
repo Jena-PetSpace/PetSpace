@@ -78,7 +78,7 @@ class AppConfig {
   static const String appStoreUrl =
       'https://apps.apple.com/app/petspace';
   static const String playStoreUrl =
-      'https://play.google.com/store/apps/details?id=com.petspace.app';
+      'https://play.google.com/store/apps/details?id=com.jena.petspace';
 
   // Social Media
   static const String instagramUrl = 'https://instagram.com/petspace_app';

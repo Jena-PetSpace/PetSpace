@@ -3,11 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../config/injection_container.dart';
+import '../../../../core/usecases/usecase.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../fortune/data/datasources/fortune_seen_local_data_source.dart'
     show fortuneDateKey;
 import '../../../mbti/domain/entities/pet_mbti_result.dart'
     show MbtiSpeciesX;
+import '../../../mbti/domain/usecases/get_latest_mbti_result.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
@@ -123,16 +126,34 @@ class HomeQuickActions extends StatelessWidget {
   }
 
   /// MBTI 검사 진입 — 반려동물 필요.
-  void _openMbti(BuildContext context) {
+  /// 이미 검사한 적이 있으면(저장된 최신 결과 존재) 결과 페이지로 바로 이동하고,
+  /// 없으면 검사 시작 페이지로 진입한다.
+  /// (결과 페이지의 '다시 검사'는 /mbti로 직행하므로 재검사 동선은 유지된다.)
+  Future<void> _openMbti(BuildContext context) async {
     final pet = _selectedPet(context);
     if (pet == null) {
       _promptRegisterPet(context, 'MBTI 검사');
       return;
     }
     final species = MbtiSpeciesX.fromPetTypeString(pet.type.name);
-    context.push(
-      '/mbti?petId=${pet.id}&species=${species.key}'
-      '&petName=${Uri.encodeComponent(pet.name)}',
+    final testRoute = '/mbti?petId=${pet.id}&species=${species.key}'
+        '&petName=${Uri.encodeComponent(pet.name)}';
+
+    // currentMbtiType이 없으면 검사 이력이 없으므로 조회 없이 바로 검사 진입.
+    if (pet.currentMbtiType == null) {
+      context.push(testRoute);
+      return;
+    }
+
+    // 검사 이력이 있으면 저장된 최신 결과를 조회해 결과 페이지로 이동.
+    final result = await sl<GetLatestMbtiResult>()(StringParams(value: pet.id));
+    if (!context.mounted) return;
+    result.fold(
+      // 조회 실패 시 안전하게 검사 페이지로 폴백.
+      (_) => context.push(testRoute),
+      (latest) => latest != null
+          ? context.push('/mbti/result', extra: latest)
+          : context.push(testRoute),
     );
   }
 

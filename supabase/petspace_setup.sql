@@ -1363,6 +1363,96 @@ CREATE POLICY "Users can delete their own messages" ON chat_messages
 
 
 -- ================================================================
+-- PART 6-H1: 산책 기록 + 위치정보 취급대장 (H1_walk_records.sql 반영)
+-- ----------------------------------------------------------------
+-- LBS 사업신고 첨부2(기술적 보호조치) 증빙용. 산책 기록의 출시용 정식 스키마.
+-- 실제 적용 대상은 migrations/H1_walk_records.sql. 여기는 신규 설치 일관성용 반영.
+-- 설계 결정: user_id FK→public.users / 취급대장 subject_id FK 미부여(증빙 보존)
+--          / route jsonb 단일 컬럼 / 취급대장 INSERT 정책 미부여(트리거 전용).
+-- 테이블·트리거·RLS를 한 블록에 모아 유지보수성 확보(기능 단위 응집).
+-- ================================================================
+
+-- H1-1. 산책 기록
+CREATE TABLE IF NOT EXISTS public.walk_records (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    pet_id      UUID REFERENCES public.pets(id) ON DELETE SET NULL,
+    started_at  TIMESTAMPTZ NOT NULL,
+    ended_at    TIMESTAMPTZ,
+    distance_m  INTEGER NOT NULL DEFAULT 0,   -- 산책 거리(미터)
+    duration_s  INTEGER NOT NULL DEFAULT 0,   -- 산책 시간(초)
+    route       JSONB,                        -- 경로 좌표 [{lat,lng,t}] ← 핵심 위치정보
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+COMMENT ON TABLE  public.walk_records       IS '산책 기록(경로 위치정보 포함). LBS 신고 첨부2 증빙 대상.';
+COMMENT ON COLUMN public.walk_records.route IS '경로 좌표 배열 [{lat,lng,t}]. 개인위치정보 → RLS로 본인만 접근.';
+
+-- H1-2. 위치정보 이용·제공사실 확인자료 (취급대장) — subject_id FK 미부여
+CREATE TABLE IF NOT EXISTS public.location_access_log (
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    subject_id  UUID NOT NULL,                                       -- 대상(개인위치정보주체)
+    source      TEXT NOT NULL DEFAULT 'device_gps(apple/google)',    -- 취득경로(위치정보사업자)
+    service     TEXT NOT NULL DEFAULT 'petspace_walk',               -- 제공 서비스
+    provided_to TEXT,                                                -- 제공받는 자(제3자 없음 → NULL)
+    used_at     TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
+);
+
+COMMENT ON TABLE public.location_access_log IS '위치정보 이용·제공사실 확인자료(취급대장). 트리거(security definer)만 기록, 사용자 조작 불가. 위치정보법 보존 의무 대상이라 subject_id FK 미부여.';
+
+-- H1-3. 인덱스 (FK 컬럼 — 기존 테이블 관례)
+CREATE INDEX IF NOT EXISTS idx_walk_records_user_id           ON public.walk_records(user_id);
+CREATE INDEX IF NOT EXISTS idx_walk_records_pet_id            ON public.walk_records(pet_id);
+CREATE INDEX IF NOT EXISTS idx_walk_records_started_at        ON public.walk_records(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_location_access_log_subject_id ON public.location_access_log(subject_id);
+
+-- H1-4. 취급대장 자동 기록 트리거 (SECURITY DEFINER — RLS 우회 기록, 사용자 조작 불가)
+CREATE OR REPLACE FUNCTION public.log_location_access()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    INSERT INTO public.location_access_log(subject_id, source, service, provided_to)
+    VALUES (NEW.user_id, 'device_gps(apple/google)', 'petspace_walk', NULL);
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_walk_log ON public.walk_records;
+CREATE TRIGGER trg_walk_log
+    AFTER INSERT ON public.walk_records
+    FOR EACH ROW EXECUTE FUNCTION public.log_location_access();
+
+-- H1-5. RLS — walk_records 본인 CRUD / location_access_log SELECT-only(트리거 전용)
+ALTER TABLE public.walk_records ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "select_own_walk" ON public.walk_records;
+CREATE POLICY "select_own_walk" ON public.walk_records
+    FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "insert_own_walk" ON public.walk_records;
+CREATE POLICY "insert_own_walk" ON public.walk_records
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "update_own_walk" ON public.walk_records;
+CREATE POLICY "update_own_walk" ON public.walk_records
+    FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "delete_own_walk" ON public.walk_records;
+CREATE POLICY "delete_own_walk" ON public.walk_records
+    FOR DELETE USING (auth.uid() = user_id);
+
+ALTER TABLE public.location_access_log ENABLE ROW LEVEL SECURITY;
+
+-- INSERT/UPDATE/DELETE 정책 미부여 → 트리거(security definer)만 기록. 직접 INSERT는 RLS로 거부.
+DROP POLICY IF EXISTS "select_own_log" ON public.location_access_log;
+CREATE POLICY "select_own_log" ON public.location_access_log
+    FOR SELECT USING (auth.uid() = subject_id);
+
+
+-- ================================================================
 -- PART 7: Storage Bucket
 -- ================================================================
 
