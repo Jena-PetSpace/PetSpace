@@ -1874,6 +1874,18 @@ ON CONFLICT (key) DO NOTHING;
 -- 호출: supabase.rpc('increment_user_points', { p_user_id: uid, p_points: 30 })
 -- ================================================================
 
+-- 보안(세션1 1-B, 1단계): p_user_id는 클라이언트 호출부 호환을 위해 시그니처에만 남기고
+-- 적립 대상은 항상 auth.uid()로 강제한다 → 타인 계정 포인트 조작 차단.
+-- auth.uid()가 NULL(비인증)이면 예외로 차단.
+-- ⚠️ 2단계(금액 서버 산정 + 일일 제한 함수 내부 이전)는 리워드 스토어 개발 시 반드시 함께 처리.
+--    소비처(리워드 스토어)가 생기면 본인 무한 적립이 실제 악용이 되므로 그 전까지 누락 금지.
+--
+-- ⚠️ 오버로드 모호성 제거: 과거 2-파라미터 오버로드 increment_user_points(UUID, INT)가
+--    함께 존재하면, (UUID, INT) 호출이 2-파라미터 함수와 "4-파라미터(뒤 2개 DEFAULT)" 함수
+--    양쪽에 매칭되어 42725(is not unique) 오류가 난다. 2-파라미터 오버로드는 제거하고
+--    4-파라미터 단일 함수로 통일한다. (클라이언트는 named arg로 p_user_id/p_points만 전달 → default 적용)
+DROP FUNCTION IF EXISTS increment_user_points(UUID, INT);
+
 CREATE OR REPLACE FUNCTION increment_user_points(
   p_user_id    UUID,
   p_points     INT,
@@ -1885,22 +1897,14 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_uid UUID := auth.uid();
 BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION '인증되지 않은 호출입니다.' USING ERRCODE = '42501';
+  END IF;
   INSERT INTO point_transactions (user_id, amount, type, description)
-  VALUES (p_user_id, p_points, p_type, p_description);
-END;
-$$;
-
--- 2-파라미터 오버로드 (하위 호환)
-CREATE OR REPLACE FUNCTION increment_user_points(p_user_id UUID, p_points INT)
-RETURNS VOID
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO point_transactions (user_id, amount, type, description)
-  VALUES (p_user_id, p_points, 'quest', '퀘스트 완료');
+  VALUES (v_uid, p_points, p_type, p_description);
 END;
 $$;
 
@@ -2512,7 +2516,8 @@ REVOKE EXECUTE ON FUNCTION increment_comment_likes(UUID) FROM anon;
 REVOKE EXECUTE ON FUNCTION decrement_comment_likes(UUID) FROM anon;
 
 -- 포인트/퀘스트 함수 (authenticated 전용)
-REVOKE EXECUTE ON FUNCTION increment_user_points(UUID, INTEGER) FROM anon;
+-- 세션1 1-B: 2-파라미터 오버로드 제거됨(모호성 해소) → 해당 REVOKE 라인도 제거.
+-- 4-파라미터 단일 함수만 남으며 anon EXECUTE 차단.
 REVOKE EXECUTE ON FUNCTION increment_user_points(UUID, INTEGER, TEXT, TEXT) FROM anon;
 
 -- 계정/게시물 삭제 함수 (authenticated 전용)
@@ -2573,17 +2578,12 @@ DROP POLICY IF EXISTS "breeds: 전체 조회 허용" ON public.breeds;
 CREATE POLICY "breeds: 전체 조회 허용"
   ON public.breeds FOR SELECT USING (true);
 
+-- 보안(세션1 1-C): breeds는 읽기 전용 마스터 데이터.
+-- 쓰기(INSERT/UPDATE/DELETE)는 service_role(SQL Editor)로만 수행한다.
+-- 기존에 적용된 authenticated 쓰기 정책이 있으면 제거(재실행 멱등). CREATE는 하지 않음.
 DROP POLICY IF EXISTS "breeds: 인증 사용자 삽입" ON public.breeds;
-CREATE POLICY "breeds: 인증 사용자 삽입"
-  ON public.breeds FOR INSERT TO authenticated WITH CHECK (true);
-
 DROP POLICY IF EXISTS "breeds: 인증 사용자 수정" ON public.breeds;
-CREATE POLICY "breeds: 인증 사용자 수정"
-  ON public.breeds FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "breeds: 인증 사용자 삭제" ON public.breeds;
-CREATE POLICY "breeds: 인증 사용자 삭제"
-  ON public.breeds FOR DELETE TO authenticated USING (true);
 
 CREATE INDEX IF NOT EXISTS idx_breeds_species       ON public.breeds(species);
 CREATE INDEX IF NOT EXISTS idx_breeds_name_ko       ON public.breeds(name_ko);
