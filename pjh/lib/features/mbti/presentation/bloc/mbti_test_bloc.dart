@@ -44,6 +44,8 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
     on<MbtiTestRestarted>(_onRestarted);
     on<MbtiAnswered>(_onAnswered);
     on<MbtiPreviousPressed>(_onPrevious);
+    on<MbtiNextPressed>(_onNext);
+    on<MbtiBackToIntro>(_onBackToIntro);
     on<MbtiSubmitted>(_onSubmitted);
   }
 
@@ -166,6 +168,38 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
     final prevIndex = state.currentIndex - 1;
     emit(state.copyWith(currentIndex: prevIndex));
     await _persistDraft(answers: state.answers, currentIndex: prevIndex);
+  }
+
+  /// 다음 문항으로(답 변경 없이 이동만). 이전 문항으로 돌아와 이미 답이 있을 때
+  /// 같은 답을 유지하며 진행. 마지막 문항이면 무시.
+  Future<void> _onNext(
+      MbtiNextPressed event, Emitter<MbtiTestState> emit) async {
+    if (state.currentIndex >= state.totalQuestions - 1) return;
+    final nextIndex = state.currentIndex + 1;
+    emit(state.copyWith(currentIndex: nextIndex));
+    await _persistDraft(answers: state.answers, currentIndex: nextIndex);
+  }
+
+  /// 문항 → 인트로(안내) 복귀. 첫 문항에서 뒤로가기 시 사용.
+  /// 진행 중 응답이 있으면 resumePrompt(이어하기 제안)로 보내 "이어서 하기"를 노출하고,
+  /// 응답이 없으면 일반 intro로 보낸다. draft도 그대로 남아 복귀 가능.
+  void _onBackToIntro(MbtiBackToIntro event, Emitter<MbtiTestState> emit) {
+    final content = state.content;
+    if (state.answers.isEmpty || content == null) {
+      emit(state.copyWith(status: MbtiTestStatus.intro));
+      return;
+    }
+    final draft = MbtiDraft(
+      petId: state.petId,
+      species: state.species,
+      contentVersion: content.version,
+      currentIndex: state.currentIndex,
+      answers: state.answers.values.toList(),
+    );
+    emit(state.copyWith(
+      status: MbtiTestStatus.resumePrompt,
+      pendingDraft: draft,
+    ));
   }
 
   Future<void> _onSubmitted(

@@ -43,6 +43,18 @@ class MbtiPreviousPressed extends MbtiTestEvent {
   const MbtiPreviousPressed();
 }
 
+/// 다음 문항으로(답 변경 없이 이동만). 이전 문항으로 돌아와 이미 답이 있는 상태에서
+/// 같은 답을 유지하며 진행할 때 사용. 마지막 문항이면 무시.
+class MbtiNextPressed extends MbtiTestEvent {
+  const MbtiNextPressed();
+}
+
+/// 문항에서 인트로(안내) 화면으로 복귀. 첫 문항에서 뒤로가기 시 사용.
+/// 진행상황(draft)은 유지되어 인트로에서 "이어서 하기"로 복귀 가능.
+class MbtiBackToIntro extends MbtiTestEvent {
+  const MbtiBackToIntro();
+}
+
 /// 마지막 문항까지 응답 완료 → 가드 검사 후 채점.
 class MbtiSubmitted extends MbtiTestEvent {
   const MbtiSubmitted();
