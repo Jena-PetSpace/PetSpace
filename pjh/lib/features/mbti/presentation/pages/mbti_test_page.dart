@@ -134,6 +134,17 @@ class _MbtiTestView extends StatelessWidget {
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
       ),
       centerTitle: true,
+      actions: [
+        // (세션6 B) 문항 진행 중 홈으로 바로 나가기.
+        // 진행상황은 BLoC draft에 자동 저장되어, 다음에 "이어서 하기"로 복귀 가능.
+        // 확인 다이얼로그 없이 즉시 이동.
+        if (isQuestion)
+          IconButton(
+            icon: const Icon(Icons.home_outlined, size: 22),
+            tooltip: '홈으로',
+            onPressed: () => context.go('/home'),
+          ),
+      ],
     );
   }
 }
