@@ -475,7 +475,23 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
     }
 
     if (!_isLoading && _items.isEmpty && widget.emptyWidget != null) {
-      return widget.emptyWidget!;
+      // (세션6) 빈 상태 위젯이 부모 높이보다 크면 RenderFlex 오버플로우가 난다.
+      // 화면을 꽉 채우되 넘치면 스크롤되도록 감싼다(작은 화면 대응).
+      // RefreshIndicator + 스크롤 가능해야 당겨서 새로고침도 됨.
+      return RefreshIndicator(
+        onRefresh: _loadInitialData,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: widget.emptyWidget!,
+              ),
+            );
+          },
+        ),
+      );
     }
 
     return RefreshIndicator(
