@@ -619,8 +619,29 @@ SECURITY DEFINER
 SET search_path = public
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_orphan_id UUID;
+    v_orphan_deleted_at TIMESTAMPTZ;
 BEGIN
     BEGIN
+        -- email UNIQUE 충돌 사전 처리:
+        -- 같은 email인데 id가 다른 기존 public.users 행이 있으면(=고아 행) 분기한다.
+        --   · deleted_at IS NULL  → 정상 탈퇴를 거치지 않고 남은 비정상 잔재
+        --       (대시보드에서 auth.users만 수동 삭제 후 재가입 등) → 삭제하고 새 행 생성.
+        --       이 처리가 없으면 ON CONFLICT(id)가 email 충돌을 못 잡아 INSERT가
+        --       조용히 실패 → 로그인 시 "사용자 정보를 찾을 수 없습니다"로 깨진다.
+        --   · deleted_at IS NOT NULL → 앱 탈퇴(soft delete) 유예 중인 계정.
+        --       세션2 결정(30일 내 재가입 차단=의도된 동작)을 존중해 건드리지 않는다.
+        --       이 경우 새 행 생성은 email 충돌로 실패하며, 정책상 복구로 유도한다.
+        SELECT id, deleted_at INTO v_orphan_id, v_orphan_deleted_at
+        FROM public.users
+        WHERE email = NEW.email AND id <> NEW.id
+        LIMIT 1;
+
+        IF v_orphan_id IS NOT NULL AND v_orphan_deleted_at IS NULL THEN
+            DELETE FROM public.users WHERE id = v_orphan_id;
+        END IF;
+
         INSERT INTO public.users (id, email, display_name, photo_url, provider, is_onboarding_completed)
         VALUES (
             NEW.id,
