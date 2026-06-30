@@ -49,7 +49,16 @@ CREATE TABLE IF NOT EXISTS users (
     pets UUID[] DEFAULT ARRAY[]::UUID[],
     following UUID[] DEFAULT ARRAY[]::UUID[],
     followers UUID[] DEFAULT ARRAY[]::UUID[],
-    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    -- 약관 동의 기록 (세션4 I1) — 동의 시점·버전 보존(동의 증명)
+    terms_agreed_at      TIMESTAMP WITH TIME ZONE,
+    privacy_agreed_at    TIMESTAMP WITH TIME ZONE,
+    location_agreed_at   TIMESTAMP WITH TIME ZONE,
+    marketing_agreed_at  TIMESTAMP WITH TIME ZONE,
+    terms_version        VARCHAR(20),
+    privacy_version      VARCHAR(20),
+    location_version     VARCHAR(20),
+    marketing_version    VARCHAR(20)
 );
 
 -- 2. Pets

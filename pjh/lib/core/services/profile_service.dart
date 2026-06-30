@@ -63,36 +63,68 @@ class ProfileService {
     }
   }
 
+  /// 약관 동의 기록 저장 (세션4)
+  /// 온보딩 약관 동의 화면에서 호출. 동의 시점·버전을 users 테이블에 기록한다(동의 증명).
+  /// 필수(이용약관·개인정보)는 항상 NOW()로 기록, 선택(위치·마케팅)은 동의한 경우만 기록.
+  Future<void> saveConsents({
+    required bool termsAgreed,
+    required bool privacyAgreed,
+    required bool locationAgreed,
+    required bool marketingAgreed,
+    required String termsVersion,
+    required String privacyVersion,
+    required String locationVersion,
+    required String marketingVersion,
+  }) async {
+    try {
+      final userId = _currentUserId;
+      final now = DateTime.now().toIso8601String();
+      final updateData = <String, dynamic>{
+        'updated_at': now,
+      };
+
+      if (termsAgreed) {
+        updateData['terms_agreed_at'] = now;
+        updateData['terms_version'] = termsVersion;
+      }
+      if (privacyAgreed) {
+        updateData['privacy_agreed_at'] = now;
+        updateData['privacy_version'] = privacyVersion;
+      }
+      if (locationAgreed) {
+        updateData['location_agreed_at'] = now;
+        updateData['location_version'] = locationVersion;
+      }
+      if (marketingAgreed) {
+        updateData['marketing_agreed_at'] = now;
+        updateData['marketing_version'] = marketingVersion;
+      }
+
+      await _supabase.from('users').update(updateData).eq('id', userId);
+      log('약관 동의 기록 저장 성공', name: 'ProfileService.saveConsents');
+    } catch (e) {
+      log('약관 동의 기록 저장 오류: $e', name: 'ProfileService.saveConsents');
+      rethrow;
+    }
+  }
+
   /// 프로필 이미지 업로드 및 업데이트
+  ///
+  /// (세션3 3-B) 업로드 실패 시 로컬 경로를 photo_url에 저장하던 폴백 제거.
+  /// 로컬 경로는 재설치/타기기에서 무효해 이미지가 깨지고, 사용자는 성공한 줄 안다.
+  /// 이제 업로드 실패는 그대로 throw → 호출부(ProfileEditPage)가 텍스트는 살리고
+  /// 이미지만 실패 안내하도록 분리 처리한다.
   Future<String> updateProfileImage(File imageFile) async {
     try {
-      // 이미지 업로드 시도
-      try {
-        final imageUrl =
-            await _imageUploadService.uploadProfileImage(imageFile);
+      final imageUrl = await _imageUploadService.uploadProfileImage(imageFile);
 
-        // DB 업데이트
-        await updateProfile(photoUrl: imageUrl);
+      // DB 업데이트
+      await updateProfile(photoUrl: imageUrl);
 
-        log('프로필 이미지 업데이트 성공: $imageUrl',
-            name: 'ProfileService.updateProfileImage');
+      log('프로필 이미지 업데이트 성공: $imageUrl',
+          name: 'ProfileService.updateProfileImage');
 
-        return imageUrl;
-      } catch (uploadError) {
-        // Storage 업로드 실패 시 로컬 경로 사용
-        log('Storage 업로드 실패, 로컬 경로 사용: $uploadError',
-            name: 'ProfileService.updateProfileImage');
-
-        final localPath = imageFile.path;
-
-        // DB 업데이트 (로컬 경로 저장)
-        await updateProfile(photoUrl: localPath);
-
-        log('프로필 이미지 로컬 경로 저장 성공: $localPath',
-            name: 'ProfileService.updateProfileImage');
-
-        return localPath;
-      }
+      return imageUrl;
     } catch (e) {
       log('프로필 이미지 업데이트 오류: $e', name: 'ProfileService.updateProfileImage');
       rethrow;
