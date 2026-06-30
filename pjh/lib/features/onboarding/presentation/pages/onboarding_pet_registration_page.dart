@@ -13,6 +13,7 @@ import '../../../pets/presentation/bloc/pet_event.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../../config/injection_container.dart' as di;
+import '../../../../core/services/image_upload_service.dart';
 import '../../../../shared/constants/pet_constants.dart';
 import '../../../pets/domain/entities/pet.dart' show PetType;
 
@@ -228,6 +229,7 @@ class _OnboardingPetRegistrationPageState
             SizedBox(height: 16.h),
             TextFormField(
               controller: _nameController,
+              maxLength: 50, // (세션3) DB pets.name VARCHAR(50) 초과 입력 방지
               decoration: InputDecoration(
                 labelText: '이름 *',
                 hintText: '반려동물의 이름을 입력해주세요',
@@ -759,6 +761,27 @@ class _OnboardingPetRegistrationPageState
           petGender = pets.PetGender.female;
         }
 
+        // 이미지 업로드: 로컬 경로를 Storage에 올려 공개 URL을 avatarUrl로 사용.
+        // (세션3 3-A) 기존엔 image.path(로컬경로)를 그대로 저장해 재설치/타기기에서 깨졌음.
+        // 개별추가(add_pet_bottom_sheet)와 동일하게 업로드 실패 시 해당 펫만 실패 처리.
+        String? avatarUrl;
+        final localPhotoPath = petData['photoUrl'] as String?;
+        if (localPhotoPath != null && localPhotoPath.isNotEmpty) {
+          try {
+            final imageService = di.sl<ImageUploadService>();
+            final tempPetId =
+                DateTime.now().millisecondsSinceEpoch.toString();
+            avatarUrl = await imageService.uploadPetAvatar(
+              File(localPhotoPath),
+              tempPetId,
+            );
+          } catch (_) {
+            // 업로드 실패 → 이 펫은 저장하지 않고 실패 집계 후 다음 펫으로
+            failCount++;
+            continue;
+          }
+        }
+
         final pet = pets.Pet(
           id: '', // 서버에서 생성
           userId: userId,
@@ -767,7 +790,7 @@ class _OnboardingPetRegistrationPageState
           breed: petData['breed'] as String?,
           gender: petGender,
           birthDate: petData['birthDate'] as DateTime?,
-          avatarUrl: petData['photoUrl'] as String?,
+          avatarUrl: avatarUrl,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         );

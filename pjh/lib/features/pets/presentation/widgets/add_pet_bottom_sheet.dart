@@ -238,6 +238,7 @@ class _AddPetBottomSheetState extends State<AddPetBottomSheet> {
   Widget _buildNameField() {
     return TextFormField(
       controller: _nameController,
+      maxLength: 50, // (세션3) DB pets.name VARCHAR(50) 초과 입력 방지
       decoration: const InputDecoration(
         labelText: '이름 *',
         border: OutlineInputBorder(),

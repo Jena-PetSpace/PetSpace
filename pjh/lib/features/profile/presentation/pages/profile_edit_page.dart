@@ -102,6 +102,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             // 이름 입력
             TextFormField(
               controller: _nameController,
+              maxLength: 50, // (세션3) DB display_name VARCHAR(50) 초과 입력 방지
               style: TextStyle(fontSize: 14.sp),
               decoration: InputDecoration(
                 labelText: '이름',
@@ -185,50 +186,71 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       _isLoading = true;
     });
 
+    // (세션3 3-B) 텍스트(닉네임·소개)와 이미지를 분리 저장한다.
+    // 이미지 업로드가 실패해도 텍스트 변경은 살리고, 이미지만 실패 안내한다.
+    // (이름 바꾸려다 사진 업로드 실패로 이름까지 안 바뀌는 UX 방지)
+    final displayName = _nameController.text.trim();
+    final bio = _bioController.text.trim();
+
     try {
-      String? newImageUrl;
-
-      // 이미지가 선택되었으면 업로드
-      if (_selectedImage != null) {
-        newImageUrl = await _profileService.updateProfileImage(_selectedImage!);
-        developer.log('프로필 이미지 업로드 완료', name: 'ProfileEditPage');
-      }
-
-      // 프로필 정보 저장
-      final displayName = _nameController.text.trim();
-      final bio = _bioController.text.trim();
-
+      // 1) 텍스트 저장 (photoUrl 생략 → 기존 이미지 유지). 실패하면 전체 실패로 처리.
       await _profileService.updateProfile(
         displayName: displayName,
         bio: bio,
-        photoUrl: newImageUrl, // 새 이미지가 없으면 null (기존 유지)
       );
-
-      developer.log('프로필 저장 완료', name: 'ProfileEditPage');
-
-      // 성공 메시지 표시
-      if (mounted) {
-        // AuthBloc 상태 갱신 (MY탭 프로필 즉시 반영)
-        context.read<AuthBloc>().add(AuthProfileRefreshRequested());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('프로필이 저장되었습니다'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        Navigator.pop(context, true);
-      }
+      developer.log('프로필 텍스트 저장 완료', name: 'ProfileEditPage');
     } catch (e) {
-      developer.log('프로필 저장 오류: $e', name: 'ProfileEditPage', error: e);
+      // raw exception(Supabase URL·UUID 포함)은 로그에만 남기고, 화면엔 사용자 친화 문구만.
+      developer.log('프로필 텍스트 저장 오류: $e', name: 'ProfileEditPage', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('프로필 저장 실패: ${e.toString()}'),
+            content: Text(_userFacingError(e, '프로필 저장')),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
         );
+        setState(() => _isLoading = false);
+      }
+      return;
+    }
+
+    // 2) 이미지가 선택된 경우에만 업로드. 실패해도 텍스트는 이미 저장됨 → 이미지만 안내.
+    bool imageFailed = false;
+    if (_selectedImage != null) {
+      try {
+        await _profileService.updateProfileImage(_selectedImage!);
+        developer.log('프로필 이미지 업로드 완료', name: 'ProfileEditPage');
+      } catch (e) {
+        developer.log('프로필 이미지 업로드 실패: $e',
+            name: 'ProfileEditPage', error: e);
+        imageFailed = true;
+      }
+    }
+
+    try {
+      if (mounted) {
+        // AuthBloc 상태 갱신 (MY탭 프로필 즉시 반영)
+        context.read<AuthBloc>().add(AuthProfileRefreshRequested());
+        if (imageFailed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('프로필은 저장됐지만 이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          // 이미지 실패 시에는 화면을 유지해 재시도 가능하게 둔다.
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('프로필이 저장되었습니다'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          Navigator.pop(context, true);
+        }
       }
     } finally {
       if (mounted) {
@@ -237,6 +259,23 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         });
       }
     }
+  }
+
+  /// raw exception을 사용자 친화 문구로 변환.
+  /// 네트워크 계열이면 인터넷 연결 안내, 그 외는 일반 문구.
+  /// (Supabase URL·UUID 등 내부 정보가 사용자에게 노출되지 않도록 e.toString() 미사용)
+  String _userFacingError(Object e, String operation) {
+    final msg = e.toString().toLowerCase();
+    final isNetwork = msg.contains('socketexception') ||
+        msg.contains('failed host lookup') ||
+        msg.contains('clientexception') ||
+        msg.contains('connection') ||
+        msg.contains('network') ||
+        msg.contains('timeout');
+    if (isNetwork) {
+      return '인터넷 연결을 확인해주세요.\n네트워크 상태를 확인하고 다시 시도해주세요.';
+    }
+    return '$operation에 실패했습니다. 잠시 후 다시 시도해주세요.';
   }
 
   @override
