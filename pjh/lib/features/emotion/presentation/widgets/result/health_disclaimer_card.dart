@@ -28,7 +28,7 @@ class HealthDisclaimerCard extends StatelessWidget {
           SizedBox(width: 6.w),
           Expanded(
             child: Text(
-              'AI 분석 결과는 참고용이에요.\n정확한 진단은 수의사 상담을 권장합니다.',
+              'AI 분석은 우리 아이를 이해하는 참고 자료예요.\n걱정되는 부분이 있다면 꼭 수의사와 상담해 주세요.',
               style: TextStyle(
                 fontSize: 11.sp,
                 height: 1.4,
