@@ -633,9 +633,18 @@ BEGIN
         --   · deleted_at IS NOT NULL → 앱 탈퇴(soft delete) 유예 중인 계정.
         --       세션2 결정(30일 내 재가입 차단=의도된 동작)을 존중해 건드리지 않는다.
         --       이 경우 새 행 생성은 email 충돌로 실패하며, 정책상 복구로 유도한다.
-        SELECT id, deleted_at INTO v_orphan_id, v_orphan_deleted_at
-        FROM public.users
-        WHERE email = NEW.email AND id <> NEW.id
+        --
+        -- ⚠️ 고아 판정에는 반드시 "auth.users 에 해당 id 가 없음"까지 포함해야 한다.
+        --    소셜 로그인이 기존 계정에 연동되지 못하고 같은 email 로 새 auth 계정을
+        --    만드는 경우(H-2 적용 전의 Apple 로그인 등), 기존 행은 살아있는 계정이다.
+        --    이 체크가 없으면 그 계정의 프로필이 삭제되고 CASCADE 로 펫·게시물까지
+        --    전부 지워진다. 살아있는 중복은 그대로 두어 INSERT 가 email 충돌로 실패
+        --    (아래 EXCEPTION 로그)하게 하고, 앱 단의 23505 안내 메시지로 처리한다.
+        SELECT u.id, u.deleted_at INTO v_orphan_id, v_orphan_deleted_at
+        FROM public.users u
+        WHERE u.email = NEW.email
+          AND u.id <> NEW.id
+          AND NOT EXISTS (SELECT 1 FROM auth.users au WHERE au.id = u.id)
         LIMIT 1;
 
         IF v_orphan_id IS NOT NULL AND v_orphan_deleted_at IS NULL THEN

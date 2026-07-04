@@ -123,9 +123,24 @@ class AuthRepositoryImpl implements AuthRepository {
             .upsert(user.toMap(), onConflict: 'id');
       }
 
-      return Right(user);
+      // 구글 로그인 사용자는 이미 구글에서 신원이 검증되었으므로 이메일 인증 완료로 처리.
+      final authenticatedUser = user.copyWith(
+        emailConfirmedAt: supabaseUser.emailConfirmedAt != null
+            ? DateTime.parse(supabaseUser.emailConfirmedAt!)
+            : DateTime.now(),
+      );
+
+      return Right(authenticatedUser);
     } on AuthException catch (e) {
       return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
+    } on PostgrestException catch (e) {
+      // 같은 이메일이 이미 다른 방식으로 가입된 계정에 존재 → 자동 연동 미적용 케이스.
+      if (e.code == '23505') {
+        return const Left(AuthFailure(
+            message: '이미 다른 방식으로 가입된 이메일입니다. 기존 로그인 방식(이메일·애플·카카오)으로 로그인해 주세요.'));
+      }
+      return Left(
+          GeneralFailure(message: '구글 로그인 중 오류가 발생했습니다: ${e.message}'));
     } catch (e) {
       return Left(
           GeneralFailure(message: '구글 로그인 중 오류가 발생했습니다: ${e.toString()}'));
@@ -229,7 +244,15 @@ class AuthRepositoryImpl implements AuthRepository {
             .upsert(user.toMap(), onConflict: 'id');
       }
 
-      return Right(user);
+      // Apple 로그인 사용자는 이미 Apple 에서 신원이 검증되었으므로 이메일 인증 완료로 처리.
+      // (Apple Hide My Email 의 privaterelay 주소로는 OTP 수신 불가 → 인증 단계 자체가 부적합)
+      final authenticatedUser = user.copyWith(
+        emailConfirmedAt: supabaseUser.emailConfirmedAt != null
+            ? DateTime.parse(supabaseUser.emailConfirmedAt!)
+            : DateTime.now(),
+      );
+
+      return Right(authenticatedUser);
     } on SignInWithAppleAuthorizationException catch (e) {
       // 사용자 취소 / 권한 거부 등 — 빈 메시지로 SnackBar 노출 억제
       if (e.code == AuthorizationErrorCode.canceled) {
@@ -238,6 +261,15 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(AuthFailure(message: 'Apple 로그인 실패: ${e.message}'));
     } on AuthException catch (e) {
       return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
+    } on PostgrestException catch (e) {
+      // 같은 이메일이 이미 다른 방식으로 가입된 계정에 존재 → 자동 연동 미적용 케이스.
+      // (H2 마이그레이션 적용 후에는 GoTrue 가 기존 계정에 연동하므로 정상적으로는 도달하지 않음)
+      if (e.code == '23505') {
+        return const Left(AuthFailure(
+            message: '이미 다른 방식으로 가입된 이메일입니다. 기존 로그인 방식(이메일·구글·카카오)으로 로그인해 주세요.'));
+      }
+      return Left(
+          GeneralFailure(message: 'Apple 로그인 중 오류가 발생했습니다: ${e.message}'));
     } catch (e) {
       return Left(
           GeneralFailure(message: 'Apple 로그인 중 오류가 발생했습니다: ${e.toString()}'));

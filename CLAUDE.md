@@ -2,7 +2,7 @@
 
 AI 기반 반려동물 감정 분석 + 소셜 네트워킹 Flutter 앱. 백엔드는 Supabase, AI는 Gemini, 푸시는 Firebase FCM.
 
-- 앱 패키지명: `com.petspace.app` / Flutter 패키지명: `meong_nyang_diary`
+- 앱 패키지명: Android `com.petspace.app` · iOS 번들 ID `com.jena.petspace` (서로 다름 — Supabase Apple Authorized Client IDs·Apple Developer App ID는 iOS 값 기준) / Flutter 패키지명: `meong_nyang_diary`
 - 버전: 1.0.0+1 · Flutter 3.41.6 (stable) · Dart 3.11.4
 - Android minSdk 21 / targetSdk 34
 
