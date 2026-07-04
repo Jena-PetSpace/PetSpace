@@ -30,6 +30,19 @@ class AuthRepositoryImpl implements AuthRepository {
     required this.networkInfo,
   });
 
+  /// H2: 소셜 로그인 직후 서버의 email_confirmed_at 을 확인 처리한다.
+  /// Supabase 자동 계정 연동(identity linking)은 기존 계정 이메일이
+  /// '확인됨' 상태일 때만 동작하므로, 이 계정에 향후 다른 소셜 로그인이
+  /// 연동될 수 있도록 보장한다. 실패해도 로그인 흐름에는 영향 없음.
+  Future<void> _confirmEmailOnServerIfNeeded(User supabaseUser) async {
+    if (supabaseUser.emailConfirmedAt != null) return;
+    try {
+      await supabaseClient.rpc('confirm_my_email');
+    } catch (e) {
+      log('confirm_my_email RPC 실패(무시): $e');
+    }
+  }
+
   @override
   Stream<user_entity.User?> get authStateChanges {
     return supabaseClient.auth.onAuthStateChange.asyncMap((data) async {
@@ -84,6 +97,8 @@ class AuthRepositoryImpl implements AuthRepository {
       if (supabaseUser == null) {
         return const Left(AuthFailure(message: '구글 로그인에 실패했습니다.'));
       }
+
+      await _confirmEmailOnServerIfNeeded(supabaseUser);
 
       // handle_new_user 트리거가 프로필을 생성할 시간 대기
       await Future.delayed(const Duration(milliseconds: 500));
@@ -191,6 +206,8 @@ class AuthRepositoryImpl implements AuthRepository {
       if (supabaseUser == null) {
         return const Left(AuthFailure(message: 'Apple 로그인에 실패했습니다.'));
       }
+
+      await _confirmEmailOnServerIfNeeded(supabaseUser);
 
       // handle_new_user 트리거가 프로필을 생성할 시간 대기
       await Future.delayed(const Duration(milliseconds: 500));
