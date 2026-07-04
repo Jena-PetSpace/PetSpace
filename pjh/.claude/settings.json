@@ -22,12 +22,44 @@
       "Read(//private/tmp/**)",
       "Bash(kill 21563)",
       "Bash(pkill -f \"flutter.*run.*00008140\")",
-      "Bash(xcrun devicectl *)"
+      "Bash(xcrun devicectl *)",
+      "Bash(grep -n -A6 'LSApplicationQueriesSchemes\\\\|CFBundleURLTypes' pjh/ios/Runner/Info.plist)",
+      "Bash(grep -n -A6 '<queries>' pjh/android/app/src/main/AndroidManifest.xml)",
+      "WebSearch",
+      "Bash(flutter test *)",
+      "Bash(echo \"boot-exit=$?\")",
+      "Bash(rm -f /tmp/flutter_run.log)",
+      "Bash(nohup flutter run -d 7CBE4DEF-45EA-4E8D-B40D-73D836289644 --debug)",
+      "Bash(echo \"started pid=$!\")",
+      "Bash(echo \"===exit $?===\")",
+      "Bash(mkdir -p /Users/jena/Desktop/PetSpace/docs/design/captures/1_onboarding-auth *)",
+      "Bash(idb list-targets *)",
+      "Bash(brew --version)",
+      "Bash(brew list *)",
+      "Bash(brew install *)",
+      "Bash(brew tap *)",
+      "Bash(idb_companion --version)",
+      "Bash(pip3 install *)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(supabase projects *)",
+      "Bash(awk -F'  ' '{print}')",
+      "Bash(supabase --help)",
+      "Bash([ -f \"$CAP/09_tutorial_before.png\" ])",
+      "Bash(/bin/rm /Users/jena/Desktop/PetSpace/docs/design/captures/1_onboarding-auth/09_tutorial_before.png)",
+      "Bash(/bin/rm -f /Users/jena/Desktop/PetSpace/docs/design/captures/1_onboarding-auth/12_password-reset-verify_before.png)",
+      "Bash(rm -f /tmp/attach.log)",
+      "Bash(nohup flutter attach -d 7CBE4DEF-45EA-4E8D-B40D-73D836289644)",
+      "Bash(awk '$1 ~ /^[0-9]+,/ {print}')",
+      "Bash(rm -f /tmp/run2.log)",
+      "Bash(/bin/mv /Users/jena/Desktop/PetSpace/docs/design/captures/1_onboarding-auth/09_tutorial_before.png /Users/jena/Desktop/PetSpace/docs/design/captures/1_onboarding-auth/09a_tutorial-1_before.png)"
     ],
     "additionalDirectories": [
       "/Users/jena/.ssh",
       "/Users/jena/Desktop/PetSpace/pjh/ios/Runner.xcodeproj",
-      "/Users/jena/Desktop/PetSpace/pjh/.dart_tool"
+      "/Users/jena/Desktop/PetSpace/pjh/.dart_tool",
+      "/Users/jena/Desktop/PetSpace/docs/qa",
+      "/Users/jena/Desktop/PetSpace/docs/design/captures"
     ]
   }
 }
