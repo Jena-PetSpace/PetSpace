@@ -27,6 +27,11 @@ class MyPageStatsNotifier extends ChangeNotifier {
   void refresh() => notifyListeners();
 }
 
+/// (세션6 A) MY탭 일부 섹션 임시 숨김 플래그.
+/// 위젯·BLoC·데이터는 그대로 두고 화면 노출만 끈다. 되살릴 때 true로 변경.
+const bool _kShowMyMbtiSection = false; // 성격유형(MBTI) 뱃지 섹션
+const bool _kShowMyPetSummary = false; // 내 반려동물 요약 섹션
+
 class MyPage extends StatefulWidget {
   const MyPage({super.key});
 
@@ -149,7 +154,8 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
               ),
               UserBadgesSection(userId: user.uid),
               // MBTI 성격 유형 뱃지 (결과 있는 pet 만, 없으면 자동 숨김)
-              const MyMbtiBadgeSection(),
+              // (세션6 A) 임시 숨김 — 위젯/BLoC/데이터 유지, 노출만 끔.
+              if (_kShowMyMbtiSection) const MyMbtiBadgeSection(),
               // 탭 바 (고정)
               Container(
                 color: AppTheme.surfaceColor,
@@ -176,7 +182,10 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                       onLoadMore: _loadMyPostsMore,
                       isMyPosts: true,
                       // 펫 요약은 '내 글' 탭 그리드 상단 헤더로(함께 스크롤).
-                      header: MyPetSummarySection(userId: user.uid),
+                      // (세션6 A) 임시 숨김 — 위젯/데이터 유지, header만 비움.
+                      header: _kShowMyPetSummary
+                          ? MyPetSummarySection(userId: user.uid)
+                          : null,
                     ),
                     _buildLazyGrid(
                       onLoadInitial: _loadSavedPostsInitial,

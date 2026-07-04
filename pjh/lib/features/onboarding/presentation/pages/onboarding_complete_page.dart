@@ -75,8 +75,7 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
                         _buildWelcomeMessage(),
                         SizedBox(height: 24.h),
                         _buildFeatureHighlights(),
-                        SizedBox(height: 16.h),
-                        _buildFirstAnalysisCta(),
+                        // (세션6 C-3) "지금 바로 AI 첫 분석" 배너 제거. 하단 2버튼은 유지.
                         const Spacer(flex: 3),
                         _buildActionButtons(),
                         SizedBox(height: 16.h),
@@ -109,39 +108,13 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
                 width: 3,
               ),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(
-                  Icons.pets,
-                  size: 56.w,
-                  color: AppTheme.primaryColor,
-                ),
-                Positioned(
-                  top: 40.w,
-                  right: 40.w,
-                  child: Container(
-                    width: 40.w,
-                    height: 40.w,
-                    decoration: BoxDecoration(
-                      color: AppTheme.successColor,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.successColor.withValues(alpha: 0.3),
-                          blurRadius: 8.r,
-                          spreadRadius: 2.r,
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 24.w,
-                    ),
-                  ),
-                ),
-              ],
+            child: Center(
+              // (세션6 C-1) 우상단 초록 체크 아이콘 제거. 펫 아이콘 원만 유지.
+              child: Icon(
+                Icons.pets,
+                size: 56.w,
+                color: AppTheme.primaryColor,
+              ),
             ),
           ),
         );
@@ -213,8 +186,8 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
             SizedBox(height: 16.h),
             _buildFeatureItem(
               Icons.timeline,
-              '건강 및 일상 기록',
-              '건강관리와 소중한 순간들을 기록하세요',
+              '건강 분석 및 기록',
+              '건강 상태를 분석하고 일상을 기록하세요',
               AppTheme.subColor,
             ),
             SizedBox(height: 16.h),
@@ -270,75 +243,6 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildFirstAnalysisCta() {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: GestureDetector(
-        onTap: _tryFirstAnalysis,
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppTheme.primaryColor,
-                AppTheme.primaryColor.withValues(alpha: 0.8)
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16.r),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48.w,
-                height: 48.w,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Icon(Icons.psychology, color: Colors.white, size: 26.w),
-              ),
-              SizedBox(width: 14.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '지금 바로 AI 첫 분석 해보기 🐾',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      '반려동물 사진 한 장으로 감정을 분석해드려요',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, color: Colors.white, size: 14.w),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

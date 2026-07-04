@@ -64,7 +64,9 @@ class GeminiAIService {
 - comfort_level: 0~100
 
 [3] 건강 신호: "good" / "normal" / "caution"
-[4] 부위별 분석 (한국어): eyes, ears, mouth, posture (state + signal)
+[4] 부위별 분석 (한국어): eyes, ears, mouth, posture
+    - state: 관찰된 모습 1~2문장
+    - signal: 그 모습이 뜻하는 감정을 2~6자 단어로 (예: "편안함", "호기심", "불안"). 문장 금지
 [5] 건강 관련 팁 2~3가지 (짧은 한국어 문장)
 ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 반드시 아래 JSON 형식으로만 응답하세요:

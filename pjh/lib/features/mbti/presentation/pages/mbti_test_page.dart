@@ -62,8 +62,22 @@ class _MbtiTestView extends StatelessWidget {
         }
       },
       builder: (context, state) {
+        // (세션6) 시스템 뒤로가기 처리:
+        //  - scoring 중: 차단(연출 중 이탈 방지)
+        //  - 문항 진행 중: 앱바 뒤로가기와 동일 — index>0이면 이전 문항,
+        //    첫 문항이면 인트로(안내)로 복귀(진행상황 유지)
+        //  - 그 외(인트로/이어하기 등): 기본 pop(이전 라우트로)
+        final inProgress = state.status == MbtiTestStatus.inProgress;
+        final canPop = state.status != MbtiTestStatus.scoring && !inProgress;
         return PopScope(
-          canPop: state.status != MbtiTestStatus.scoring,
+          canPop: canPop,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            if (state.status == MbtiTestStatus.scoring) return; // 차단 유지
+            if (inProgress) {
+              _handleBackInProgress(context, state);
+            }
+          },
           child: Scaffold(
             backgroundColor: MbtiTheme.bg,
             appBar: _buildAppBar(context, state),
@@ -111,6 +125,16 @@ class _MbtiTestView extends StatelessWidget {
     );
   }
 
+  /// 문항 진행 중 뒤로가기 공통 처리(앱바 leading + 시스템 뒤로가기).
+  /// index>0 → 이전 문항, 첫 문항(index 0) → 인트로(안내)로 복귀(진행상황 유지).
+  void _handleBackInProgress(BuildContext context, MbtiTestState state) {
+    if (state.currentIndex > 0) {
+      context.read<MbtiTestBloc>().add(const MbtiPreviousPressed());
+    } else {
+      context.read<MbtiTestBloc>().add(const MbtiBackToIntro());
+    }
+  }
+
   PreferredSizeWidget? _buildAppBar(BuildContext context, MbtiTestState state) {
     // 계산 연출 중에는 앱바 없이 몰입.
     if (state.status == MbtiTestStatus.scoring) return null;
@@ -122,9 +146,10 @@ class _MbtiTestView extends StatelessWidget {
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new, size: 20),
         onPressed: () {
-          // 문항 진행 중 1번 이후 → 이전 문항. 그 외 → 페이지 닫기.
-          if (isQuestion && state.currentIndex > 0) {
-            context.read<MbtiTestBloc>().add(const MbtiPreviousPressed());
+          // 문항 진행 중이면 시스템 뒤로가기와 동일 로직(이전 문항 → 첫 문항이면 인트로).
+          // 그 외(인트로/이어하기 등) → 페이지 닫기.
+          if (isQuestion) {
+            _handleBackInProgress(context, state);
           } else {
             Navigator.of(context).maybePop();
           }
@@ -135,6 +160,17 @@ class _MbtiTestView extends StatelessWidget {
         style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
       ),
       centerTitle: true,
+      actions: [
+        // (세션6 B) 문항 진행 중 홈으로 바로 나가기.
+        // 진행상황은 BLoC draft에 자동 저장되어, 다음에 "이어서 하기"로 복귀 가능.
+        // 확인 다이얼로그 없이 즉시 이동.
+        if (isQuestion)
+          IconButton(
+            icon: const Icon(Icons.home_outlined, size: 22),
+            tooltip: '홈으로',
+            onPressed: () => context.go('/home'),
+          ),
+      ],
     );
   }
 }
@@ -459,6 +495,29 @@ class _QuestionView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14.r)),
                 ),
                 child: Text('결과 보기',
+                    style: TextStyle(
+                        fontSize: 16.sp, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          )
+        // (세션6) 마지막이 아니고 현재 문항에 이미 답이 있으면 "다음" 버튼.
+        // 이전 문항으로 돌아와 같은 답을 유지하며 진행할 때 필요.
+        // (답이 없을 때는 선택지를 누르면 자동으로 다음 문항으로 넘어가므로 불필요.)
+        else if (selected != null)
+          Padding(
+            padding: EdgeInsets.fromLTRB(24.w, 8.h, 24.w, 20.h),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52.h,
+              child: ElevatedButton(
+                onPressed: () =>
+                    context.read<MbtiTestBloc>().add(const MbtiNextPressed()),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: MbtiTheme.navy,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14.r)),
+                ),
+                child: Text('다음',
                     style: TextStyle(
                         fontSize: 16.sp, fontWeight: FontWeight.w700)),
               ),

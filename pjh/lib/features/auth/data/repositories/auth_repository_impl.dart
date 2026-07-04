@@ -375,6 +375,18 @@ class AuthRepositoryImpl implements AuthRepository {
         }
 
         // Step 3: RPC로 email_confirmed_at 설정 (signUp은 유저를 생성했지만 인증 이메일 발송 실패한 경우)
+        // [세션1 1-A 검증] Step 3 시점 세션 유무 진단 — confirm RPC를 authenticated로 잠가도
+        //   카카오 플로우가 깨지지 않는지 판단 근거. 검증 후 제거 예정.
+        final s3Session = supabaseClient.auth.currentSession;
+        // print()는 logcat 'flutter :' 태그로 확실히 출력됨(log()는 VM Service로만 가 logcat 미표시).
+        // 검증 후 제거 예정.
+        // ignore: avoid_print
+        print('KAKAO_1A_VERIFY Step3 currentSession='
+            '${s3Session == null ? 'NULL_세션없음' : 'NONNULL_uid_${s3Session.user.id}'}');
+        log('🔍 [Kakao 1-A검증] Step3 시점 currentSession='
+            '${s3Session == null ? 'NULL(세션없음)' : 'non-null(uid:${s3Session.user.id})'}',
+            name: 'AuthRepository');
+        debugLog += '[S3세션:${s3Session == null ? 'NULL' : 'OK'}]→';
         debugLog += '3.RPC-confirm→';
         try {
           await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
@@ -404,6 +416,11 @@ class AuthRepositoryImpl implements AuthRepository {
         }
       } else {
         // 이미 로그인 성공한 경우에도 RPC 실행 (email_confirmed_at 보장)
+        // [세션1 1-A 검증] else 분기(기존 계정 로그인)에서도 세션 상태 진단. 검증 후 제거 예정.
+        final elseSession = supabaseClient.auth.currentSession;
+        // ignore: avoid_print
+        print('KAKAO_1A_VERIFY ElseBranch currentSession='
+            '${elseSession == null ? 'NULL_세션없음' : 'NONNULL_uid_${elseSession.user.id}'}');
         try {
           await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
             'p_email': kakaoEmail,

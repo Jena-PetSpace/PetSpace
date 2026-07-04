@@ -9,6 +9,7 @@ import '../theme/emotion_result_tokens.dart';
 import '../widgets/result/ai_insight_card.dart';
 import '../widgets/result/bottom_action_bar.dart';
 import '../widgets/result/breed_guide_card.dart';
+import '../widgets/result/health_disclaimer_card.dart';
 import '../widgets/result/context_card.dart';
 import '../widgets/result/emotion_distribution_card.dart';
 import '../widgets/result/emotion_share_card.dart';
@@ -250,6 +251,8 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
             _gap(),
             // TODO(breed): pets 테이블에서 breed/ageMonths 조회 후 주입 — 별도 PR
             _section(const BreedGuideCard()),
+            _gap(),
+            _section(const HealthDisclaimerCard()),
             if (showVet) ...[
               _gap(),
               _section(VetConsultCard(

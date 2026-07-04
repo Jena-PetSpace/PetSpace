@@ -173,10 +173,13 @@ class _PartAnalysisCardState extends State<PartAnalysisCard> {
       ),
       child: Text(
         signal,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 9.sp,
           fontWeight: FontWeight.w500,
           color: color,
+          height: 1.35,
         ),
       ),
     );
@@ -229,24 +232,43 @@ class _PartAnalysisCardState extends State<PartAnalysisCard> {
           ),
           if (feature.signal.isNotEmpty) ...[
             SizedBox(height: 6.h),
-            _signalChip(feature.signal, meta.iconColor),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _signalChip(feature.signal, meta.iconColor),
+            ),
           ],
         ],
       ),
     );
   }
 
+  /// 2개씩 묶어 행으로. IntrinsicHeight로 한 행의 두 카드가 높이를 공유하고,
+  /// 셀 높이는 내용에 맞춰 늘어나 오버플로우가 발생하지 않는다.
   Widget _buildCardBody() {
     final items = _present();
-    return GridView.count(
-      crossAxisCount: 2,
-      mainAxisSpacing: 8.h,
-      crossAxisSpacing: 8.w,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.4,
-      children: items.map((e) => _buildCardItem(e.meta, e.feature)).toList(),
-    );
+    final rows = <Widget>[];
+    for (int i = 0; i < items.length; i += 2) {
+      final left = items[i];
+      final hasRight = i + 1 < items.length;
+      if (rows.isNotEmpty) rows.add(SizedBox(height: 8.h));
+      rows.add(
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _buildCardItem(left.meta, left.feature)),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: hasRight
+                    ? _buildCardItem(items[i + 1].meta, items[i + 1].feature)
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(children: rows);
   }
 
   // ── 목록형 ────────────────────────────
@@ -283,7 +305,9 @@ class _PartAnalysisCardState extends State<PartAnalysisCard> {
                     ),
                     if (feature.signal.isNotEmpty) ...[
                       SizedBox(width: 6.w),
-                      _signalChip(feature.signal, meta.iconColor),
+                      Flexible(
+                        child: _signalChip(feature.signal, meta.iconColor),
+                      ),
                     ],
                   ],
                 ),

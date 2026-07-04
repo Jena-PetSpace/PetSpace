@@ -324,6 +324,8 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
     required String userId,
     required int points,
   }) async {
+    // 보안(세션1 1-B): 서버 RPC가 적립 대상을 auth.uid()로 강제하므로 p_user_id는 무시된다.
+    // (PostgREST 함수 시그니처 매칭을 위해 키 자체는 유지)
     await supabaseClient.rpc('increment_user_points', params: {
       'p_user_id': userId,
       'p_points': points,
