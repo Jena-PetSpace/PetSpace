@@ -26,10 +26,11 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
 
   static const _categories = [
     {'label': 'Q&A', 'value': 'qa'},
-    {'label': '건강', 'value': 'health'},
-    {'label': '훈련', 'value': 'training'},
-    {'label': '먹거리', 'value': 'food'},
-    {'label': '생활', 'value': 'life'},
+    {'label': 'O/X 퀴즈', 'value': 'quiz'},
+    {'label': '케어가이드', 'value': 'careguide'},
+    {'label': '교육', 'value': 'education'},
+    {'label': '정책', 'value': 'policy'},
+    {'label': '이벤트', 'value': 'event'},
   ];
 
   @override

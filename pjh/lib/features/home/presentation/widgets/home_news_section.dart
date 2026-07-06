@@ -53,49 +53,55 @@ class _HomeNewsSectionState extends State<HomeNewsSection> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                '뉴스',
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.primaryTextColor,
+      // 섹션 구분 실험: 뉴스만 카드(흰 배경 + 옅은 그림자)로 감싸 명암 대비.
+      // 채택 시 핫이슈·매거진도 동일 패턴 적용 예정.
+      child: Container(
+        decoration: AppTheme.cardDecoration,
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '뉴스',
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryTextColor,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => context.push('/news'),
-                behavior: HitTestBehavior.opaque,
-                child: Row(
-                  children: [
-                    Text(
-                      '더보기',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w500,
-                        color: AppTheme.secondaryTextColor,
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => context.push('/news'),
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    children: [
+                      Text(
+                        '더보기',
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.secondaryTextColor,
+                        ),
                       ),
-                    ),
-                    Icon(Icons.chevron_right,
-                        size: 16.w, color: AppTheme.secondaryTextColor),
-                  ],
+                      Icon(Icons.chevron_right,
+                          size: 16.w, color: AppTheme.secondaryTextColor),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          ...List.generate(_articles.length, (i) {
-            final a = _articles[i];
-            return _buildNewsRow(
-              article: a,
-              isLast: i == _articles.length - 1,
-            );
-          }),
-        ],
+              ],
+            ),
+            SizedBox(height: 12.h),
+            ...List.generate(_articles.length, (i) {
+              final a = _articles[i];
+              return _buildNewsRow(
+                article: a,
+                isLast: i == _articles.length - 1,
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

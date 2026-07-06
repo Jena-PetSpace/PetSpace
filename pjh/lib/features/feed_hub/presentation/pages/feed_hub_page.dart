@@ -55,19 +55,21 @@ class _FeedHubViewState extends State<_FeedHubView>
 
   static const List<Map<String, String?>> _qnaCategories = [
     {'label': '전체', 'value': null},
-    {'label': '건강', 'value': 'health'},
-    {'label': '훈련', 'value': 'training'},
-    {'label': '먹거리', 'value': 'food'},
-    {'label': '생활', 'value': 'life'},
+    {'label': 'O/X 퀴즈', 'value': 'quiz'},
+    {'label': '케어가이드', 'value': 'careguide'},
+    {'label': '교육', 'value': 'education'},
+    {'label': '정책', 'value': 'policy'},
+    {'label': '이벤트', 'value': 'event'},
   ];
 
   /// 카테고리별 아이콘·컬러(AppTheme feature 토큰 계열). '전체'는 중립색.
   static const Map<String, ({IconData icon, Color color})> _qnaCategoryStyle = {
     '전체': (icon: Icons.apps_rounded, color: AppTheme.primaryColor),
-    '건강': (icon: Icons.favorite_rounded, color: AppTheme.featureHealth),
-    '훈련': (icon: Icons.school_rounded, color: AppTheme.featurePlay),
-    '먹거리': (icon: Icons.restaurant_rounded, color: AppTheme.featureFortune),
-    '생활': (icon: Icons.home_rounded, color: AppTheme.featureWalk),
+    'O/X 퀴즈': (icon: Icons.quiz_rounded, color: AppTheme.accentColor),
+    '케어가이드': (icon: Icons.menu_book_rounded, color: AppTheme.featureHealth),
+    '교육': (icon: Icons.school_rounded, color: AppTheme.featurePlay),
+    '정책': (icon: Icons.account_balance_rounded, color: AppTheme.featureFortune),
+    '이벤트': (icon: Icons.celebration_rounded, color: AppTheme.featureWalk),
   };
 
   CommunityCubit get _cubit => context.read<CommunityCubit>();
@@ -76,7 +78,7 @@ class _FeedHubViewState extends State<_FeedHubView>
   void initState() {
     super.initState();
     _photoTabController = TabController(length: 2, vsync: this);
-    _qnaTabController = TabController(length: 5, vsync: this);
+    _qnaTabController = TabController(length: _qnaCategories.length, vsync: this);
     _qnaScrollController.addListener(_onQnaScroll);
 
     if (widget.initialTab >= 2) {

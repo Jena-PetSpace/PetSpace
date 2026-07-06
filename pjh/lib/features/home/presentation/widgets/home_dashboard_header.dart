@@ -37,7 +37,8 @@ class HomeDashboardHeader extends StatelessWidget {
             // ── 로고 + 액션 바 ──────────────────────────
             Padding(
               // 로고~여권 카드 거리 1/2(하단 10 → 5)
-              padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 5.h),
+              // 우측 8: 아이콘 버튼 내부 패딩 8과 합쳐 글리프 기준 16 유지
+              padding: EdgeInsets.fromLTRB(16.w, 10.h, 8.w, 5.h),
               child: Row(
                 children: [
                   // 로고 (하단 인사말 제거 · 크기 확대)
@@ -45,16 +46,10 @@ class HomeDashboardHeader extends StatelessWidget {
                   const Spacer(),
                   // 스트릭 배지
                   _buildStreakBadge(context),
-                  SizedBox(width: 6.w),
                   // 검색 아이콘
-                  GestureDetector(
-                    onTap: () => context.push('/search'),
-                    child: Icon(Icons.search_rounded, color: Colors.white, size: 24.w),
-                  ),
-                  SizedBox(width: 6.w),
+                  _buildSearchIcon(context),
                   // 알림 아이콘
                   _buildNotificationIcon(context),
-                  SizedBox(width: 4.w),
                   // 채팅 아이콘
                   _buildChatIcon(context),
                 ],
@@ -104,11 +99,40 @@ class HomeDashboardHeader extends StatelessWidget {
     );
   }
 
+  // ── 액션 아이콘 공통 버튼 (24 아이콘 + 8 패딩 = 40×40 터치영역) ──
+  Widget _iconButton({required VoidCallback onTap, required Widget child}) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.all(8.w),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _headerIcon(String asset) {
+    return SvgPicture.asset(
+      asset,
+      width: 24.w,
+      height: 24.w,
+      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+    );
+  }
+
+  // ── 검색 아이콘 ───────────────────────────────────────
+  Widget _buildSearchIcon(BuildContext context) {
+    return _iconButton(
+      onTap: () => context.push('/search'),
+      child: _headerIcon('assets/svg/icon_search.svg'),
+    );
+  }
+
   // ── 알림 아이콘 ───────────────────────────────────────
   Widget _buildNotificationIcon(BuildContext context) {
     return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
       builder: (context, notiState) {
-        return GestureDetector(
+        return _iconButton(
           onTap: () {
             context.push('/notifications');
             final authState = context.read<AuthBloc>().state;
@@ -121,7 +145,7 @@ class HomeDashboardHeader extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              SvgPicture.asset('assets/svg/icon_notification.svg', width: 24.w, height: 24.w, colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn)),
+              _headerIcon('assets/svg/icon_notification.svg'),
               if (notiState.count > 0)
                 Positioned(
                   top: -3.h,
@@ -150,12 +174,12 @@ class HomeDashboardHeader extends StatelessWidget {
   Widget _buildChatIcon(BuildContext context) {
     return BlocBuilder<ChatBadgeBloc, ChatBadgeState>(
       builder: (context, badgeState) {
-        return GestureDetector(
+        return _iconButton(
           onTap: () => context.push('/chat'),
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              SvgPicture.asset('assets/svg/icon_message.svg', width: 24.w, height: 24.w, colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn)),
+              _headerIcon('assets/svg/icon_message.svg'),
               if (badgeState.count > 0)
                 Positioned(
                   top: -4.h,

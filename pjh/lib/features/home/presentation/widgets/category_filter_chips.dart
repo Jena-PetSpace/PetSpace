@@ -15,38 +15,33 @@ class CategoryFilterChips extends StatefulWidget {
 class _CategoryFilterChipsState extends State<CategoryFilterChips> {
   int _selectedIndex = 0;
 
-  // 피드 Q&A 항목과 동일한 카테고리 체계
-  final List<Map<String, String>> _categories = [
-    {'emoji': '✨', 'label': '전체'},
-    {'emoji': '🏥', 'label': '건강'},
-    {'emoji': '🎯', 'label': '훈련'},
-    {'emoji': '🍖', 'label': '먹거리'},
-    {'emoji': '🏡', 'label': '생활'},
+  // 피드 Q&A 항목과 동일한 카테고리 체계 (피그마 매거진 시안 기준)
+  static const List<String> _categories = [
+    '전체',
+    'O/X 퀴즈',
+    '케어가이드',
+    '교육',
+    '정책',
+    '이벤트',
   ];
 
   @override
   Widget build(BuildContext context) {
-    // 5개 칩을 가로 폭에 균등하게 채워 스크롤 없이 한눈에 보이도록 배치
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Row(
-        children: List.generate(_categories.length, (index) {
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(
-                right: index == _categories.length - 1 ? 0 : 6.w,
-              ),
-              child: _buildChip(index),
-            ),
-          );
-        }),
+    // 6개 칩 — 콘텐츠 폭 기반 가로 스크롤 (피그마 시안 레이아웃)
+    return SizedBox(
+      height: 34.h,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        itemCount: _categories.length,
+        separatorBuilder: (_, __) => SizedBox(width: 8.w),
+        itemBuilder: (_, index) => _buildChip(index),
       ),
     );
   }
 
   Widget _buildChip(int index) {
     final isSelected = _selectedIndex == index;
-    final cat = _categories[index];
 
     return GestureDetector(
       onTap: () {
@@ -55,23 +50,16 @@ class _CategoryFilterChipsState extends State<CategoryFilterChips> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(vertical: 9.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryColor : Colors.white,
-          borderRadius: BorderRadius.circular(22.r),
-          border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : AppTheme.dividerColor,
-            width: 1.5,
-          ),
-          boxShadow: isSelected
-              ? [BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.28), blurRadius: 8, offset: const Offset(0, 2))]
-              : null,
+          // 선택: 브랜드 딥블루 채움 / 비선택: 무채색 채움 (테두리·그림자 없음)
+          color: isSelected ? AppTheme.primaryColor : const Color(0xFFEFF1F4),
+          borderRadius: BorderRadius.circular(17.r),
         ),
         child: Text(
-          cat['label']!,
+          _categories[index],
           maxLines: 1,
-          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
