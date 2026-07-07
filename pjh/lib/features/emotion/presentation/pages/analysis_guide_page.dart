@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../constants/capture_guide_content.dart';
+import 'guided_camera_page.dart';
 
 class AnalysisGuidePage extends StatelessWidget {
   final bool isEmotion;
@@ -22,13 +23,20 @@ class AnalysisGuidePage extends StatelessWidget {
       );
 
   Future<void> _pick(BuildContext context, ImageSource source) async {
-    final picker = ImagePicker();
     List<String> paths = [];
     if (source == ImageSource.camera) {
-      final x = await picker.pickImage(source: source, imageQuality: 85);
-      if (x != null) paths = [x.path];
+      // Phase 2: 오버레이 가이드 커스텀 카메라 (갤러리 경로는 무변경)
+      final path = await Navigator.push<String?>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => GuidedCameraPage(
+            type: CaptureGuideType.fromArea(isEmotion: isEmotion, area: area),
+          ),
+        ),
+      );
+      if (path != null) paths = [path];
     } else {
-      final xs = await picker.pickMultiImage(imageQuality: 85);
+      final xs = await ImagePicker().pickMultiImage(imageQuality: 85);
       paths = xs.map((x) => x.path).toList();
     }
     if (paths.isNotEmpty && context.mounted) {
