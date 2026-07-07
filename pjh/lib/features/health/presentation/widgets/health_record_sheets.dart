@@ -1,6 +1,35 @@
 part of '../pages/health_main_page.dart';
 
 extension _HealthMainSheets on _HealthMainViewState {
+  /// 추가/수정 시트의 기록 유형 선택 — 메인 필터 칩과 동일한 비주얼·라벨
+  /// (_filterTypes·_typeChip 공유, '전체'만 필터 전용이라 제외).
+  Widget _buildRecordTypeSelector(
+    HealthRecordType selected,
+    ValueChanged<HealthRecordType> onSelect,
+  ) {
+    final types =
+        _HealthMainViewState._filterTypes.where((t) => t.$1 != null).toList();
+    return SizedBox(
+      height: 36.h,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        itemCount: types.length,
+        separatorBuilder: (_, __) => SizedBox(width: 6.w),
+        itemBuilder: (context, i) {
+          final (type, label, emoji) = types[i];
+          return _typeChip(
+            emoji: emoji,
+            label: label,
+            color: _HealthMainViewState._filterTypeColors[type]!,
+            isSelected: selected == type,
+            onTap: () => onSelect(type!),
+          );
+        },
+      ),
+    );
+  }
+
   void _showAddRecordSheet(BuildContext context) {
     final titleController = TextEditingController();
     final descController = TextEditingController();
@@ -45,21 +74,8 @@ extension _HealthMainSheets on _HealthMainViewState {
                     style: TextStyle(
                         fontSize: 14.sp, fontWeight: FontWeight.w600)),
                 SizedBox(height: 8.h),
-                Wrap(
-                  spacing: 8.w,
-                  children: HealthRecordType.values.map((type) {
-                    final isSelected = type == selectedType;
-                    return ChoiceChip(
-                      label: Text(_getRecordTypeName(type),
-                          style: TextStyle(fontSize: 12.sp)),
-                      selected: isSelected,
-                      selectedColor:
-                          AppTheme.primaryColor.withValues(alpha: 0.2),
-                      onSelected: (_) =>
-                          setSheetState(() => selectedType = type),
-                    );
-                  }).toList(),
-                ),
+                _buildRecordTypeSelector(
+                    selectedType, (t) => setSheetState(() => selectedType = t)),
                 SizedBox(height: 16.h),
 
                 // 타입별 전용 입력
@@ -282,20 +298,8 @@ extension _HealthMainSheets on _HealthMainViewState {
                     style: TextStyle(
                         fontSize: 14.sp, fontWeight: FontWeight.w600)),
                 SizedBox(height: 8.h),
-                Wrap(
-                  spacing: 8.w,
-                  children: HealthRecordType.values.map((type) {
-                    return ChoiceChip(
-                      label: Text(_getRecordTypeName(type),
-                          style: TextStyle(fontSize: 12.sp)),
-                      selected: type == selectedType,
-                      selectedColor:
-                          AppTheme.primaryColor.withValues(alpha: 0.2),
-                      onSelected: (_) =>
-                          setSheetState(() => selectedType = type),
-                    );
-                  }).toList(),
-                ),
+                _buildRecordTypeSelector(
+                    selectedType, (t) => setSheetState(() => selectedType = t)),
                 SizedBox(height: 16.h),
 
                 // 타입별 전용 입력

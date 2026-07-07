@@ -353,63 +353,77 @@ class _HealthMainViewState extends State<_HealthMainView> {
     return '$label 기록이 없어요';
   }
 
+  /// 유형 칩 색 — 필터·기록 유형 선택(시트)이 공유.
+  static const _filterTypeColors = <HealthRecordType?, Color>{
+    null: AppTheme.primaryColor,
+    HealthRecordType.vaccination: AppTheme.successColor,
+    HealthRecordType.checkup: AppTheme.accentColor,
+    HealthRecordType.weight: AppTheme.highlightColor,
+    HealthRecordType.medication: AppTheme.secondaryColor,
+    HealthRecordType.surgery: AppTheme.errorColor,
+  };
+
   Widget _buildFilterChips() {
-    const types = _filterTypes;
-
-    final typeColors = {
-      null: AppTheme.primaryColor,
-      HealthRecordType.vaccination: AppTheme.successColor,
-      HealthRecordType.checkup: AppTheme.accentColor,
-      HealthRecordType.weight: AppTheme.highlightColor,
-      HealthRecordType.medication: AppTheme.secondaryColor,
-      HealthRecordType.surgery: AppTheme.errorColor,
-    };
-
     return SizedBox(
       height: 36.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.zero,
-        itemCount: types.length,
+        itemCount: _filterTypes.length,
         separatorBuilder: (_, __) => SizedBox(width: 6.w),
         itemBuilder: (context, i) {
-          final (type, label, emoji) = types[i];
-          final isSelected = _selectedFilter == type;
-          final color = typeColors[type]!;
-          return GestureDetector(
+          final (type, label, emoji) = _filterTypes[i];
+          return _typeChip(
+            emoji: emoji,
+            label: label,
+            color: _filterTypeColors[type]!,
+            isSelected: _selectedFilter == type,
             onTap: () => setState(() => _selectedFilter = type),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: isSelected ? color : Colors.white,
-                borderRadius: BorderRadius.circular(18.r),
-                border: Border.all(
-                  color: isSelected ? color : AppTheme.dividerColor,
-                  width: 1.5,
-                ),
-                boxShadow: isSelected
-                    ? [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))]
-                    : null,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(emoji, style: TextStyle(fontSize: 12.sp)),
-                  SizedBox(width: 4.w),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           );
         },
+      ),
+    );
+  }
+
+  /// 이모지+라벨 알약 칩 — 필터와 시트의 유형 선택이 공용으로 사용.
+  Widget _typeChip({
+    required String emoji,
+    required String label,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(
+            color: isSelected ? color : AppTheme.dividerColor,
+            width: 1.5,
+          ),
+          boxShadow: isSelected
+              ? [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: TextStyle(fontSize: 12.sp)),
+            SizedBox(width: 4.w),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
