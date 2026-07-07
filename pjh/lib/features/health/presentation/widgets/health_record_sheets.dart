@@ -237,9 +237,31 @@ extension _HealthMainSheets on _HealthMainViewState {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('건강 기록 수정',
-                    style: TextStyle(
-                        fontSize: 18.sp, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('건강 기록 수정',
+                          style: TextStyle(
+                              fontSize: 18.sp, fontWeight: FontWeight.bold)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      color: AppTheme.highlightColor,
+                      tooltip: '기록 삭제',
+                      onPressed: () async {
+                        final confirmed = await _confirmDeleteFromEdit(ctx);
+                        if (confirmed != true || !ctx.mounted) return;
+                        // 스와이프 삭제와 동일한 이벤트 → 동일 Repository 경로 재사용
+                        context.read<HealthBloc>().add(
+                            DeleteHealthRecordEvent(recordId: record.id));
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('기록을 삭제했어요')),
+                        );
+                      },
+                    ),
+                  ],
+                ),
                 SizedBox(height: 20.h),
 
                 Text('기록 유형',
@@ -414,6 +436,30 @@ extension _HealthMainSheets on _HealthMainViewState {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// 수정 시트의 삭제 확인 다이얼로그. 확인 색은 경고 앰버(AppTheme.highlightColor).
+  Future<bool?> _confirmDeleteFromEdit(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('기록 삭제', style: TextStyle(fontSize: 18.sp)),
+        content: Text('이 기록을 삭제할까요?\n삭제한 기록은 복구할 수 없어요.',
+            style: TextStyle(fontSize: 14.sp)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('취소', style: TextStyle(fontSize: 14.sp)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+                foregroundColor: AppTheme.highlightColor),
+            child: Text('삭제', style: TextStyle(fontSize: 14.sp)),
+          ),
+        ],
       ),
     );
   }
