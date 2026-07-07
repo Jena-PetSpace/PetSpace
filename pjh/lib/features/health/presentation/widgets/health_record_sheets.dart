@@ -57,174 +57,185 @@ extension _HealthMainSheets on _HealthMainViewState {
             left: 20.w,
             right: 20.w,
             top: 20.h,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20.h,
+            // 키보드(viewInsets) + 시스템 내비게이션 바(padding.bottom) 회피
+            bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                MediaQuery.of(ctx).padding.bottom +
+                12.h,
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('건강 기록 추가',
-                    style: TextStyle(
-                        fontSize: 18.sp, fontWeight: FontWeight.bold)),
-                SizedBox(height: 20.h),
+          // Column(max) → maxHeight(85%)까지 채워 유형과 무관하게 시트 높이 고정.
+          // 제목·저장 버튼은 고정, 가운데 폼만 스크롤.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('건강 기록 추가',
+                  style:
+                      TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+              SizedBox(height: 20.h),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 기록 타입
+                      Text('기록 유형',
+                          style: TextStyle(
+                              fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 8.h),
+                      _buildRecordTypeSelector(selectedType,
+                          (t) => setSheetState(() => selectedType = t)),
+                      SizedBox(height: 16.h),
 
-                // 기록 타입
-                Text('기록 유형',
-                    style: TextStyle(
-                        fontSize: 14.sp, fontWeight: FontWeight.w600)),
-                SizedBox(height: 8.h),
-                _buildRecordTypeSelector(
-                    selectedType, (t) => setSheetState(() => selectedType = t)),
-                SizedBox(height: 16.h),
+                      // 타입별 전용 입력
+                      _buildTypeFields(selectedType, typeFields, setSheetState),
+                      SizedBox(height: 12.h),
 
-                // 타입별 전용 입력
-                _buildTypeFields(selectedType, typeFields, setSheetState),
-                SizedBox(height: 12.h),
-
-                // 제목 (선택 — 체중은 자동 생성)
-                TextField(
-                  controller: titleController,
-                  style: TextStyle(fontSize: 14.sp),
-                  decoration: InputDecoration(
-                    labelText: '제목 (선택)',
-                    labelStyle: TextStyle(fontSize: 14.sp),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 12.h),
-
-                // 메모
-                TextField(
-                  controller: descController,
-                  style: TextStyle(fontSize: 14.sp),
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: '메모 (선택)',
-                    labelStyle: TextStyle(fontSize: 14.sp),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 12.h),
-
-                // 날짜
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_today),
-                  title: Text('기록 날짜: ${_formatDate(selectedDate)}',
-                      style: TextStyle(fontSize: 14.sp)),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: ctx,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) {
-                      setSheetState(() => selectedDate = picked);
-                    }
-                  },
-                ),
-
-                // 다음 예정일
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.event),
-                  title: Text(
-                    nextDate != null
-                        ? '다음 예정일: ${_formatDate(nextDate!)}'
-                        : '다음 예정일 (선택)',
-                    style: TextStyle(fontSize: 14.sp),
-                  ),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: ctx,
-                      initialDate: DateTime.now().add(const Duration(days: 30)),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) {
-                      setSheetState(() => nextDate = picked);
-                    }
-                  },
-                ),
-                SizedBox(height: 20.h),
-
-                // 저장 버튼
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      final typeError =
-                          _validateTypeFields(selectedType, typeFields);
-                      if (typeError != null) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text(typeError)),
-                        );
-                        return;
-                      }
-
-                      final petState = context.read<PetBloc>().state;
-                      if (petState is! PetLoaded ||
-                          petState.selectedPet == null) {
-                        return;
-                      }
-
-                      final data = _composeData(selectedType, typeFields);
-                      // 제목: 입력값 우선, 체중은 자동 생성, 그 외 비면 타입명.
-                      String title = titleController.text.trim();
-                      if (title.isEmpty) {
-                        if (selectedType == HealthRecordType.weight) {
-                          title = weightTitle(
-                              parseWeightKg(typeFields.weight.text)!);
-                        } else {
-                          title = _getRecordTypeName(selectedType);
-                        }
-                      }
-
-                      final record = HealthRecord(
-                        id: '',
-                        petId: petState.selectedPet!.id,
-                        userId: '',
-                        recordType: selectedType,
-                        title: title,
-                        description: descController.text.trim().isEmpty
-                            ? null
-                            : descController.text.trim(),
-                        recordDate: selectedDate,
-                        nextDate: nextDate,
-                        status: selectedDate.isAfter(DateTime.now())
-                            ? HealthRecordStatus.scheduled
-                            : HealthRecordStatus.completed,
-                        data: data,
-                        createdAt: DateTime.now(),
-                        updatedAt: DateTime.now(),
-                      );
-
-                      context
-                          .read<HealthBloc>()
-                          .add(AddHealthRecordEvent(record: record));
-                      Navigator.pop(ctx);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
+                      // 제목 (선택 — 체중은 자동 생성)
+                      TextField(
+                        controller: titleController,
+                        style: TextStyle(fontSize: 14.sp),
+                        decoration: InputDecoration(
+                          labelText: '제목 (선택)',
+                          labelStyle: TextStyle(fontSize: 14.sp),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Text('저장',
-                        style: TextStyle(
-                            fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 12.h),
+
+                      // 메모
+                      TextField(
+                        controller: descController,
+                        style: TextStyle(fontSize: 14.sp),
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: '메모 (선택)',
+                          labelStyle: TextStyle(fontSize: 14.sp),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+
+                      // 날짜
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.calendar_today),
+                        title: Text('기록 날짜: ${_formatDate(selectedDate)}',
+                            style: TextStyle(fontSize: 14.sp)),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                          );
+                          if (picked != null) {
+                            setSheetState(() => selectedDate = picked);
+                          }
+                        },
+                      ),
+
+                      // 다음 예정일
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.event),
+                        title: Text(
+                          nextDate != null
+                              ? '다음 예정일: ${_formatDate(nextDate!)}'
+                              : '다음 예정일 (선택)',
+                          style: TextStyle(fontSize: 14.sp),
+                        ),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate:
+                                DateTime.now().add(const Duration(days: 30)),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2030),
+                          );
+                          if (picked != null) {
+                            setSheetState(() => nextDate = picked);
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: 12.h),
+
+              // 저장 버튼 — 시트 하단 고정(스크롤과 무관하게 항상 노출)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final typeError =
+                        _validateTypeFields(selectedType, typeFields);
+                    if (typeError != null) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text(typeError)),
+                      );
+                      return;
+                    }
+
+                    final petState = context.read<PetBloc>().state;
+                    if (petState is! PetLoaded ||
+                        petState.selectedPet == null) {
+                      return;
+                    }
+
+                    final data = _composeData(selectedType, typeFields);
+                    // 제목: 입력값 우선, 체중은 자동 생성, 그 외 비면 타입명.
+                    String title = titleController.text.trim();
+                    if (title.isEmpty) {
+                      if (selectedType == HealthRecordType.weight) {
+                        title =
+                            weightTitle(parseWeightKg(typeFields.weight.text)!);
+                      } else {
+                        title = _getRecordTypeName(selectedType);
+                      }
+                    }
+
+                    final record = HealthRecord(
+                      id: '',
+                      petId: petState.selectedPet!.id,
+                      userId: '',
+                      recordType: selectedType,
+                      title: title,
+                      description: descController.text.trim().isEmpty
+                          ? null
+                          : descController.text.trim(),
+                      recordDate: selectedDate,
+                      nextDate: nextDate,
+                      status: selectedDate.isAfter(DateTime.now())
+                          ? HealthRecordStatus.scheduled
+                          : HealthRecordStatus.completed,
+                      data: data,
+                      createdAt: DateTime.now(),
+                      updatedAt: DateTime.now(),
+                    );
+
+                    context
+                        .read<HealthBloc>()
+                        .add(AddHealthRecordEvent(record: record));
+                    Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  child: Text('저장',
+                      style: TextStyle(
+                          fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -260,198 +271,212 @@ extension _HealthMainSheets on _HealthMainViewState {
             left: 20.w,
             right: 20.w,
             top: 20.h,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20.h,
+            // 키보드(viewInsets) + 시스템 내비게이션 바(padding.bottom) 회피
+            bottom: MediaQuery.of(ctx).viewInsets.bottom +
+                MediaQuery.of(ctx).padding.bottom +
+                12.h,
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('건강 기록 수정',
-                          style: TextStyle(
-                              fontSize: 18.sp, fontWeight: FontWeight.bold)),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      color: AppTheme.highlightColor,
-                      tooltip: '기록 삭제',
-                      onPressed: () async {
-                        final confirmed = await _confirmDeleteFromEdit(ctx);
-                        if (confirmed != true || !ctx.mounted) return;
-                        // 스와이프 삭제와 동일한 이벤트 → 동일 Repository 경로 재사용
-                        context.read<HealthBloc>().add(
-                            DeleteHealthRecordEvent(recordId: record.id));
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('기록을 삭제했어요')),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-
-                Text('기록 유형',
-                    style: TextStyle(
-                        fontSize: 14.sp, fontWeight: FontWeight.w600)),
-                SizedBox(height: 8.h),
-                _buildRecordTypeSelector(
-                    selectedType, (t) => setSheetState(() => selectedType = t)),
-                SizedBox(height: 16.h),
-
-                // 타입별 전용 입력
-                _buildTypeFields(selectedType, typeFields, setSheetState),
-                SizedBox(height: 12.h),
-
-                TextField(
-                  controller: titleController,
-                  style: TextStyle(fontSize: 14.sp),
-                  decoration: InputDecoration(
-                    labelText: '제목 (선택)',
-                    labelStyle: TextStyle(fontSize: 14.sp),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r)),
+          // Column(max) → maxHeight(85%)까지 채워 유형과 무관하게 시트 높이 고정.
+          // 헤더·수정 완료 버튼은 고정, 가운데 폼만 스크롤.
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('건강 기록 수정',
+                        style: TextStyle(
+                            fontSize: 18.sp, fontWeight: FontWeight.bold)),
                   ),
-                ),
-                SizedBox(height: 12.h),
-
-                TextField(
-                  controller: descController,
-                  style: TextStyle(fontSize: 14.sp),
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: '메모 (선택)',
-                    labelStyle: TextStyle(fontSize: 14.sp),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r)),
-                  ),
-                ),
-                SizedBox(height: 12.h),
-
-                // 상태
-                Text('상태',
-                    style: TextStyle(
-                        fontSize: 14.sp, fontWeight: FontWeight.w600)),
-                SizedBox(height: 8.h),
-                Wrap(
-                  spacing: 8.w,
-                  children: HealthRecordStatus.values.map((status) {
-                    return ChoiceChip(
-                      label: Text(_getStatusName(status),
-                          style: TextStyle(fontSize: 12.sp)),
-                      selected: status == selectedStatus,
-                      selectedColor:
-                          _getStatusColor(status).withValues(alpha: 0.2),
-                      onSelected: (_) =>
-                          setSheetState(() => selectedStatus = status),
-                    );
-                  }).toList(),
-                ),
-                SizedBox(height: 12.h),
-
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_today),
-                  title: Text('기록 날짜: ${_formatDate(selectedDate)}',
-                      style: TextStyle(fontSize: 14.sp)),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: ctx,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) {
-                      setSheetState(() => selectedDate = picked);
-                    }
-                  },
-                ),
-
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.event),
-                  title: Text(
-                    nextDate != null
-                        ? '다음 예정일: ${_formatDate(nextDate!)}'
-                        : '다음 예정일 (선택)',
-                    style: TextStyle(fontSize: 14.sp),
-                  ),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: ctx,
-                      initialDate: nextDate ??
-                          DateTime.now().add(const Duration(days: 30)),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) setSheetState(() => nextDate = picked);
-                  },
-                ),
-                SizedBox(height: 20.h),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      final typeError =
-                          _validateTypeFields(selectedType, typeFields);
-                      if (typeError != null) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text(typeError)),
-                        );
-                        return;
-                      }
-
-                      final data = _composeData(selectedType, typeFields);
-                      String title = titleController.text.trim();
-                      if (title.isEmpty) {
-                        if (selectedType == HealthRecordType.weight) {
-                          title = weightTitle(
-                              parseWeightKg(typeFields.weight.text)!);
-                        } else {
-                          title = _getRecordTypeName(selectedType);
-                        }
-                      }
-
-                      final updated = HealthRecord(
-                        id: record.id,
-                        petId: record.petId,
-                        userId: record.userId,
-                        recordType: selectedType,
-                        title: title,
-                        description: descController.text.trim().isEmpty
-                            ? null
-                            : descController.text.trim(),
-                        recordDate: selectedDate,
-                        nextDate: nextDate,
-                        status: selectedStatus,
-                        data: data,
-                        createdAt: record.createdAt,
-                        updatedAt: DateTime.now(),
-                      );
-
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    color: AppTheme.highlightColor,
+                    tooltip: '기록 삭제',
+                    onPressed: () async {
+                      final confirmed = await _confirmDeleteFromEdit(ctx);
+                      if (confirmed != true || !ctx.mounted) return;
+                      // 스와이프 삭제와 동일한 이벤트 → 동일 Repository 경로 재사용
                       context
                           .read<HealthBloc>()
-                          .add(UpdateHealthRecordEvent(record: updated));
+                          .add(DeleteHealthRecordEvent(recordId: record.id));
                       Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('기록을 삭제했어요')),
+                      );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.r)),
-                    ),
-                    child: Text('수정 완료',
-                        style: TextStyle(
-                            fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20.h),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('기록 유형',
+                          style: TextStyle(
+                              fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 8.h),
+                      _buildRecordTypeSelector(selectedType,
+                          (t) => setSheetState(() => selectedType = t)),
+                      SizedBox(height: 16.h),
+
+                      // 타입별 전용 입력
+                      _buildTypeFields(selectedType, typeFields, setSheetState),
+                      SizedBox(height: 12.h),
+
+                      TextField(
+                        controller: titleController,
+                        style: TextStyle(fontSize: 14.sp),
+                        decoration: InputDecoration(
+                          labelText: '제목 (선택)',
+                          labelStyle: TextStyle(fontSize: 14.sp),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r)),
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+
+                      TextField(
+                        controller: descController,
+                        style: TextStyle(fontSize: 14.sp),
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: '메모 (선택)',
+                          labelStyle: TextStyle(fontSize: 14.sp),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.r)),
+                        ),
+                      ),
+                      SizedBox(height: 12.h),
+
+                      // 상태
+                      Text('상태',
+                          style: TextStyle(
+                              fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                      SizedBox(height: 8.h),
+                      Wrap(
+                        spacing: 8.w,
+                        children: HealthRecordStatus.values.map((status) {
+                          return ChoiceChip(
+                            label: Text(_getStatusName(status),
+                                style: TextStyle(fontSize: 12.sp)),
+                            selected: status == selectedStatus,
+                            selectedColor:
+                                _getStatusColor(status).withValues(alpha: 0.2),
+                            onSelected: (_) =>
+                                setSheetState(() => selectedStatus = status),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(height: 12.h),
+
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.calendar_today),
+                        title: Text('기록 날짜: ${_formatDate(selectedDate)}',
+                            style: TextStyle(fontSize: 14.sp)),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                          );
+                          if (picked != null) {
+                            setSheetState(() => selectedDate = picked);
+                          }
+                        },
+                      ),
+
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.event),
+                        title: Text(
+                          nextDate != null
+                              ? '다음 예정일: ${_formatDate(nextDate!)}'
+                              : '다음 예정일 (선택)',
+                          style: TextStyle(fontSize: 14.sp),
+                        ),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: ctx,
+                            initialDate: nextDate ??
+                                DateTime.now().add(const Duration(days: 30)),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2030),
+                          );
+                          if (picked != null) {
+                            setSheetState(() => nextDate = picked);
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: 12.h),
+
+              // 수정 완료 — 시트 하단 고정(스크롤과 무관하게 항상 노출)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final typeError =
+                        _validateTypeFields(selectedType, typeFields);
+                    if (typeError != null) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text(typeError)),
+                      );
+                      return;
+                    }
+
+                    final data = _composeData(selectedType, typeFields);
+                    String title = titleController.text.trim();
+                    if (title.isEmpty) {
+                      if (selectedType == HealthRecordType.weight) {
+                        title =
+                            weightTitle(parseWeightKg(typeFields.weight.text)!);
+                      } else {
+                        title = _getRecordTypeName(selectedType);
+                      }
+                    }
+
+                    final updated = HealthRecord(
+                      id: record.id,
+                      petId: record.petId,
+                      userId: record.userId,
+                      recordType: selectedType,
+                      title: title,
+                      description: descController.text.trim().isEmpty
+                          ? null
+                          : descController.text.trim(),
+                      recordDate: selectedDate,
+                      nextDate: nextDate,
+                      status: selectedStatus,
+                      data: data,
+                      createdAt: record.createdAt,
+                      updatedAt: DateTime.now(),
+                    );
+
+                    context
+                        .read<HealthBloc>()
+                        .add(UpdateHealthRecordEvent(record: updated));
+                    Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r)),
+                  ),
+                  child: Text('수정 완료',
+                      style: TextStyle(
+                          fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -473,8 +498,8 @@ extension _HealthMainSheets on _HealthMainViewState {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(
-                foregroundColor: AppTheme.highlightColor),
+            style:
+                TextButton.styleFrom(foregroundColor: AppTheme.highlightColor),
             child: Text('삭제', style: TextStyle(fontSize: 14.sp)),
           ),
         ],
@@ -567,8 +592,7 @@ extension _HealthMainSheets on _HealthMainViewState {
     InputDecoration deco(String label) => InputDecoration(
           labelText: label,
           labelStyle: TextStyle(fontSize: 14.sp),
-          border:
-              OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
         );
 
     switch (type) {
