@@ -15,7 +15,7 @@ import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../emotion/domain/repositories/emotion_repository.dart';
 import '../widgets/health_record_card.dart';
 import '../widgets/health_record_data.dart';
-import '../widgets/health_pdf_generator.dart';
+import 'health_pdf_preview_page.dart';
 import '../widgets/weight_trend_chart.dart';
 import '../widgets/emotion_trend_mini_chart.dart';
 
@@ -292,7 +292,8 @@ class _HealthMainViewState extends State<_HealthMainView> {
     );
   }
 
-  /// 건강 요약서 PDF 생성·공유. 펫 미선택·기록 0건 시 안내.
+  /// 건강 요약서 PDF 미리보기로 이동(저장·공유는 미리보기 내장 액션).
+  /// 펫 미선택·기록 0건 시 안내.
   Future<void> _exportHealthPdf(BuildContext context) async {
     final petState = context.read<PetBloc>().state;
     final pet = petState is PetLoaded ? petState.selectedPet : null;
@@ -330,20 +331,18 @@ class _HealthMainViewState extends State<_HealthMainView> {
       latest = res.fold((_) => null, (list) => list.isEmpty ? null : list.first);
     }
 
-    try {
-      await HealthPdfGenerator.generateAndShare(
-        pet: pet,
-        ownerName: ownerName,
-        records: records,
-        latestAnalysis: latest,
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF 생성에 실패했습니다: $e')),
-        );
-      }
-    }
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HealthPdfPreviewPage(
+          pet: pet,
+          ownerName: ownerName,
+          records: records,
+          latestAnalysis: latest,
+        ),
+      ),
+    );
   }
 
   /// 선택된 필터 기준 빈 상태 문구. 전체(필터 없음)는 별도 문구로 통일.
