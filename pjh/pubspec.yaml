@@ -104,6 +104,13 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/capture_guide/emotion/
+    - assets/images/capture_guide/eye_ear/
+    - assets/images/capture_guide/nose_mouth/
+    - assets/images/capture_guide/skin_fur/
+    - assets/images/capture_guide/body_bcs/
+    - assets/images/capture_guide/posture/
+    - assets/images/capture_guide/full_body/
     - assets/icons/
     - assets/icons/category/
     - assets/icons/map/
