@@ -44,6 +44,16 @@ class _HealthMainView extends StatefulWidget {
 class _HealthMainViewState extends State<_HealthMainView> {
   HealthRecordType? _selectedFilter; // null = 전체
 
+  /// 필터 칩·빈 상태 문구가 공유하는 유형 표시명. (type, label, emoji)
+  static const _filterTypes = <(HealthRecordType?, String, String)>[
+    (null, '전체', '📋'),
+    (HealthRecordType.vaccination, '백신', '💉'),
+    (HealthRecordType.checkup, '검진', '🏥'),
+    (HealthRecordType.weight, '체중', '⚖️'),
+    (HealthRecordType.medication, '투약', '💊'),
+    (HealthRecordType.surgery, '수술', '🔬'),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -222,7 +232,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
                       padding: EdgeInsets.symmetric(vertical: 24.h),
                       child: Center(
                         child: Text(
-                          '해당 유형의 기록이 없습니다',
+                          _emptyFilterMessage(),
                           style: TextStyle(fontSize: 13.sp, color: AppTheme.secondaryTextColor),
                         ),
                       ),
@@ -336,15 +346,16 @@ class _HealthMainViewState extends State<_HealthMainView> {
     }
   }
 
+  /// 선택된 필터 기준 빈 상태 문구. 전체(필터 없음)는 별도 문구로 통일.
+  String _emptyFilterMessage() {
+    final filter = _selectedFilter;
+    if (filter == null) return '아직 기록이 없어요';
+    final label = _filterTypes.firstWhere((t) => t.$1 == filter).$2;
+    return '$label 기록이 없어요';
+  }
+
   Widget _buildFilterChips() {
-    const types = [
-      (null, '전체', '📋'),
-      (HealthRecordType.vaccination, '백신', '💉'),
-      (HealthRecordType.checkup, '검진', '🏥'),
-      (HealthRecordType.weight, '체중', '⚖️'),
-      (HealthRecordType.medication, '투약', '💊'),
-      (HealthRecordType.surgery, '수술', '🔬'),
-    ];
+    const types = _filterTypes;
 
     final typeColors = {
       null: AppTheme.primaryColor,
@@ -445,7 +456,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
     return const EmptyStateWidget(
       icon: Icons.health_and_safety_outlined,
       emoji: '🏥',
-      title: '건강 기록이 없어요',
+      title: '아직 기록이 없어요',
       subtitle: '반려동물의 건강 상태를 기록하고\n변화를 추적해보세요!',
     );
   }
