@@ -12,6 +12,13 @@ extension _HealthMainSheets on _HealthMainViewState {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      // 탭바·FAB 위(루트 내비게이터)에 띄워 저장 버튼 가림 방지
+      useRootNavigator: true,
+      useSafeArea: true,
+      // 긴 폼(투약·검진 등)도 화면을 다 덮지 않고 내부 스크롤
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
@@ -221,6 +228,13 @@ extension _HealthMainSheets on _HealthMainViewState {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      // 탭바·FAB 위(루트 내비게이터)에 띄워 저장 버튼 가림 방지
+      useRootNavigator: true,
+      useSafeArea: true,
+      // 긴 폼(투약·검진 등)도 화면을 다 덮지 않고 내부 스크롤
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
