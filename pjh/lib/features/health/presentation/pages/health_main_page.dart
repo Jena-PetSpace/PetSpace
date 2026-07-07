@@ -457,7 +457,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
       icon: Icons.health_and_safety_outlined,
       emoji: '🏥',
       title: '아직 기록이 없어요',
-      subtitle: '반려동물의 건강 상태를 기록하고\n변화를 추적해보세요!',
+      subtitle: '반려동물의 건강 변화를 추적해보세요!\n오른쪽 아래 + 버튼으로 첫 기록을 남길 수 있어요',
     );
   }
 
