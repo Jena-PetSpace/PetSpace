@@ -33,6 +33,7 @@ dependencies:
 
   # Image Handling
   image_picker: ^1.1.2
+  camera: ^0.12.0+1
   cached_network_image: ^3.3.1
   image: ^4.2.0
 
@@ -111,6 +112,7 @@ flutter:
     - assets/images/capture_guide/body_bcs/
     - assets/images/capture_guide/posture/
     - assets/images/capture_guide/full_body/
+    - assets/images/capture_guide/overlay/
     - assets/icons/
     - assets/icons/category/
     - assets/icons/map/
