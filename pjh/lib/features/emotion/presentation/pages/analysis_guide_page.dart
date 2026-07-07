@@ -26,8 +26,9 @@ class AnalysisGuidePage extends StatelessWidget {
     List<String> paths = [];
     if (source == ImageSource.camera) {
       // Phase 2: 오버레이 가이드 커스텀 카메라 (갤러리 경로는 무변경)
-      final path = await Navigator.push<String?>(
-        context,
+      // rootNavigator — ShellRoute 밖에 띄워 하단 탭바를 가린다
+      // (emotion_loading_page와 동일 패턴)
+      final path = await Navigator.of(context, rootNavigator: true).push<String?>(
         MaterialPageRoute(
           builder: (_) => GuidedCameraPage(
             type: CaptureGuideType.fromArea(isEmotion: isEmotion, area: area),

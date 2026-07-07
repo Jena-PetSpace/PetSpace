@@ -60,16 +60,22 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
   }
 
   /// 백그라운드 전환 시 컨트롤러 해제, 복귀 시 재초기화 (크래시 방지 핵심).
+  /// inactive는 알림창·다이얼로그·화면캡처 등으로도 수시 발생하므로,
+  /// resumed에서 컨트롤러가 비어 있으면 반드시 다시 살린다.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) return;
     if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused) {
-      controller.dispose();
-      _controller = null;
+      final controller = _controller;
+      if (controller != null) {
+        _controller = null;
+        controller.dispose();
+        if (mounted) setState(() {});
+      }
     } else if (state == AppLifecycleState.resumed) {
-      _initCamera();
+      // 권한 다이얼로그도 resumed를 발생시키므로 최초 초기화 성공 후에만 재초기화
+      if (_everInitialized && _controller == null) _initCamera();
     }
   }
 
@@ -90,7 +96,13 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
     await _initCamera();
   }
 
+  bool _initInFlight = false;
+  bool _everInitialized = false;
+
   Future<void> _initCamera() async {
+    if (_initInFlight) return;
+    _initInFlight = true;
+    CameraController? controller;
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) throw CameraException('noCamera', '카메라 없음');
@@ -98,26 +110,38 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
         (c) => c.lensDirection == CameraLensDirection.back,
         orElse: () => cameras.first,
       );
-      final controller = CameraController(
+      controller = CameraController(
         back,
         ResolutionPreset.veryHigh, // 1080p — 근접 부위 디테일 유지 (화질 정책)
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
-      await controller.initialize();
+      // 백그라운드 전환·이전 인스턴스 해제 지연과 겹치면 initialize()가
+      // 완료되지 않을 수 있음 → 타임아웃으로 무한 로딩 차단
+      await controller.initialize().timeout(const Duration(seconds: 8));
       if (!mounted) {
         controller.dispose();
         return;
       }
-      if (_torchOn) await controller.setFlashMode(FlashMode.torch);
+      if (_torchOn) {
+        try {
+          await controller.setFlashMode(FlashMode.torch);
+        } on CameraException {
+          _torchOn = false;
+        }
+      }
+      _everInitialized = true;
       setState(() {
         _controller = controller;
         _initializing = false;
       });
-    } on CameraException {
-      await _fallbackToSystemCamera();
     } catch (_) {
+      try {
+        await controller?.dispose();
+      } catch (_) {}
       await _fallbackToSystemCamera();
+    } finally {
+      _initInFlight = false;
     }
   }
 
