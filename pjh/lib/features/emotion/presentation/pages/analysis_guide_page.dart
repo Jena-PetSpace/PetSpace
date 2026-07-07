@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../constants/capture_guide_content.dart';
 
 class AnalysisGuidePage extends StatelessWidget {
   final bool isEmotion;
@@ -16,104 +17,9 @@ class AnalysisGuidePage extends StatelessWidget {
     required this.onImagesSelected,
   });
 
-  String get _title => isEmotion ? '감정 분석 촬영 가이드' : '${area ?? ''} 촬영 가이드';
-
-  List<_GuideItem> get _items =>
-      isEmotion ? _emotionItems : _healthItems(area ?? '');
-
-  static const List<_GuideItem> _emotionItems = [
-    _GuideItem(isOk: true, text: '얼굴 전체가 화면 안에 들어오게'),
-    _GuideItem(isOk: true, text: '밝은 자연광 아래에서 촬영'),
-    _GuideItem(isOk: true, text: '정면 또는 약간 측면 각도'),
-    _GuideItem(isOk: true, text: '눈이 뜨인 상태, 표정이 자연스러울 때'),
-    _GuideItem(isOk: false, text: '역광 및 플래시 금지'),
-    _GuideItem(isOk: false, text: '너무 멀리서 찍으면 인식 어려움'),
-    _GuideItem(isOk: false, text: '필터·보정 사진은 정확도 저하'),
-  ];
-
-  static List<_GuideItem> _healthItems(String area) {
-    switch (area) {
-      case '눈·귀':
-        return const [
-          _GuideItem(isOk: true, text: '눈 클로즈업, 자연광 아래'),
-          _GuideItem(isOk: true, text: '눈물색·분비물이 잘 보이게'),
-          _GuideItem(isOk: true, text: '귀 안쪽도 함께 촬영하면 정확도 향상'),
-          _GuideItem(isOk: false, text: '플래시 사용 금지 (반사)'),
-          _GuideItem(isOk: false, text: '너무 어두운 환경 금지'),
-        ];
-      case '코·입':
-        return const [
-          _GuideItem(isOk: true, text: '코 정면 + 입 살짝 벌린 상태'),
-          _GuideItem(isOk: true, text: '잇몸 색이 보이도록 가까이'),
-          _GuideItem(isOk: true, text: '코 분비물·색 변화 부위 중심으로'),
-          _GuideItem(isOk: false, text: '너무 멀리서 찍으면 인식 불가'),
-          _GuideItem(isOk: false, text: '움직일 때 찍으면 흔들림 주의'),
-        ];
-      case '피부·털':
-        return const [
-          _GuideItem(isOk: true, text: '털을 살짝 벌려 피부가 보이게'),
-          _GuideItem(isOk: true, text: '발진·탈모 부위를 중심으로'),
-          _GuideItem(isOk: true, text: '여러 각도 사진을 함께 추가하면 정확도 향상'),
-          _GuideItem(isOk: false, text: '필터·역광 사용 금지'),
-          _GuideItem(isOk: false, text: '털이 가려 피부가 안 보이면 인식 어려움'),
-        ];
-      case '체형(BCS)':
-        return const [
-          _GuideItem(isOk: true, text: '서 있는 자세 측면 전신'),
-          _GuideItem(isOk: true, text: '위에서 내려다본 사진도 추가'),
-          _GuideItem(isOk: true, text: '밝은 배경에서 전체 실루엣이 보이게'),
-          _GuideItem(isOk: false, text: '앉거나 누워 있으면 정확도 낮음'),
-          _GuideItem(isOk: false, text: '몸이 잘린 사진은 분석 불가'),
-        ];
-      case '자세·체형 대칭':
-        return const [
-          _GuideItem(isOk: true, text: '뒤에서 본 전신, 다리 4개 보이게'),
-          _GuideItem(isOk: true, text: '정면 전신 사진도 함께 추가'),
-          _GuideItem(isOk: true, text: '바닥이 평평한 곳에서 촬영'),
-          _GuideItem(isOk: false, text: '측면만 찍으면 대칭 분석 불가'),
-          _GuideItem(isOk: false, text: '어두운 환경 금지'),
-        ];
-      default:
-        return const [
-          _GuideItem(isOk: true, text: '밝은 곳에서 정면 전신 촬영'),
-          _GuideItem(isOk: true, text: '여러 각도 사진을 함께 추가'),
-          _GuideItem(isOk: false, text: '너무 어두운 환경 금지'),
-        ];
-    }
-  }
-
-  IconData _areaIcon() {
-    if (isEmotion) return Icons.pets;
-    switch (area) {
-      case '눈·귀':         return Icons.visibility_outlined;
-      case '코·입':         return Icons.face_outlined;
-      case '피부·털':        return Icons.texture;
-      case '체형(BCS)':    return Icons.monitor_weight_outlined;
-      case '자세·체형 대칭': return Icons.accessibility_new_outlined;
-      default:             return Icons.health_and_safety_outlined;
-    }
-  }
-
-  String get _introText {
-    if (isEmotion) {
-      return 'AI가 반려동물의 표정·자세를 분석해 감정 상태를 읽어냅니다. '
-          '선명하고 가까운 사진일수록 정확도가 높아져요. 최대 5장까지 업로드할 수 있습니다.';
-    }
-    switch (area) {
-      case '눈·귀':
-        return '눈 분비물·충혈·귀 상태를 분석합니다. 클로즈업 사진이 핵심이에요.';
-      case '코·입':
-        return '코 건조함·분비물과 잇몸 색을 분석합니다. 정면 가까이 촬영해주세요.';
-      case '피부·털':
-        return '발진·탈모·피부 상태를 분석합니다. 털을 살짝 벌려 피부가 보이게 해주세요.';
-      case '체형(BCS)':
-        return '체형 점수(BCS)로 과체중/저체중 여부를 분석합니다. 전신이 보이는 측면 사진이 필요합니다.';
-      case '자세·체형 대칭':
-        return '척추·사지 대칭 여부를 분석합니다. 정면·후면 전신 사진을 함께 올려주세요.';
-      default:
-        return '정확한 분석을 위해 아래 가이드를 따라 촬영해주세요.';
-    }
-  }
+  CaptureGuideContent get _content => CaptureGuideContent.of(
+        CaptureGuideType.fromArea(isEmotion: isEmotion, area: area),
+      );
 
   Future<void> _pick(BuildContext context, ImageSource source) async {
     final picker = ImagePicker();
@@ -133,6 +39,7 @@ class AnalysisGuidePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final content = _content;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -148,7 +55,7 @@ class AnalysisGuidePage extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          _title,
+          content.title,
           style: TextStyle(
             fontSize: 15.sp,
             fontWeight: FontWeight.w600,
@@ -158,132 +65,90 @@ class AnalysisGuidePage extends StatelessWidget {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 아이콘 + 도입부
-              Center(
-                child: Container(
-                  width: 72.w,
-                  height: 72.w,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(18.r),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+                children: [
+                  // 헤더: 한 줄 핵심 요약
+                  Text(
+                    content.subtitle,
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryTextColor,
+                      height: 1.4,
+                    ),
                   ),
-                  child: Icon(
-                    _areaIcon(),
-                    size: 36.w,
+                  SizedBox(height: 16.h),
+
+                  // 좋은 예 섹션
+                  const _SectionHeader(
+                    icon: Icons.check_circle,
                     color: AppTheme.primaryColor,
+                    label: '이렇게 촬영해주세요',
                   ),
-                ),
-              ),
-              SizedBox(height: 12.h),
-              Center(
-                child: Text(
-                  isEmotion
-                      ? '얼굴이 잘 보이게 촬영해주세요'
-                      : '${area ?? ''} — 아래 가이드대로 촬영해주세요',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
+                  SizedBox(height: 10.h),
+                  _GoodExampleRow(examples: content.goodExamples),
+                  SizedBox(height: 24.h),
+
+                  // 나쁜 예 섹션
+                  const _SectionHeader(
+                    icon: Icons.cancel,
+                    color: AppTheme.highlightColor,
+                    label: '이런 촬영은 피해주세요',
+                  ),
+                  SizedBox(height: 10.h),
+                  _BadExampleGrid(examples: content.badExamples),
+                  SizedBox(height: 24.h),
+
+                  // 체크리스트 섹션
+                  const _SectionHeader(
+                    icon: Icons.checklist_rounded,
                     color: AppTheme.primaryColor,
+                    label: '촬영 전 체크리스트',
                   ),
-                ),
-              ),
-              SizedBox(height: 8.h),
-              // 도입부 설명
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                child: Text(
-                  _introText,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppTheme.secondaryTextColor,
-                    height: 1.55,
-                  ),
-                ),
-              ),
-              SizedBox(height: 16.h),
-              // 가이드 항목
-              Expanded(
-                child: ListView(
-                  children: [
-                    ..._items.map((item) => Padding(
-                          padding: EdgeInsets.only(bottom: 10.h),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 22.w,
-                                height: 22.w,
-                                decoration: BoxDecoration(
-                                  color: item.isOk
-                                      ? AppTheme.successColor
-                                      : AppTheme.errorColor,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  item.isOk ? Icons.check : Icons.close,
-                                  size: 13.w,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(width: 10.w),
-                              Expanded(
-                                child: Text(
-                                  item.text,
-                                  style: TextStyle(
-                                    fontSize: 13.sp,
-                                    color: AppTheme.primaryTextColor,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )),
-                    SizedBox(height: 12.h),
-                    // 면책 문구
-                    Container(
-                      padding: EdgeInsets.all(10.w),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8.r),
+                  SizedBox(height: 10.h),
+                  ...content.checklist.asMap().entries.map(
+                        (e) => _ChecklistRow(index: e.key + 1, text: e.value),
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.info_outline,
-                              size: 14.w, color: Colors.grey[500]),
-                          SizedBox(width: 6.w),
-                          Expanded(
-                            child: Text(
-                              'AI 분석 결과는 참고용이며 수의사의 진단을 대체하지 않습니다. '
-                              '이상 징후가 지속되면 동물병원을 방문해주세요.',
-                              style: TextStyle(
-                                fontSize: 10.sp,
-                                color: Colors.grey[500],
-                                height: 1.5,
-                              ),
+                  SizedBox(height: 16.h),
+
+                  // 면책 문구
+                  Container(
+                    padding: EdgeInsets.all(10.w),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline,
+                            size: 14.w, color: Colors.grey[500]),
+                        SizedBox(width: 6.w),
+                        Expanded(
+                          child: Text(
+                            'AI 분석 결과는 참고용이며 수의사의 진단을 대체하지 않습니다. '
+                            '이상 징후가 지속되면 동물병원을 방문해주세요.',
+                            style: TextStyle(
+                              fontSize: 10.sp,
+                              color: Colors.grey[500],
+                              height: 1.5,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              SizedBox(height: 12.h),
-              // 카메라 / 갤러리 버튼
-              Row(
+            ),
+            // 카메라 / 갤러리 버튼
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 12.h),
+              child: Row(
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
@@ -297,7 +162,7 @@ class AnalysisGuidePage extends StatelessWidget {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF6F61),
+                        backgroundColor: AppTheme.highlightColor,
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(vertical: 13.h),
                         shape: RoundedRectangleBorder(
@@ -332,7 +197,203 @@ class AnalysisGuidePage extends StatelessWidget {
                   ),
                 ],
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.color,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18.w, color: color),
+        SizedBox(width: 6.w),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 좋은 예: 1장이면 큰 카드 1개, 2장이면 가로 2분할.
+class _GoodExampleRow extends StatelessWidget {
+  final List<GuideExample> examples;
+
+  const _GoodExampleRow({required this.examples});
+
+  @override
+  Widget build(BuildContext context) {
+    if (examples.length == 1) {
+      return _GoodExampleCard(example: examples.first, large: true);
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < examples.length; i++) ...[
+          if (i > 0) SizedBox(width: 10.w),
+          Expanded(child: _GoodExampleCard(example: examples[i], large: false)),
+        ],
+      ],
+    );
+  }
+}
+
+class _GoodExampleCard extends StatelessWidget {
+  final GuideExample example;
+  final bool large;
+
+  const _GoodExampleCard({required this.example, required this.large});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Stack(
+          children: [
+            _GuideImage(assetPath: example.assetPath),
+            Positioned(
+              top: 8.w,
+              right: 8.w,
+              child: _Badge(
+                icon: Icons.check,
+                color: AppTheme.primaryColor,
+                size: large ? 26 : 22,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 6.h),
+        Text(
+          example.caption,
+          style: TextStyle(
+            fontSize: large ? 12.sp : 11.sp,
+            color: AppTheme.secondaryTextColor,
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 나쁜 예: 2~3장 가로 그리드, X 뱃지 + 실패 원인 캡션 오버레이.
+class _BadExampleGrid extends StatelessWidget {
+  final List<GuideExample> examples;
+
+  const _BadExampleGrid({required this.examples});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < examples.length; i++) ...[
+          if (i > 0) SizedBox(width: 8.w),
+          Expanded(child: _BadExampleTile(example: examples[i])),
+        ],
+      ],
+    );
+  }
+}
+
+class _BadExampleTile extends StatelessWidget {
+  final GuideExample example;
+
+  const _BadExampleTile({required this.example});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _GuideImage(assetPath: example.assetPath),
+        Positioned(
+          top: 6.w,
+          right: 6.w,
+          child: const _Badge(
+            icon: Icons.close,
+            color: AppTheme.highlightColor,
+            size: 20,
+          ),
+        ),
+        // 실패 원인 캡션 오버레이
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Container(
+            padding: EdgeInsets.fromLTRB(6.w, 12.h, 6.w, 6.h),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12.r)),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.65),
+                ],
+              ),
+            ),
+            child: Text(
+              example.caption,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GuideImage extends StatelessWidget {
+  final String assetPath;
+
+  const _GuideImage({required this.assetPath});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12.r),
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: Image.asset(
+          assetPath,
+          fit: BoxFit.cover,
+          cacheWidth: 600,
+          errorBuilder: (_, __, ___) => Container(
+            color: Colors.grey.shade200,
+            child: Icon(
+              Icons.image_not_supported_outlined,
+              size: 28.w,
+              color: Colors.grey[400],
+            ),
           ),
         ),
       ),
@@ -340,8 +401,74 @@ class AnalysisGuidePage extends StatelessWidget {
   }
 }
 
-class _GuideItem {
-  final bool isOk;
+class _Badge extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  const _Badge({required this.icon, required this.color, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size.w,
+      height: size.w,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 1.5),
+      ),
+      child: Icon(icon, size: (size * 0.6).w, color: Colors.white),
+    );
+  }
+}
+
+class _ChecklistRow extends StatelessWidget {
+  final int index;
   final String text;
-  const _GuideItem({required this.isOk, required this.text});
+
+  const _ChecklistRow({required this.index, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 22.w,
+            height: 22.w,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$index',
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(top: 2.h),
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: AppTheme.primaryTextColor,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
