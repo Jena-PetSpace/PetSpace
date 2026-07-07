@@ -442,20 +442,11 @@ class _HealthMainViewState extends State<_HealthMainView> {
   }
 
   Widget _buildEmptyRecordState() {
-    return EmptyStateWidget(
+    return const EmptyStateWidget(
       icon: Icons.health_and_safety_outlined,
       emoji: '🏥',
       title: '건강 기록이 없어요',
       subtitle: '반려동물의 건강 상태를 기록하고\n변화를 추적해보세요!',
-      secondaryLabel: 'AI 건강 분석',
-      onSecondary: () => context.go('/emotion'),
-      actionLabel: '기록 추가',
-      onAction: () {
-        // FAB 대신 시트 직접 호출 — 이미 FAB이 있으므로 안내만
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('+ 버튼을 눌러 기록을 추가하세요')),
-        );
-      },
     );
   }
 
