@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../shared/constants/community_categories.dart';
+
 /// 커뮤니티(Q&A) 게시물 엔티티.
 ///
 /// `getCommunityPosts`가 반환하는 raw Map(`posts` + users JOIN)을 타입 안전하게
@@ -60,33 +62,8 @@ class CommunityPost extends Equatable {
   bool get isAdmin => authorName == '관리자';
 
   /// category 컬럼 값을 한글 라벨로 변환. 미분류/미상이면 빈 문자열.
-  String get categoryLabel {
-    switch (category) {
-      case 'qa':
-        return 'Q&A';
-      case 'quiz':
-        return 'O/X 퀴즈';
-      case 'careguide':
-        return '케어가이드';
-      case 'education':
-        return '교육';
-      case 'policy':
-        return '정책';
-      case 'event':
-        return '이벤트';
-      // ── 구 분류 체계(2026-07 개편 이전 글) 호환 ──
-      case 'health':
-        return '건강';
-      case 'training':
-        return '훈련';
-      case 'food':
-        return '먹거리';
-      case 'life':
-        return '생활';
-      default:
-        return '';
-    }
-  }
+  /// 매핑은 shared 단일 소스([CommunityCategories.label])에 위임한다.
+  String get categoryLabel => CommunityCategories.label(category);
 
   @override
   List<Object?> get props => [

@@ -123,8 +123,19 @@ void main() {
           'created_at': '2026-06-10T09:00:00.000Z',
         });
 
-    test('category 컬럼 값을 한글 라벨로 변환한다', () {
-      expect(build('qa').categoryLabel, 'Q&A');
+    test('신 체계(라운지 4종) 값을 한글 라벨로 변환한다', () {
+      expect(build('chat').categoryLabel, '잡담');
+      expect(build('brag').categoryLabel, '자랑');
+      expect(build('qa').categoryLabel, '궁금해요'); // 구 'Q&A' → 재편 후 재사용
+      expect(build('info').categoryLabel, '정보');
+    });
+
+    test('구 체계 값(재편 이전 글)도 호환 표기한다', () {
+      expect(build('quiz').categoryLabel, 'O/X 퀴즈');
+      expect(build('careguide').categoryLabel, '케어가이드');
+      expect(build('education').categoryLabel, '교육');
+      expect(build('policy').categoryLabel, '정책');
+      expect(build('event').categoryLabel, '이벤트');
       expect(build('health').categoryLabel, '건강');
       expect(build('training').categoryLabel, '훈련');
       expect(build('food').categoryLabel, '먹거리');

@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
 import '../../../../core/utils/back_press_handler.dart';
+import '../../../../shared/constants/community_categories.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/entities/post.dart';
@@ -22,16 +23,11 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   bool _isSubmitting = false;
-  String _selectedCategory = 'qa';
+  // 라운지 4종(shared 단일 소스). 기본값 '잡담' — 구 'qa' 기본값이
+  // 어떤 필터에도 안 잡히던 버그 청산(qa는 '궁금해요' 선택지로 유지).
+  String _selectedCategory = CommunityCategories.defaultWriteValue;
 
-  static const _categories = [
-    {'label': 'Q&A', 'value': 'qa'},
-    {'label': 'O/X 퀴즈', 'value': 'quiz'},
-    {'label': '케어가이드', 'value': 'careguide'},
-    {'label': '교육', 'value': 'education'},
-    {'label': '정책', 'value': 'policy'},
-    {'label': '이벤트', 'value': 'event'},
-  ];
+  static const _categories = CommunityCategories.lounge;
 
   @override
   void dispose() {
@@ -148,9 +144,9 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
             Wrap(
               spacing: 8.w,
               children: _categories.map((cat) {
-                final isSelected = _selectedCategory == cat['value'];
+                final isSelected = _selectedCategory == cat.value;
                 return ChoiceChip(
-                  label: Text(cat['label']!,
+                  label: Text(cat.label,
                       style: TextStyle(
                           fontSize: 12.sp,
                           color: isSelected
@@ -164,7 +160,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
                           ? AppTheme.primaryColor
                           : AppTheme.dividerColor),
                   onSelected: (_) =>
-                      setState(() => _selectedCategory = cat['value']!),
+                      setState(() => _selectedCategory = cat.value),
                 );
               }).toList(),
             ),
