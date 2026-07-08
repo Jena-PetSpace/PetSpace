@@ -99,6 +99,12 @@ class _MagazineGridState extends State<MagazineGrid> {
 
   Map<String, String> _getTag(List<String> hashtags) {
     for (final tag in hashtags) {
+      if (tag == 'quiz') return {'label': 'O/X 퀴즈'};
+      if (tag == 'careguide') return {'label': '케어가이드'};
+      if (tag == 'education') return {'label': '교육'};
+      if (tag == 'policy') return {'label': '정책'};
+      if (tag == 'event') return {'label': '이벤트'};
+      // ── 구 분류 체계(2026-07 개편 이전 글) 호환 ──
       if (tag == 'health') return {'label': '건강'};
       if (tag == 'training') return {'label': '훈련'};
       if (tag == 'food') return {'label': '먹거리'};
@@ -109,6 +115,17 @@ class _MagazineGridState extends State<MagazineGrid> {
 
   Color _getTagColor(String label) {
     switch (label) {
+      case 'O/X 퀴즈':
+        return AppTheme.accentColor;
+      case '케어가이드':
+        return AppTheme.successColor;
+      case '교육':
+        return AppTheme.subColor;
+      case '정책':
+        return AppTheme.primaryColor;
+      case '이벤트':
+        return AppTheme.highlightColor;
+      // ── 구 분류 체계 호환 ──
       case '건강':
         return AppTheme.successColor;
       case '훈련':

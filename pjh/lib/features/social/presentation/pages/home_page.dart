@@ -176,7 +176,7 @@ class _HomePageState extends State<HomePage> {
             // ── 뉴스 (외부 기사 스크랩 — 추후 구현, 자리만) ─
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.only(top: 28.h),
+                padding: EdgeInsets.only(top: 28.h, bottom: 32.h),
                 child: const HomeNewsSection(),
               ),
             ),
@@ -230,16 +230,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCategoryContent() {
-    // 0: 전체, 1: 건강, 2: 훈련, 3: 먹거리, 4: 생활 (피드 Q&A와 동일 체계)
+    // 0: 전체, 1: O/X 퀴즈, 2: 케어가이드, 3: 교육, 4: 정책, 5: 이벤트
+    // (피드 Q&A와 동일 체계 — 피그마 매거진 시안 기준)
     switch (_selectedCategory) {
       case 1:
-        return const CommunityPreview(category: 'health');
+        return const CommunityPreview(category: 'quiz');
       case 2:
-        return const CommunityPreview(category: 'training');
+        return const CommunityPreview(category: 'careguide');
       case 3:
-        return const CommunityPreview(category: 'food');
+        return const CommunityPreview(category: 'education');
       case 4:
-        return const CommunityPreview(category: 'life');
+        return const CommunityPreview(category: 'policy');
+      case 5:
+        return const CommunityPreview(category: 'event');
       default:
         return const MagazineGrid();
     }

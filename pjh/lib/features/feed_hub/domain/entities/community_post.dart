@@ -64,6 +64,17 @@ class CommunityPost extends Equatable {
     switch (category) {
       case 'qa':
         return 'Q&A';
+      case 'quiz':
+        return 'O/X 퀴즈';
+      case 'careguide':
+        return '케어가이드';
+      case 'education':
+        return '교육';
+      case 'policy':
+        return '정책';
+      case 'event':
+        return '이벤트';
+      // ── 구 분류 체계(2026-07 개편 이전 글) 호환 ──
       case 'health':
         return '건강';
       case 'training':

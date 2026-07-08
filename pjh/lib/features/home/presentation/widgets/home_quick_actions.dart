@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
@@ -16,7 +17,7 @@ import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 
 /// 홈 상단 퀵 액션 — 원형 아이콘 버튼 5개 가로 배치.
-/// 아이콘은 임시(Material Icons)이며, 추후 전용 일러스트/에셋으로 교체 예정.
+/// 아이콘: Lucide 스트로크 SVG(딥블루 단색) — 헤더 아이콘과 동일 계열.
 ///
 /// MBTI·운세는 선택된 반려동물 기준으로 동작한다. 등록된 반려동물이 없으면
 /// 진입을 막고 등록 화면으로 유도(반려동물 없이 운세가 생성되던 문제 방지).
@@ -28,35 +29,30 @@ class HomeQuickActions extends StatelessWidget {
     final actions = <_QuickAction>[
       _QuickAction(
         // 플레이스 = 기존 동물병원 찾기
-        icon: Icons.place_rounded,
+        asset: 'assets/svg/icon_place.svg',
         label: '플레이스',
-        color: AppTheme.successColor,
         onTap: () => context.push('/hospital'),
       ),
       _QuickAction(
-        icon: Icons.psychology_rounded,
+        asset: 'assets/svg/icon_mbti.svg',
         label: 'MBTI 검사',
-        color: AppTheme.featurePlay,
         // push로 진입해야 뒤로가기(앱·하드웨어)로 홈 복귀 가능
         onTap: () => _openMbti(context),
       ),
       _QuickAction(
-        icon: Icons.directions_walk_rounded,
+        asset: 'assets/svg/icon_walk.svg',
         label: '산책 기록',
-        color: const Color(0xFF009688),
         // 미구현 — 버튼만 노출, 탭 시 안내 스낵바
         onTap: () => _showComingSoon(context),
       ),
       _QuickAction(
-        icon: Icons.auto_awesome_rounded,
+        asset: 'assets/svg/icon_fortune.svg',
         label: '오늘의 운세',
-        color: AppTheme.warningColor,
         onTap: () => _openFortune(context),
       ),
       _QuickAction(
-        icon: Icons.quiz_rounded,
+        asset: 'assets/svg/icon_quiz.svg',
         label: 'O/X 퀴즈',
-        color: AppTheme.accentColor,
         onTap: () => context.push('/quiz/play'),
       ),
     ];
@@ -81,11 +77,21 @@ class HomeQuickActions extends StatelessWidget {
           Container(
             width: 52.w,
             height: 52.w,
-            decoration: BoxDecoration(
-              color: action.color.withValues(alpha: 0.12),
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              // 피그마 시안 방향: 무채색 배경 + 딥블루 단색 스트로크 아이콘
+              color: Color(0xFFECEEF1),
               shape: BoxShape.circle,
             ),
-            child: Icon(action.icon, size: 24.w, color: action.color),
+            child: SvgPicture.asset(
+              action.asset,
+              width: 24.w,
+              height: 24.w,
+              colorFilter: const ColorFilter.mode(
+                AppTheme.primaryColor,
+                BlendMode.srcIn,
+              ),
+            ),
           ),
           SizedBox(height: 8.h),
           Text(
@@ -191,15 +197,13 @@ class HomeQuickActions extends StatelessWidget {
 }
 
 class _QuickAction {
-  final IconData icon;
+  final String asset;
   final String label;
-  final Color color;
   final VoidCallback onTap;
 
   const _QuickAction({
-    required this.icon,
+    required this.asset,
     required this.label,
-    required this.color,
     required this.onTap,
   });
 }

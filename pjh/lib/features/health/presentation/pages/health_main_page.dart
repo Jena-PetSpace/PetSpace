@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
-import '../../../../core/utils/share_origin.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
@@ -16,7 +15,7 @@ import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../emotion/domain/repositories/emotion_repository.dart';
 import '../widgets/health_record_card.dart';
 import '../widgets/health_record_data.dart';
-import '../widgets/health_pdf_generator.dart';
+import 'health_pdf_preview_page.dart';
 import '../widgets/weight_trend_chart.dart';
 import '../widgets/emotion_trend_mini_chart.dart';
 
@@ -44,6 +43,16 @@ class _HealthMainView extends StatefulWidget {
 
 class _HealthMainViewState extends State<_HealthMainView> {
   HealthRecordType? _selectedFilter; // null = 전체
+
+  /// 필터 칩·빈 상태 문구가 공유하는 유형 표시명. (type, label, emoji)
+  static const _filterTypes = <(HealthRecordType?, String, String)>[
+    (null, '전체', '📋'),
+    (HealthRecordType.vaccination, '백신', '💉'),
+    (HealthRecordType.checkup, '검진', '🏥'),
+    (HealthRecordType.weight, '체중', '⚖️'),
+    (HealthRecordType.medication, '투약', '💊'),
+    (HealthRecordType.surgery, '수술', '🔬'),
+  ];
 
   @override
   void initState() {
@@ -223,7 +232,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
                       padding: EdgeInsets.symmetric(vertical: 24.h),
                       child: Center(
                         child: Text(
-                          '해당 유형의 기록이 없습니다',
+                          _emptyFilterMessage(),
                           style: TextStyle(fontSize: 13.sp, color: AppTheme.secondaryTextColor),
                         ),
                       ),
@@ -283,7 +292,8 @@ class _HealthMainViewState extends State<_HealthMainView> {
     );
   }
 
-  /// 건강 요약서 PDF 생성·공유. 펫 미선택·기록 0건 시 안내.
+  /// 건강 요약서 PDF 미리보기로 이동(저장·공유는 미리보기 내장 액션).
+  /// 펫 미선택·기록 0건 시 안내.
   Future<void> _exportHealthPdf(BuildContext context) async {
     final petState = context.read<PetBloc>().state;
     final pet = petState is PetLoaded ? petState.selectedPet : null;
@@ -310,9 +320,6 @@ class _HealthMainViewState extends State<_HealthMainView> {
     final userId =
         authState is AuthAuthenticated ? authState.user.uid : null;
 
-    // iPad 공유 popover anchor — async gap 전에 캡처(없으면 iPadOS 크래시).
-    final shareAnchor = shareOrigin(context);
-
     // 최근 AI 감정 분석 1건(선택, 읽기 전용).
     EmotionAnalysis? latest;
     if (userId != null) {
@@ -324,87 +331,99 @@ class _HealthMainViewState extends State<_HealthMainView> {
       latest = res.fold((_) => null, (list) => list.isEmpty ? null : list.first);
     }
 
-    try {
-      await HealthPdfGenerator.generateAndShare(
-        pet: pet,
-        ownerName: ownerName,
-        records: records,
-        latestAnalysis: latest,
-        shareAnchor: shareAnchor,
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('PDF 생성에 실패했습니다: $e')),
-        );
-      }
-    }
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HealthPdfPreviewPage(
+          pet: pet,
+          ownerName: ownerName,
+          records: records,
+          latestAnalysis: latest,
+        ),
+      ),
+    );
   }
 
+  /// 선택된 필터 기준 빈 상태 문구. 전체(필터 없음)는 별도 문구로 통일.
+  String _emptyFilterMessage() {
+    final filter = _selectedFilter;
+    if (filter == null) return '아직 기록이 없어요';
+    final label = _filterTypes.firstWhere((t) => t.$1 == filter).$2;
+    return '$label 기록이 없어요';
+  }
+
+  /// 유형 칩 색 — 필터·기록 유형 선택(시트)이 공유.
+  static const _filterTypeColors = <HealthRecordType?, Color>{
+    null: AppTheme.primaryColor,
+    HealthRecordType.vaccination: AppTheme.successColor,
+    HealthRecordType.checkup: AppTheme.accentColor,
+    HealthRecordType.weight: AppTheme.highlightColor,
+    HealthRecordType.medication: AppTheme.secondaryColor,
+    HealthRecordType.surgery: AppTheme.errorColor,
+  };
+
   Widget _buildFilterChips() {
-    const types = [
-      (null, '전체', '📋'),
-      (HealthRecordType.vaccination, '백신', '💉'),
-      (HealthRecordType.checkup, '검진', '🏥'),
-      (HealthRecordType.weight, '체중', '⚖️'),
-      (HealthRecordType.medication, '투약', '💊'),
-      (HealthRecordType.surgery, '수술', '🔬'),
-    ];
-
-    final typeColors = {
-      null: AppTheme.primaryColor,
-      HealthRecordType.vaccination: AppTheme.successColor,
-      HealthRecordType.checkup: AppTheme.accentColor,
-      HealthRecordType.weight: AppTheme.highlightColor,
-      HealthRecordType.medication: AppTheme.secondaryColor,
-      HealthRecordType.surgery: AppTheme.errorColor,
-    };
-
     return SizedBox(
       height: 36.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.zero,
-        itemCount: types.length,
+        itemCount: _filterTypes.length,
         separatorBuilder: (_, __) => SizedBox(width: 6.w),
         itemBuilder: (context, i) {
-          final (type, label, emoji) = types[i];
-          final isSelected = _selectedFilter == type;
-          final color = typeColors[type]!;
-          return GestureDetector(
+          final (type, label, emoji) = _filterTypes[i];
+          return _typeChip(
+            emoji: emoji,
+            label: label,
+            color: _filterTypeColors[type]!,
+            isSelected: _selectedFilter == type,
             onTap: () => setState(() => _selectedFilter = type),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-              decoration: BoxDecoration(
-                color: isSelected ? color : Colors.white,
-                borderRadius: BorderRadius.circular(18.r),
-                border: Border.all(
-                  color: isSelected ? color : AppTheme.dividerColor,
-                  width: 1.5,
-                ),
-                boxShadow: isSelected
-                    ? [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))]
-                    : null,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(emoji, style: TextStyle(fontSize: 12.sp)),
-                  SizedBox(width: 4.w),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           );
         },
+      ),
+    );
+  }
+
+  /// 이모지+라벨 알약 칩 — 필터와 시트의 유형 선택이 공용으로 사용.
+  Widget _typeChip({
+    required String emoji,
+    required String label,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(
+            color: isSelected ? color : AppTheme.dividerColor,
+            width: 1.5,
+          ),
+          boxShadow: isSelected
+              ? [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: TextStyle(fontSize: 12.sp)),
+            SizedBox(width: 4.w),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -447,20 +466,11 @@ class _HealthMainViewState extends State<_HealthMainView> {
   }
 
   Widget _buildEmptyRecordState() {
-    return EmptyStateWidget(
+    return const EmptyStateWidget(
       icon: Icons.health_and_safety_outlined,
       emoji: '🏥',
-      title: '건강 기록이 없어요',
-      subtitle: '반려동물의 건강 상태를 기록하고\n변화를 추적해보세요!',
-      secondaryLabel: 'AI 건강 분석',
-      onSecondary: () => context.go('/emotion'),
-      actionLabel: '기록 추가',
-      onAction: () {
-        // FAB 대신 시트 직접 호출 — 이미 FAB이 있으므로 안내만
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('+ 버튼을 눌러 기록을 추가하세요')),
-        );
-      },
+      title: '아직 기록이 없어요',
+      subtitle: '반려동물의 건강 변화를 추적해보세요!\n오른쪽 아래 + 버튼으로 첫 기록을 남길 수 있어요',
     );
   }
 

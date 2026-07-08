@@ -1,26 +1,25 @@
-import 'dart:ui' show Rect;
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../domain/entities/health_record.dart';
 import 'health_pdf_data.dart';
 
-/// 건강 요약서 PDF를 온디바이스에서 생성하고 공유 시트를 띄운다.
+/// 건강 요약서 PDF 바이트를 온디바이스에서 생성한다.
 /// 서버 미경유(건강 개인정보 보호). 한글은 Pretendard 폰트 임베드.
+/// 저장·공유는 미리보기 화면(PdfPreview)의 내장 액션이 담당.
 class HealthPdfGenerator {
   /// 최근 AI 감정 분석 1건 요약(선택) — 펫페이스 차별점. 읽기 전용 데이터.
-  static Future<void> generateAndShare({
+  static Future<Uint8List> buildPdfBytes({
     required Pet pet,
     required String ownerName,
     required List<HealthRecord> records,
     EmotionAnalysis? latestAnalysis,
     DateTime? now,
-    Rect? shareAnchor, // iPad 공유 popover anchor(없으면 iPadOS 크래시)
   }) async {
     final data = buildHealthPdfData(records);
     final regular = pw.Font.ttf(
@@ -66,11 +65,7 @@ class HealthPdfGenerator {
       ),
     );
 
-    await Printing.sharePdf(
-      bytes: await doc.save(),
-      filename: '${pet.name}_건강요약서.pdf',
-      bounds: shareAnchor,
-    );
+    return doc.save();
   }
 
   static String _fmtDate(DateTime d) =>

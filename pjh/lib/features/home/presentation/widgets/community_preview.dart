@@ -8,7 +8,6 @@ import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../../social/domain/entities/post.dart';
 import '../../../social/domain/repositories/social_repository.dart';
-import '../../../../shared/widgets/section_header.dart';
 
 class CommunityPreview extends StatefulWidget {
   final String? category;
@@ -40,8 +39,8 @@ class _CommunityPreviewState extends State<CommunityPreview> {
     try {
       final repo = di.sl<SocialRepository>();
       final result = widget.category != null
-          ? await repo.searchPostsByHashtag(hashtag: widget.category!, limit: 3)
-          : await repo.getFeed(limit: 3);
+          ? await repo.searchPostsByHashtag(hashtag: widget.category!, limit: 5)
+          : await repo.getFeed(limit: 5);
       result.fold(
         (failure) {
           dev.log('커뮤니티 프리뷰 로드 실패: ${failure.message}', name: 'CommunityPreview');
@@ -57,37 +56,12 @@ class _CommunityPreviewState extends State<CommunityPreview> {
     }
   }
 
-  String _getCategoryTitle() {
-    switch (widget.category) {
-      case 'health':    return '🏥 건강 게시글';
-      case 'training':  return '🎯 훈련 게시글';
-      case 'food':      return '🍖 먹거리 게시글';
-      case 'life':      return '🏡 생활 게시글';
-      default:          return '💬 커뮤니티';
-    }
-  }
-
-  String _getFeedTab() {
-    switch (widget.category) {
-      case 'health':   return '/feed?tab=community&category=health';
-      case 'training': return '/feed?tab=community&category=training';
-      case 'food':     return '/feed?tab=community&category=food';
-      case 'life':     return '/feed?tab=community&category=life';
-      default:         return '/feed?tab=community';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
         children: [
-          SectionHeader(
-            title: _getCategoryTitle(),
-            onMore: () => context.go(_getFeedTab()),
-          ),
-          SizedBox(height: 12.h),
           if (_loading)
             _buildSkeleton()
           else if (_posts.isEmpty)
