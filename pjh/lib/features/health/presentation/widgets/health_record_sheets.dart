@@ -17,9 +17,8 @@ extension _HealthMainSheets on _HealthMainViewState {
         itemCount: types.length,
         separatorBuilder: (_, __) => SizedBox(width: 6.w),
         itemBuilder: (context, i) {
-          final (type, label, emoji) = types[i];
+          final (type, label) = types[i];
           return _typeChip(
-            emoji: emoji,
             label: label,
             color: _HealthMainViewState._filterTypeColors[type]!,
             isSelected: selected == type,

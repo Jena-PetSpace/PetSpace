@@ -44,14 +44,14 @@ class _HealthMainView extends StatefulWidget {
 class _HealthMainViewState extends State<_HealthMainView> {
   HealthRecordType? _selectedFilter; // null = 전체
 
-  /// 필터 칩·빈 상태 문구가 공유하는 유형 표시명. (type, label, emoji)
-  static const _filterTypes = <(HealthRecordType?, String, String)>[
-    (null, '전체', '📋'),
-    (HealthRecordType.vaccination, '백신', '💉'),
-    (HealthRecordType.checkup, '검진', '🏥'),
-    (HealthRecordType.weight, '체중', '⚖️'),
-    (HealthRecordType.medication, '투약', '💊'),
-    (HealthRecordType.surgery, '수술', '🔬'),
+  /// 필터 칩·빈 상태 문구가 공유하는 유형 표시명. (type, label)
+  static const _filterTypes = <(HealthRecordType?, String)>[
+    (null, '전체'),
+    (HealthRecordType.vaccination, '백신'),
+    (HealthRecordType.checkup, '검진'),
+    (HealthRecordType.weight, '체중'),
+    (HealthRecordType.medication, '투약'),
+    (HealthRecordType.surgery, '수술'),
   ];
 
   @override
@@ -372,9 +372,8 @@ class _HealthMainViewState extends State<_HealthMainView> {
         itemCount: _filterTypes.length,
         separatorBuilder: (_, __) => SizedBox(width: 6.w),
         itemBuilder: (context, i) {
-          final (type, label, emoji) = _filterTypes[i];
+          final (type, label) = _filterTypes[i];
           return _typeChip(
-            emoji: emoji,
             label: label,
             color: _filterTypeColors[type]!,
             isSelected: _selectedFilter == type,
@@ -385,9 +384,8 @@ class _HealthMainViewState extends State<_HealthMainView> {
     );
   }
 
-  /// 이모지+라벨 알약 칩 — 필터와 시트의 유형 선택이 공용으로 사용.
+  /// 라벨 알약 칩 — 필터와 시트의 유형 선택이 공용으로 사용.
   Widget _typeChip({
-    required String emoji,
     required String label,
     required Color color,
     required bool isSelected,
@@ -409,20 +407,13 @@ class _HealthMainViewState extends State<_HealthMainView> {
               ? [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))]
               : null,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: TextStyle(fontSize: 12.sp)),
-            SizedBox(width: 4.w),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11.sp,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
-              ),
-            ),
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.sp,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+          ),
         ),
       ),
     );
@@ -468,7 +459,6 @@ class _HealthMainViewState extends State<_HealthMainView> {
   Widget _buildEmptyRecordState() {
     return const EmptyStateWidget(
       icon: Icons.health_and_safety_outlined,
-      emoji: '🏥',
       title: '아직 기록이 없어요',
       subtitle: '반려동물의 건강 변화를 추적해보세요!\n오른쪽 아래 + 버튼으로 첫 기록을 남길 수 있어요',
     );
@@ -477,7 +467,6 @@ class _HealthMainViewState extends State<_HealthMainView> {
   Widget _buildEmptyPetState() {
     return EmptyStateWidget(
       icon: Icons.pets,
-      emoji: '🐾',
       title: '반려동물을 먼저 등록해주세요',
       subtitle: '반려동물을 등록하면\n건강 기록과 AI 분석을 시작할 수 있어요!',
       actionLabel: '반려동물 등록',
