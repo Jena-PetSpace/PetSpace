@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../social/presentation/pages/channel_subscription_page.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:go_router/go_router.dart';
@@ -81,7 +80,8 @@ class _FeedHubViewState extends State<_FeedHubView>
     _qnaTabController = TabController(length: _qnaCategories.length, vsync: this);
     _qnaScrollController.addListener(_onQnaScroll);
 
-    if (widget.initialTab >= 2) {
+    // 라우터 정규화 이후 initialTab: 0=발견(사진), 1=라운지(Q&A).
+    if (widget.initialTab >= 1) {
       _mode = _FeedMode.qna;
       if (widget.initialCategory != null) {
         for (int i = 0; i < _qnaCategories.length; i++) {
@@ -165,25 +165,8 @@ class _FeedHubViewState extends State<_FeedHubView>
       ),
       centerTitle: true,
       actions: [
-        IconButton(
-          icon: const Icon(Icons.tune_rounded, color: AppTheme.primaryTextColor),
-          onPressed: () => showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => DraggableScrollableSheet(
-              initialChildSize: 0.7,
-              builder: (ctx, ctrl) => Container(
-                decoration: const BoxDecoration(
-                  color: AppTheme.surfaceColor,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                ),
-                child: const ChannelSubscriptionPage(),
-              ),
-            ),
-          ),
-          tooltip: '채널 구독',
-        ),
+        // 채널 구독 진입점 비노출 (P0-1) — ChannelSubscriptionPage·/channels
+        // 라우트는 보존, P2 구독 재도입 시 재연결.
         IconButton(
           icon: SvgPicture.asset(
             'assets/svg/icon_search.svg',

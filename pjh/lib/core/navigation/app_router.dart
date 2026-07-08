@@ -277,9 +277,12 @@ class AppRouter {
               builder: (context, state) {
                 final tab = state.uri.queryParameters['tab'];
                 final category = state.uri.queryParameters['category'];
-                int initialTab = 0;
-                if (tab == 'following') initialTab = 1;
-                if (tab == 'community') initialTab = 2;
+                // 신구 호환 매핑: lounge(신)·community(구) → 라운지(1),
+                // following(구) 포함 그 외 → 발견(0).
+                // category는 그대로 전달 — 페이지가 유효 값만 매칭하고
+                // 미매칭(구 카테고리·해시태그)은 '전체'로 폴백한다.
+                final initialTab =
+                    (tab == 'lounge' || tab == 'community') ? 1 : 0;
                 return FeedHubPage(
                     initialTab: initialTab, initialCategory: category);
               },
