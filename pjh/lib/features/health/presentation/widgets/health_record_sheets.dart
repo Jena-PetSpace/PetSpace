@@ -295,6 +295,7 @@ extension _HealthMainSheets on _HealthMainViewState {
                     onPressed: () async {
                       final confirmed = await _confirmDeleteFromEdit(ctx);
                       if (confirmed != true || !ctx.mounted) return;
+                      if (!context.mounted) return;
                       // 스와이프 삭제와 동일한 이벤트 → 동일 Repository 경로 재사용
                       context
                           .read<HealthBloc>()

@@ -332,8 +332,8 @@ class _HealthMainViewState extends State<_HealthMainView> {
     }
 
     if (!context.mounted) return;
-    Navigator.push(
-      context,
+    // 시트와 동일하게 루트 네비게이터 사용 — 탭바 위에 풀스크린으로 표시.
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (_) => HealthPdfPreviewPage(
           pet: pet,
