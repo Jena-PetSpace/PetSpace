@@ -18,7 +18,10 @@ class CommunityPost extends Equatable {
   final String content;
   final List<String> hashtags;
 
-  /// 카테고리 컬럼 값(health/training/food/life/qa). 미분류는 null.
+  /// 카테고리 컬럼 값. 신 체계(2026-07): chat/brag/qa/info.
+  /// 구 체계 값(quiz/careguide/education/policy/event/health/training/
+  /// food/life)은 재편 이전 글에 잔존 — 라벨은 categoryLabel이 호환 처리.
+  /// 미분류는 null.
   final String? category;
   final int likes;
   final int comments;
