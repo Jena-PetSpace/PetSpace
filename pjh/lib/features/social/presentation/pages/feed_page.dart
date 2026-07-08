@@ -10,7 +10,9 @@ import '../../../../shared/widgets/haptic_refresh_indicator.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/post.dart';
 import '../bloc/feed_bloc.dart';
+import '../cubit/operational_cards_cubit.dart';
 import '../utils/feed_grid_filter.dart';
+import '../widgets/operational_card_tile.dart';
 import '../widgets/post_card.dart';
 import '../widgets/create_post_bottom_sheet.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
@@ -27,11 +29,16 @@ class FeedPage extends StatefulWidget {
   final bool followingOnly;
   final bool recommended;
 
+  /// 발견 탭 운영(이슈) 카드 인터리브. true면 상위에서
+  /// [OperationalCardsCubit] provider가 공급되어야 한다.
+  final bool interleaveOperational;
+
   const FeedPage({
     super.key,
     this.userId,
     this.followingOnly = false,
     this.recommended = false,
+    this.interleaveOperational = false,
   });
 
   @override
@@ -76,10 +83,25 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
+    if (_scrollController.position.pixels <
         _scrollController.position.maxScrollExtent * 0.8) {
+      return;
+    }
+    final state = context.read<FeedBloc>().state;
+    if (state is FeedRecommendedLoaded) {
+      // 추천 피드 offset 커서 페이지네이션 (재진입 가드는 bloc 측).
+      final uid = _effectiveUserId;
+      if (uid != null) {
+        context.read<FeedBloc>().add(LoadRecommendedPostsRequested(
+            userId: uid, offset: state.posts.length));
+      }
+    } else {
       context.read<FeedBloc>().add(LoadMorePostsRequested(
           userId: widget.userId, followingOnly: widget.followingOnly));
+    }
+    if (widget.interleaveOperational) {
+      // 운영 카드 선로딩 — cubit 자체 가드(hasReachedMax/isLoadingMore)로 안전.
+      context.read<OperationalCardsCubit>().loadMore();
     }
   }
 
@@ -157,7 +179,41 @@ class _FeedPageState extends State<FeedPage> {
     if (state.posts.isEmpty) {
       return _buildEmptyState();
     }
+    if (!widget.interleaveOperational) {
+      return _buildRecommendedContent(state, const []);
+    }
+    return BlocBuilder<OperationalCardsCubit, OperationalCardsState>(
+      builder: (context, opState) =>
+          _buildRecommendedContent(state, opState.cards),
+    );
+  }
 
+  /// 유저 4 : 운영 1 인터리브 간격.
+  static const int _kOperationalInterval = 5;
+
+  /// 유저 포스트 사이에 운영 카드를 끼워 넣은 표시용 리스트를 만든다.
+  ///
+  /// 원본 posts 리스트는 변형하지 않는다 — FeedBloc의 좋아요 낙관적
+  /// 업데이트가 post 리스트를 id로 매핑하므로 오염 금지. 운영 카드가
+  /// 모자라면 있는 만큼만 끼워 넣는다(비율 자동 하향).
+  List<Object> _interleaveOperationalCards(
+      List<Post> posts, List<OperationalCard> cards) {
+    if (cards.isEmpty) return List<Object>.from(posts);
+    final items = <Object>[];
+    var cardIndex = 0;
+    for (var i = 0; i < posts.length; i++) {
+      items.add(posts[i]);
+      if ((i + 1) % (_kOperationalInterval - 1) == 0 &&
+          cardIndex < cards.length) {
+        items.add(cards[cardIndex++]);
+      }
+    }
+    return items;
+  }
+
+  Widget _buildRecommendedContent(
+      FeedRecommendedLoaded state, List<OperationalCard> cards) {
+    final items = _interleaveOperationalCards(state.posts, cards);
     // 토글 바만 위에 얹고, 아래는 _viewMode로 분기. 리스트 경로는 기존과 동일.
     return Column(
       children: [
@@ -167,20 +223,24 @@ class _FeedPageState extends State<FeedPage> {
               ? ListView.builder(
                   controller: _scrollController,
                   padding: EdgeInsets.symmetric(vertical: 8.h),
-                  itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0) + 1,
+                  itemCount: items.length + (state.isLoadingMore ? 1 : 0) + 1,
                   itemBuilder: (context, index) {
                     if (index == 0) return const TrendingHashtagsSection();
-                    final postIndex = index - 1;
-                    if (postIndex >= state.posts.length) {
+                    final itemIndex = index - 1;
+                    if (itemIndex >= items.length) {
                       return Padding(
                         padding: EdgeInsets.symmetric(vertical: 16.h),
                         child: const Center(child: CircularProgressIndicator()),
                       );
                     }
-                    final post = state.posts[postIndex];
-                    return _buildPostCard(post);
+                    final item = items[itemIndex];
+                    if (item is OperationalCard) {
+                      return OperationalCardTile(card: item);
+                    }
+                    return _buildPostCard(item as Post);
                   },
                 )
+              // 사진 그리드는 유저 포스트 전용 — 운영 카드 인터리브 없음.
               : _buildPhotoGrid(state.posts),
         ),
       ],

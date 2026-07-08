@@ -10,6 +10,7 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/category_chip.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../social/domain/repositories/social_repository.dart';
+import '../../../social/presentation/cubit/operational_cards_cubit.dart';
 import '../../../social/presentation/pages/feed_page.dart';
 import '../../domain/entities/community_post.dart';
 import '../cubit/community_cubit.dart';
@@ -29,8 +30,17 @@ class FeedHubPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<CommunityCubit>(
-      create: (_) => CommunityCubit(repository: sl<SocialRepository>()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<CommunityCubit>(
+          create: (_) => CommunityCubit(repository: sl<SocialRepository>()),
+        ),
+        // 발견 탭 운영 카드 — 탭 전환에도 커서·큐 보존을 위해 페이지 위에 산다.
+        BlocProvider<OperationalCardsCubit>(
+          create: (_) =>
+              OperationalCardsCubit(repository: sl<SocialRepository>())..load(),
+        ),
+      ],
       child: _FeedHubView(
         initialTab: initialTab,
         initialCategory: initialCategory,
@@ -127,7 +137,7 @@ class _FeedHubViewState extends State<_FeedHubView>
             child: TabBarView(
               controller: _tabController,
               children: [
-                const FeedPage(recommended: true),
+                const FeedPage(recommended: true, interleaveOperational: true),
                 _buildLoungeBody(),
               ],
             ),
