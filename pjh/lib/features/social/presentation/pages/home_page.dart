@@ -214,7 +214,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const Spacer(),
           GestureDetector(
-            onTap: () => context.go('/feed?tab=community&category=magazine'),
+            onTap: () => context.go('/feed?tab=lounge'),
             child: Text(
               '더보기',
               style: TextStyle(

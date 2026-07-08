@@ -9,7 +9,7 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../../social/domain/entities/post.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 
-/// Q&A '전체' 탭 상단에 노출하는 매거진(전문가 칼럼) 가로 스크롤 섹션.
+/// 라운지 '전체' 상단에 노출하는 매거진(전문가 칼럼) 가로 스크롤 섹션.
 ///
 /// home 위젯을 건드리지 않고 social repository의 기존 조회
 /// (searchPostsByHashtag('magazine'))를 재사용해 묻혀있던 매거진 글을 노출한다.
