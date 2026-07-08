@@ -137,7 +137,9 @@ class _HotTopicBannerState extends State<HotTopicBanner> {
     final label = meta['label'] as String;
 
     return GestureDetector(
-      onTap: () => context.go('/feed?tab=community&category=$tag'),
+      // 해시태그는 카테고리가 아니라 해시태그 피드로 — 구 category 파라미터
+      // 전송은 라운지 매칭 실패 폴백으로만 동작하던 잠재 버그(O-3).
+      onTap: () => context.push('/hashtag/$tag'),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
         decoration: BoxDecoration(

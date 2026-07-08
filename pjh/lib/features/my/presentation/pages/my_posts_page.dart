@@ -376,7 +376,7 @@ class _MyPostsPageState extends State<MyPostsPage>
       title: '작성한 커뮤니티 글이 없습니다',
       subtitle: '커뮤니티에서 다른 반려인들과\n소통해보세요!',
       buttonLabel: '커뮤니티 가기',
-      onPressed: () => context.go('/feed'),
+      onPressed: () => context.go('/feed?tab=lounge'),
     );
   }
 

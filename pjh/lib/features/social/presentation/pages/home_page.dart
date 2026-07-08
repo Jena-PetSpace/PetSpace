@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../shared/constants/community_categories.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
@@ -36,7 +37,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Timer? _badgeTimer;
-  int _selectedCategory = 0;
+  // 이슈 콘텐츠 칩 선택값 (shared 단일 소스 category 값 — 인덱스 결합 금지).
+  String _selectedCategory = CommunityCategories.issueContents.first.value;
   final ValueNotifier<int> _questCheckNotifier = ValueNotifier(0);
   String _lastLocation = '';
 
@@ -158,8 +160,8 @@ class _HomePageState extends State<HomePage> {
               child: Padding(
                 padding: EdgeInsets.only(top: 12.h),
                 child: CategoryFilterChips(
-                  onSelected: (index) {
-                    setState(() => _selectedCategory = index);
+                  onSelected: (value) {
+                    setState(() => _selectedCategory = value);
                   },
                 ),
               ),
@@ -230,22 +232,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCategoryContent() {
-    // 0: 전체, 1: O/X 퀴즈, 2: 케어가이드, 3: 교육, 4: 정책, 5: 이벤트
-    // (피드 Q&A와 동일 체계 — 피그마 매거진 시안 기준)
-    switch (_selectedCategory) {
-      case 1:
-        return const CommunityPreview(category: 'quiz');
-      case 2:
-        return const CommunityPreview(category: 'careguide');
-      case 3:
-        return const CommunityPreview(category: 'education');
-      case 4:
-        return const CommunityPreview(category: 'policy');
-      case 5:
-        return const CommunityPreview(category: 'event');
-      default:
-        return const MagazineGrid();
+    // 이슈 콘텐츠 그룹(CommunityCategories.issueContents) 값 기반 매핑.
+    // magazine만 hashtag 경로(MagazineGrid), 나머지는 category 컬럼 조회.
+    if (_selectedCategory == CommunityCategories.magazine.value) {
+      return const MagazineGrid();
     }
+    return CommunityPreview(category: _selectedCategory);
   }
 
   // 시안엔 없던 기존 홈 카드들 — 위치 확인용으로 스크롤 하단에 임시 배치.
