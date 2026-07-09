@@ -320,7 +320,8 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
                   ),
                 ),
                 Text(
-                  '${emotion.petName ?? '반려동물'} · ${emotionNames[dominant] ?? dominant} ${(emotion.emotions.toMap()[dominant]! * 100).toInt()}%',
+                  // 라벨만 — 퍼센트 수치 노출 금지 (P0 정책)
+                  '${emotion.petName ?? '반려동물'} · ${emotionNames[dominant] ?? dominant}',
                   style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor),
                 ),
               ],

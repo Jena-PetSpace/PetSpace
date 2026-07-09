@@ -321,8 +321,8 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
     };
     final topEmotion =
         emotions.entries.reduce((a, b) => a.value > b.value ? a : b);
-    final percentage = (topEmotion.value * 100).toStringAsFixed(0);
-    return '${widget.petName ?? "반려동물"}이(가) 지금 ${topEmotion.key} 상태입니다 ($percentage%)';
+    // 라벨만 — 퍼센트 수치 노출 금지 (P0 정책)
+    return '${widget.petName ?? "반려동물"}이(가) 지금 ${topEmotion.key} 상태입니다';
   }
 
   Widget _buildContentSection() {
