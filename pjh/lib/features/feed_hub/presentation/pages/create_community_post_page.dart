@@ -7,6 +7,7 @@ import '../../../../config/injection_container.dart';
 import '../../../../core/utils/back_press_handler.dart';
 import '../../../../shared/constants/community_categories.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/category_chip.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/entities/post.dart';
 import '../../../social/domain/repositories/social_repository.dart';
@@ -141,25 +142,15 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
             Text('카테고리',
                 style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
             SizedBox(height: 8.h),
+            // 카테고리 선택 칩 — 공용 CategoryChip으로 통일 (v2 T3)
             Wrap(
               spacing: 8.w,
+              runSpacing: 8.h,
               children: _categories.map((cat) {
-                final isSelected = _selectedCategory == cat.value;
-                return ChoiceChip(
-                  label: Text(cat.label,
-                      style: TextStyle(
-                          fontSize: 12.sp,
-                          color: isSelected
-                              ? Colors.white
-                              : AppTheme.secondaryTextColor)),
-                  selected: isSelected,
-                  selectedColor: AppTheme.primaryColor,
-                  backgroundColor: AppTheme.surfaceColor,
-                  side: BorderSide(
-                      color: isSelected
-                          ? AppTheme.primaryColor
-                          : AppTheme.dividerColor),
-                  onSelected: (_) =>
+                return CategoryChip(
+                  label: cat.label,
+                  selected: _selectedCategory == cat.value,
+                  onTap: () =>
                       setState(() => _selectedCategory = cat.value),
                 );
               }).toList(),
@@ -210,7 +201,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.actionBase,
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                   shape: RoundedRectangleBorder(

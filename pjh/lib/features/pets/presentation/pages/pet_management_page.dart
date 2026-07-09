@@ -156,7 +156,7 @@ class _PetManagementPageState extends State<PetManagementPage> {
               icon: Icon(Icons.add, size: 20.w),
               label: Text('반려동물 추가하기', style: TextStyle(fontSize: 14.sp)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.actionBase,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(
                   horizontal: 24.w,

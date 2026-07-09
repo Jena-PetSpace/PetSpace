@@ -562,7 +562,7 @@ class _OnboardingPetRegistrationPageState
       label: Text('반려동물 추가', style: TextStyle(fontSize: 16.sp)),
       style: ElevatedButton.styleFrom(
         padding: EdgeInsets.symmetric(vertical: 16.h),
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: AppTheme.actionBase,
         foregroundColor: Colors.white,
       ),
     );

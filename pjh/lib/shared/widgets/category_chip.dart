@@ -30,7 +30,8 @@ class CategoryChip extends StatelessWidget {
           color: selected ? AppTheme.primaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: selected ? AppTheme.primaryColor : AppTheme.dividerColor,
+            // 비선택 보더는 border 토큰 (v2: divider는 구분선 전용)
+            color: selected ? AppTheme.primaryColor : AppTheme.border,
             width: 1,
           ),
         ),

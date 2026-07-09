@@ -115,7 +115,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
             button: true,
             child: FloatingActionButton(
               onPressed: () => _showAddRecordSheet(context),
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: AppTheme.actionBase,
               child: const Icon(Icons.add, color: Colors.white),
             ),
           ),

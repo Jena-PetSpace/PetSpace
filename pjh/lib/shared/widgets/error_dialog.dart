@@ -155,7 +155,7 @@ class ErrorDialog extends StatelessWidget {
                 onRetry?.call();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.actionBase,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 12.h),
               ),
@@ -173,7 +173,7 @@ class ErrorDialog extends StatelessWidget {
             onDismiss?.call();
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: AppTheme.actionBase,
             foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(vertical: 12.h),
           ),
@@ -248,7 +248,7 @@ class ErrorBottomSheet extends StatelessWidget {
                   onRetry?.call();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.actionBase,
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                 ),

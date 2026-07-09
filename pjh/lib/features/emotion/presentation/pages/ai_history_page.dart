@@ -334,7 +334,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
         ElevatedButton(
           onPressed: () => context.push('/pets'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: AppTheme.actionBase,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.r)),
@@ -455,7 +455,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                             context.go('/emotion');
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
+                            backgroundColor: AppTheme.actionBase,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                                 borderRadius:

@@ -124,7 +124,7 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
               icon: const Icon(Icons.pets),
               label: const Text('지금 분석하기'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.actionBase,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(

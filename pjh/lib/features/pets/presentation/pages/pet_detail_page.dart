@@ -348,7 +348,7 @@ class PetDetailPage extends StatelessWidget {
             icon: Icon(Icons.psychology, size: 20.w),
             label: Text('감정 분석하기', style: TextStyle(fontSize: 14.sp)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: AppTheme.actionBase,
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(vertical: 14.h),
               shape: RoundedRectangleBorder(

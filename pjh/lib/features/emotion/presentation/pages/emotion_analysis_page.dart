@@ -373,7 +373,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                   child: ElevatedButton(
                     onPressed: _canAnalyze ? _startAnalysis : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
+                      backgroundColor: AppTheme.actionBase,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: Colors.grey.shade300,
                       shape: RoundedRectangleBorder(

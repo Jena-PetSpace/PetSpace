@@ -244,7 +244,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
       child: ElevatedButton(
         onPressed: _isSaving ? null : _savePost,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primaryColor,
+          backgroundColor: AppTheme.actionBase,
           foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(vertical: 14.h),
           shape: RoundedRectangleBorder(

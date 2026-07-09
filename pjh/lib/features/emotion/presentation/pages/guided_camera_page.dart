@@ -467,7 +467,7 @@ class _GuidedCameraPageState extends State<GuidedCameraPage>
                 child: ElevatedButton(
                   onPressed: _saving ? null : _useCaptured,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
+                    backgroundColor: AppTheme.actionBase,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     shape: RoundedRectangleBorder(

@@ -245,7 +245,7 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
               child: ElevatedButton(
                 onPressed: _startUsingApp,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.actionBase,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(

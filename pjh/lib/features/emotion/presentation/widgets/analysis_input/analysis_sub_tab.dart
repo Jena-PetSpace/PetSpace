@@ -25,18 +25,10 @@ class AnalysisSubTab extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: EdgeInsets.symmetric(vertical: 11.h),
+          // v2: pill 토글 그림자 제거 (elevation 절제 원칙)
           decoration: BoxDecoration(
             color: isOn ? AppTheme.primaryColor : Colors.transparent,
             borderRadius: BorderRadius.circular(26.r),
-            boxShadow: isOn
-                ? [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
           ),
           child: Text(
             label,
