@@ -506,7 +506,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('커뮤니티 가이드라인에 어긋나는 표현이 포함되어 있습니다.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
       return;
@@ -566,7 +566,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('커뮤니티 가이드라인에 어긋나는 표현이 포함되어 있습니다.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
       return;

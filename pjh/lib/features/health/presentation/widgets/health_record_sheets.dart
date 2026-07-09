@@ -532,7 +532,7 @@ extension _HealthMainSheets on _HealthMainViewState {
       case HealthRecordType.medication:
         return Colors.orange;
       case HealthRecordType.surgery:
-        return Colors.red;
+        return AppTheme.errorColor;
     }
   }
 
@@ -571,7 +571,7 @@ extension _HealthMainSheets on _HealthMainViewState {
       case HealthRecordStatus.completed:
         return AppTheme.successColor;
       case HealthRecordStatus.overdue:
-        return Colors.red;
+        return AppTheme.errorColor;
       case HealthRecordStatus.cancelled:
         return Colors.grey;
     }

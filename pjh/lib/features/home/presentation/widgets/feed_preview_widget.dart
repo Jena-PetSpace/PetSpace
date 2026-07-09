@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../social/domain/entities/post.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 class FeedPreviewWidget extends StatelessWidget {
   final List<Post> posts;
@@ -117,7 +118,7 @@ class FeedPreviewWidget extends StatelessWidget {
                             : Icons.favorite_border,
                         size: 20,
                         color: post.isLikedByCurrentUser
-                            ? Colors.red
+                            ? AppTheme.errorColor
                             : Colors.grey[600],
                       ),
                       const SizedBox(width: 4),

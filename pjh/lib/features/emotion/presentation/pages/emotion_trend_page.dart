@@ -93,7 +93,7 @@ class _EmotionTrendPageState extends State<EmotionTrendPage>
         break;
       case TrendDirection.declining:
         trendIcon = Icons.trending_down;
-        trendColor = Colors.red;
+        trendColor = AppTheme.errorColor;
         trendText = '주의 필요';
         break;
       case TrendDirection.stable:

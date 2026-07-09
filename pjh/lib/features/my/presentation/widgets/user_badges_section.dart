@@ -126,7 +126,7 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
               style: TextStyle(
                   fontSize: 11.sp,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF888888))),
+                  color: AppTheme.secondaryTextColor)), // v2-review: 888888 근사
           SizedBox(height: 10.h),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -161,7 +161,7 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
                           width: 48.w,
                           child: Text(badge.name,
                               style: TextStyle(
-                                  fontSize: 10.sp, color: const Color(0xFF666666)),
+                                  fontSize: 10.sp, color: AppTheme.secondaryTextColor), // v2-review: 666666 근사
                               textAlign: TextAlign.center,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis),

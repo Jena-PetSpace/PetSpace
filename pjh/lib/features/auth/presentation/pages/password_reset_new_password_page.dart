@@ -290,20 +290,20 @@ class _PasswordResetNewPasswordPageState
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red[50],
+                      color: AppTheme.tilePastelRose,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red[200]!),
+                      border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.35)),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.error_outline,
-                            color: Colors.red[700], size: 20),
+                        const Icon(Icons.error_outline,
+                            color: AppTheme.errorColor, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _errorMessage!,
-                            style: TextStyle(
-                              color: Colors.red[700],
+                            style: const TextStyle(
+                              color: AppTheme.errorColor,
                               fontSize: 14,
                             ),
                           ),

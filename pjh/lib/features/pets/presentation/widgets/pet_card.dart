@@ -256,9 +256,9 @@ class PetCard extends StatelessWidget {
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete, size: 20.w, color: Colors.red),
+              Icon(Icons.delete, size: 20.w, color: AppTheme.errorColor),
               SizedBox(width: 8.w),
-              Text('삭제', style: TextStyle(color: Colors.red, fontSize: 14.sp)),
+              Text('삭제', style: TextStyle(color: AppTheme.errorColor, fontSize: 14.sp)),
             ],
           ),
         ),

@@ -1,3 +1,4 @@
+// v2-review: 결과 페이지 로컬 팔레트 — 리포트 톤 별도 기획 대상, 치환 보류.
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

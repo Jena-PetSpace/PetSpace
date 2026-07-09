@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 /// 감정분석 결과 페이지에 노출하는 면책(Disclaimer) 배너.
 ///
@@ -50,15 +51,15 @@ class EmotionDisclaimerBanner extends StatelessWidget {
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1),
+        color: AppTheme.surfaceWarm, // v2-review: FFF8E1 근사
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFFFD54F), width: 1),
+        border: Border.all(color: AppTheme.warningColor, width: 1), // v2-review: FFD54F 근사
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.info_outline,
-              size: 20.sp, color: const Color(0xFFB7791F)),
+              size: 20.sp, color: AppTheme.warningColor), // v2-review: B7791F 근사
           SizedBox(width: 10.w),
           Expanded(
             child: Column(
@@ -69,7 +70,7 @@ class EmotionDisclaimerBanner extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF7A4500),
+                    color: AppTheme.textBody, // v2-review: 7A4500 근사
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -79,7 +80,7 @@ class EmotionDisclaimerBanner extends StatelessWidget {
                   '수의사 등 전문가와 상의해주세요.',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: const Color(0xFF7A4500),
+                    color: AppTheme.textBody, // v2-review: 7A4500 근사
                     height: 1.5,
                   ),
                 ),

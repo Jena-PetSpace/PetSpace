@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../shared/widgets/image_viewer_page.dart';
 import '../../domain/entities/chat_message.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
@@ -88,7 +89,7 @@ class ChatBubble extends StatelessWidget {
                                   '$unreadCount',
                                   style: TextStyle(
                                     fontSize: 10.sp,
-                                    color: const Color(0xFFFF6B00),
+                                    color: AppTheme.warningColor, // v2-review: FF6B00 근사
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -123,7 +124,7 @@ class ChatBubble extends StatelessWidget {
                                   '$unreadCount',
                                   style: TextStyle(
                                     fontSize: 10.sp,
-                                    color: const Color(0xFFFF6B00),
+                                    color: AppTheme.warningColor, // v2-review: FF6B00 근사
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

@@ -223,7 +223,7 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
     final emotions = {
       'happiness': AppTheme.successColor,
       'sadness': Colors.blue,
-      'anger': Colors.red,
+      'anger': AppTheme.errorColor,
       'fear': Colors.orange,
     };
 
@@ -523,7 +523,7 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
     switch (emotion) {
       case 'happiness': return AppTheme.successColor;
       case 'sadness': return Colors.blue;
-      case 'anger': return Colors.red;
+      case 'anger': return AppTheme.errorColor;
       case 'fear': return Colors.orange;
       default: return AppTheme.primaryColor;
     }

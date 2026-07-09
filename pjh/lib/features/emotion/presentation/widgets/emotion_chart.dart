@@ -183,11 +183,11 @@ class EmotionBarChart extends StatelessWidget {
       final group = AppTheme.getEmotionGroup(key);
       final Color bgColor;
       if (group == 'positive') {
-        bgColor = const Color(0xFFE8F5E9);
+        bgColor = AppTheme.tilePastelGreen; // v2-review: E8F5E9 근사
       } else if (group == 'negative') {
-        bgColor = const Color(0xFFFCE4EC);
+        bgColor = AppTheme.tilePastelRose; // v2-review: FCE4EC 근사
       } else {
-        bgColor = const Color(0xFFF3E5F5);
+        bgColor = AppTheme.tilePastelPurple; // v2-review: F3E5F5 근사
       }
       return BarChartGroupData(
         x: idx,

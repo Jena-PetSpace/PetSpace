@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/themes/app_theme.dart';
 
 class AnimatedSlideIn extends StatefulWidget {
   final Widget child;
@@ -153,7 +154,7 @@ class AnimatedLike extends StatefulWidget {
     super.key,
     required this.isLiked,
     required this.onTap,
-    this.likedColor = Colors.red,
+    this.likedColor = AppTheme.errorColor,
     this.unlikedColor = Colors.grey,
     this.size = 24,
   });

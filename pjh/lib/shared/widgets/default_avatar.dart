@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../themes/app_theme.dart';
 
 class DefaultAvatar extends StatelessWidget {
   final String name;
@@ -15,13 +16,13 @@ class DefaultAvatar extends StatelessWidget {
   });
 
   static const List<Color> _avatarColors = [
-    Color(0xFF1E3A5F), // Deep Blue
+    AppTheme.brandDeep, // Deep Blue
     Color(0xFF2C4482), // Indigo
     Color(0xFF0077B6), // Bright Blue
-    Color(0xFF5BC0EB), // Sky Blue
-    Color(0xFF4CAF50), // Green
-    Color(0xFFFF6F61), // Coral
-    Color(0xFFFF9800), // Orange
+    AppTheme.infoSky, // Sky Blue
+    AppTheme.success, // Green
+    AppTheme.highlightColor, // Coral
+    AppTheme.warning, // Orange
     Color(0xFF9C27B0), // Purple
     Color(0xFF00897B), // Teal
     Color(0xFF5C6BC0), // Indigo accent

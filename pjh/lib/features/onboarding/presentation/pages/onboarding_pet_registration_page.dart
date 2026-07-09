@@ -856,7 +856,7 @@ class _OnboardingPetRegistrationPageState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('펫 등록 중 오류가 발생했습니다: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
             duration: const Duration(seconds: 3),
           ),
         );

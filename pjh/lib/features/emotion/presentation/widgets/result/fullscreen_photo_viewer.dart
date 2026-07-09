@@ -1,3 +1,4 @@
+// v2-review: 사진 뷰어 전용 근흑색 배경 — 기능적 색상, 치환 보류.
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

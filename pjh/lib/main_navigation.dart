@@ -170,11 +170,11 @@ class _MainNavigationState extends State<MainNavigation> {
               decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(
-                  top: BorderSide(color: Color(0xFFE8E8E8), width: 1),
+                  top: BorderSide(color: AppTheme.border, width: 1),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x14000000),
+                    color: Color(0x0F000000), // v2: 그림자 alpha ≤6%
                     blurRadius: 12,
                     offset: Offset(0, -3),
                   ),

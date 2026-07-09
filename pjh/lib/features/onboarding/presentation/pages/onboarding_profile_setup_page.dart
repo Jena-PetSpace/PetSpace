@@ -350,7 +350,7 @@ class _OnboardingProfileSetupPageState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('프로필 저장 실패: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }

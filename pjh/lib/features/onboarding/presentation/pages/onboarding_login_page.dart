@@ -119,7 +119,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(state.message),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppTheme.errorColor,
                   ),
                 );
               }
@@ -229,7 +229,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         _buildSocialButton(
           icon: Icons.account_circle,
           text: 'Google 계정으로 로그인하기',
-          color: const Color(0xFF4285F4),
+          color: const Color(0xFF4285F4), // v2-review: 구글 브랜드 고정색
           textColor: Colors.white,
           onPressed: _googleLogin,
         ),
@@ -237,7 +237,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         _buildSocialButton(
           icon: Icons.chat_bubble,
           text: '카카오톡 계정으로 로그인하기',
-          color: const Color(0xFFFEE500),
+          color: const Color(0xFFFEE500), // v2-review: 카카오 브랜드 고정색
           textColor: Colors.black87,
           onPressed: _kakaoLogin,
         ),

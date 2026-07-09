@@ -80,7 +80,7 @@ class HomeQuickActions extends StatelessWidget {
             alignment: Alignment.center,
             decoration: const BoxDecoration(
               // 피그마 시안 방향: 무채색 배경 + 딥블루 단색 스트로크 아이콘
-              color: Color(0xFFECEEF1),
+              color: AppTheme.border, // v2-review: ECEEF1 근사
               shape: BoxShape.circle,
             ),
             child: SvgPicture.asset(

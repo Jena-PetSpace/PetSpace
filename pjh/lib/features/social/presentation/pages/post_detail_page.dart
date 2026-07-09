@@ -154,7 +154,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       ScaffoldMessenger.of(ctx).showSnackBar(
         const SnackBar(
           content: Text('커뮤니티 가이드라인에 어긋나는 표현이 포함되어 있습니다.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
       return;
@@ -407,7 +407,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final label = AppTheme.getEmotionLabel(dominant.key);
     final petName = _post?['pet_name'] as String? ?? '우리 아이';
 
-    const cardColor = Color(0xFF7B4FE5);
+    const cardColor = AppTheme.featurePlay; // v2-review: 7B4FE5 근사
 
     return Container(
       margin: EdgeInsets.only(top: 12.h),

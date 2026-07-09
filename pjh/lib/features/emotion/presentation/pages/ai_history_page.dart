@@ -388,7 +388,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
 
     if (!s.hasData) {
       borderColor = AppTheme.dividerColor;
-      bgColor = const Color(0xFFF9F9F9);
+      bgColor = AppTheme.subtleBackground;
       iconColor = Colors.grey.shade300;
       statusWidget = Text('미분석',
           style:
@@ -402,8 +402,8 @@ class _AiHistoryPageState extends State<AiHistoryPage>
               color: AppTheme.successColor,
               fontWeight: FontWeight.w500));
     } else if (s.status == '주의') {
-      borderColor = const Color(0xFFEF9F27);
-      iconColor = const Color(0xFFEF9F27);
+      borderColor = AppTheme.warningColor; // v2-review: EF9F27 근사
+      iconColor = AppTheme.warningColor; // v2-review: EF9F27 근사
       statusWidget = Text('주의',
           style: TextStyle(
               fontSize: 8.5.sp,
@@ -411,7 +411,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
               fontWeight: FontWeight.w500));
     } else if (s.status == '위험') {
       borderColor = AppTheme.highlightColor;
-      bgColor = const Color(0xFFFFF5F4);
+      bgColor = AppTheme.tilePastelRose; // v2-review: FFF5F4 근사
       iconColor = AppTheme.errorColor;
       statusWidget = Text('위험',
           style: TextStyle(
@@ -1037,7 +1037,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
           AppTheme.primaryColor),
       'good': (AppTheme.successColor.withValues(alpha: 0.1),
           AppTheme.successColor),
-      'warn': (const Color(0xFFEF9F27).withValues(alpha: 0.1),
+      'warn': (AppTheme.warningColor.withValues(alpha: 0.1), // v2-review: EF9F27 근사
           EmotionResultTokens.amberDark),
       'bad': (AppTheme.errorColor.withValues(alpha: 0.1),
           AppTheme.errorColor),

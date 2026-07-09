@@ -128,7 +128,7 @@ class _HashtagPageState extends State<HashtagPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48.w, color: Colors.red),
+            Icon(Icons.error_outline, size: 48.w, color: AppTheme.errorColor),
             SizedBox(height: 12.h),
             Text('불러오기 실패', style: TextStyle(fontSize: 15.sp)),
             SizedBox(height: 8.h),

@@ -168,7 +168,7 @@ class NotificationCard extends StatelessWidget {
   Color _getNotificationTypeColor(social_notification.NotificationType type) {
     switch (type) {
       case social_notification.NotificationType.like:
-        return Colors.red;
+        return AppTheme.errorColor;
       case social_notification.NotificationType.comment:
         return Colors.blue;
       case social_notification.NotificationType.follow:

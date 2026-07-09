@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../shared/themes/app_theme.dart';
 
 typedef LazyLoadCallback = Future<List<T>> Function<T>();
 typedef ItemBuilder<T> = Widget Function(
@@ -125,7 +126,7 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('더 많은 데이터를 불러오는 중 오류가 발생했습니다: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
           ),
         );
       }
@@ -234,7 +235,7 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
           Icon(
             Icons.error_outline,
             size: 64.w,
-            color: Colors.red,
+            color: AppTheme.errorColor,
           ),
           SizedBox(height: 16.h),
           Text(

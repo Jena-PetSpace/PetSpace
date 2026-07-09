@@ -7,6 +7,7 @@ import '../../../../shared/widgets/profile_image_picker.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../config/injection_container.dart' as di;
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
@@ -206,7 +207,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_userFacingError(e, '프로필 저장')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
             duration: const Duration(seconds: 3),
           ),
         );

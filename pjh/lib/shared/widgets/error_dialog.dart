@@ -74,7 +74,7 @@ class ErrorDialog extends StatelessWidget {
       color = Colors.orange;
     } else if (failure is UnauthorizedFailure || failure is AuthFailure) {
       icon = Icons.lock_outline;
-      color = Colors.red;
+      color = AppTheme.errorColor;
     } else if (failure is NotFoundFailure) {
       icon = Icons.search_off;
       color = Colors.grey;
@@ -86,7 +86,7 @@ class ErrorDialog extends StatelessWidget {
       color = Colors.orange;
     } else {
       icon = Icons.error_outline;
-      color = Colors.red;
+      color = AppTheme.errorColor;
     }
 
     return Container(
@@ -274,7 +274,7 @@ class ErrorBottomSheet extends StatelessWidget {
     if (failure is NetworkFailure) return Colors.orange;
     if (failure is ValidationFailure) return Colors.amber;
     if (failure is TimeoutFailure) return Colors.orange;
-    return Colors.red;
+    return AppTheme.errorColor;
   }
 }
 
@@ -361,7 +361,7 @@ class ErrorDialogHelper {
     } else if (failure is ValidationFailure) {
       return Colors.amber[700]!;
     } else {
-      return Colors.red;
+      return AppTheme.errorColor;
     }
   }
 

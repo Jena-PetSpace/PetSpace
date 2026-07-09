@@ -84,6 +84,7 @@ import '../../features/profile/presentation/pages/help_page.dart';
 import '../../features/social/presentation/pages/followers_page.dart';
 import '../../main_navigation.dart';
 import 'auth_guard.dart';
+import '../../shared/themes/app_theme.dart';
 
 class AppRouter {
   static GoRouter createRouter(AuthBloc authBloc) {
@@ -762,7 +763,7 @@ class AppRouter {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error, size: 64, color: Colors.red),
+              const Icon(Icons.error, size: 64, color: AppTheme.errorColor),
               const SizedBox(height: 16),
               const Text('페이지를 찾을 수 없습니다.'),
               const SizedBox(height: 16),

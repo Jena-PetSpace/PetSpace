@@ -248,7 +248,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
                           alignment: Alignment.centerRight,
                           padding: EdgeInsets.only(right: 20.w),
                           decoration: BoxDecoration(
-                            color: Colors.red,
+                            color: AppTheme.errorColor,
                             borderRadius: BorderRadius.circular(12.r),
                           ),
                           child: const Icon(Icons.delete, color: Colors.white),
@@ -280,7 +280,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
                 padding: EdgeInsets.only(top: 8.h),
                 child: Text(
                   state.error!,
-                  style: TextStyle(color: Colors.red, fontSize: 12.sp),
+                  style: TextStyle(color: AppTheme.errorColor, fontSize: 12.sp),
                 ),
               ),
 
@@ -479,7 +479,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64.w, color: Colors.red),
+          Icon(Icons.error_outline, size: 64.w, color: AppTheme.errorColor),
           SizedBox(height: 16.h),
           Text(message,
               style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
@@ -507,7 +507,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: Text('삭제', style: TextStyle(fontSize: 14.sp)),
           ),
         ],

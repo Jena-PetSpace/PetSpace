@@ -103,7 +103,7 @@ class _ProfilePageState extends State<ProfilePage>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.error!),
-                backgroundColor: Colors.red,
+                backgroundColor: AppTheme.errorColor,
               ),
             );
           }
@@ -525,7 +525,7 @@ class _ProfilePageState extends State<ProfilePage>
           Icon(
             Icons.error_outline,
             size: 64.w,
-            color: Colors.red,
+            color: AppTheme.errorColor,
           ),
           SizedBox(height: 16.h),
           Text(

@@ -1,3 +1,5 @@
+// v2-review: 결과 페이지 로컬 토큰(베이지 리디자인) — AppTheme v2 지시서 3장
+// '분석 결과 리포트 톤 별도 기획' 대상. 전역 토큰 치환 보류.
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/health_analysis.dart' show HealthArea;

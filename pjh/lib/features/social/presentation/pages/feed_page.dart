@@ -17,6 +17,7 @@ import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../../shared/widgets/network_error_widget.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../widgets/trending_hashtags_section.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 class FeedPage extends StatefulWidget {
   final String? userId;
@@ -104,7 +105,7 @@ class _FeedPageState extends State<FeedPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.errorColor,
             ),
           );
         } else if (state is FeedLoaded && state.error != null) {
@@ -327,7 +328,7 @@ class _FeedPageState extends State<FeedPage> {
           Icon(
             Icons.error_outline,
             size: 64.w,
-            color: Colors.red,
+            color: AppTheme.errorColor,
           ),
           SizedBox(height: 16.h),
           Text(

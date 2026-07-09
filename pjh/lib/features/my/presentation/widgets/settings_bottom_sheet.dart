@@ -173,7 +173,7 @@ class SettingsBottomSheet extends StatelessWidget {
               ),
             ),
             if (item.showChevron)
-              Icon(Icons.chevron_right, size: 20.w, color: const Color(0xFFCCCCCC)),
+              Icon(Icons.chevron_right, size: 20.w, color: AppTheme.lightTextColor), // v2-review: CCCCCC 근사
           ],
         ),
       ),
