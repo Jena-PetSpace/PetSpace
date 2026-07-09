@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
+import '../../../../core/utils/relative_time.dart';
 import '../../../../shared/constants/community_categories.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/category_chip.dart';
@@ -350,13 +351,5 @@ class _FeedHubViewState extends State<_FeedHubView>
     }
   }
 
-  String _timeAgo(DateTime dt) {
-    final local = dt.toLocal();
-    final diff = DateTime.now().difference(local);
-    if (diff.inMinutes < 1) return '방금 전';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
-    if (diff.inHours < 24) return '${diff.inHours}시간 전';
-    if (diff.inDays < 7) return '${diff.inDays}일 전';
-    return '${local.month}/${local.day}';
-  }
+  String _timeAgo(DateTime dt) => formatRelativeTime(dt);
 }

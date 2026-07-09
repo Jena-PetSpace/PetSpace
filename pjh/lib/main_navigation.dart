@@ -375,7 +375,8 @@ class _MainNavigationState extends State<MainNavigation> {
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
                 decoration: BoxDecoration(
-                  color: Colors.red,
+                  // 뱃지 컬러는 highlightColor로 통일 (원빨강 금지)
+                  color: AppTheme.highlightColor,
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 constraints: BoxConstraints(

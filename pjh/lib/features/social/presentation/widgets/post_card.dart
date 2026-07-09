@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
 import '../../../../core/services/block_service.dart';
 import '../../../../core/utils/hashtag_utils.dart';
+import '../../../../core/utils/relative_time.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_viewer_page.dart';
 import '../../domain/entities/post.dart';
@@ -266,22 +267,7 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) {
-      return '방금 전';
-    } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}분 전';
-    } else if (difference.inDays < 1) {
-      return '${difference.inHours}시간 전';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}일 전';
-    } else {
-      return '${dateTime.month}/${dateTime.day}';
-    }
-  }
+  String _formatDateTime(DateTime dateTime) => formatRelativeTime(dateTime);
 
   String _getEmotionName(String emotion) => AppTheme.getEmotionLabel(emotion);
 

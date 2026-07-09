@@ -320,13 +320,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
           border: Border(bottom: BorderSide(color: AppTheme.dividerColor))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
+          // 아바타 폴백: 발바닥 아이콘 + 연블루 배경 (사람 아이콘 금지)
           CircleAvatar(
             radius: 20.r,
-            backgroundColor: AppTheme.subtleBackground,
+            backgroundColor: AppTheme.tilePastelBlue,
             backgroundImage:
                 photoUrl != null ? CachedNetworkImageProvider(photoUrl) : null,
             child: photoUrl == null
-                ? Icon(Icons.person, size: 20.w, color: AppTheme.hintColor)
+                ? Icon(Icons.pets, size: 20.w, color: AppTheme.primaryColor)
                 : null,
           ),
           SizedBox(width: 10.w),
