@@ -214,30 +214,25 @@ class _MainNavigationState extends State<MainNavigation> {
                 button: true,
                 child: GestureDetector(
                   onTap: () => _onTabTapped(2),
+                  // 배경은 에셋에 굽지 않고 코드 레이어에서 actionBase 단색 원으로
+                  // 처리한다 (2026-07-10 결정). 글리프는 흰색 발바닥만.
                   child: Container(
                     width: _fabSize.w,
                     height: _fabSize.w,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      color: AppTheme.actionBase,
                       border: Border.all(color: Colors.white, width: 1.5),
                     ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        ClipOval(
-                          child: SvgPicture.asset(
-                            'assets/svg/icon_fab_bg.svg',
-                            width: _fabSize.w,
-                            height: _fabSize.w,
-                          ),
-                        ),
-                        SvgPicture.asset(
-                          'assets/svg/icon_paw.svg',
-                          width: 39.w,
-                          height: 39.w,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
+                    child: Center(
+                      child: SvgPicture.asset(
+                        'assets/svg/icon_paw.svg',
+                        width: 39.w,
+                        height: 39.w,
+                        fit: BoxFit.contain,
+                        colorFilter: const ColorFilter.mode(
+                            Colors.white, BlendMode.srcIn),
+                      ),
                     ),
                   ),
                 ),
