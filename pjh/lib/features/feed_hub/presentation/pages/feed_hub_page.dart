@@ -157,9 +157,9 @@ class _FeedHubViewState extends State<_FeedHubView>
       title: Text(
         '피드',
         style: TextStyle(
-          fontSize: 18.sp,
-          fontWeight: FontWeight.bold,
-          color: AppTheme.primaryTextColor,
+          fontSize: 17.sp,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.brandDeep, // v2: 헤딩은 brandDeep
         ),
       ),
       centerTitle: true,
