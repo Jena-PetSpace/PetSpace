@@ -80,7 +80,7 @@ class _FeedHubViewState extends State<_FeedHubView>
       vsync: this,
       initialIndex: widget.initialTab.clamp(0, 1),
     );
-    // FAB 아이콘 갱신 + 라운지 최초 진입 로드.
+    // 라운지 최초 진입 로드.
     _tabController.addListener(_onTabChanged);
 
     if (widget.initialTab >= 1) {
@@ -104,7 +104,6 @@ class _FeedHubViewState extends State<_FeedHubView>
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    setState(() {}); // FAB 아이콘 동기화
     if (_tabController.index == 1 &&
         _cubit.state.status == CommunityStatus.initial) {
       _cubit.loadCategory(_selectedCategoryValue);
@@ -132,7 +131,6 @@ class _FeedHubViewState extends State<_FeedHubView>
       body: Column(
         children: [
           _buildTabBar(),
-          const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -144,15 +142,17 @@ class _FeedHubViewState extends State<_FeedHubView>
           ),
         ],
       ),
-      floatingActionButton: _buildFab(),
     );
   }
 
   AppBar _buildAppBar() {
+    // 헤더 2층(앱바+탭바) 재압축 — 콘텐츠 첫 노출이 상단 ~20% 이내에서
+    // 시작하도록 toolbarHeight 축소.
     return AppBar(
       backgroundColor: AppTheme.surfaceColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
+      toolbarHeight: 48.h,
       title: Text(
         '피드',
         style: TextStyle(
@@ -163,6 +163,14 @@ class _FeedHubViewState extends State<_FeedHubView>
       ),
       centerTitle: true,
       actions: [
+        // 글쓰기 — 우하단 FAB 제거 후 앱바로 이동(검색 왼쪽). 탭 컨텍스트에
+        // 따라 작성 화면 분기(발견=사진 게시물, 라운지=커뮤니티 글).
+        IconButton(
+          icon: Icon(Icons.edit_outlined,
+              size: 22.w, color: AppTheme.primaryTextColor),
+          onPressed: _onWritePressed,
+          tooltip: '글쓰기',
+        ),
         // 채널 구독 진입점 비노출 (P0-1) — ChannelSubscriptionPage·/channels
         // 라우트는 보존, P2 구독 재도입 시 재연결.
         IconButton(
@@ -193,8 +201,15 @@ class _FeedHubViewState extends State<_FeedHubView>
         indicatorColor: AppTheme.primaryColor,
         indicatorWeight: 2.5,
         indicatorSize: TabBarIndicatorSize.label,
-        dividerColor: Colors.transparent,
-        tabs: const [Tab(text: '발견'), Tab(text: '라운지')],
+        // 인디케이터·구분선을 TabBar 한 레이어에서 같은 밑선에 그린다
+        // (별도 Divider 위젯과 분리 렌더되던 결함 수정).
+        dividerColor: AppTheme.dividerColor,
+        dividerHeight: 1,
+        // 라벨-인디케이터 간격 압축 (기본 46 → 40).
+        tabs: const [
+          Tab(text: '발견', height: 40),
+          Tab(text: '라운지', height: 40),
+        ],
       ),
     );
   }
@@ -315,23 +330,9 @@ class _FeedHubViewState extends State<_FeedHubView>
     );
   }
 
-  // ── FAB ─────────────────────────────────────────────────────────
+  // ── 글쓰기 (앱바 진입) ──────────────────────────────────────────
 
-  Widget _buildFab() {
-    final isDiscover = _tabController.index == 0;
-    return FloatingActionButton(
-      onPressed: _onFabPressed,
-      backgroundColor: AppTheme.primaryColor,
-      elevation: 3,
-      child: Icon(
-        isDiscover ? Icons.camera_alt_rounded : Icons.edit_rounded,
-        color: Colors.white,
-        size: 24.w,
-      ),
-    );
-  }
-
-  Future<void> _onFabPressed() async {
+  Future<void> _onWritePressed() async {
     if (_tabController.index == 0) {
       context.push('/create-post');
     } else {
