@@ -115,10 +115,6 @@ class _PublicPetPageState extends State<PublicPetPage> {
     );
   }
 
-  static const _emotionEmoji = {
-    'happiness': '😊', 'sadness': '😢', 'anxiety': '😰',
-    'sleepiness': '😴', 'curiosity': '🧐',
-  };
 
   String _dominantEmotion(EmotionAnalysis a) {
     final scores = <String, double>{
@@ -185,8 +181,8 @@ class _PublicPetPageState extends State<PublicPetPage> {
                         child: ClipOval(
                           child: photoUrl != null && photoUrl.isNotEmpty
                               ? Image.network(photoUrl, fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Center(child: Text('🐾', style: TextStyle(fontSize: 36))))
-                              : const Center(child: Text('🐾', style: TextStyle(fontSize: 36))),
+                                  errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.pets, size: 36, color: AppTheme.textMuted)))
+                              : const Center(child: Icon(Icons.pets, size: 36, color: AppTheme.textMuted)),
                         ),
                       ),
                       SizedBox(height: 10.h),
@@ -248,14 +244,14 @@ class _PublicPetPageState extends State<PublicPetPage> {
                   itemCount: _analyses.length,
                   itemBuilder: (_, i) {
                     final emotion = _dominantEmotion(_analyses[i]);
-                    final emoji = _emotionEmoji[emotion] ?? '🐾';
                     return Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(10.r),
                         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 4)],
                       ),
-                      child: Center(child: Text(emoji, style: TextStyle(fontSize: 24.sp))),
+                      child: Center(child: Icon(AppTheme.getEmotionIcon(emotion),
+                          size: 24.sp, color: AppTheme.getEmotionColor(emotion))),
                     );
                   },
                 ),

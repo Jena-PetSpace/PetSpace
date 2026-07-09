@@ -548,7 +548,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
-                  '${AppTheme.getEmotionEmoji(_dominantEmotion(history))} ${_dominantLabel(history)} 이 많았어요',
+                  '${_dominantLabel(history)} 이 많았어요',
                   style: TextStyle(
                       fontSize: 9.5.sp,
                       color: AppTheme.primaryColor,
@@ -595,9 +595,10 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                                 : null,
                           ),
                           child: Center(
-                            child: Text(
-                              AppTheme.getEmotionEmoji(emotion),
-                              style: TextStyle(fontSize: isLast ? 16.sp : 14.sp),
+                            child: Icon(
+                              AppTheme.getEmotionIcon(emotion),
+                              size: isLast ? 16.sp : 14.sp,
+                              color: AppTheme.getEmotionColor(emotion),
                             ),
                           ),
                         ),
@@ -1179,7 +1180,6 @@ class _AiHistoryPageState extends State<AiHistoryPage>
 
   Widget _buildEmptyState(String msg) => EmptyStateWidget(
         icon: Icons.history,
-        emoji: '🧠',
         title: msg,
         subtitle: '반려동물의 감정과 건강을 AI로 분석하고\n변화를 추적해보세요!',
         actionLabel: '첫 분석 시작',

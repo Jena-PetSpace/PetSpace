@@ -403,7 +403,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     if (numEntries.isEmpty) return const SizedBox.shrink();
 
     final dominant = numEntries.first;
-    final emoji = AppTheme.getEmotionEmoji(dominant.key);
+
     final label = AppTheme.getEmotionLabel(dominant.key);
     final petName = _post?['pet_name'] as String? ?? '우리 아이';
 
@@ -421,7 +421,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Text('🧠', style: TextStyle(fontSize: 14.sp)),
+            Icon(Icons.psychology_outlined, size: 14.sp, color: cardColor),
             SizedBox(width: 6.w),
             Text('이 사진의 AI 감정분석',
                 style: TextStyle(fontSize: 12.sp,
@@ -429,7 +429,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
           ]),
           SizedBox(height: 8.h),
           Row(children: [
-            Text(emoji, style: TextStyle(fontSize: 28.sp)),
+            Icon(AppTheme.getEmotionIcon(dominant.key),
+                size: 28.sp, color: AppTheme.getEmotionColor(dominant.key)),
             SizedBox(width: 8.w),
             // 감정 라벨만 — 퍼센트 수치 노출 금지 (P0 정책, 수치는 데이터만 보존)
             Text(label,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../theme/mbti_theme.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 /// 계산 연출(2~3초). 네이비·코랄 톤의 가벼운 로딩 애니메이션.
 ///
@@ -94,7 +95,7 @@ class _MbtiScoringViewState extends State<MbtiScoringView>
                       ),
                       Transform.scale(
                         scale: 0.9 + 0.1 * _controller.value,
-                        child: Text('🐾', style: TextStyle(fontSize: 34.sp)),
+                        child: Icon(Icons.pets, size: 34.sp, color: AppTheme.textMuted),
                       ),
                     ],
                   );

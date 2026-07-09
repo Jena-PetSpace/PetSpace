@@ -410,7 +410,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   void _showPetNotSelectedSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('반려동물을 먼저 선택해주세요 🐾'),
+        content: Text('반려동물을 먼저 선택해주세요'),
         backgroundColor: AppTheme.primaryColor,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 2),

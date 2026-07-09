@@ -493,7 +493,6 @@ class _SearchPageState extends State<SearchPage>
   Widget _buildEmptyState(String message) {
     return EmptyStateWidget(
       icon: Icons.search_off,
-      emoji: '🔍',
       title: message,
       subtitle: '다른 키워드로 검색하거나\n해시태그를 탐색해보세요!',
     );

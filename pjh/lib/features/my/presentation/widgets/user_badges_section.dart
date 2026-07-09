@@ -8,14 +8,14 @@ import '../../../social/domain/repositories/social_repository.dart';
 
 class BadgeDefinition {
   final String id;
-  final String emoji;
+  final IconData icon; // v2: 이모지 → 아이콘 단일 체계
   final String name;
   final String desc;
   final Color color;
 
   const BadgeDefinition({
     required this.id,
-    required this.emoji,
+    required this.icon,
     required this.name,
     required this.desc,
     required this.color,
@@ -34,49 +34,49 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
   static const _allBadges = [
     BadgeDefinition(
       id: 'first_analysis',
-      emoji: '🏆',
+      icon: Icons.emoji_events_outlined,
       name: '첫 분석',
       desc: '처음으로 AI 감정 분석 완료',
       color: AppTheme.tilePastelGreen,
     ),
     BadgeDefinition(
       id: 'health_lover',
-      emoji: '❤️',
+      icon: Icons.favorite_outline,
       name: '건강왕',
       desc: '건강 기록 10개 달성',
       color: AppTheme.tilePastelPeach,
     ),
     BadgeDefinition(
       id: 'streak_7',
-      emoji: '⭐',
+      icon: Icons.star_outline_rounded,
       name: '7일 연속',
       desc: '7일 연속 감정 분석',
       color: AppTheme.tilePastelBlue,
     ),
     BadgeDefinition(
       id: 'social_10',
-      emoji: '💬',
+      icon: Icons.chat_bubble_outline,
       name: '커뮤니티스타',
       desc: '댓글 10개 이상 작성',
       color: AppTheme.tilePastelPink,
     ),
     BadgeDefinition(
       id: 'level_up',
-      emoji: '🌱',
+      icon: Icons.spa_outlined,
       name: '레벨업',
       desc: '레벨 5 달성',
       color: AppTheme.tilePastelMint,
     ),
     BadgeDefinition(
       id: 'level_10',
-      emoji: '🏅',
+      icon: Icons.military_tech_outlined,
       name: '레벨 10',
       desc: '레벨 10 달성',
       color: AppTheme.tilePastelLavender,
     ),
     BadgeDefinition(
       id: 'mbti_explorer',
-      emoji: '🧬',
+      icon: Icons.psychology_outlined,
       name: '성격 탐구가',
       desc: '처음으로 반려동물 MBTI 검사 완료',
       color: AppTheme.tilePastelPurple,
@@ -151,8 +151,8 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
                               shape: BoxShape.circle,
                             ),
                             child: Center(
-                              child: Text(badge.emoji,
-                                  style: TextStyle(fontSize: 22.sp)),
+                              child: Icon(badge.icon,
+                                  size: 22.sp, color: AppTheme.brandDeep),
                             ),
                           ),
                         ),
@@ -193,7 +193,7 @@ class _UserBadgesSectionState extends State<UserBadgesSection> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(badge.emoji, style: TextStyle(fontSize: 52.sp)),
+            Icon(badge.icon, size: 52.sp, color: AppTheme.brandDeep),
             SizedBox(height: 12.h),
             Text(badge.name,
                 style: TextStyle(

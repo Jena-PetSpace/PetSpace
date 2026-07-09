@@ -10,6 +10,7 @@ import '../theme/mbti_theme.dart';
 import '../widgets/mbti_choice_card.dart';
 import '../widgets/mbti_progress_bar.dart';
 import '../widgets/mbti_scoring_view.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 /// 검사 플로우 호스트 페이지.
 ///
@@ -208,7 +209,7 @@ class _IntroView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 12.h),
-                Center(child: Text('🐾', style: TextStyle(fontSize: 56.sp))),
+                Center(child: Icon(Icons.pets, size: 56.sp, color: AppTheme.textMuted)),
                 SizedBox(height: 20.h),
                 Text(
                   '$name의\n성격 유형을 알아볼까요?',

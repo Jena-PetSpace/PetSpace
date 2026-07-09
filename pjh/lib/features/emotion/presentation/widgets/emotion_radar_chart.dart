@@ -62,7 +62,7 @@ class EmotionRadarChart extends StatelessWidget {
             final key = AppTheme.emotionOrder[index];
             final value = _getValue(key);
             return RadarChartTitle(
-              text: '${AppTheme.getEmotionEmoji(key)} ${AppTheme.getEmotionLabel(key)}\n${(value * 100).toInt()}%',
+              text: '${AppTheme.getEmotionLabel(key)}\n${(value * 100).toInt()}%',
             );
           },
           dataSets: [

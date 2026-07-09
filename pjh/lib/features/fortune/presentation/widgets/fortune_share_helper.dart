@@ -74,7 +74,7 @@ class FortuneShareHelper {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(const SnackBar(
-            content: Text('사진이 포함된 이미지가 만들어져요 🐾'),
+            content: Text('사진이 포함된 이미지가 만들어져요'),
             duration: Duration(seconds: 2),
           ));
         await prefs.setBool(_kPhotoNoticeShown, true);

@@ -17,7 +17,7 @@ class _Quest {
   final String id;
   final String title;
   final String desc;
-  final String emoji;
+  final IconData icon; // v2: 이모지 → 아이콘 단일 체계
   final int points;
   final String route;
 
@@ -25,7 +25,7 @@ class _Quest {
     required this.id,
     required this.title,
     required this.desc,
-    required this.emoji,
+    required this.icon,
     required this.points,
     required this.route,
   });
@@ -46,7 +46,7 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
       id: 'analyze',
       title: 'AI 감정 분석',
       desc: '오늘 반려동물 감정을 분석해요',
-      emoji: '🧠',
+      icon: Icons.psychology_outlined,
       points: 30,
       route: '/emotion',
     ),
@@ -54,7 +54,7 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
       id: 'post',
       title: '게시글 작성',
       desc: '일상을 커뮤니티에 공유해요',
-      emoji: '✍️',
+      icon: Icons.edit_outlined,
       points: 20,
       route: '/feed',
     ),
@@ -62,7 +62,7 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
       id: 'like',
       title: '게시글 좋아요',
       desc: '다른 반려동물 이야기에 공감해요',
-      emoji: '❤️',
+      icon: Icons.favorite_outline,
       points: 10,
       route: '/feed',
     ),
@@ -193,7 +193,7 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${quest.emoji} +${quest.points}pt 획득!'),
+        content: Text('+${quest.points}pt 획득!'),
         backgroundColor: AppTheme.primaryColor,
         duration: const Duration(seconds: 2),
       ),
@@ -342,8 +342,8 @@ class _HomeQuestCardState extends State<HomeQuestCard> {
                           ),
                           child: Row(
                             children: [
-                              Text(quest.emoji,
-                                  style: TextStyle(fontSize: 20.sp)),
+                              Icon(quest.icon,
+                                  size: 20.sp, color: AppTheme.brandDeep),
                               SizedBox(width: 10.w),
                               Expanded(
                                 child: Column(

@@ -115,7 +115,7 @@ class HomeQuickActions extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         const SnackBar(
-          content: Text('산책 기록은 곧 추가될 예정이에요 🐾'),
+          content: Text('산책 기록은 곧 추가될 예정이에요'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -185,7 +185,7 @@ class HomeQuickActions extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('$feature은(는) 반려동물 등록 후 이용할 수 있어요 🐾'),
+          content: Text('$feature은(는) 반려동물 등록 후 이용할 수 있어요'),
           duration: const Duration(seconds: 3),
           action: SnackBarAction(
             label: '등록하기',

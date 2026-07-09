@@ -298,8 +298,6 @@ class _FeedPageState extends State<FeedPage> {
     final isFollowing = widget.followingOnly;
     return EmptyStateWidget(
       icon: Icons.feed_outlined,
-      emoji: isFollowing ? '🐾' : '🐾',
-      badgeEmoji: '✨',
       title: isFollowing ? '팔로잉 피드가 비어있어요' : '아직 게시물이 없어요',
       subtitle: isFollowing
           ? '친구를 팔로우하고\n반려동물 일상을 함께해보세요!'

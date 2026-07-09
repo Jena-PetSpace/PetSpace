@@ -87,7 +87,24 @@ class AppTheme {
     }
   }
 
-  // 감정 이모지 헬퍼
+  // 감정 아이콘 헬퍼 — v2: UI 이모지 제거, 임시 아이콘 체계
+  // (감정 일러스트 8종 자산 제작 시 교체 예정)
+  static IconData getEmotionIcon(String emotion) {
+    switch (emotion.toLowerCase()) {
+      case 'happiness':  return Icons.mood;
+      case 'calm':       return Icons.self_improvement;
+      case 'excitement': return Icons.celebration;
+      case 'curiosity':  return Icons.psychology;
+      case 'anxiety':    return Icons.warning_amber_rounded;
+      case 'fear':       return Icons.warning_amber_outlined;
+      case 'sadness':    return Icons.mood_bad;
+      case 'discomfort': return Icons.sick_outlined;
+      case 'sleepiness': return Icons.bedtime; // 하위 호환
+      default:           return Icons.pets;
+    }
+  }
+
+  // 감정 이모지 헬퍼 — v2: 인앱 UI 사용 금지(외부 공유 카드 전용 잔존)
   static String getEmotionEmoji(String emotion) {
     switch (emotion.toLowerCase()) {
       case 'happiness':  return '😊';

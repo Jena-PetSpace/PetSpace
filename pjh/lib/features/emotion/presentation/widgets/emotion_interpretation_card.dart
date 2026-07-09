@@ -93,9 +93,10 @@ class EmotionInterpretationCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Text(
-                    interpretation.emoji,
-                    style: TextStyle(fontSize: 40.sp),
+                  Icon(
+                    interpretation.icon,
+                    size: 40.sp,
+                    color: interpretation.primaryColor,
                   ),
                   SizedBox(width: 12.w),
                   Expanded(
@@ -229,7 +230,7 @@ class EmotionInterpretationCard extends StatelessWidget {
     switch (dominant) {
       case 'happiness':
         return _EmotionInterpretation(
-          emoji: '😊',
+          icon: Icons.mood,
           title: '행복한 상태',
           subtitle: '기쁨이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.happinessColor,
@@ -241,7 +242,7 @@ class EmotionInterpretationCard extends StatelessWidget {
         );
       case 'calm':
         return _EmotionInterpretation(
-          emoji: '😌',
+          icon: Icons.self_improvement,
           title: '편안한 상태',
           subtitle: '편안함이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.calmColor,
@@ -253,7 +254,7 @@ class EmotionInterpretationCard extends StatelessWidget {
         );
       case 'excitement':
         return _EmotionInterpretation(
-          emoji: '🎉',
+          icon: Icons.celebration,
           title: '흥분된 상태',
           subtitle: '흥분이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.excitementColor,
@@ -265,7 +266,7 @@ class EmotionInterpretationCard extends StatelessWidget {
         );
       case 'curiosity':
         return _EmotionInterpretation(
-          emoji: '🤔',
+          icon: Icons.psychology,
           title: '호기심 많은 상태',
           subtitle: '호기심이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.curiosityColor,
@@ -277,7 +278,7 @@ class EmotionInterpretationCard extends StatelessWidget {
         );
       case 'anxiety':
         return _EmotionInterpretation(
-          emoji: '😰',
+          icon: Icons.warning_amber_rounded,
           title: '불안한 상태',
           subtitle: '불안이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.anxietyColor,
@@ -289,7 +290,7 @@ class EmotionInterpretationCard extends StatelessWidget {
         );
       case 'fear':
         return _EmotionInterpretation(
-          emoji: '😨',
+          icon: Icons.warning_amber_outlined,
           title: '두려움을 느끼는 상태',
           subtitle: '공포가 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.fearColor,
@@ -301,7 +302,7 @@ class EmotionInterpretationCard extends StatelessWidget {
         );
       case 'sadness':
         return _EmotionInterpretation(
-          emoji: '😢',
+          icon: Icons.mood_bad,
           title: '슬픈 상태',
           subtitle: '슬픔이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.sadnessColor,
@@ -313,7 +314,7 @@ class EmotionInterpretationCard extends StatelessWidget {
         );
       case 'discomfort':
         return _EmotionInterpretation(
-          emoji: '😣',
+          icon: Icons.sick_outlined,
           title: '불편한 상태',
           subtitle: '불편함이 ${(dominantValue * 100).toInt()}%로 가장 높습니다',
           primaryColor: AppTheme.discomfortColor,
@@ -325,7 +326,7 @@ class EmotionInterpretationCard extends StatelessWidget {
         );
       default:
         return _EmotionInterpretation(
-          emoji: '🐾',
+          icon: Icons.pets,
           title: '균형잡힌 상태',
           subtitle: '감정이 고르게 분포되어 있습니다',
           primaryColor: AppTheme.primaryColor,
@@ -338,7 +339,7 @@ class EmotionInterpretationCard extends StatelessWidget {
 }
 
 class _EmotionInterpretation {
-  final String emoji;
+  final IconData icon; // v2: 이모지 → 아이콘
   final String title;
   final String subtitle;
   final Color primaryColor;
@@ -347,7 +348,7 @@ class _EmotionInterpretation {
   final String environmentFactors;
 
   _EmotionInterpretation({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.subtitle,
     required this.primaryColor,

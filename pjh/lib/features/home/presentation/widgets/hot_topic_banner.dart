@@ -18,16 +18,10 @@ class _HotTopicBannerState extends State<HotTopicBanner> {
   List<String> _tags = [];
   bool _loading = true;
 
-  // 태그별 이모지/색상
-  static const _tagMeta = <String, Map<String, dynamic>>{
-    'health':    {'emoji': '🏥', 'label': '건강',   'color': Color(0xFF4CAF50)},
-    'training':  {'emoji': '🎯', 'label': '훈련',   'color': Color(0xFF2196F3)},
-    'food':      {'emoji': '🍖', 'label': '먹거리', 'color': Color(0xFFFF9800)},
-    'life':      {'emoji': '🏡', 'label': '일상',   'color': Color(0xFF9C27B0)},
-    'magazine':  {'emoji': '📰', 'label': '매거진', 'color': Color(0xFF1E3A5F)},
-    'walk':      {'emoji': '🐾', 'label': '산책',   'color': Color(0xFF009688)},
-    'grooming':  {'emoji': '✂️', 'label': '미용',   'color': Color(0xFFE91E63)},
-    'play':      {'emoji': '🎾', 'label': '놀이',   'color': Color(0xFFFF5722)},
+  // 태그 라벨 — v2: 이모지 제거, 카테고리별 컬러 배리에이션 금지(actionBase 단일)
+  static const _tagLabels = <String, String>{
+    'health': '건강', 'training': '훈련', 'food': '먹거리', 'life': '일상',
+    'magazine': '매거진', 'walk': '산책', 'grooming': '미용', 'play': '놀이',
   };
 
   @override
@@ -57,8 +51,7 @@ class _HotTopicBannerState extends State<HotTopicBanner> {
 
   List<String> _fallbackTags() => ['health', 'training', 'food', 'life', 'walk', 'grooming'];
 
-  Map<String, dynamic> _meta(String tag) =>
-      _tagMeta[tag] ?? {'emoji': '🔥', 'label': '#$tag', 'color': AppTheme.primaryColor};
+  String _label(String tag) => _tagLabels[tag] ?? '#$tag';
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +64,7 @@ class _HotTopicBannerState extends State<HotTopicBanner> {
           Row(
             children: [
               Text(
-                '🔥 지금 인기 있는 주제',
+                '지금 인기 있는 주제',
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w700,
@@ -131,10 +124,7 @@ class _HotTopicBannerState extends State<HotTopicBanner> {
   }
 
   Widget _buildTagChip(BuildContext context, String tag) {
-    final meta = _meta(tag);
-    final color = meta['color'] as Color;
-    final emoji = meta['emoji'] as String;
-    final label = meta['label'] as String;
+    final label = _label(tag);
 
     return GestureDetector(
       // 해시태그는 카테고리가 아니라 해시태그 피드로 — 구 category 파라미터
@@ -143,25 +133,24 @@ class _HotTopicBannerState extends State<HotTopicBanner> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: AppTheme.actionContainer,
           borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
+          border: Border.all(color: AppTheme.border, width: 1),
         ),
         child: Row(
           children: [
-            Text(emoji, style: TextStyle(fontSize: 18.sp)),
-            SizedBox(width: 8.w),
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w700,
-                  color: color.withValues(alpha: 0.9),
+                  color: AppTheme.actionBase,
                 ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 10.w, color: color.withValues(alpha: 0.4)),
+            Icon(Icons.arrow_forward_ios_rounded,
+                size: 10.w, color: AppTheme.actionBase.withValues(alpha: 0.5)),
           ],
         ),
       ),

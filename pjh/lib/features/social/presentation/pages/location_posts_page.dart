@@ -168,7 +168,6 @@ class _LocationPostsPageState extends State<LocationPostsPage> {
     if (_posts.isEmpty) {
       return const EmptyStateWidget(
         icon: Icons.location_off_outlined,
-        emoji: '📍',
         title: '이 위치의 게시물이 없어요',
         subtitle: '이 장소에서 첫 게시물을 작성해보세요!',
       );

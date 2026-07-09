@@ -38,7 +38,7 @@ class MyPetSummarySection extends StatelessWidget {
                 padding: EdgeInsets.only(right: 16.w),
                 child: Row(
                   children: [
-                    Text('🐾', style: TextStyle(fontSize: 14.sp)),
+                    Icon(Icons.pets, size: 14.sp, color: AppTheme.brandDeep),
                     SizedBox(width: 6.w),
                     Text(
                       '내 반려동물',

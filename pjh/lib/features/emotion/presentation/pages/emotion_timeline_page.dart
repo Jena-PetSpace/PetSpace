@@ -407,9 +407,10 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                         SizedBox(height: 4.h),
                         Row(
                           children: [
-                            Text(
-                              AppTheme.getEmotionEmoji(entry.dominantEmotion),
-                              style: TextStyle(fontSize: 20.sp),
+                            Icon(
+                              AppTheme.getEmotionIcon(entry.dominantEmotion),
+                              size: 20.sp,
+                              color: AppTheme.getEmotionColor(entry.dominantEmotion),
                             ),
                             SizedBox(width: 6.w),
                             Text(
@@ -466,9 +467,10 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
         borderRadius: BorderRadius.circular(8.r),
       ),
       alignment: Alignment.center,
-      child: Text(
-        AppTheme.getEmotionEmoji(entry.dominantEmotion),
-        style: TextStyle(fontSize: 28.sp),
+      child: Icon(
+        AppTheme.getEmotionIcon(entry.dominantEmotion),
+        size: 28.sp,
+        color: AppTheme.getEmotionColor(entry.dominantEmotion),
       ),
     );
   }

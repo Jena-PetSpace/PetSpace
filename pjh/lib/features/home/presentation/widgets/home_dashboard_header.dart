@@ -279,7 +279,7 @@ class HomeDashboardHeader extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('🐾', style: TextStyle(fontSize: 24.sp)),
+            Icon(Icons.pets, size: 24.sp, color: AppTheme.brandDeep),
             SizedBox(width: 12.w),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

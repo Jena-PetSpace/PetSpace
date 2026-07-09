@@ -144,7 +144,6 @@ class _HashtagPageState extends State<HashtagPage> {
     if (_posts.isEmpty) {
       return EmptyStateWidget(
         icon: Icons.tag,
-        emoji: '🏷️',
         title: '#${widget.hashtag} 게시물이 없어요',
         subtitle: '이 해시태그로 첫 게시물을 작성해보세요!',
       );
