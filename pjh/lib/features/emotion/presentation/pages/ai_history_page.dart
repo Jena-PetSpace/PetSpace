@@ -334,7 +334,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
         ElevatedButton(
           onPressed: () => context.push('/pets'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: AppTheme.actionBase,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.r)),
@@ -388,7 +388,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
 
     if (!s.hasData) {
       borderColor = AppTheme.dividerColor;
-      bgColor = const Color(0xFFF9F9F9);
+      bgColor = AppTheme.subtleBackground;
       iconColor = AppTheme.neutral300;
       statusWidget = Text('미분석',
           style:
@@ -402,8 +402,8 @@ class _AiHistoryPageState extends State<AiHistoryPage>
               color: AppTheme.successColor,
               fontWeight: FontWeight.w500));
     } else if (s.status == '주의') {
-      borderColor = const Color(0xFFEF9F27);
-      iconColor = const Color(0xFFEF9F27);
+      borderColor = AppTheme.warningColor; // v2-review: EF9F27 근사
+      iconColor = AppTheme.warningColor; // v2-review: EF9F27 근사
       statusWidget = Text('주의',
           style: TextStyle(
               fontSize: 8.5.sp,
@@ -411,7 +411,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
               fontWeight: FontWeight.w500));
     } else if (s.status == '위험') {
       borderColor = AppTheme.highlightColor;
-      bgColor = const Color(0xFFFFF5F4);
+      bgColor = AppTheme.tilePastelRose; // v2-review: FFF5F4 근사
       iconColor = AppTheme.errorColor;
       statusWidget = Text('위험',
           style: TextStyle(
@@ -455,7 +455,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                             context.go('/emotion');
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
+                            backgroundColor: AppTheme.actionBase,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                                 borderRadius:
@@ -548,7 +548,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
-                  '${AppTheme.getEmotionEmoji(_dominantEmotion(history))} ${_dominantLabel(history)} 이 많았어요',
+                  '${_dominantLabel(history)} 이 많았어요',
                   style: TextStyle(
                       fontSize: 9.5.sp,
                       color: AppTheme.primaryColor,
@@ -595,9 +595,10 @@ class _AiHistoryPageState extends State<AiHistoryPage>
                                 : null,
                           ),
                           child: Center(
-                            child: Text(
-                              AppTheme.getEmotionEmoji(emotion),
-                              style: TextStyle(fontSize: isLast ? 16.sp : 14.sp),
+                            child: Icon(
+                              AppTheme.getEmotionIcon(emotion),
+                              size: isLast ? 16.sp : 14.sp,
+                              color: AppTheme.getEmotionColor(emotion),
                             ),
                           ),
                         ),
@@ -1037,7 +1038,7 @@ class _AiHistoryPageState extends State<AiHistoryPage>
           AppTheme.primaryColor),
       'good': (AppTheme.successColor.withValues(alpha: 0.1),
           AppTheme.successColor),
-      'warn': (const Color(0xFFEF9F27).withValues(alpha: 0.1),
+      'warn': (AppTheme.warningColor.withValues(alpha: 0.1), // v2-review: EF9F27 근사
           EmotionResultTokens.amberDark),
       'bad': (AppTheme.errorColor.withValues(alpha: 0.1),
           AppTheme.errorColor),
@@ -1179,7 +1180,6 @@ class _AiHistoryPageState extends State<AiHistoryPage>
 
   Widget _buildEmptyState(String msg) => EmptyStateWidget(
         icon: Icons.history,
-        emoji: '🧠',
         title: msg,
         subtitle: '반려동물의 감정과 건강을 AI로 분석하고\n변화를 추적해보세요!',
         actionLabel: '첫 분석 시작',

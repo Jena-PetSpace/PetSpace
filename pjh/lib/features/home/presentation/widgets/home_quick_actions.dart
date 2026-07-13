@@ -80,7 +80,7 @@ class HomeQuickActions extends StatelessWidget {
             alignment: Alignment.center,
             decoration: const BoxDecoration(
               // 피그마 시안 방향: 무채색 배경 + 딥블루 단색 스트로크 아이콘
-              color: Color(0xFFECEEF1),
+              color: AppTheme.border, // v2-review: ECEEF1 근사
               shape: BoxShape.circle,
             ),
             child: SvgPicture.asset(
@@ -115,7 +115,7 @@ class HomeQuickActions extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         const SnackBar(
-          content: Text('산책 기록은 곧 추가될 예정이에요 🐾'),
+          content: Text('산책 기록은 곧 추가될 예정이에요'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -185,7 +185,7 @@ class HomeQuickActions extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('$feature은(는) 반려동물 등록 후 이용할 수 있어요 🐾'),
+          content: Text('$feature은(는) 반려동물 등록 후 이용할 수 있어요'),
           duration: const Duration(seconds: 3),
           action: SnackBarAction(
             label: '등록하기',

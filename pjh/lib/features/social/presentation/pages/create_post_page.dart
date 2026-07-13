@@ -63,9 +63,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       _hashtagController.text = tags;
     }
     _imageUrl = widget.imageUrl;
-    if (widget.emotionAnalysis != null) {
-      _suggestHashtags(widget.emotionAnalysis!);
-    }
+    // 해시태그 자동 부착 중단 (P0 C-3) — 사용자가 직접 입력한 태그만 사용.
     if (!_isEditMode) _loadDraft();
     _startAutosave();
   }
@@ -129,38 +127,6 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
             ..addAll(draft.hashtags);
         });
       }
-    }
-  }
-
-  void _suggestHashtags(EmotionAnalysis analysis) {
-    final Map<String, double> emotions = {
-      '행복': analysis.emotions.happiness,
-      '편안': analysis.emotions.calm,
-      '흥분': analysis.emotions.excitement,
-      '호기심': analysis.emotions.curiosity,
-      '불안': analysis.emotions.anxiety,
-      '공포': analysis.emotions.fear,
-      '슬픔': analysis.emotions.sadness,
-      '불편': analysis.emotions.discomfort,
-    };
-    final topEmotion =
-        emotions.entries.reduce((a, b) => a.value > b.value ? a : b);
-    if (topEmotion.value > 0.3) {
-      final hashtagMap = {
-        '행복': ['행복한하루', '행복'],
-        '편안': ['편안한하루', '힐링'],
-        '흥분': ['신나는하루', '활기차'],
-        '호기심': ['호기심왕성', '탐구'],
-        '불안': ['불안', '진정'],
-        '공포': ['공포', '안정'],
-        '슬픔': ['위로', '슬픔'],
-        '불편': ['불편', '케어'],
-      };
-      final suggestions = hashtagMap[topEmotion.key] ?? [];
-      setState(() => _hashtags.addAll(suggestions));
-    }
-    if (widget.petName != null && widget.petName!.isNotEmpty) {
-      setState(() => _hashtags.add(widget.petName!));
     }
   }
 
@@ -321,8 +287,8 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
     };
     final topEmotion =
         emotions.entries.reduce((a, b) => a.value > b.value ? a : b);
-    final percentage = (topEmotion.value * 100).toStringAsFixed(0);
-    return '${widget.petName ?? "반려동물"}이(가) 지금 ${topEmotion.key} 상태입니다 ($percentage%)';
+    // 라벨만 — 퍼센트 수치 노출 금지 (P0 정책)
+    return '${widget.petName ?? "반려동물"}이(가) 지금 ${topEmotion.key} 상태입니다';
   }
 
   Widget _buildContentSection() {
@@ -540,7 +506,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('커뮤니티 가이드라인에 어긋나는 표현이 포함되어 있습니다.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
       return;
@@ -600,7 +566,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('커뮤니티 가이드라인에 어긋나는 표현이 포함되어 있습니다.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
       return;

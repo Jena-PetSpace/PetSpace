@@ -227,7 +227,7 @@ class _CollectionPickerSheetState extends State<CollectionPickerSheet> {
                 child: ElevatedButton(
                   onPressed: _saving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
+                    backgroundColor: AppTheme.actionBase,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     shape: RoundedRectangleBorder(

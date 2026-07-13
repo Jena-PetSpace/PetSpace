@@ -124,7 +124,7 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
               icon: const Icon(Icons.pets),
               label: const Text('지금 분석하기'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.actionBase,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(
@@ -223,7 +223,7 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
     final emotions = {
       'happiness': AppTheme.successColor,
       'sadness': Colors.blue,
-      'anger': Colors.red,
+      'anger': AppTheme.errorColor,
       'fear': Colors.orange,
     };
 
@@ -407,9 +407,10 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                         SizedBox(height: 4.h),
                         Row(
                           children: [
-                            Text(
-                              AppTheme.getEmotionEmoji(entry.dominantEmotion),
-                              style: TextStyle(fontSize: 20.sp),
+                            Icon(
+                              AppTheme.getEmotionIcon(entry.dominantEmotion),
+                              size: 20.sp,
+                              color: AppTheme.getEmotionColor(entry.dominantEmotion),
                             ),
                             SizedBox(width: 6.w),
                             Text(
@@ -466,9 +467,10 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
         borderRadius: BorderRadius.circular(8.r),
       ),
       alignment: Alignment.center,
-      child: Text(
-        AppTheme.getEmotionEmoji(entry.dominantEmotion),
-        style: TextStyle(fontSize: 28.sp),
+      child: Icon(
+        AppTheme.getEmotionIcon(entry.dominantEmotion),
+        size: 28.sp,
+        color: AppTheme.getEmotionColor(entry.dominantEmotion),
       ),
     );
   }
@@ -523,7 +525,7 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
     switch (emotion) {
       case 'happiness': return AppTheme.successColor;
       case 'sadness': return Colors.blue;
-      case 'anger': return Colors.red;
+      case 'anger': return AppTheme.errorColor;
       case 'fear': return Colors.orange;
       default: return AppTheme.primaryColor;
     }

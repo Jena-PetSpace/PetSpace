@@ -395,7 +395,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
       emit(FeedLoading());
     } else if (state is FeedRecommendedLoaded) {
       final current = state as FeedRecommendedLoaded;
-      if (current.hasReachedMax) return;
+      // 스크롤 리스너 중복 발화 대비 재진입 가드.
+      if (current.hasReachedMax || current.isLoadingMore) return;
       emit(current.copyWith(isLoadingMore: true));
     }
 
@@ -408,6 +409,17 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     result.fold(
       (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
       (posts) {
+        // 콜드스타트 폴백(P0-5): 추천 RPC는 본인·팔로우 글을 제외하므로
+        // 초기에는 빈 결과가 날 수 있다 → 최신 전체 피드로 대체.
+        // FeedLoaded 경로로 넘어가므로 keyset 무한스크롤·새로고침이 그대로 동작.
+        if (event.offset == 0 && posts.isEmpty) {
+          add(LoadFeedRequested(
+            userId: event.userId,
+            limit: event.limit,
+            followingOnly: false,
+          ));
+          return;
+        }
         final existing = state is FeedRecommendedLoaded && event.offset > 0
             ? (state as FeedRecommendedLoaded).posts
             : <Post>[];

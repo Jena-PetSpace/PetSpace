@@ -1,3 +1,4 @@
+// v2-review: 로딩 화면 장식 그라데이션 — 일러스트 트랙과 함께 재검토, 치환 보류.
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -253,7 +254,7 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
             _steps[_currentStep].subText,
             style: TextStyle(
               fontSize: 13.sp,
-              color: const Color(0xFF999999),
+              color: AppTheme.hintColor, // v2-review: 999999 근사
             ),
             textAlign: TextAlign.center,
           ),
@@ -284,7 +285,7 @@ class _EmotionLoadingWidgetState extends State<EmotionLoadingWidget>
                 painter: CircularProgressPainter(
                   progress: progress,
                   color: currentColor,
-                  backgroundColor: const Color(0xFFE8E8E8),
+                  backgroundColor: AppTheme.border, // v2-review: E8E8E8 근사
                   strokeWidth: 3.0,
                 ),
               ),

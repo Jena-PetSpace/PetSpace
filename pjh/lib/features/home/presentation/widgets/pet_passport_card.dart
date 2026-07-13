@@ -1,3 +1,4 @@
+// v2-review: 펫 여권 카드 전용 팔레트 — 전용 카드 디자인, 전역 토큰 치환 보류.
 import 'package:flutter/material.dart';
 import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

@@ -118,7 +118,7 @@ class FeedPreviewWidget extends StatelessWidget {
                             : Icons.favorite_border,
                         size: 20,
                         color: post.isLikedByCurrentUser
-                            ? Colors.red
+                            ? AppTheme.errorColor
                             : AppTheme.neutral600,
                       ),
                       const SizedBox(width: 4),

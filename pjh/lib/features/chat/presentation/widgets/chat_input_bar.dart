@@ -316,7 +316,7 @@ class _ImagePreviewDialogState extends State<_ImagePreviewDialog> {
                       widget.onSend(widget.images);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
+                      backgroundColor: AppTheme.actionBase,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(vertical: 12.h),
                       shape: RoundedRectangleBorder(

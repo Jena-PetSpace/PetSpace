@@ -64,7 +64,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: Colors.red,
+                backgroundColor: AppTheme.errorColor,
               ),
             );
           }
@@ -194,10 +194,10 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.exit_to_app, color: Colors.red[400]),
+              leading: const Icon(Icons.exit_to_app, color: AppTheme.errorColor),
               title: Text(
                 '채팅방 나가기',
-                style: TextStyle(fontSize: 14.sp, color: Colors.red[400]),
+                style: TextStyle(fontSize: 14.sp, color: AppTheme.errorColor),
               ),
               onTap: () {
                 Navigator.pop(ctx);
@@ -242,7 +242,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('오류: ${failure.message}'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppTheme.errorColor,
                     ),
                   );
                 },
@@ -259,9 +259,9 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                 },
               );
             },
-            child: Text(
+            child: const Text(
               '나가기',
-              style: TextStyle(color: Colors.red[400]),
+              style: TextStyle(color: AppTheme.errorColor),
             ),
           ),
         ],

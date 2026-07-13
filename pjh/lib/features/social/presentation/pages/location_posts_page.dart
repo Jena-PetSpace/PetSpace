@@ -153,7 +153,7 @@ class _LocationPostsPageState extends State<LocationPostsPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48.w, color: Colors.red),
+            Icon(Icons.error_outline, size: 48.w, color: AppTheme.errorColor),
             SizedBox(height: 12.h),
             Text('불러오기 실패', style: TextStyle(fontSize: 15.sp)),
             SizedBox(height: 8.h),
@@ -169,7 +169,6 @@ class _LocationPostsPageState extends State<LocationPostsPage> {
     if (_posts.isEmpty) {
       return const EmptyStateWidget(
         icon: Icons.location_off_outlined,
-        emoji: '📍',
         title: '이 위치의 게시물이 없어요',
         subtitle: '이 장소에서 첫 게시물을 작성해보세요!',
       );

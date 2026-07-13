@@ -207,7 +207,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_userFacingError(e, '프로필 저장')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
             duration: const Duration(seconds: 3),
           ),
         );

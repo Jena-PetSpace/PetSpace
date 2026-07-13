@@ -19,8 +19,8 @@ extension _PostCardDialogs on _PostCardState {
               ),
             if (widget.onDelete != null)
               ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('삭제', style: TextStyle(color: Colors.red)),
+                leading: const Icon(Icons.delete, color: AppTheme.errorColor),
+                title: const Text('삭제', style: TextStyle(color: AppTheme.errorColor)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showDeleteConfirmation(context);
@@ -36,7 +36,7 @@ extension _PostCardDialogs on _PostCardState {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.block, color: Colors.red),
+              leading: const Icon(Icons.block, color: AppTheme.errorColor),
               title: const Text('차단'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -140,7 +140,7 @@ extension _PostCardDialogs on _PostCardState {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('${post.authorName}님을 차단했습니다.'),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppTheme.errorColor,
                     action: SnackBarAction(
                       label: '차단 해제',
                       textColor: Colors.white,
@@ -164,7 +164,7 @@ extension _PostCardDialogs on _PostCardState {
                 );
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('차단'),
           ),
         ],
@@ -188,7 +188,7 @@ extension _PostCardDialogs on _PostCardState {
               Navigator.pop(ctx);
               widget.onDelete!();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('삭제'),
           ),
         ],

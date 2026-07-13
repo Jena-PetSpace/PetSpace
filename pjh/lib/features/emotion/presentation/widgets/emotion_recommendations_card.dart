@@ -116,14 +116,14 @@ class EmotionRecommendationsCard extends StatelessWidget {
                     Row(
                       children: [
                         Icon(Icons.warning_amber,
-                            color: Colors.red, size: 18.w),
+                            color: AppTheme.errorColor, size: 18.w),
                         SizedBox(width: 8.w),
                         Text(
                           '주의사항',
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w600,
-                            color: Colors.red,
+                            color: AppTheme.errorColor,
                           ),
                         ),
                       ],
@@ -136,13 +136,13 @@ class EmotionRecommendationsCard extends StatelessWidget {
                             children: [
                               Text('• ',
                                   style: TextStyle(
-                                      color: Colors.red, fontSize: 13.sp)),
+                                      color: AppTheme.errorColor, fontSize: 13.sp)),
                               Expanded(
                                 child: Text(
                                   warning,
                                   style: TextStyle(
                                     fontSize: 13.sp,
-                                    color: Colors.red.shade700,
+                                    color: AppTheme.errorColor,
                                     height: 1.4,
                                   ),
                                 ),

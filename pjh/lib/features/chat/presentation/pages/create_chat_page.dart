@@ -95,7 +95,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text(failure.message), backgroundColor: Colors.red),
+                content: Text(failure.message), backgroundColor: AppTheme.errorColor),
           );
           setState(() => _isSearching = false);
         }
@@ -175,7 +175,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
           if (state is ChatRoomsError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                  content: Text(state.message), backgroundColor: Colors.red),
+                  content: Text(state.message), backgroundColor: AppTheme.errorColor),
             );
           }
         },

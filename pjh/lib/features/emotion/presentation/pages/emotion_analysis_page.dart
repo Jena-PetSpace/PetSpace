@@ -146,7 +146,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('분석 실패: ${state.message}'),
-              backgroundColor: Colors.red.shade400,
+              backgroundColor: AppTheme.errorColor,
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 4),
             ),
@@ -154,7 +154,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
         }
       },
       child: Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppTheme.backgroundColor, // v2-review: F5F6FA 근사
       appBar: AppBar(
         title: const Text('AI 분석'),
         centerTitle: true,
@@ -190,7 +190,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 9.h),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFEEF0F4),
+                color: AppTheme.dividerColor, // v2-review: EEF0F4 근사(pill 트랙)
                 borderRadius: BorderRadius.circular(30.r),
               ),
               padding: EdgeInsets.all(3.w),
@@ -373,7 +373,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
                   child: ElevatedButton(
                     onPressed: _canAnalyze ? _startAnalysis : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
+                      backgroundColor: AppTheme.actionBase,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: AppTheme.neutral300,
                       shape: RoundedRectangleBorder(
@@ -410,7 +410,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
   void _showPetNotSelectedSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('반려동물을 먼저 선택해주세요 🐾'),
+        content: Text('반려동물을 먼저 선택해주세요'),
         backgroundColor: AppTheme.primaryColor,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 2),
@@ -655,7 +655,7 @@ class _EmotionAnalysisPageState extends State<EmotionAnalysisPage> {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.red, size: 24.w),
+            Icon(Icons.error_outline, color: AppTheme.errorColor, size: 24.w),
             SizedBox(width: 12.w),
             Text('분석 실패', style: TextStyle(fontSize: 18.sp)),
           ],

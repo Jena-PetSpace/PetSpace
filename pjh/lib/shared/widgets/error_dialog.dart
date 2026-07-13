@@ -74,7 +74,7 @@ class ErrorDialog extends StatelessWidget {
       color = Colors.orange;
     } else if (failure is UnauthorizedFailure || failure is AuthFailure) {
       icon = Icons.lock_outline;
-      color = Colors.red;
+      color = AppTheme.errorColor;
     } else if (failure is NotFoundFailure) {
       icon = Icons.search_off;
       color = AppTheme.neutral500;
@@ -86,7 +86,7 @@ class ErrorDialog extends StatelessWidget {
       color = Colors.orange;
     } else {
       icon = Icons.error_outline;
-      color = Colors.red;
+      color = AppTheme.errorColor;
     }
 
     return Container(
@@ -155,7 +155,7 @@ class ErrorDialog extends StatelessWidget {
                 onRetry?.call();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.actionBase,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 12.h),
               ),
@@ -173,7 +173,7 @@ class ErrorDialog extends StatelessWidget {
             onDismiss?.call();
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: AppTheme.actionBase,
             foregroundColor: Colors.white,
             padding: EdgeInsets.symmetric(vertical: 12.h),
           ),
@@ -248,7 +248,7 @@ class ErrorBottomSheet extends StatelessWidget {
                   onRetry?.call();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.actionBase,
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                 ),
@@ -274,7 +274,7 @@ class ErrorBottomSheet extends StatelessWidget {
     if (failure is NetworkFailure) return Colors.orange;
     if (failure is ValidationFailure) return Colors.amber;
     if (failure is TimeoutFailure) return Colors.orange;
-    return Colors.red;
+    return AppTheme.errorColor;
   }
 }
 
@@ -361,7 +361,7 @@ class ErrorDialogHelper {
     } else if (failure is ValidationFailure) {
       return Colors.amber[700]!;
     } else {
-      return Colors.red;
+      return AppTheme.errorColor;
     }
   }
 

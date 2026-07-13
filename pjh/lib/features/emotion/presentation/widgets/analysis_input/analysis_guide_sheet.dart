@@ -1,3 +1,4 @@
+// v2-review: 촬영 가이드 장식 그라데이션 — 일러스트 트랙과 함께 재검토, 치환 보류.
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -155,7 +156,7 @@ class AnalysisGuideSheet extends StatelessWidget {
                     SizedBox(height: 16.h),
                     const GuideTipRow(
                       icon: Icons.crop_free,
-                      color: Colors.red,
+                      color: AppTheme.errorColor,
                       title: '깔끔한 배경',
                       subtitle: '배경이 복잡하지 않은 곳에서 촬영해주세요',
                     ),
@@ -172,7 +173,7 @@ class AnalysisGuideSheet extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onDismiss,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
+                    backgroundColor: AppTheme.actionBase,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16.r),

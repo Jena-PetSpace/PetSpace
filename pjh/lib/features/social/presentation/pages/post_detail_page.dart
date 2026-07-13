@@ -154,7 +154,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       ScaffoldMessenger.of(ctx).showSnackBar(
         const SnackBar(
           content: Text('커뮤니티 가이드라인에 어긋나는 표현이 포함되어 있습니다.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppTheme.errorColor,
         ),
       );
       return;
@@ -320,13 +320,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
           border: Border(bottom: BorderSide(color: AppTheme.dividerColor))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
+          // 아바타 폴백: 발바닥 아이콘 + 연블루 배경 (사람 아이콘 금지)
           CircleAvatar(
             radius: 20.r,
-            backgroundColor: AppTheme.subtleBackground,
+            backgroundColor: AppTheme.tilePastelBlue,
             backgroundImage:
                 photoUrl != null ? CachedNetworkImageProvider(photoUrl) : null,
             child: photoUrl == null
-                ? Icon(Icons.person, size: 20.w, color: AppTheme.hintColor)
+                ? Icon(Icons.pets, size: 20.w, color: AppTheme.primaryColor)
                 : null,
           ),
           SizedBox(width: 10.w),
@@ -402,12 +403,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
     if (numEntries.isEmpty) return const SizedBox.shrink();
 
     final dominant = numEntries.first;
-    final percent = ((dominant.value as num) * 100).toInt();
-    final emoji = AppTheme.getEmotionEmoji(dominant.key);
+
     final label = AppTheme.getEmotionLabel(dominant.key);
     final petName = _post?['pet_name'] as String? ?? '우리 아이';
 
-    const cardColor = Color(0xFF7B4FE5);
+    const cardColor = AppTheme.featurePlay; // v2-review: 7B4FE5 근사
 
     return Container(
       margin: EdgeInsets.only(top: 12.h),
@@ -421,7 +421,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Text('🧠', style: TextStyle(fontSize: 14.sp)),
+            Icon(Icons.psychology_outlined, size: 14.sp, color: cardColor),
             SizedBox(width: 6.w),
             Text('이 사진의 AI 감정분석',
                 style: TextStyle(fontSize: 12.sp,
@@ -429,9 +429,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
           ]),
           SizedBox(height: 8.h),
           Row(children: [
-            Text(emoji, style: TextStyle(fontSize: 28.sp)),
+            Icon(AppTheme.getEmotionIcon(dominant.key),
+                size: 28.sp, color: AppTheme.getEmotionColor(dominant.key)),
             SizedBox(width: 8.w),
-            Text('$label $percent%',
+            // 감정 라벨만 — 퍼센트 수치 노출 금지 (P0 정책, 수치는 데이터만 보존)
+            Text(label,
                 style: TextStyle(fontSize: 17.sp,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.primaryTextColor)),

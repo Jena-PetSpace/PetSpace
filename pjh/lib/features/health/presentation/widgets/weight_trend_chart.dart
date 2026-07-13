@@ -18,6 +18,8 @@ class WeightTrendChart extends StatelessWidget {
     final points = buildWeightTrendPoints(records);
 
     return Container(
+      // 감정 분석 추이 카드와 동일한 전체 폭 (0건/1건 상태 shrink-wrap 방지)
+      width: double.infinity,
       decoration: AppTheme.cardDecoration,
       padding: EdgeInsets.all(16.w),
       child: points.isEmpty

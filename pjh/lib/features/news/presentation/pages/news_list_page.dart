@@ -97,7 +97,6 @@ class _NewsListViewState extends State<_NewsListView> {
                     SizedBox(height: 120.h),
                     const EmptyStateWidget(
                       icon: Icons.article_outlined,
-                      emoji: '📰',
                       title: '아직 소식이 없어요',
                       subtitle: '새로운 펫 뉴스가 올라오면\n여기에서 모아 보여드릴게요.',
                     ),

@@ -306,7 +306,6 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   Widget _buildEmptyState(bool isMyPosts) {
     return EmptyStateWidget(
       icon: isMyPosts ? Icons.grid_on_outlined : Icons.bookmark_outline_rounded,
-      emoji: isMyPosts ? '📸' : '🔖',
       title: isMyPosts ? '아직 게시글이 없어요' : '저장한 게시글이 없어요',
       subtitle: isMyPosts
           ? '반려동물의 일상을 첫 번째로\n커뮤니티에 공유해보세요!'

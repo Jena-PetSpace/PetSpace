@@ -2,25 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class AppTheme {
-  // JENA 브랜드 컬러 팔레트
-  static const Color primaryColor =
-      Color(0xFF1E3A5F); // Primary Deep Blue - 신뢰와 전문성
-  static const Color secondaryColor =
-      Color(0xFF2C4482); // JENA Signature Indigo - 리더십과 혁신
-  static const Color accentColor =
-      Color(0xFF0077B6); // Accent Bright Blue - 미래지향적 기술
+  // ══ AppTheme v2 토큰 (2026-07-09, 딥블루+스틸블루 포트폴리오 — 황정훈 확정) ══
+  // 원칙: 화면 면적의 ~90% 뉴트럴. 딥블루 도면적 채움 금지. 원빨강 전면 금지.
+  static const Color brandDeep = Color(0xFF1E3A5F); // 헤딩 텍스트·브랜드 워딩·선택 칩 채움·하단 탭 활성
+  static const Color actionBase = Color(0xFF3A6EA8); // 버튼 채움·링크·활성 인디케이터·FAB·스위치 on
+  static const Color actionPressed = Color(0xFF2E5786); // actionBase 눌림
+  static const Color actionContainer = Color(0xFFE8F0F8); // 액션 연한 배경 (선택 배경·정보 칩 배경)
+  static const Color textBody = Color(0xFF3A4552); // 본문
+  static const Color textMuted = Color(0xFF8A94A3); // 보조·시간·카운트
+  static const Color border = Color(0xFFE8EBEF); // 카드 보더 0.5~1px
+  static const Color infoSky = Color(0xFF5BC0EB); // 정보성 상태 뱃지만 (도면적·버튼 금지)
+
+  // 브랜드 컬러 (기존 토큰명 유지 — v2 값/alias)
+  static const Color primaryColor = brandDeep;
+  /// @deprecated v2에서 actionBase로 통합. 신규 사용 금지.
+  static const Color secondaryColor = actionBase;
+  /// @deprecated v2에서 actionBase로 통합. 신규 사용 금지.
+  static const Color accentColor = actionBase;
   static const Color highlightColor =
-      Color(0xFFFF6F61); // Highlight Coral Red - 고객 중심적 사고
-  static const Color subColor = Color(0xFF5BC0EB); // Sub Sky Blue - 투명한 네트워크
+      Color(0xFFFF6F61); // 좋아요 하트·오류/부정 표시·알림 뱃지 (CTA 금지)
+  /// @deprecated v2에서 infoSky로 개명. 신규 사용 금지.
+  static const Color subColor = infoSky;
 
   // 배경 컬러
-  static const Color backgroundColor = Color(0xFFF8F9FA); // 연한 회색 배경
-  static const Color surfaceColor = Colors.white;
+  static const Color backgroundColor = Color(0xFFF7F8FA); // 화면 배경 (순백 금지)
+  static const Color surfaceColor = Colors.white; // 카드·시트
   static const Color cardColor = Colors.white;
 
   // 텍스트 컬러
-  static const Color primaryTextColor = Color(0xFF2D2D2D);
-  static const Color secondaryTextColor = Color(0xFF757575);
+  static const Color primaryTextColor = textBody;
+  static const Color secondaryTextColor = textMuted;
   static const Color lightTextColor = Color(0xFFBDBDBD);
 
   // Neutral 스케일 — Material `Colors.grey[*]`와 동일한 값.
@@ -90,7 +101,24 @@ class AppTheme {
     }
   }
 
-  // 감정 이모지 헬퍼
+  // 감정 아이콘 헬퍼 — v2: UI 이모지 제거, 임시 아이콘 체계
+  // (감정 일러스트 8종 자산 제작 시 교체 예정)
+  static IconData getEmotionIcon(String emotion) {
+    switch (emotion.toLowerCase()) {
+      case 'happiness':  return Icons.mood;
+      case 'calm':       return Icons.self_improvement;
+      case 'excitement': return Icons.celebration;
+      case 'curiosity':  return Icons.psychology;
+      case 'anxiety':    return Icons.warning_amber_rounded;
+      case 'fear':       return Icons.warning_amber_outlined;
+      case 'sadness':    return Icons.mood_bad;
+      case 'discomfort': return Icons.sick_outlined;
+      case 'sleepiness': return Icons.bedtime; // 하위 호환
+      default:           return Icons.pets;
+    }
+  }
+
+  // 감정 이모지 헬퍼 — v2: 인앱 UI 사용 금지(외부 공유 카드 전용 잔존)
   static String getEmotionEmoji(String emotion) {
     switch (emotion.toLowerCase()) {
       case 'happiness':  return '😊';
@@ -115,17 +143,17 @@ class AppTheme {
     return 'negative';
   }
 
-  // 시맨틱 컬러 — 상태/피드백
+  // 시맨틱 컬러 — 상태/피드백 (v2: 원빨강 금지 → 에러는 highlight 코랄)
   static const Color successColor = Color(0xFF4CAF50); // 성공·완료 (초록)
-  static const Color errorColor = Color(0xFFE53935); // 에러·삭제 (빨강)
+  static const Color errorColor = highlightColor; // 에러·삭제
   static const Color warningColor = Color(0xFFFF9800); // 경고 (주황)
-  static const Color infoColor = Color(0xFF0077B6); // 정보 (accentColor 동일)
+  static const Color infoColor = actionBase; // 정보
 
   // === Semantic Tokens ===
   static const Color success = Color(0xFF4CAF50);
   static const Color warning = Color(0xFFFF9800);
-  static const Color danger  = Color(0xFFE53935);
-  static const Color info    = accentColor;
+  static const Color danger  = highlightColor;
+  static const Color info    = actionBase;
 
   static const Color featureEmotion = Color(0xFFFF6F61);
   static const Color featureHealth  = Color(0xFF1E3A5F);
@@ -148,11 +176,11 @@ class AppTheme {
   static const Color tilePastelLavender = Color(0xFFEEEDFE);
   static const Color tilePastelPurple   = Color(0xFFE9E3F5);
 
-  // 중간 회색 계열 토큰
-  static const Color dividerColor = Color(0xFFE0E0E0);
+  // 중간 회색 계열 토큰 (v2: divider는 구분선 전용, 보더는 border 토큰)
+  static const Color dividerColor = Color(0xFFF1F3F6);
   static const Color disabledColor = Color(0xFFBDBDBD);
   static const Color hintColor = Color(0xFF9E9E9E);
-  static const Color subtleBackground = Color(0xFFF5F5F5);
+  static const Color subtleBackground = Color(0xFFF7F8FA);
 
   // 간격
   static const double spacingXs = 4;
@@ -161,16 +189,24 @@ class AppTheme {
   static const double spacingLg = 24;
   static const double spacingXl = 32;
 
-  // 라운딩
+  // 라운딩 — v2 3단: 20(대형 카드) / 14(일반 카드·버튼) / 8(칩·입력)
   static const double radiusSm = 8;
-  static const double radiusMd = 12;
+  static const double radiusMd = 14;
   static const double radiusLg = 14;
-  static const double radiusXl = 18;
+  static const double radiusXl = 20;
 
-  // 카드 데코레이션
+  // 타이포 스케일 — v2 4단 + 캡션 (w600은 fontTitle·fontHeading만, 본문 bold 금지)
+  static const double fontTitle = 22;
+  static const double fontHeading = 17;
+  static const double fontBody = 15;
+  static const double fontCaption = 13;
+  static const double fontMicro = 11;
+
+  // 카드 데코레이션 — v2: elevation 절제, 보더 + 미세 단일 그림자(alpha ≤6%)
   static BoxDecoration get cardDecoration => BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(radiusMd),
+        border: Border.all(color: border, width: 1),
         boxShadow: const [
           BoxShadow(
               color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
@@ -181,13 +217,13 @@ class AppTheme {
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [primaryColor, accentColor],
+    colors: [primaryColor, actionBase],
   );
 
-  // 그림자
+  // 그림자 — v2: alpha ≤6% 단일 그림자
   static const List<BoxShadow> cardShadow = [
     BoxShadow(
-      color: Color(0x1A000000),
+      color: Color(0x0F000000),
       blurRadius: 8,
       offset: Offset(0, 2),
     ),
@@ -219,9 +255,9 @@ class AppTheme {
           statusBarBrightness: Brightness.light,
         ),
         titleTextStyle: TextStyle(
-          fontSize: 18,
+          fontSize: fontHeading,
           fontWeight: FontWeight.w600,
-          color: primaryTextColor,
+          color: brandDeep,
         ),
       ),
 
@@ -235,27 +271,27 @@ class AppTheme {
         ),
       ),
 
-      // Elevated Button 테마
+      // Elevated Button 테마 — v2: 버튼 채움 actionBase, elevation 절제
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
+          backgroundColor: actionBase,
           foregroundColor: Colors.white,
-          elevation: 2,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(radiusMd),
           ),
           textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontSize: fontBody,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
 
-      // Text Button 테마
+      // Text Button 테마 — v2: 링크 actionBase
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: primaryColor,
+          foregroundColor: actionBase,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           textStyle: const TextStyle(
             fontSize: 14,
@@ -264,27 +300,27 @@ class AppTheme {
         ),
       ),
 
-      // Input Decoration 테마
+      // Input Decoration 테마 — v2: 입력 radius 8, 보더 border 토큰
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.dividerColor),
+          borderRadius: BorderRadius.circular(radiusSm),
+          borderSide: const BorderSide(color: AppTheme.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.dividerColor),
+          borderRadius: BorderRadius.circular(radiusSm),
+          borderSide: const BorderSide(color: AppTheme.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryColor, width: 2),
+          borderRadius: BorderRadius.circular(radiusSm),
+          borderSide: const BorderSide(color: actionBase, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red),
+          borderRadius: BorderRadius.circular(radiusSm),
+          borderSide: const BorderSide(color: highlightColor),
         ),
         labelStyle: const TextStyle(color: secondaryTextColor),
         hintStyle: const TextStyle(color: lightTextColor),
@@ -299,50 +335,56 @@ class AppTheme {
         elevation: 8,
       ),
 
-      // Text 테마
+      // Text 테마 — v2 스케일 4단: 22(타이틀)/17(헤딩)/15(본문)/13(보조) + 11(캡션)
+      // w600은 22·17만, 본문 bold 금지.
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          color: primaryTextColor,
+          fontSize: fontTitle,
+          fontWeight: FontWeight.w600,
+          color: brandDeep,
         ),
         headlineMedium: TextStyle(
-          fontSize: 28,
+          fontSize: fontTitle,
           fontWeight: FontWeight.w600,
-          color: primaryTextColor,
+          color: brandDeep,
         ),
         headlineSmall: TextStyle(
-          fontSize: 24,
+          fontSize: fontHeading,
           fontWeight: FontWeight.w600,
-          color: primaryTextColor,
+          color: brandDeep,
         ),
         titleLarge: TextStyle(
-          fontSize: 20,
+          fontSize: fontHeading,
           fontWeight: FontWeight.w600,
-          color: primaryTextColor,
+          color: brandDeep,
         ),
         titleMedium: TextStyle(
-          fontSize: 16,
+          fontSize: fontBody,
           fontWeight: FontWeight.w500,
           color: primaryTextColor,
         ),
         titleSmall: TextStyle(
-          fontSize: 14,
+          fontSize: fontCaption,
           fontWeight: FontWeight.w500,
           color: primaryTextColor,
         ),
         bodyLarge: TextStyle(
-          fontSize: 16,
+          fontSize: fontBody,
           fontWeight: FontWeight.normal,
           color: primaryTextColor,
         ),
         bodyMedium: TextStyle(
-          fontSize: 14,
+          fontSize: fontBody,
           fontWeight: FontWeight.normal,
           color: primaryTextColor,
         ),
         bodySmall: TextStyle(
-          fontSize: 12,
+          fontSize: fontCaption,
+          fontWeight: FontWeight.normal,
+          color: secondaryTextColor,
+        ),
+        labelSmall: TextStyle(
+          fontSize: fontMicro,
           fontWeight: FontWeight.normal,
           color: secondaryTextColor,
         ),

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/constants/community_categories.dart';
+import '../../../../shared/widgets/category_chip.dart';
 
+/// 홈 이슈 콘텐츠 필터 칩 — 매거진/케어가이드/교육/정책/이벤트.
+///
+/// 목록·라벨은 shared 단일 소스(CommunityCategories.issueContents)를 참조하고
+/// 선택 결과는 category 값으로 전달한다 (인덱스 결합 금지).
 class CategoryFilterChips extends StatefulWidget {
-  final ValueChanged<int>? onSelected;
+  final ValueChanged<String>? onSelected;
 
   const CategoryFilterChips({super.key, this.onSelected});
 
@@ -13,59 +18,29 @@ class CategoryFilterChips extends StatefulWidget {
 }
 
 class _CategoryFilterChipsState extends State<CategoryFilterChips> {
-  int _selectedIndex = 0;
-
-  // 피드 Q&A 항목과 동일한 카테고리 체계 (피그마 매거진 시안 기준)
-  static const List<String> _categories = [
-    '전체',
-    'O/X 퀴즈',
-    '케어가이드',
-    '교육',
-    '정책',
-    '이벤트',
-  ];
+  String _selectedValue = CommunityCategories.issueContents.first.value;
 
   @override
   Widget build(BuildContext context) {
-    // 6개 칩 — 콘텐츠 폭 기반 가로 스크롤 (피그마 시안 레이아웃)
     return SizedBox(
-      height: 34.h,
+      height: 36.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: 16.w),
-        itemCount: _categories.length,
+        itemCount: CommunityCategories.issueContents.length,
         separatorBuilder: (_, __) => SizedBox(width: 8.w),
-        itemBuilder: (_, index) => _buildChip(index),
-      ),
-    );
-  }
-
-  Widget _buildChip(int index) {
-    final isSelected = _selectedIndex == index;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedIndex = index);
-        widget.onSelected?.call(index);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(horizontal: 14.w),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          // 선택: 브랜드 딥블루 채움 / 비선택: 무채색 채움 (테두리·그림자 없음)
-          color: isSelected ? AppTheme.primaryColor : const Color(0xFFEFF1F4),
-          borderRadius: BorderRadius.circular(17.r),
-        ),
-        child: Text(
-          _categories[index],
-          maxLines: 1,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
-          ),
-        ),
+        itemBuilder: (_, index) {
+          final category = CommunityCategories.issueContents[index];
+          return CategoryChip(
+            label: category.label,
+            selected: _selectedValue == category.value,
+            onTap: () {
+              if (_selectedValue == category.value) return;
+              setState(() => _selectedValue = category.value);
+              widget.onSelected?.call(category.value);
+            },
+          );
+        },
       ),
     );
   }

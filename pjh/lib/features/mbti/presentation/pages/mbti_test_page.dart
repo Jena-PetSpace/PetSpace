@@ -209,7 +209,7 @@ class _IntroView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 12.h),
-                Center(child: Text('🐾', style: TextStyle(fontSize: 56.sp))),
+                Center(child: Icon(Icons.pets, size: 56.sp, color: AppTheme.textMuted)),
                 SizedBox(height: 20.h),
                 Text(
                   '$name의\n성격 유형을 알아볼까요?',

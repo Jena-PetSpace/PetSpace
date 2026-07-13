@@ -107,7 +107,7 @@ class OnboardingPage extends StatelessWidget {
           },
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: AppTheme.actionBase,
             foregroundColor: Colors.white,
           ),
           child: const Text(

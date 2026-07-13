@@ -376,7 +376,7 @@ class _MyPostsPageState extends State<MyPostsPage>
       title: '작성한 커뮤니티 글이 없습니다',
       subtitle: '커뮤니티에서 다른 반려인들과\n소통해보세요!',
       buttonLabel: '커뮤니티 가기',
-      onPressed: () => context.go('/feed'),
+      onPressed: () => context.go('/feed?tab=lounge'),
     );
   }
 
@@ -427,7 +427,7 @@ class _MyPostsPageState extends State<MyPostsPage>
   Widget _buildAnalysisCard(EmotionAnalysis analysis) {
     final dominant = analysis.emotions.dominantEmotion;
     final dominantKr = _getEmotionKorean(dominant);
-    final emoji = _getEmotionEmoji(dominant);
+
     final date = _formatDate(analysis.analyzedAt);
     final stress = analysis.emotions.stressLevel;
 
@@ -446,7 +446,8 @@ class _MyPostsPageState extends State<MyPostsPage>
                 borderRadius: BorderRadius.circular(12.r),
               ),
               child: Center(
-                child: Text(emoji, style: TextStyle(fontSize: 22.sp)),
+                child: Icon(AppTheme.getEmotionIcon(dominant),
+                    size: 22.sp, color: _getEmotionColor(dominant)),
               ),
             ),
             SizedBox(width: 12.w),
@@ -455,7 +456,7 @@ class _MyPostsPageState extends State<MyPostsPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$emoji $dominantKr',
+                    dominantKr,
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
@@ -514,6 +515,5 @@ class _MyPostsPageState extends State<MyPostsPage>
   }
 
   String _getEmotionKorean(String emotion) => AppTheme.getEmotionLabel(emotion);
-  String _getEmotionEmoji(String emotion) => AppTheme.getEmotionEmoji(emotion);
   Color _getEmotionColor(String emotion) => AppTheme.getEmotionColor(emotion);
 }

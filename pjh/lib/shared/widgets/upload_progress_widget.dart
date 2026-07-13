@@ -96,7 +96,7 @@ class UploadProgressWidget extends StatelessWidget {
               error!,
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.red,
+                color: AppTheme.errorColor,
               ),
             ),
           ],
@@ -123,7 +123,7 @@ class UploadProgressWidget extends StatelessWidget {
   }
 
   Color _getIconColor() {
-    if (error != null) return Colors.red;
+    if (error != null) return AppTheme.errorColor;
     if (isCompleted) return Colors.green;
     return AppTheme.primaryColor;
   }

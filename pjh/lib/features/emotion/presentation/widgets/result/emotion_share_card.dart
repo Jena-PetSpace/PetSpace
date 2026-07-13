@@ -333,7 +333,7 @@ class HealthShareCard extends StatelessWidget {
         statusEmoji = '⚠️';
         break;
       case '위험':
-        statusColor = Colors.red;
+        statusColor = AppTheme.errorColor;
         statusEmoji = '🚨';
         break;
       default:

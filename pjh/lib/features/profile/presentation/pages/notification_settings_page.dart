@@ -315,15 +315,15 @@ class _SystemPermissionWarning extends StatelessWidget {
       margin: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF4E5),
+        color: AppTheme.surfaceWarm, // v2-review: FFF4E5 근사
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: const Color(0xFFFFB266), width: 1),
+        border: Border.all(color: AppTheme.warningColor, width: 1), // v2-review: FFB266 근사
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.notifications_off_outlined,
-              size: 22.sp, color: const Color(0xFFD97706)),
+              size: 22.sp, color: AppTheme.warningColor), // v2-review: D97706 근사
           SizedBox(width: 12.w),
           Expanded(
             child: Column(
@@ -334,7 +334,7 @@ class _SystemPermissionWarning extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF7A4500),
+                    color: AppTheme.textBody, // v2-review: 7A4500 근사
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -342,7 +342,7 @@ class _SystemPermissionWarning extends StatelessWidget {
                   '아래 알림을 모두 켜더라도 시스템 권한이 꺼져 있으면 알림이 오지 않습니다.',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: const Color(0xFF7A4500),
+                    color: AppTheme.textBody, // v2-review: 7A4500 근사
                     height: 1.4,
                   ),
                 ),
@@ -354,7 +354,7 @@ class _SystemPermissionWarning extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFFD97706),
+                      color: AppTheme.warningColor, // v2-review: D97706 근사
                     ),
                   ),
                 ),

@@ -181,7 +181,7 @@ class CommentListItem extends StatelessWidget {
               Navigator.pop(ctx);
               onDelete!();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('삭제'),
           ),
         ],
@@ -205,7 +205,7 @@ class CommentListItem extends StatelessWidget {
                   .read<CommentBloc>()
                   .add(DeleteCommentRequested(commentId: replyId));
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('삭제'),
           ),
         ],

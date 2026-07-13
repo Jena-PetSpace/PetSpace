@@ -359,7 +359,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               style: TextStyle(
                 fontSize: 15.sp,
                 fontWeight: FontWeight.w700,
-                color: _selected != null ? AppTheme.primaryColor : AppTheme.neutral400,
+                color: _selected != null ? AppTheme.primaryColor : Colors.grey[400],
               ),
             ),
           ),
@@ -368,7 +368,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       body: Column(
         children: [
           _buildSearchBar(),
-          const Divider(height: 1, thickness: 1, color: AppTheme.neutral200),
+          const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
           Expanded(
             child: Stack(
               children: [
@@ -436,7 +436,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Widget _buildMap() {
     if (_locLoading) {
       return Container(
-        color: AppTheme.neutral100,
+        color: Colors.grey[100],
         child: const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
       );
     }
@@ -528,7 +528,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                 child: Container(
                   width: 36.w, height: 4.h,
                   decoration: BoxDecoration(
-                    color: AppTheme.neutral300,
+                    color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
@@ -553,7 +553,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   ],
                 ),
               ),
-              const Divider(height: 1, thickness: 1, color: AppTheme.neutral200),
+              const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
               // 목록
               Expanded(
                 child: _places.isEmpty
@@ -584,11 +584,11 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search, size: 40.w, color: AppTheme.neutral300),
+            Icon(Icons.search, size: 40.w, color: Colors.grey[300]),
             SizedBox(height: 10.h),
             Text(
               '위치를 검색해 추가하세요',
-              style: TextStyle(fontSize: 14.sp, color: AppTheme.neutral500),
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
             ),
           ],
         ),

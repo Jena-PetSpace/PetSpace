@@ -246,7 +246,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                               'AI 감정 분석 · 건강관리 · 커뮤니티',
                               style: TextStyle(
                                 fontSize: 10.sp,
-                                color: const Color(0xFFFF9B8F),
+                                color: AppTheme.highlightColor, // v2-review: FF9B8F 근사
                                 letterSpacing: 0.5,
                                 fontWeight: FontWeight.w500,
                               ),

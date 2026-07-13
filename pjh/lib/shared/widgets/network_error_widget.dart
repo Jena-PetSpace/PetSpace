@@ -122,7 +122,7 @@ class NetworkErrorScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.actionBase,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(

@@ -5,7 +5,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
 import '../../../../core/utils/back_press_handler.dart';
+import '../../../../shared/constants/community_categories.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/category_chip.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/entities/post.dart';
 import '../../../social/domain/repositories/social_repository.dart';
@@ -22,16 +24,11 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   bool _isSubmitting = false;
-  String _selectedCategory = 'qa';
+  // 라운지 4종(shared 단일 소스). 기본값 '잡담' — 구 'qa' 기본값이
+  // 어떤 필터에도 안 잡히던 버그 청산(qa는 '궁금해요' 선택지로 유지).
+  String _selectedCategory = CommunityCategories.defaultWriteValue;
 
-  static const _categories = [
-    {'label': 'Q&A', 'value': 'qa'},
-    {'label': 'O/X 퀴즈', 'value': 'quiz'},
-    {'label': '케어가이드', 'value': 'careguide'},
-    {'label': '교육', 'value': 'education'},
-    {'label': '정책', 'value': 'policy'},
-    {'label': '이벤트', 'value': 'event'},
-  ];
+  static const _categories = CommunityCategories.lounge;
 
   @override
   void dispose() {
@@ -145,26 +142,16 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
             Text('카테고리',
                 style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
             SizedBox(height: 8.h),
+            // 카테고리 선택 칩 — 공용 CategoryChip으로 통일 (v2 T3)
             Wrap(
               spacing: 8.w,
+              runSpacing: 8.h,
               children: _categories.map((cat) {
-                final isSelected = _selectedCategory == cat['value'];
-                return ChoiceChip(
-                  label: Text(cat['label']!,
-                      style: TextStyle(
-                          fontSize: 12.sp,
-                          color: isSelected
-                              ? Colors.white
-                              : AppTheme.secondaryTextColor)),
-                  selected: isSelected,
-                  selectedColor: AppTheme.primaryColor,
-                  backgroundColor: AppTheme.surfaceColor,
-                  side: BorderSide(
-                      color: isSelected
-                          ? AppTheme.primaryColor
-                          : AppTheme.dividerColor),
-                  onSelected: (_) =>
-                      setState(() => _selectedCategory = cat['value']!),
+                return CategoryChip(
+                  label: cat.label,
+                  selected: _selectedCategory == cat.value,
+                  onTap: () =>
+                      setState(() => _selectedCategory = cat.value),
                 );
               }).toList(),
             ),
@@ -214,7 +201,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.actionBase,
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                   shape: RoundedRectangleBorder(

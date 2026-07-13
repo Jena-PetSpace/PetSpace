@@ -73,7 +73,7 @@ class WeeklyReportPage extends StatelessWidget {
                   Text('이번 주 리포트', style: TextStyle(fontSize: 12.sp, color: Colors.white.withValues(alpha: 0.7))),
                   SizedBox(height: 6.h),
                   Row(children: [
-                    Text(AppTheme.getEmotionEmoji(topEmotion), style: TextStyle(fontSize: 36.sp)),
+                    Icon(AppTheme.getEmotionIcon(topEmotion), size: 36.sp, color: Colors.white),
                     SizedBox(width: 14.w),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('${AppTheme.getEmotionLabel(topEmotion)} 감정이 많았어요',
@@ -101,8 +101,7 @@ class WeeklyReportPage extends StatelessWidget {
                       final key = '${day.month}/${day.day}';
                       final analysis = dayMap[key];
                       final dayLabel = ['월', '화', '수', '목', '금', '토', '일'][day.weekday - 1];
-                      final emoji = analysis != null
-                          ? (AppTheme.getEmotionEmoji(analysis.emotions.dominantEmotion)) : '';
+
 
                       return Column(children: [
                         Container(
@@ -114,7 +113,9 @@ class WeeklyReportPage extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                           child: Center(child: analysis != null
-                              ? Text(emoji, style: TextStyle(fontSize: 18.sp))
+                              ? Icon(AppTheme.getEmotionIcon(analysis.emotions.dominantEmotion),
+                                  size: 18.sp,
+                                  color: AppTheme.getEmotionColor(analysis.emotions.dominantEmotion))
                               : Icon(Icons.remove, size: 14.w, color: AppTheme.lightTextColor)),
                         ),
                         SizedBox(height: 4.h),
@@ -145,7 +146,7 @@ class WeeklyReportPage extends StatelessWidget {
                         return Padding(
                           padding: EdgeInsets.only(bottom: 10.h),
                           child: Row(children: [
-                            Text(AppTheme.getEmotionEmoji(e.key), style: TextStyle(fontSize: 16.sp)),
+                            Icon(AppTheme.getEmotionIcon(e.key), size: 16.sp, color: AppTheme.getEmotionColor(e.key)),
                             SizedBox(width: 8.w),
                             SizedBox(width: 40.w, child: Text(AppTheme.getEmotionLabel(e.key),
                               style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor))),
@@ -194,7 +195,7 @@ class WeeklyReportPage extends StatelessWidget {
   }
 
   String _getWeeklyComment(String topEmotion, int count, double avgHappiness) {
-    if (count == 0) return '이번 주는 아직 분석 기록이 없어요. 오늘 반려동물의 감정을 분석해보세요! 🐾';
+    if (count == 0) return '이번 주는 아직 분석 기록이 없어요. 오늘 반려동물의 감정을 분석해보세요!';
     final happinessStr = (avgHappiness * 100).round();
     final map = {
       'happiness': '이번 주 반려동물이 전반적으로 행복한 상태를 유지했어요! 평균 행복도 $happinessStr%로 아주 좋아요 😊 지금처럼 사랑을 듬뿍 주세요.',
@@ -206,6 +207,6 @@ class WeeklyReportPage extends StatelessWidget {
       'sadness': '이번 주 반려동물이 다소 우울한 시간이 있었어요. 더 많은 스킨십과 놀이 시간을 늘려주세요 💙',
       'discomfort': '이번 주 불편함을 느낀 순간이 있었어요. 신체 상태와 환경을 꼼꼼히 점검해주세요 😣',
     };
-    return map[topEmotion] ?? '이번 주도 반려동물을 잘 보살펴주셔서 고마워요 🐾';
+    return map[topEmotion] ?? '이번 주도 반려동물을 잘 보살펴주셔서 고마워요';
   }
 }

@@ -49,7 +49,7 @@ extension _PostCardMedia on _PostCardState {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error, color: Colors.red, size: 24.w),
+                      Icon(Icons.error, color: AppTheme.errorColor, size: 24.w),
                       SizedBox(height: 8.h),
                       Text('이미지 로드 실패',
                           style: TextStyle(
@@ -96,7 +96,7 @@ extension _PostCardMedia on _PostCardState {
                         errorWidget: (context, url, error) => Container(
                           height: 300.h,
                           color: AppTheme.neutral200,
-                          child: Icon(Icons.error, color: Colors.red, size: 24.w),
+                          child: Icon(Icons.error, color: AppTheme.errorColor, size: 24.w),
                         ),
                       ),
                     );

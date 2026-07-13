@@ -165,7 +165,7 @@ class _PetProfileCardState extends State<PetProfileCard> {
             BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
               builder: (context, emotionState) {
                 String emotionText = '-';
-                String emotionIcon = '';
+                IconData? emotionIcon;
                 String stressText = '-';
                 String countText = '0회';
                 EmotionAnalysis? latestAnalysis;
@@ -176,7 +176,7 @@ class _PetProfileCardState extends State<PetProfileCard> {
                   emotionText = _getEmotionKorean(
                       latestAnalysis.emotions.dominantEmotion);
                   emotionIcon =
-                      _getEmotionEmoji(latestAnalysis.emotions.dominantEmotion);
+                      AppTheme.getEmotionIcon(latestAnalysis.emotions.dominantEmotion);
                   stressText = '${latestAnalysis.emotions.stressLevel}점';
                   countText = '${emotionState.history.length}회';
                 }
@@ -232,25 +232,8 @@ class _PetProfileCardState extends State<PetProfileCard> {
     }
   }
 
-  String _getEmotionEmoji(String emotion) {
-    switch (emotion) {
-      case 'happiness':
-        return '😊';
-      case 'sadness':
-        return '😢';
-      case 'anxiety':
-        return '😰';
-      case 'sleepiness':
-        return '😴';
-      case 'curiosity':
-        return '🧐';
-      default:
-        return '🐾';
-    }
-  }
-
   Widget _buildInfoBox(String label, String value,
-      {String? icon, VoidCallback? onTap}) {
+      {IconData? icon, VoidCallback? onTap}) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -266,8 +249,8 @@ class _PetProfileCardState extends State<PetProfileCard> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (icon != null && icon.isNotEmpty) ...[
-                    Text(icon, style: TextStyle(fontSize: 12.sp)),
+                  if (icon != null) ...[
+                    Icon(icon, size: 12.sp, color: Colors.white),
                     SizedBox(width: 3.w),
                   ],
                   Text(

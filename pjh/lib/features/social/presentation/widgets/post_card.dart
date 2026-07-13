@@ -7,9 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
 import '../../../../core/services/block_service.dart';
 import '../../../../core/utils/hashtag_utils.dart';
+import '../../../../core/utils/relative_time.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_viewer_page.dart';
-import '../../../emotion/presentation/widgets/emotion_chart.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/social_repository.dart';
 import 'collection_picker_sheet.dart';
@@ -228,13 +228,15 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
+  // 감정 라벨 뱃지만 노출한다 — 퍼센트 도넛/게이지 등 수치 UI 금지
+  // (P0 정책: 수치는 데이터 모델에만 보존, 피드 렌더 계층 노출 제거).
   Widget _buildEmotionAnalysis() {
     final emotionAnalysis = post.emotionAnalysis!;
     final dominantEmotion = emotionAnalysis.emotions.dominantEmotion;
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
         color: AppTheme.getEmotionColor(dominantEmotion).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12.r),
@@ -244,39 +246,20 @@ class _PostCardState extends State<PostCard> {
         ),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 60.w,
-            height: 60.w,
-            child: EmotionChart(
-              emotions: emotionAnalysis.emotions,
-              size: 60.w,
-            ),
+          Icon(
+            _getEmotionIcon(dominantEmotion),
+            color: AppTheme.getEmotionColor(dominantEmotion),
+            size: 16.w,
           ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      _getEmotionIcon(dominantEmotion),
-                      color: AppTheme.getEmotionColor(dominantEmotion),
-                      size: 16.w,
-                    ),
-                    SizedBox(width: 4.w),
-                    Text(
-                      _getEmotionName(dominantEmotion),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.getEmotionColor(dominantEmotion),
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+          SizedBox(width: 6.w),
+          Text(
+            _getEmotionName(dominantEmotion),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppTheme.getEmotionColor(dominantEmotion),
+              fontSize: 14.sp,
             ),
           ),
         ],
@@ -284,22 +267,7 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) {
-      return '방금 전';
-    } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}분 전';
-    } else if (difference.inDays < 1) {
-      return '${difference.inHours}시간 전';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}일 전';
-    } else {
-      return '${dateTime.month}/${dateTime.day}';
-    }
-  }
+  String _formatDateTime(DateTime dateTime) => formatRelativeTime(dateTime);
 
   String _getEmotionName(String emotion) => AppTheme.getEmotionLabel(emotion);
 

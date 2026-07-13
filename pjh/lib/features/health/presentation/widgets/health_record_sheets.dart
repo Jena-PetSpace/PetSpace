@@ -17,9 +17,8 @@ extension _HealthMainSheets on _HealthMainViewState {
         itemCount: types.length,
         separatorBuilder: (_, __) => SizedBox(width: 6.w),
         itemBuilder: (context, i) {
-          final (type, label, emoji) = types[i];
+          final (type, label) = types[i];
           return _typeChip(
-            emoji: emoji,
             label: label,
             color: _HealthMainViewState._filterTypeColors[type]!,
             isSelected: selected == type,
@@ -223,7 +222,7 @@ extension _HealthMainSheets on _HealthMainViewState {
                     Navigator.pop(ctx);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
+                    backgroundColor: AppTheme.actionBase,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     shape: RoundedRectangleBorder(
@@ -466,7 +465,7 @@ extension _HealthMainSheets on _HealthMainViewState {
                     Navigator.pop(ctx);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
+                    backgroundColor: AppTheme.actionBase,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     shape: RoundedRectangleBorder(
@@ -534,7 +533,7 @@ extension _HealthMainSheets on _HealthMainViewState {
       case HealthRecordType.medication:
         return Colors.orange;
       case HealthRecordType.surgery:
-        return Colors.red;
+        return AppTheme.errorColor;
     }
   }
 
@@ -573,7 +572,7 @@ extension _HealthMainSheets on _HealthMainViewState {
       case HealthRecordStatus.completed:
         return AppTheme.successColor;
       case HealthRecordStatus.overdue:
-        return Colors.red;
+        return AppTheme.errorColor;
       case HealthRecordStatus.cancelled:
         return AppTheme.neutral500;
     }

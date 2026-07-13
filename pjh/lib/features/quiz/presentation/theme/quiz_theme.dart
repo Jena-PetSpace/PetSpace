@@ -15,7 +15,7 @@ class QuizTheme {
   static const Color surface = Colors.white;
   static const Color textPrimary = AppTheme.primaryTextColor;
   static const Color textSecondary = AppTheme.secondaryTextColor;
-  static const Color divider = AppTheme.neutral300;
+  static const Color divider = AppTheme.dividerColor;
 
   /// 정답 강조색(틸 그린 — 초록 계열이라 색각 이상에서도 코랄과 대비, 빨강 아님).
   static const Color correct = AppTheme.calmColor;

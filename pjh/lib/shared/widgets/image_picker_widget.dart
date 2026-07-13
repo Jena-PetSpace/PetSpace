@@ -30,7 +30,7 @@ class ImagePickerWidget extends StatelessWidget {
       icon: Icon(buttonIcon, size: 20.w),
       label: Text(buttonText, style: TextStyle(fontSize: 14.sp)),
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: AppTheme.actionBase,
         foregroundColor: Colors.white,
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       ),

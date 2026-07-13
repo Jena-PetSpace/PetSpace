@@ -137,7 +137,7 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
   Widget _buildAnalysisCard(EmotionAnalysis analysis) {
     final dominant = analysis.emotions.dominantEmotion;
     final dominantKr = _getEmotionKorean(dominant);
-    final emoji = _getEmotionEmoji(dominant);
+
     final date = _formatDate(analysis.analyzedAt);
     final stress = analysis.emotions.stressLevel;
 
@@ -157,7 +157,8 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
                 borderRadius: BorderRadius.circular(12.r),
               ),
               child: Center(
-                child: Text(emoji, style: TextStyle(fontSize: 22.sp)),
+                child: Icon(AppTheme.getEmotionIcon(dominant),
+                    size: 22.sp, color: _getEmotionColor(dominant)),
               ),
             ),
             SizedBox(width: 12.w),
@@ -168,7 +169,7 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '$emoji $dominantKr',
+                    dominantKr,
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
@@ -234,6 +235,5 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
   }
 
   String _getEmotionKorean(String emotion) => AppTheme.getEmotionLabel(emotion);
-  String _getEmotionEmoji(String emotion) => AppTheme.getEmotionEmoji(emotion);
   Color _getEmotionColor(String emotion) => AppTheme.getEmotionColor(emotion);
 }

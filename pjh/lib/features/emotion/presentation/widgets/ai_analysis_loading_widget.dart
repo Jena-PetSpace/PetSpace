@@ -1,3 +1,4 @@
+// v2-review: 분석 로딩 일러스트 전용 팔레트 — 일러스트 자산 트랙(별도)과 함께 재검토.
 import 'dart:async';
 
 import 'package:flutter/material.dart';

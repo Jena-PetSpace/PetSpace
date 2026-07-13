@@ -341,7 +341,7 @@ extension _HospitalUI on _HospitalSearchPageState {
               Expanded(child: _buildActionButton(
                 icon: Icons.near_me,
                 label: '길찾기',
-                color: const Color(0xFFE8A000),
+                color: AppTheme.warningColor, // v2-review: E8A000 근사
                 onTap: () => _openKakaoMapDirections(place),
               )),
             ]),
@@ -427,7 +427,7 @@ extension _HospitalUI on _HospitalSearchPageState {
   Widget _buildLocationBanner() {
     if (_locationError == null) return const SizedBox.shrink();
     return Container(
-      color: const Color(0xFFFFF3F3),
+      color: AppTheme.tilePastelRose, // v2-review: FFF3F3 근사
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(children: [
         Icon(Icons.location_off, size: 16.w, color: AppTheme.errorColor),

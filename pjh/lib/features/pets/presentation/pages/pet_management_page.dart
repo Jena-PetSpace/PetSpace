@@ -43,7 +43,7 @@ class _PetManagementPageState extends State<PetManagementPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: Colors.red,
+                backgroundColor: AppTheme.errorColor,
               ),
             );
           }
@@ -156,7 +156,7 @@ class _PetManagementPageState extends State<PetManagementPage> {
               icon: Icon(Icons.add, size: 20.w),
               label: Text('반려동물 추가하기', style: TextStyle(fontSize: 14.sp)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.actionBase,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(
                   horizontal: 24.w,
@@ -273,7 +273,7 @@ class _PetManagementPageState extends State<PetManagementPage> {
         ),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28.w),
+            Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor, size: 28.w),
             SizedBox(width: 8.w),
             Text('반려동물 삭제', style: TextStyle(fontSize: 18.sp)),
           ],
@@ -293,7 +293,7 @@ class _PetManagementPageState extends State<PetManagementPage> {
               petBloc.add(DeletePetEvent(pet.id));
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.errorColor,
               foregroundColor: Colors.white,
             ),
             child: Text('삭제', style: TextStyle(fontSize: 14.sp)),

@@ -54,7 +54,7 @@ extension _PostCardActions on _PostCardState {
                       post.isLikedByCurrentUser
                           ? Icons.favorite
                           : Icons.favorite_border,
-                      color: post.isLikedByCurrentUser ? Colors.red : null,
+                      color: post.isLikedByCurrentUser ? AppTheme.highlightColor : null,
                       size: 20.w,
                     ),
                   ),

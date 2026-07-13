@@ -34,7 +34,7 @@ class PetDetailPage extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.errorColor,
             ),
           );
         }
@@ -123,10 +123,10 @@ class PetDetailPage extends StatelessWidget {
               value: 'delete',
               child: Row(
                 children: [
-                  Icon(Icons.delete, color: Colors.red, size: 20.w),
+                  Icon(Icons.delete, color: AppTheme.errorColor, size: 20.w),
                   SizedBox(width: 8.w),
                   Text('삭제',
-                      style: TextStyle(color: Colors.red, fontSize: 14.sp)),
+                      style: TextStyle(color: AppTheme.errorColor, fontSize: 14.sp)),
                 ],
               ),
             ),
@@ -348,7 +348,7 @@ class PetDetailPage extends StatelessWidget {
             icon: Icon(Icons.psychology, size: 20.w),
             label: Text('감정 분석하기', style: TextStyle(fontSize: 14.sp)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: AppTheme.actionBase,
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(vertical: 14.h),
               shape: RoundedRectangleBorder(
@@ -407,7 +407,7 @@ class PetDetailPage extends StatelessWidget {
         ),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28.w),
+            Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor, size: 28.w),
             SizedBox(width: 8.w),
             Text('반려동물 삭제', style: TextStyle(fontSize: 18.sp)),
           ],
@@ -427,7 +427,7 @@ class PetDetailPage extends StatelessWidget {
               petBloc.add(DeletePetEvent(pet.id));
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.errorColor,
               foregroundColor: Colors.white,
             ),
             child: const Text('삭제'),

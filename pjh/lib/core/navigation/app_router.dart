@@ -84,6 +84,7 @@ import '../../features/profile/presentation/pages/help_page.dart';
 import '../../features/social/presentation/pages/followers_page.dart';
 import '../../main_navigation.dart';
 import 'auth_guard.dart';
+import '../../shared/themes/app_theme.dart';
 
 class AppRouter {
   static GoRouter createRouter(AuthBloc authBloc) {
@@ -277,9 +278,12 @@ class AppRouter {
               builder: (context, state) {
                 final tab = state.uri.queryParameters['tab'];
                 final category = state.uri.queryParameters['category'];
-                int initialTab = 0;
-                if (tab == 'following') initialTab = 1;
-                if (tab == 'community') initialTab = 2;
+                // 신구 호환 매핑: lounge(신)·community(구) → 라운지(1),
+                // following(구) 포함 그 외 → 발견(0).
+                // category는 그대로 전달 — 페이지가 유효 값만 매칭하고
+                // 미매칭(구 카테고리·해시태그)은 '전체'로 폴백한다.
+                final initialTab =
+                    (tab == 'lounge' || tab == 'community') ? 1 : 0;
                 return FeedHubPage(
                     initialTab: initialTab, initialCategory: category);
               },
@@ -759,7 +763,7 @@ class AppRouter {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error, size: 64, color: Colors.red),
+              const Icon(Icons.error, size: 64, color: AppTheme.errorColor),
               const SizedBox(height: 16),
               const Text('페이지를 찾을 수 없습니다.'),
               const SizedBox(height: 16),

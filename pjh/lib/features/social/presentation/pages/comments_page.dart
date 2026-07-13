@@ -89,7 +89,7 @@ class _CommentsPageState extends State<CommentsPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(state.message),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppTheme.errorColor,
                     ),
                   );
                 }
@@ -200,7 +200,7 @@ class _CommentsPageState extends State<CommentsPage> {
           Icon(
             Icons.error_outline,
             size: 64.w,
-            color: Colors.red,
+            color: AppTheme.errorColor,
           ),
           SizedBox(height: 16.h),
           Text(
@@ -348,7 +348,7 @@ class _CommentsPageState extends State<CommentsPage> {
                     DeleteCommentRequested(commentId: comment.id),
                   );
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('삭제'),
           ),
         ],

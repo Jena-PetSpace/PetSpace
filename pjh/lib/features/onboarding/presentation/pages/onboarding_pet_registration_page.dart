@@ -547,7 +547,7 @@ class _OnboardingPetRegistrationPageState
       label: Text('반려동물 추가', style: TextStyle(fontSize: 16.sp)),
       style: ElevatedButton.styleFrom(
         padding: EdgeInsets.symmetric(vertical: 16.h),
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: AppTheme.actionBase,
         foregroundColor: Colors.white,
       ),
     );
@@ -841,7 +841,7 @@ class _OnboardingPetRegistrationPageState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('펫 등록 중 오류가 발생했습니다: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.errorColor,
             duration: const Duration(seconds: 3),
           ),
         );

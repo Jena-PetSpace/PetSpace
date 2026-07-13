@@ -22,28 +22,28 @@ class ErrorSnackbarConfig {
     switch (severity) {
       case ErrorSeverity.info:
         return const ErrorSnackbarConfig(
-          backgroundColor: Color(0xFF2196F3), // Blue
+          backgroundColor: AppTheme.info,
           textColor: Colors.white,
           icon: Icons.info_outline,
           duration: Duration(seconds: 3),
         );
       case ErrorSeverity.warning:
         return const ErrorSnackbarConfig(
-          backgroundColor: AppTheme.warningColor, // Orange
+          backgroundColor: AppTheme.warning,
           textColor: Colors.white,
           icon: Icons.warning_amber_outlined,
           duration: Duration(seconds: 4),
         );
       case ErrorSeverity.error:
         return const ErrorSnackbarConfig(
-          backgroundColor: Color(0xFFF44336), // Red
+          backgroundColor: AppTheme.danger, // v2: 원빨강 금지 → highlight
           textColor: Colors.white,
           icon: Icons.error_outline,
           duration: Duration(seconds: 5),
         );
       case ErrorSeverity.critical:
         return const ErrorSnackbarConfig(
-          backgroundColor: Color(0xFF9C27B0), // Purple (critical)
+          backgroundColor: AppTheme.fearColor, // v2-review: 9C27B0 근사 (critical)
           textColor: Colors.white,
           icon: Icons.dangerous_outlined,
           duration: Duration(seconds: 8),

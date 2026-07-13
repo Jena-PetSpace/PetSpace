@@ -9,9 +9,7 @@ class EmptyStateWidget extends StatelessWidget {
   final String subtitle;
   final String? actionLabel;
   final VoidCallback? onAction;
-  // 확장 파라미터
-  final String? emoji;           // 이모지 일러스트 (있으면 icon 대신 사용)
-  final String? badgeEmoji;      // 우상단 뱃지 이모지
+  // 확장 파라미터 — v2: 이모지 일러스트 제거, 아이콘 단일 체계
   final String? secondaryLabel;  // 보조 버튼 레이블
   final VoidCallback? onSecondary;
 
@@ -22,8 +20,6 @@ class EmptyStateWidget extends StatelessWidget {
     required this.subtitle,
     this.actionLabel,
     this.onAction,
-    this.emoji,
-    this.badgeEmoji,
     this.secondaryLabel,
     this.onSecondary,
   });
@@ -36,7 +32,6 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       icon: Icons.search_off,
-      emoji: '🔍',
       title: '검색 결과가 없어요',
       subtitle: query != null && query.isNotEmpty
           ? '"$query" 와(과) 일치하는 결과가 없습니다.\n다른 단어로 다시 검색해보세요.'
@@ -52,7 +47,6 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       icon: Icons.wifi_off,
-      emoji: '📡',
       title: '연결이 불안정해요',
       subtitle: '인터넷 연결을 확인하고 다시 시도해주세요.',
       actionLabel: '다시 시도',
@@ -69,7 +63,6 @@ class EmptyStateWidget extends StatelessWidget {
     return EmptyStateWidget(
       key: key,
       icon: Icons.error_outline,
-      emoji: '⚠️',
       title: '문제가 발생했어요',
       subtitle: message ?? '잠시 후 다시 시도해주세요.',
       actionLabel: onRetry != null ? '다시 시도' : null,
@@ -87,57 +80,19 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 일러스트 영역
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 100.w,
-                  height: 100.w,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppTheme.primaryColor.withValues(alpha: 0.08),
-                        AppTheme.subColor.withValues(alpha: 0.12),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: emoji != null
-                      ? Center(
-                          child: Text(emoji!, style: TextStyle(fontSize: 48.sp)),
-                        )
-                      : Icon(
-                          icon,
-                          size: 48.w,
-                          color: isDark ? AppTheme.subColor : AppTheme.secondaryTextColor,
-                        ),
-                ),
-                if (badgeEmoji != null)
-                  Positioned(
-                    top: -4.h,
-                    right: -4.w,
-                    child: Container(
-                      width: 32.w,
-                      height: 32.w,
-                      decoration: BoxDecoration(
-                        color: AppTheme.highlightColor,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.highlightColor.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(badgeEmoji!, style: TextStyle(fontSize: 16.sp)),
-                      ),
-                    ),
-                  ),
-              ],
+            // 일러스트 영역 — v2: 아이콘 단일 체계 (이모지 제거)
+            Container(
+              width: 100.w,
+              height: 100.w,
+              decoration: const BoxDecoration(
+                color: AppTheme.actionContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 48.w,
+                color: isDark ? AppTheme.infoSky : AppTheme.actionBase,
+              ),
             ),
             SizedBox(height: 24.h),
             Text(
@@ -183,7 +138,7 @@ class EmptyStateWidget extends StatelessWidget {
                     ElevatedButton(
                       onPressed: onAction,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
+                        backgroundColor: AppTheme.actionBase,
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
                         shape: RoundedRectangleBorder(

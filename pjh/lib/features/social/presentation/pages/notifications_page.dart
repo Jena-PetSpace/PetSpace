@@ -58,7 +58,6 @@ class NotificationsPage extends StatelessWidget {
               if (state.notifications.isEmpty) {
                 return EmptyStateWidget(
                   icon: Icons.notifications_none_rounded,
-                  emoji: '🔔',
                   title: '새로운 알림이 없어요',
                   subtitle: '친구를 팔로우하거나 게시물을 올리면\n활동 알림이 여기에 표시돼요!',
                   actionLabel: '피드 탐색',

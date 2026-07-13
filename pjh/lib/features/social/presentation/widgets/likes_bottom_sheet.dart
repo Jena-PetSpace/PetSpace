@@ -92,7 +92,7 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
     if (_error != null) {
       return Center(
         child: Text('오류: $_error',
-            style: TextStyle(fontSize: 14.sp, color: Colors.red)),
+            style: TextStyle(fontSize: 14.sp, color: AppTheme.errorColor)),
       );
     }
 

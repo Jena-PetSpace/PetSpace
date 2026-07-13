@@ -154,7 +154,7 @@ class AnimatedLike extends StatefulWidget {
     super.key,
     required this.isLiked,
     required this.onTap,
-    this.likedColor = Colors.red,
+    this.likedColor = AppTheme.highlightColor,
     this.unlikedColor = AppTheme.neutral500,
     this.size = 24,
   });

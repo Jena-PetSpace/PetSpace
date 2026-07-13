@@ -194,7 +194,7 @@ class AnalysisGuidePage extends StatelessWidget {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
+                        backgroundColor: AppTheme.actionBase,
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(vertical: 13.h),
                         shape: RoundedRectangleBorder(

@@ -167,7 +167,7 @@ class _RewardStorePageState extends State<RewardStorePage> {
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Text(
-                        '🐾 퀘스트로 포인트를 모아보세요',
+                        '퀘스트로 포인트를 모아보세요',
                         style: TextStyle(
                           fontSize: 12.sp,
                           color: AppTheme.primaryColor,

@@ -231,7 +231,7 @@ class _OnboardingSlidesPageState extends State<OnboardingSlidesPage> {
             onPressed: _currentPage == _totalPages - 1 ? _goToLogin : _nextPage,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: AppTheme.actionBase,
               foregroundColor: Colors.white,
             ),
             child: Text(

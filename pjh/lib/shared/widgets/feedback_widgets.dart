@@ -154,7 +154,7 @@ class CustomSnackBar {
       case SnackBarType.success:
         return _SnackBarColors(Colors.green, Colors.white);
       case SnackBarType.error:
-        return _SnackBarColors(Colors.red, Colors.white);
+        return _SnackBarColors(AppTheme.errorColor, Colors.white);
       case SnackBarType.warning:
         return _SnackBarColors(Colors.orange, Colors.white);
       case SnackBarType.info:
@@ -448,7 +448,7 @@ class StatusIndicator extends StatelessWidget {
       case StatusType.away:
         return _StatusColors(Colors.yellow, Colors.orange);
       case StatusType.busy:
-        return _StatusColors(Colors.red, Colors.red);
+        return _StatusColors(AppTheme.errorColor, AppTheme.errorColor);
     }
   }
 }

@@ -37,10 +37,11 @@ class CommunityPostCard extends StatelessWidget {
           // 작성자 + 시간
           Row(
             children: [
+              // 아바타 폴백: 발바닥 아이콘 + 연블루 배경 (사람 아이콘 금지)
               CircleAvatar(
                 radius: 16.r,
-                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                child: Icon(Icons.person,
+                backgroundColor: AppTheme.tilePastelBlue,
+                child: Icon(Icons.pets,
                     size: 16.w, color: AppTheme.primaryColor),
               ),
               SizedBox(width: 8.w),
@@ -53,21 +54,23 @@ class CommunityPostCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                decoration: BoxDecoration(
-                  color: AppTheme.accentColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                child: Text(
-                  category,
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    color: AppTheme.accentColor,
-                    fontWeight: FontWeight.w500,
+              // 미분류(빈 라벨)면 칩 자체를 숨긴다 — 빈 파란 점 렌더 결함 방지.
+              if (category.isNotEmpty)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      color: AppTheme.accentColor,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
               if (!isAdmin) ...[
                 SizedBox(width: 8.w),
                 Text(

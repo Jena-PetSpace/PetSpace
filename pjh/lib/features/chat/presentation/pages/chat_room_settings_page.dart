@@ -159,7 +159,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           setState(() => _isSaving = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('저장에 실패했습니다: $nameError'),
-                backgroundColor: Colors.red),
+                backgroundColor: AppTheme.errorColor),
           );
         }
         return;
@@ -179,7 +179,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           setState(() => _isSaving = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('저장에 실패했습니다: $photoError'),
-                backgroundColor: Colors.red),
+                backgroundColor: AppTheme.errorColor),
           );
         }
         return;
@@ -247,7 +247,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('채팅방 나가기에 실패했습니다: ${failure.message}'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.errorColor,
             ),
           );
         }
@@ -402,7 +402,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
             child: ElevatedButton(
               onPressed: _isSaving ? null : _saveChanges,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.actionBase,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 12.h),
                 shape: RoundedRectangleBorder(
@@ -675,7 +675,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('멤버 추가에 실패했습니다: ${failure.message}'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.errorColor,
             ),
           );
         }

@@ -3,6 +3,7 @@ import '../../../../shared/themes/app_theme.dart';
 import 'package:go_router/go_router.dart';
 
 /// 카카오 브랜드 공식 컬러 — 디자인 토큰 아님 (브랜드 가이드 고정값)
+// v2-review: 카카오 브랜드 고정색 — 토큰 치환 대상 아님
 const Color _kakaoYellow = Color(0xFFFEE500);
 
 class KakaoConsentPage extends StatefulWidget {

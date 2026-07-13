@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../theme/emotion_result_tokens.dart';
+import '../../../../../shared/themes/app_theme.dart';
 
 /// 건강 결과 페이지의 "다음에 해볼 것" 카드.
 /// - 슬롯 1: 감정 분석 해보기 (네이비, 항상 표시)
@@ -126,7 +127,7 @@ class HealthNextActionCard extends StatelessWidget {
             ),
           _buildItem(
             icon: Icons.edit_outlined,
-            bgColor: const Color(0xFFF1EFE8),
+            bgColor: AppTheme.tilePastelSand,
             iconColor: EmotionResultTokens.grayDark,
             label: '이 순간 기록하기',
             hint: '한 줄 메모로 남겨두세요',

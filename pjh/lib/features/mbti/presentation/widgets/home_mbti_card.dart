@@ -100,7 +100,7 @@ class _HomeMbtiCardState extends State<HomeMbtiCard> {
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         child: Row(
           children: [
-            Text('🐾', style: TextStyle(fontSize: 22.sp)),
+            Icon(Icons.pets, size: 22.sp, color: AppTheme.textMuted),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(

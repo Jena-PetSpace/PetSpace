@@ -170,11 +170,11 @@ class _MainNavigationState extends State<MainNavigation> {
               decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(
-                  top: BorderSide(color: Color(0xFFE8E8E8), width: 1),
+                  top: BorderSide(color: AppTheme.border, width: 1),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x14000000),
+                    color: Color(0x0F000000), // v2: 그림자 alpha ≤6%
                     blurRadius: 12,
                     offset: Offset(0, -3),
                   ),
@@ -214,30 +214,25 @@ class _MainNavigationState extends State<MainNavigation> {
                 button: true,
                 child: GestureDetector(
                   onTap: () => _onTabTapped(2),
+                  // 배경은 에셋에 굽지 않고 코드 레이어에서 actionBase 단색 원으로
+                  // 처리한다 (2026-07-10 결정). 글리프는 흰색 발바닥만.
                   child: Container(
                     width: _fabSize.w,
                     height: _fabSize.w,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      color: AppTheme.actionBase,
                       border: Border.all(color: Colors.white, width: 1.5),
                     ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        ClipOval(
-                          child: SvgPicture.asset(
-                            'assets/svg/icon_fab_bg.svg',
-                            width: _fabSize.w,
-                            height: _fabSize.w,
-                          ),
-                        ),
-                        SvgPicture.asset(
-                          'assets/svg/icon_paw.svg',
-                          width: 39.w,
-                          height: 39.w,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
+                    child: Center(
+                      child: SvgPicture.asset(
+                        'assets/svg/icon_paw.svg',
+                        width: 39.w,
+                        height: 39.w,
+                        fit: BoxFit.contain,
+                        colorFilter: const ColorFilter.mode(
+                            Colors.white, BlendMode.srcIn),
+                      ),
                     ),
                   ),
                 ),
@@ -375,7 +370,8 @@ class _MainNavigationState extends State<MainNavigation> {
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
                 decoration: BoxDecoration(
-                  color: Colors.red,
+                  // 뱃지 컬러는 highlightColor로 통일 (원빨강 금지)
+                  color: AppTheme.highlightColor,
                   borderRadius: BorderRadius.circular(10.r),
                 ),
                 constraints: BoxConstraints(

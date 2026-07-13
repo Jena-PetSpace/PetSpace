@@ -127,7 +127,7 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
                     ),
                     SizedBox(height: 6.h),
                     Text(
-                      '반려동물 이야기를 들려주세요 🐾',
+                      '반려동물 이야기를 들려주세요',
                       style: TextStyle(
                           fontSize: 11.sp,
                           color: Colors.white.withValues(alpha: 0.75),

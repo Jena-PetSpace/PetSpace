@@ -214,7 +214,7 @@ class _OnboardingTutorialPageState extends State<OnboardingTutorialPage> {
                   Icons.block,
                   '방해 요소 제거',
                   '배경이 복잡하지 않고 깔끔한 곳에서 촬영해주세요',
-                  Colors.red,
+                  AppTheme.errorColor,
                 ),
               ],
             ),
