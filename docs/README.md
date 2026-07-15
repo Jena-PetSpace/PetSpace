@@ -16,6 +16,13 @@
 ## 작업 협업 문서
 | 문서 | 역할 |
 |---|---|
+| `AGENT_COLLABORATION.md` | Claude × Codex 역할·브랜치·worktree·리뷰·자동화 운영 |
+| `AUTO_ORCHESTRATOR.md` | 한 주제 입력부터 AI 토론·합의·승인·구현·교차 리뷰까지 자동화 |
+| `WORK_ORDER_TEMPLATE.md` | 공통 작업지시서 템플릿 |
+| `DECISION_LOG.md` | 에이전트 의견 충돌과 중요 결정 기록 |
+| `work-orders/` | Claude·Codex별 승인된 작업지시서와 교차 검토 요청 |
+| `reviews/uiux_code_audit_2026-07-13.md` | 홈·AI 분석 제외 전 화면 UI/UX·코드 사전 감사 |
+| `work-orders/2026-07-14-uiux-overhaul-master.md` | 전 화면 신뢰도 개선 단계별 마스터 작업지시서 |
 | `WORK_ORDER_claude-design.md` | VS Code Claude Code 작업지시서 + 웹↔VS Code 협업 프로토콜 |
 | `웹Claude_회신_v1.md` | 1차 검증 핑퐁 회신 (작업 산출물) |
 

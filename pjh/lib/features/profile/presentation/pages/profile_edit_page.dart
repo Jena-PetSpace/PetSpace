@@ -1,13 +1,17 @@
 import 'dart:developer' as developer;
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../shared/widgets/profile_image_picker.dart';
-import '../../../../core/services/profile_service.dart';
+
 import '../../../../config/injection_container.dart' as di;
-import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../../core/services/profile_service.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_page_scaffold.dart';
+import '../../../../shared/widgets/petspace_state_view.dart';
+import '../../../../shared/widgets/profile_image_picker.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
@@ -17,6 +21,8 @@ class ProfileEditPage extends StatefulWidget {
 }
 
 class _ProfileEditPageState extends State<ProfileEditPage> {
+  static const double _navigationOverlapClearance = 64;
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
@@ -24,7 +30,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   File? _selectedImage;
   String? _currentImageUrl;
-  bool _isLoading = false;
+  bool _isInitialLoading = true;
+  bool _hasLoadError = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -33,85 +41,149 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   }
 
   Future<void> _loadCurrentProfile() async {
+    setState(() {
+      _isInitialLoading = true;
+      _hasLoadError = false;
+    });
     try {
       final profile = await _profileService.getProfile();
-      if (profile != null && mounted) {
-        setState(() {
-          _nameController.text = profile['display_name'] ?? '';
-          _bioController.text = profile['bio'] ?? '';
-          _currentImageUrl = profile['photo_url'];
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _nameController.text = profile?['display_name'] as String? ?? '';
+        _bioController.text = profile?['bio'] as String? ?? '';
+        _currentImageUrl = profile?['photo_url'] as String?;
+        _isInitialLoading = false;
+      });
     } catch (e) {
       developer.log('프로필 로드 오류: $e', name: 'ProfileEditPage', error: e);
+      if (!mounted) return;
+      setState(() {
+        _isInitialLoading = false;
+        _hasLoadError = true;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('프로필 편집'),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveProfile,
-            child: _isLoading
-                ? SizedBox(
-                    width: 20.w,
-                    height: 20.w,
-                    child: const CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text('저장', style: TextStyle(fontSize: 14.sp)),
-          ),
-        ],
-      ),
-      body: Form(
+    return PetSpacePageScaffold(
+      title: '프로필 편집',
+      body: _buildBody(),
+      bottomNavigationBar:
+          _isInitialLoading || _hasLoadError ? null : _buildSaveBar(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isInitialLoading) {
+      return const PetSpaceStateView.loading(
+        key: Key('profile_edit_loading'),
+      );
+    }
+    if (_hasLoadError) {
+      return PetSpaceStateView.error(
+        key: const Key('profile_edit_error'),
+        icon: Icons.cloud_off_outlined,
+        title: '프로필을 불러오지 못했어요',
+        message: '인터넷 연결을 확인하고 다시 시도해주세요.',
+        actionLabel: '다시 시도',
+        onAction: _loadCurrentProfile,
+      );
+    }
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark
+        ? theme.colorScheme.surfaceContainerHighest
+        : AppTheme.actionContainer;
+    final bodyColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
+
+    return SafeArea(
+      bottom: false,
+      child: Form(
         key: _formKey,
         child: ListView(
-          padding: EdgeInsets.all(16.w),
+          key: const Key('profile_edit_form'),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
           children: [
-            // 프로필 이미지 선택
-            Center(
-              child: ProfileImagePicker(
-                imageFile: _selectedImage,
-                imageUrl: _currentImageUrl,
-                radius: 60.r,
-                onImageSelected: () {
-                  setState(() {
-                    // 이미지 변경 감지
-                  });
-                },
-                onImagePicked: (File image) {
-                  setState(() {
-                    _selectedImage = image;
-                  });
-                },
+            Text(
+              '프로필 사진',
+              style: TextStyle(
+                fontSize: AppTheme.fontHeading.sp,
+                fontWeight: FontWeight.w700,
+                color:
+                    isDark ? theme.colorScheme.onSurface : AppTheme.brandDeep,
               ),
             ),
-            SizedBox(height: 8.h),
-            Center(
-              child: Text(
-                '프로필 사진을 변경하려면 탭하세요',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: Colors.grey[600],
+            SizedBox(height: 14.h),
+            Row(
+              children: [
+                SizedBox(
+                  key: const Key('profile_edit_image_picker'),
+                  width: 104.w,
+                  height: 104.w,
+                  child: Center(
+                    child: ProfileImagePicker(
+                      imageFile: _selectedImage,
+                      imageUrl: _currentImageUrl,
+                      radius: 46.r,
+                      onImageSelected: () {},
+                      onImagePicked: (File image) {
+                        setState(() => _selectedImage = image);
+                      },
+                    ),
+                  ),
                 ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '사진 변경',
+                        style: TextStyle(
+                          fontSize: AppTheme.fontBody.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.actionBase,
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+                      Text(
+                        '사진 영역을 눌러 카메라나 앨범에서 선택할 수 있어요.',
+                        style: TextStyle(
+                          fontSize: AppTheme.fontCaption.sp,
+                          height: 1.45,
+                          color: bodyColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 28.h),
+            Text(
+              '기본 정보',
+              style: TextStyle(
+                fontSize: AppTheme.fontHeading.sp,
+                fontWeight: FontWeight.w700,
+                color:
+                    isDark ? theme.colorScheme.onSurface : AppTheme.brandDeep,
               ),
             ),
-            SizedBox(height: 32.h),
-
-            // 이름 입력
+            SizedBox(height: 14.h),
             TextFormField(
+              key: const Key('profile_edit_name_field'),
               controller: _nameController,
-              maxLength: 50, // (세션3) DB display_name VARCHAR(50) 초과 입력 방지
-              style: TextStyle(fontSize: 14.sp),
-              decoration: InputDecoration(
-                labelText: '이름',
-                labelStyle: TextStyle(fontSize: 14.sp),
+              maxLength: 50,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: '이름 *',
                 hintText: '이름을 입력하세요',
-                hintStyle: TextStyle(fontSize: 14.sp),
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.person_outline),
+                prefixIcon: Icon(Icons.person_outline),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -123,23 +195,19 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 return null;
               },
             ),
-            SizedBox(height: 16.h),
-
-            // 소개 입력
+            SizedBox(height: 14.h),
             TextFormField(
+              key: const Key('profile_edit_bio_field'),
               controller: _bioController,
-              style: TextStyle(fontSize: 14.sp),
-              decoration: InputDecoration(
-                labelText: '소개',
-                labelStyle: TextStyle(fontSize: 14.sp),
-                hintText: '자기소개를 입력하세요',
-                hintStyle: TextStyle(fontSize: 14.sp),
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.edit_note),
-                alignLabelWithHint: true,
-              ),
               maxLines: 4,
               maxLength: 150,
+              textInputAction: TextInputAction.newline,
+              decoration: const InputDecoration(
+                labelText: '소개',
+                hintText: '반려동물과 나를 소개해보세요',
+                prefixIcon: Icon(Icons.edit_note_outlined),
+                alignLabelWithHint: true,
+              ),
               validator: (value) {
                 if (value != null && value.length > 150) {
                   return '소개는 150자 이내로 입력해주세요';
@@ -147,29 +215,31 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 return null;
               },
             ),
-            SizedBox(height: 24.h),
-
-            // 정보 카드
-            Card(
-              color: Colors.blue.shade50,
-              child: Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.blue.shade700, size: 24.w),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Text(
-                        '프로필 정보는 다른 사용자에게 공개됩니다.',
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: Colors.blue.shade900,
-                        ),
+            SizedBox(height: 18.h),
+            Container(
+              key: const Key('profile_edit_public_notice'),
+              padding: EdgeInsets.all(14.w),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline,
+                      color: AppTheme.actionBase, size: 20.w),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Text(
+                      '이름, 소개, 프로필 사진은 다른 사용자에게 공개될 수 있어요.',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontCaption.sp,
+                        height: 1.45,
+                        color: bodyColor,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -178,30 +248,71 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     );
   }
 
+  Widget _buildSaveBar() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Material(
+      color: isDark ? theme.colorScheme.surface : AppTheme.surfaceColor,
+      elevation: 8,
+      child: SafeArea(
+        key: const Key('profile_edit_save_safe_area'),
+        top: false,
+        minimum: EdgeInsets.fromLTRB(
+          20.w,
+          12.h,
+          20.w,
+          _navigationOverlapClearance.h,
+        ),
+        child: SizedBox(
+          height: 52.h,
+          child: ElevatedButton(
+            key: const Key('profile_edit_save_button'),
+            onPressed: _isSaving ? null : _saveProfile,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.actionBase,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor:
+                  AppTheme.actionBase.withValues(alpha: 0.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+              ),
+            ),
+            child: _isSaving
+                ? SizedBox(
+                    width: 22.w,
+                    height: 22.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    '변경사항 저장',
+                    style: TextStyle(
+                      fontSize: AppTheme.fontBody.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (_isSaving || !_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    // (세션3 3-B) 텍스트(닉네임·소개)와 이미지를 분리 저장한다.
-    // 이미지 업로드가 실패해도 텍스트 변경은 살리고, 이미지만 실패 안내한다.
-    // (이름 바꾸려다 사진 업로드 실패로 이름까지 안 바뀌는 UX 방지)
+    setState(() => _isSaving = true);
     final displayName = _nameController.text.trim();
     final bio = _bioController.text.trim();
 
     try {
-      // 1) 텍스트 저장 (photoUrl 생략 → 기존 이미지 유지). 실패하면 전체 실패로 처리.
       await _profileService.updateProfile(
         displayName: displayName,
         bio: bio,
       );
       developer.log('프로필 텍스트 저장 완료', name: 'ProfileEditPage');
     } catch (e) {
-      // raw exception(Supabase URL·UUID 포함)은 로그에만 남기고, 화면엔 사용자 친화 문구만.
       developer.log('프로필 텍스트 저장 오류: $e', name: 'ProfileEditPage', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -211,60 +322,46 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             duration: const Duration(seconds: 3),
           ),
         );
-        setState(() => _isLoading = false);
+        setState(() => _isSaving = false);
       }
       return;
     }
 
-    // 2) 이미지가 선택된 경우에만 업로드. 실패해도 텍스트는 이미 저장됨 → 이미지만 안내.
-    bool imageFailed = false;
+    var imageFailed = false;
     if (_selectedImage != null) {
       try {
         await _profileService.updateProfileImage(_selectedImage!);
         developer.log('프로필 이미지 업로드 완료', name: 'ProfileEditPage');
       } catch (e) {
-        developer.log('프로필 이미지 업로드 실패: $e',
-            name: 'ProfileEditPage', error: e);
+        developer.log('프로필 이미지 업로드 실패: $e', name: 'ProfileEditPage', error: e);
         imageFailed = true;
       }
     }
 
-    try {
-      if (mounted) {
-        // AuthBloc 상태 갱신 (MY탭 프로필 즉시 반영)
-        context.read<AuthBloc>().add(AuthProfileRefreshRequested());
-        if (imageFailed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('프로필은 저장됐지만 이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 3),
-            ),
-          );
-          // 이미지 실패 시에는 화면을 유지해 재시도 가능하게 둔다.
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('프로필이 저장되었습니다'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-          Navigator.pop(context, true);
-        }
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    if (!mounted) return;
+    context.read<AuthBloc>().add(AuthProfileRefreshRequested());
+    if (imageFailed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('프로필은 저장됐지만 이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.'),
+          backgroundColor: AppTheme.warningColor,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      setState(() => _isSaving = false);
+      return;
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('프로필이 저장되었습니다'),
+        backgroundColor: AppTheme.successColor,
+        duration: Duration(seconds: 2),
+      ),
+    );
+    Navigator.pop(context, true);
   }
 
-  /// raw exception을 사용자 친화 문구로 변환.
-  /// 네트워크 계열이면 인터넷 연결 안내, 그 외는 일반 문구.
-  /// (Supabase URL·UUID 등 내부 정보가 사용자에게 노출되지 않도록 e.toString() 미사용)
   String _userFacingError(Object e, String operation) {
     final msg = e.toString().toLowerCase();
     final isNetwork = msg.contains('socketexception') ||

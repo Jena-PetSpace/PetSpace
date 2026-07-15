@@ -9,6 +9,7 @@ import '../entities/comment.dart';
 import '../entities/follow.dart';
 import '../entities/notification.dart';
 import '../entities/bookmark_collection.dart';
+import '../entities/saved_posts_page.dart';
 
 abstract class SocialRepository {
   // User operations
@@ -17,7 +18,8 @@ abstract class SocialRepository {
   Future<Either<Failure, List<SocialUser>>> searchUsers(String query);
 
   // Post operations
-  Future<Either<Failure, Post>> createPost(Post post, {List<File> images = const []});
+  Future<Either<Failure, Post>> createPost(Post post,
+      {List<File> images = const []});
   Future<Either<Failure, Post>> updatePost(Post post);
   Future<Either<Failure, void>> deletePost(String postId);
   Future<Either<Failure, List<Post>>> getFeed({
@@ -67,12 +69,19 @@ abstract class SocialRepository {
     DateTime? beforeCreatedAt,
   });
 
-  /// 내가 저장한 게시물 (saved_posts + posts JOIN) — my_page 용 raw Map.
-  /// saved_posts.created_at(저장 시각) 기준 키셋 페이지네이션. 각 행에 `saved_at` 포함.
-  Future<Either<Failure, List<Map<String, dynamic>>>> getSavedPostsRaw(
-    String userId, {
-    int limit,
-    String? beforeSavedAt,
+  Future<Either<Failure, SavedPostsPage>> getSavedPostsPage({
+    required String userId,
+    required SavedPostsScope scope,
+    SavedPostsCursor? cursor,
+    int limit = 30,
+  });
+  Future<Either<Failure, int>> countSavedPosts({
+    required String userId,
+    required SavedPostsScope scope,
+  });
+  Future<Either<Failure, SavedPostLocation?>> getSavedPostLocation({
+    required String postId,
+    required String userId,
   });
 
   /// 획득한 뱃지 ID 집합
@@ -135,6 +144,18 @@ abstract class SocialRepository {
   Future<Either<Failure, void>> rejectFollowRequest(String followId);
   Future<Either<Failure, List<Follow>>> getFollowers(String userId);
   Future<Either<Failure, List<Follow>>> getFollowing(String userId);
+  Future<Either<Failure, List<Follow>>> getFollowersPage({
+    required String userId,
+    int limit = 20,
+    String? lastUserId,
+    String query = '',
+  });
+  Future<Either<Failure, List<Follow>>> getFollowingPage({
+    required String userId,
+    int limit = 20,
+    String? lastUserId,
+    String query = '',
+  });
   Future<Either<Failure, List<Follow>>> getPendingFollowRequests(String userId);
   Future<Either<Failure, bool>> isFollowing(
       String followerId, String followingId);
@@ -183,13 +204,17 @@ abstract class SocialRepository {
   });
 
   // Bookmark collection operations
-  Future<Either<Failure, List<BookmarkCollection>>> getBookmarkCollections(String userId);
+  Future<Either<Failure, List<BookmarkCollection>>> getBookmarkCollections(
+      String userId);
   Future<Either<Failure, BookmarkCollection>> createBookmarkCollection({
     required String userId,
     required String name,
     String emoji = '📁',
   });
-  Future<Either<Failure, void>> deleteBookmarkCollection(String collectionId);
+  Future<Either<Failure, void>> deleteBookmarkCollection({
+    required String collectionId,
+    required String userId,
+  });
   Future<Either<Failure, void>> updateSavedPostCollection({
     required String postId,
     required String userId,
@@ -219,8 +244,7 @@ abstract class SocialRepository {
   });
 
   // Cover image
-  Future<Either<Failure, String>> uploadCoverImage(
-      String userId, File file);
+  Future<Either<Failure, String>> uploadCoverImage(String userId, File file);
 
   // Block operations
   Future<Either<Failure, void>> blockUser(String blockerId, String blockedId);

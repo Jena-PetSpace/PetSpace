@@ -8,6 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_page_scaffold.dart';
+import '../../../../shared/widgets/petspace_settings_components.dart';
+import '../../../../shared/widgets/petspace_state_view.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 
 class PrivacySettingsPage extends StatefulWidget {
@@ -92,8 +95,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
-      final result =
-          await sl<SocialRepository>().unblockUser(userId, user.id);
+      final result = await sl<SocialRepository>().unblockUser(userId, user.id);
       result.fold((f) => throw Exception(f.message), (_) {});
       if (mounted) {
         setState(() => _blockedUsers.removeWhere((u) => u.id == user.id));
@@ -113,137 +115,151 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text('개인정보 보호'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/settings'),
-        ),
+    return PetSpacePageScaffold(
+      title: '개인정보 보호',
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        onPressed: () =>
+            context.canPop() ? context.pop() : context.go('/settings'),
       ),
       body: ListView(
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
         children: [
-          // ── 프라이버시 설정 ──────────────────────────────
-          Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
-            child: Text(
-              '프라이버시',
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.secondaryTextColor,
-              ),
-            ),
-          ),
-          Container(
-            color: Colors.white,
-            child: Column(children: [
-              SwitchListTile(
-                title: Text('비공개 계정', style: TextStyle(fontSize: 14.sp)),
-                subtitle: Text('승인된 팔로워만 내 게시물을 볼 수 있습니다',
-                    style: TextStyle(fontSize: 12.sp)),
+          PetSpaceSettingsSection(
+            title: '프라이버시',
+            children: [
+              _buildSwitchTile(
+                title: '비공개 계정',
+                subtitle: '승인된 팔로워만 내 게시물을 볼 수 있습니다',
                 value: _isPrivateAccount,
-                activeThumbColor: AppTheme.primaryColor,
                 onChanged: (value) {
                   setState(() => _isPrivateAccount = value);
                   _saveSetting('privacy_private_account', value);
                 },
               ),
-              SwitchListTile(
-                title: Text('온라인 상태 표시', style: TextStyle(fontSize: 14.sp)),
-                subtitle: Text('다른 사용자에게 온라인 상태를 보여줍니다',
-                    style: TextStyle(fontSize: 12.sp)),
+              _buildSwitchTile(
+                title: '온라인 상태 표시',
+                subtitle: '다른 사용자에게 온라인 상태를 보여줍니다',
                 value: _showOnlineStatus,
-                activeThumbColor: AppTheme.primaryColor,
                 onChanged: (value) {
                   setState(() => _showOnlineStatus = value);
                   _saveSetting('privacy_show_online', value);
                 },
               ),
-              SwitchListTile(
-                title: Text('이메일로 검색 허용', style: TextStyle(fontSize: 14.sp)),
-                subtitle: Text('다른 사용자가 이메일로 나를 찾을 수 있습니다',
-                    style: TextStyle(fontSize: 12.sp)),
+              _buildSwitchTile(
+                title: '이메일로 검색 허용',
+                subtitle: '다른 사용자가 이메일로 나를 찾을 수 있습니다',
                 value: _allowSearchByEmail,
-                activeThumbColor: AppTheme.primaryColor,
                 onChanged: (value) {
                   setState(() => _allowSearchByEmail = value);
                   _saveSetting('privacy_search_by_email', value);
                 },
               ),
-            ]),
+            ],
           ),
-
-          // ── 차단 목록 ──────────────────────────────────
-          Padding(
-            padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 8.h),
-            child: Text(
-              '차단한 사용자',
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.secondaryTextColor,
-              ),
-            ),
-          ),
-          Container(
-            color: Colors.white,
-            child: _blockedLoading
-                ? Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24.h),
-                    child: const Center(child: CircularProgressIndicator()),
-                  )
-                : _blockedUsers.isEmpty
-                    ? Padding(
-                        padding: EdgeInsets.all(24.w),
-                        child: Center(
-                          child: Text(
-                            '차단한 사용자가 없습니다',
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              color: AppTheme.secondaryTextColor,
-                            ),
-                          ),
-                        ),
-                      )
-                    : Column(
-                        children: _blockedUsers
-                            .map((u) => ListTile(
-                                  leading: CircleAvatar(
-                                    radius: 18.w,
-                                    backgroundImage: u.avatarUrl != null
-                                        ? NetworkImage(u.avatarUrl!)
-                                        : null,
-                                    child: u.avatarUrl == null
-                                        ? Text(
-                                            u.displayName.isNotEmpty
-                                                ? u.displayName[0]
-                                                : '?',
-                                          )
-                                        : null,
-                                  ),
-                                  title: Text(
-                                    u.displayName,
-                                    style: TextStyle(fontSize: 14.sp),
-                                  ),
-                                  trailing: TextButton(
-                                    onPressed: () => _unblockUser(u),
-                                    child: Text(
-                                      '차단 해제',
-                                      style: TextStyle(
-                                        color: AppTheme.primaryColor,
-                                        fontSize: 12.sp,
-                                      ),
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
-                      ),
+          SizedBox(height: 24.h),
+          PetSpaceSettingsSection(
+            title: '차단한 사용자',
+            children: [
+              if (_blockedLoading)
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                  child: const PetSpaceStateView.loading(),
+                )
+              else if (_blockedUsers.isEmpty)
+                const PetSpaceStateView.empty(
+                  message: '차단한 사용자가 없습니다',
+                )
+              else
+                ..._blockedUsers.map((u) => _buildBlockedUserTile(u)),
+            ],
           ),
           SizedBox(height: 32.h),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    // 다크모드는 Theme의 text를 우선하고 라이트모드 시각값은 유지한다.
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color bodyColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
+    final Color mutedColor =
+        isDark ? theme.colorScheme.onSurfaceVariant : AppTheme.textMuted;
+    return SwitchListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: AppTheme.fontBody.sp,
+          fontWeight: FontWeight.w500,
+          color: bodyColor,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: AppTheme.fontCaption.sp,
+          color: mutedColor,
+        ),
+      ),
+      value: value,
+      activeThumbColor: AppTheme.actionBase,
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 2.h),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildBlockedUserTile(_BlockedUser u) {
+    // 다크모드는 Theme의 text를 우선하고 라이트모드 시각값은 유지한다.
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color bodyColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
+    return ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 2.h),
+      leading: CircleAvatar(
+        radius: 18.w,
+        backgroundColor: AppTheme.actionContainer,
+        backgroundImage:
+            u.avatarUrl != null ? NetworkImage(u.avatarUrl!) : null,
+        child: u.avatarUrl == null
+            ? Text(
+                u.displayName.isNotEmpty ? u.displayName[0] : '?',
+                style: TextStyle(
+                  fontSize: AppTheme.fontBody.sp,
+                  color: AppTheme.actionBase,
+                ),
+              )
+            : null,
+      ),
+      title: Text(
+        u.displayName,
+        style: TextStyle(
+          fontSize: AppTheme.fontBody.sp,
+          color: bodyColor,
+        ),
+      ),
+      trailing: TextButton(
+        onPressed: () => _unblockUser(u),
+        style: TextButton.styleFrom(
+          minimumSize: const Size(44, 44),
+        ),
+        child: Text(
+          '차단 해제',
+          style: TextStyle(
+            color: AppTheme.actionBase,
+            fontSize: AppTheme.fontCaption.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

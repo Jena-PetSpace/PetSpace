@@ -152,8 +152,10 @@ class ProfileService {
       final userId = _currentUserId;
 
       // 게시물 수
-      final postsResponse =
-          await _supabase.from('posts').select('author_id').eq('author_id', userId);
+      final postsResponse = await _supabase
+          .from('posts')
+          .select('author_id')
+          .eq('author_id', userId);
       final postsCount = (postsResponse as List).length;
 
       // 팔로워 수
@@ -177,11 +179,9 @@ class ProfileService {
       };
     } catch (e) {
       log('프로필 통계 조회 오류: $e', name: 'ProfileService.getProfileStats');
-      return {
-        'posts': 0,
-        'followers': 0,
-        'following': 0,
-      };
+      // 실패를 실제 통계 0으로 위장하지 않는다. 현재 유일한 소비자인
+      // MyProfileHeader가 오류/재시도 상태를 정확히 표시하도록 상향 전달한다.
+      rethrow;
     }
   }
 

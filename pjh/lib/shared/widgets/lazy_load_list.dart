@@ -367,6 +367,12 @@ class LazyGridView<T> extends StatefulWidget {
   final EdgeInsets? padding;
   final Widget? emptyWidget;
 
+  /// 최초 조회 실패 시 표시할 선택형 상태 위젯.
+  ///
+  /// nullable인 이유는 기존 호출부의 동작을 보존하기 위해서다. 제공한 호출부는
+  /// [onRetry]를 상태뷰의 재시도 액션에 연결해야 한다.
+  final Widget Function(VoidCallback onRetry)? errorWidget;
+
   /// 그리드 위에 함께 스크롤되는 헤더(선택). null이면 기존 GridView.builder 경로
   /// 그대로(동작 무변경). 지정 시 CustomScrollView로 헤더+그리드를 한 스크롤로 묶되
   /// 페이지네이션(_onScroll)·controller는 동일하게 유지한다.
@@ -383,6 +389,7 @@ class LazyGridView<T> extends StatefulWidget {
     this.childAspectRatio = 1,
     this.padding,
     this.emptyWidget,
+    this.errorWidget,
     this.header,
   });
 
@@ -396,6 +403,7 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
   bool _isLoading = false;
   bool _isLoadingMore = false;
+  bool _hasError = false;
   bool _hasMore = true;
 
   @override
@@ -423,18 +431,22 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
     setState(() {
       _isLoading = true;
+      _hasError = false;
     });
 
     try {
       final newItems = await widget.onLoadInitial();
+      if (!mounted) return;
       setState(() {
         _items.clear();
         _items.addAll(newItems);
         _hasMore = newItems.isNotEmpty;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
+        _hasError = true;
         _isLoading = false;
       });
     }
@@ -449,12 +461,14 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
     try {
       final newItems = await widget.onLoadMore();
+      if (!mounted) return;
       setState(() {
         _items.addAll(newItems);
         _hasMore = newItems.isNotEmpty;
         _isLoadingMore = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         _isLoadingMore = false;
       });
@@ -473,6 +487,23 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
     if (_isLoading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_hasError && _items.isEmpty && widget.errorWidget != null) {
+      return RefreshIndicator(
+        onRefresh: _loadInitialData,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: widget.errorWidget!(_loadInitialData),
+              ),
+            );
+          },
+        ),
+      );
     }
 
     if (!_isLoading && _items.isEmpty && widget.emptyWidget != null) {
@@ -521,8 +552,11 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
   /// 헤더 + 그리드를 같은 ScrollController로 스크롤. 빈 상태에도 헤더는 노출.
   Widget _buildWithHeader() {
     final showGrid = !(_isLoading && _items.isEmpty);
-    final showEmpty =
-        !_isLoading && _items.isEmpty && widget.emptyWidget != null;
+    final showError = _hasError && _items.isEmpty && widget.errorWidget != null;
+    final showEmpty = !_isLoading &&
+        !showError &&
+        _items.isEmpty &&
+        widget.emptyWidget != null;
 
     return CustomScrollView(
       controller: _scrollController,
@@ -534,6 +568,11 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
               padding: EdgeInsets.symmetric(vertical: 32),
               child: Center(child: CircularProgressIndicator()),
             ),
+          )
+        else if (showError)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: widget.errorWidget!(_loadInitialData),
           )
         else if (showEmpty)
           SliverToBoxAdapter(child: widget.emptyWidget!)
@@ -554,8 +593,8 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
                   }
                   return widget.itemBuilder(context, _items[index], index);
                 },
-                childCount:
-                    _items.length + (_isLoadingMore ? widget.crossAxisCount : 0),
+                childCount: _items.length +
+                    (_isLoadingMore ? widget.crossAxisCount : 0),
               ),
             ),
           ),

@@ -1,53 +1,86 @@
 part of 'bookmark_bloc.dart';
 
-abstract class BookmarkState extends Equatable {
-  const BookmarkState();
+enum BookmarkLoadStatus { initial, loading, success, failure }
 
-  @override
-  List<Object?> get props => [];
-}
+enum BookmarkActionStatus { idle, loading, success, failure }
 
-class BookmarkInitial extends BookmarkState {}
-
-class BookmarkLoading extends BookmarkState {}
-
-class BookmarkPostsLoading extends BookmarkState {}
-
-class BookmarkCollectionsLoaded extends BookmarkState {
+class BookmarkState extends Equatable {
+  final BookmarkLoadStatus collectionsStatus;
+  final BookmarkLoadStatus allCountStatus;
+  final BookmarkLoadStatus unassignedCountStatus;
+  final BookmarkActionStatus actionStatus;
   final List<BookmarkCollection> collections;
-  const BookmarkCollectionsLoaded(this.collections);
+  final int? allCount;
+  final int? unassignedCount;
+  final String? collectionsError;
+  final String? allCountError;
+  final String? unassignedCountError;
+  final String? actionError;
 
-  @override
-  List<Object?> get props => [collections];
-}
-
-class BookmarkPostsLoaded extends BookmarkState {
-  final String? collectionId;
-  final List<Post> posts;
-
-  const BookmarkPostsLoaded({
-    this.collectionId,
-    required this.posts,
+  const BookmarkState({
+    this.collectionsStatus = BookmarkLoadStatus.initial,
+    this.allCountStatus = BookmarkLoadStatus.initial,
+    this.unassignedCountStatus = BookmarkLoadStatus.initial,
+    this.actionStatus = BookmarkActionStatus.idle,
+    this.collections = const [],
+    this.allCount,
+    this.unassignedCount,
+    this.collectionsError,
+    this.allCountError,
+    this.unassignedCountError,
+    this.actionError,
   });
 
+  BookmarkState copyWith({
+    BookmarkLoadStatus? collectionsStatus,
+    BookmarkLoadStatus? allCountStatus,
+    BookmarkLoadStatus? unassignedCountStatus,
+    BookmarkActionStatus? actionStatus,
+    List<BookmarkCollection>? collections,
+    int? allCount,
+    int? unassignedCount,
+    String? collectionsError,
+    String? allCountError,
+    String? unassignedCountError,
+    String? actionError,
+    bool clearCollectionsError = false,
+    bool clearAllCountError = false,
+    bool clearUnassignedCountError = false,
+    bool clearActionError = false,
+  }) {
+    return BookmarkState(
+      collectionsStatus: collectionsStatus ?? this.collectionsStatus,
+      allCountStatus: allCountStatus ?? this.allCountStatus,
+      unassignedCountStatus:
+          unassignedCountStatus ?? this.unassignedCountStatus,
+      actionStatus: actionStatus ?? this.actionStatus,
+      collections: collections ?? this.collections,
+      allCount: allCount ?? this.allCount,
+      unassignedCount: unassignedCount ?? this.unassignedCount,
+      collectionsError: clearCollectionsError
+          ? null
+          : collectionsError ?? this.collectionsError,
+      allCountError:
+          clearAllCountError ? null : allCountError ?? this.allCountError,
+      unassignedCountError: clearUnassignedCountError
+          ? null
+          : unassignedCountError ?? this.unassignedCountError,
+      actionError: clearActionError ? null : actionError ?? this.actionError,
+    );
+  }
+
   @override
-  List<Object?> get props => [collectionId, posts];
-}
-
-class BookmarkPostMoved extends BookmarkState {
-  final String postId;
-  final String? collectionId;
-
-  const BookmarkPostMoved({required this.postId, this.collectionId});
-
-  @override
-  List<Object?> get props => [postId, collectionId];
-}
-
-class BookmarkError extends BookmarkState {
-  final String message;
-  const BookmarkError(this.message);
-
-  @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [
+        collectionsStatus,
+        allCountStatus,
+        unassignedCountStatus,
+        actionStatus,
+        collections,
+        allCount,
+        unassignedCount,
+        collectionsError,
+        allCountError,
+        unassignedCountError,
+        actionError,
+      ];
 }

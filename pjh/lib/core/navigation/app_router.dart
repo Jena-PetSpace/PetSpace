@@ -67,6 +67,7 @@ import '../../features/auth/presentation/pages/password_reset_request_page.dart'
 import '../../features/auth/presentation/pages/password_reset_verification_page.dart';
 import '../../features/auth/presentation/pages/password_reset_new_password_page.dart';
 import '../../features/pets/presentation/pages/pet_management_page.dart';
+import '../../features/pets/presentation/pages/pet_editor_page.dart';
 import '../../features/pets/presentation/bloc/pet_bloc.dart';
 import '../../features/pets/presentation/bloc/pet_event.dart';
 import '../../features/chat/presentation/pages/chat_rooms_page.dart';
@@ -137,13 +138,61 @@ class AppRouter {
             );
           },
         ),
-        GoRoute(path: '/channels', builder: (_, __) => const ChannelSubscriptionPage()),
+        GoRoute(
+            path: '/channels',
+            builder: (_, __) => const ChannelSubscriptionPage()),
         GoRoute(
           path: '/pet/public/:petId',
-          builder: (_, state) => PublicPetPage(petId: state.pathParameters['petId']!),
+          builder: (_, state) =>
+              PublicPetPage(petId: state.pathParameters['petId']!),
         ),
-        GoRoute(path: '/emotion/weekly-report', builder: (_, __) => const WeeklyReportPage()),
-        GoRoute(path: '/health/alert-settings', builder: (_, __) => const HealthAlertSettingsPage()),
+        GoRoute(
+          path: PetEditorRoutes.createPath,
+          name: PetEditorRoutes.createName,
+          builder: (context, state) {
+            final data = state.extra;
+            final authState = authBloc.state;
+            if (data is! PetEditorRouteData ||
+                data.pet != null ||
+                authState is! AuthAuthenticated) {
+              return const PetEditorRouteErrorPage();
+            }
+            return BlocProvider.value(
+              value: data.petBloc,
+              child: PetEditorPage(userId: authState.user.uid),
+            );
+          },
+        ),
+        GoRoute(
+          path: PetEditorRoutes.editPath,
+          name: PetEditorRoutes.editName,
+          builder: (context, state) {
+            final data = state.extra;
+            final authState = authBloc.state;
+            final petId = state.pathParameters['petId'];
+            if (data is! PetEditorRouteData ||
+                authState is! AuthAuthenticated ||
+                !data.matchesEdit(
+                  petId: petId,
+                  userId: authState.user.uid,
+                )) {
+              return const PetEditorRouteErrorPage();
+            }
+            return BlocProvider.value(
+              value: data.petBloc,
+              child: PetEditorPage(
+                userId: authState.user.uid,
+                pet: data.pet,
+              ),
+            );
+          },
+        ),
+        GoRoute(
+            path: '/emotion/weekly-report',
+            builder: (_, __) => const WeeklyReportPage()),
+        GoRoute(
+            path: '/health/alert-settings',
+            builder: (_, __) => const HealthAlertSettingsPage()),
         GoRoute(path: '/news', builder: (_, __) => const NewsListPage()),
         GoRoute(
           path: '/privacy',
@@ -510,8 +559,8 @@ class AppRouter {
               builder: (context, state) {
                 final petId = state.uri.queryParameters['petId'] ?? '';
                 final petName = state.uri.queryParameters['petName'];
-                final species = MbtiSpeciesX.fromKey(
-                    state.uri.queryParameters['species']);
+                final species =
+                    MbtiSpeciesX.fromKey(state.uri.queryParameters['species']);
                 return MbtiTestPage(
                   petId: petId,
                   species: species,

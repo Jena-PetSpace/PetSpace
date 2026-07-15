@@ -25,6 +25,15 @@ class LoadMoreComments extends CommentEvent {
   List<Object?> get props => [postId];
 }
 
+class RefreshCommentsFromRealtime extends CommentEvent {
+  final String postId;
+
+  const RefreshCommentsFromRealtime({required this.postId});
+
+  @override
+  List<Object?> get props => [postId];
+}
+
 class CreateCommentRequested extends CommentEvent {
   final String postId;
   final String content;
@@ -39,7 +48,7 @@ class CreateCommentRequested extends CommentEvent {
   });
 
   @override
-  List<Object?> get props => [postId, content, postAuthorId];
+  List<Object?> get props => [postId, content, postAuthorId, senderName];
 }
 
 class DeleteCommentRequested extends CommentEvent {
@@ -93,5 +102,11 @@ class CreateReplyRequested extends CommentEvent {
   });
 
   @override
-  List<Object?> get props => [postId, parentId, content];
+  List<Object?> get props => [
+    postId,
+    parentId,
+    content,
+    postAuthorId,
+    senderName,
+  ];
 }

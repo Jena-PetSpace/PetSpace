@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -14,15 +13,32 @@ import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../emotion/domain/repositories/emotion_repository.dart';
+import '../../domain/entities/saved_posts_page.dart';
 import '../../domain/repositories/social_repository.dart';
 import '../bloc/comment_bloc.dart';
 import '../bloc/comment_event.dart';
 import '../bloc/comment_state.dart';
+import '../utils/saved_posts_change_notifier.dart';
+import '../widgets/collection_picker_sheet.dart';
 import '../widgets/comment_list_item.dart';
+
+enum _PostLoadStatus { loading, loaded, error, notFound }
 
 class PostDetailPage extends StatefulWidget {
   final String postId;
-  const PostDetailPage({super.key, required this.postId});
+  final SocialRepository? repository;
+  final CommentBloc? commentBloc;
+  final String? currentUserId;
+  final SavedPostsChangeNotifier? savedPostsNotifier;
+
+  const PostDetailPage({
+    super.key,
+    required this.postId,
+    this.repository,
+    this.commentBloc,
+    this.currentUserId,
+    this.savedPostsNotifier,
+  });
 
   @override
   State<PostDetailPage> createState() => _PostDetailPageState();
@@ -32,12 +48,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
   final _commentController = TextEditingController();
   final _scrollController = ScrollController();
   Map<String, dynamic>? _post;
-  bool _postLoading = true;
+  late final SocialRepository _repository;
+  _PostLoadStatus _postStatus = _PostLoadStatus.loading;
 
   bool _isLiked = false;
   bool _isSaved = false;
+  bool _isSavePending = false;
   int _likesCount = 0;
-  Timer? _likeDebounce;
+  bool _isLikePending = false;
 
   // 답글 상태
   String? _replyToCommentId;
@@ -46,6 +64,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? di.sl<SocialRepository>();
     _scrollController.addListener(_onScroll);
     _loadPost();
   }
@@ -54,89 +73,204 @@ class _PostDetailPageState extends State<PostDetailPage> {
   void dispose() {
     _commentController.dispose();
     _scrollController.dispose();
-    _likeDebounce?.cancel();
     super.dispose();
   }
 
+  String get _currentUserId =>
+      widget.currentUserId ??
+      Supabase.instance.client.auth.currentUser?.id ??
+      '';
+
+  SavedPostsChangeNotifier get _savedPostsNotifier =>
+      widget.savedPostsNotifier ?? SavedPostsChangeNotifier.instance;
+
   Future<void> _loadPost() async {
-    final myId = Supabase.instance.client.auth.currentUser?.id ?? '';
-    final repo = di.sl<SocialRepository>();
+    setState(() => _postStatus = _PostLoadStatus.loading);
+    final myId = _currentUserId;
 
     try {
-      final detailResult = await repo.getPostDetail(widget.postId);
-      final res = detailResult.fold((_) => null, (r) => r);
+      final detailResult = await _repository.getPostDetail(widget.postId);
+      if (detailResult.isLeft()) {
+        if (mounted) setState(() => _postStatus = _PostLoadStatus.error);
+        return;
+      }
+      final res = detailResult.fold<Map<String, dynamic>?>(
+        (_) => null,
+        (value) => value,
+      );
+      if (res == null) {
+        if (mounted) setState(() => _postStatus = _PostLoadStatus.notFound);
+        return;
+      }
 
       bool liked = false;
       bool saved = false;
-      if (myId.isNotEmpty && res != null) {
-        final likedResult = await repo.isPostLiked(widget.postId, myId);
+      if (myId.isNotEmpty) {
+        final likedResult = await _repository.isPostLiked(widget.postId, myId);
         liked = likedResult.fold((_) => false, (v) => v);
-        final savedResult = await repo.isPostSaved(widget.postId, myId);
+        final savedResult = await _repository.isPostSaved(widget.postId, myId);
         saved = savedResult.fold((_) => false, (v) => v);
       }
 
       if (mounted) {
         setState(() {
           _post = res;
-          _postLoading = false;
+          _postStatus = _PostLoadStatus.loaded;
           _isLiked = liked;
           _isSaved = saved;
-          _likesCount = res?['likes_count'] as int? ?? 0;
+          _likesCount = (res['likes_count'] as num?)?.toInt() ?? 0;
         });
       }
     } catch (e) {
       dev.log('게시글 로드 실패: $e', name: 'PostDetailPage');
-      if (mounted) setState(() => _postLoading = false);
+      if (mounted) setState(() => _postStatus = _PostLoadStatus.error);
     }
   }
 
-  void _toggleLike() {
-    final myId = Supabase.instance.client.auth.currentUser?.id ?? '';
-    if (myId.isEmpty) return;
+  Future<void> _toggleLike() async {
+    final myId = _currentUserId;
+    if (myId.isEmpty || _isLikePending) return;
 
     HapticFeedback.lightImpact();
     final wasLiked = _isLiked;
+    final previousCount = _likesCount;
     setState(() {
+      _isLikePending = true;
       _isLiked = !wasLiked;
-      _likesCount += wasLiked ? -1 : 1;
+      _likesCount = wasLiked
+          ? (_likesCount - 1).clamp(0, 0x7fffffff).toInt()
+          : _likesCount + 1;
     });
 
-    _likeDebounce?.cancel();
-    _likeDebounce = Timer(const Duration(milliseconds: 300), () async {
-      final repo = di.sl<SocialRepository>();
-      final result = wasLiked
-          ? await repo.unlikePost(widget.postId, myId)
-          : await repo.likePost(widget.postId, myId);
-      result.fold((failure) {
-        dev.log('좋아요 토글 실패: ${failure.message}', name: 'PostDetailPage');
-        if (mounted) {
-          setState(() {
-            _isLiked = wasLiked;
-            _likesCount += wasLiked ? 1 : -1;
-          });
-        }
-      }, (_) {});
+    final result = wasLiked
+        ? await _repository.unlikePost(widget.postId, myId)
+        : await _repository.likePost(widget.postId, myId);
+    if (!mounted) return;
+    if (result.isLeft()) {
+      setState(() {
+        _isLikePending = false;
+        _isLiked = wasLiked;
+        _likesCount = previousCount;
+      });
+      _showSafeMessage('좋아요를 반영하지 못했어요. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+
+    int? serverCount;
+    bool? serverLiked;
+    try {
+      final detailResult = await _repository.getPostDetail(widget.postId);
+      final likedResult = await _repository.isPostLiked(widget.postId, myId);
+      serverCount = detailResult.fold<int?>(
+        (_) => null,
+        (detail) => (detail?['likes_count'] as num?)?.toInt(),
+      );
+      serverLiked = likedResult.fold<bool?>((_) => null, (liked) => liked);
+    } catch (error) {
+      dev.log('좋아요 상태 재조정 실패: $error', name: 'PostDetailPage');
+    }
+    if (!mounted) return;
+    setState(() {
+      _isLikePending = false;
+      if (serverCount != null) {
+        _likesCount = serverCount.clamp(0, 0x7fffffff).toInt();
+      }
+      if (serverLiked != null) _isLiked = serverLiked;
     });
   }
 
-  void _toggleSave() {
-    final myId = Supabase.instance.client.auth.currentUser?.id ?? '';
-    if (myId.isEmpty) return;
+  Future<void> _toggleSave() async {
+    final myId = _currentUserId;
+    if (myId.isEmpty || _isSavePending) return;
+    final postId = widget.postId;
+    final notifier = _savedPostsNotifier;
 
     HapticFeedback.lightImpact();
     final wasSaved = _isSaved;
-    setState(() => _isSaved = !wasSaved);
+    setState(() => _isSavePending = true);
 
-    Future(() async {
-      final repo = di.sl<SocialRepository>();
-      final result = wasSaved
-          ? await repo.unsavePost(widget.postId, myId)
-          : await repo.savePost(widget.postId, myId);
-      result.fold((failure) {
-        dev.log('저장 토글 실패: ${failure.message}', name: 'PostDetailPage');
-        if (mounted) setState(() => _isSaved = wasSaved);
-      }, (_) {});
+    SavedPostLocation? previousLocation;
+    if (wasSaved) {
+      final locationResult = await _repository.getSavedPostLocation(
+        postId: postId,
+        userId: myId,
+      );
+      if (!mounted) return;
+      if (locationResult.isLeft()) {
+        setState(() => _isSavePending = false);
+        _showSafeMessage('저장 위치를 확인하지 못했어요. 잠시 후 다시 시도해주세요.');
+        return;
+      }
+      previousLocation = locationResult.fold<SavedPostLocation?>(
+        (_) => null,
+        (value) => value,
+      );
+      if (previousLocation == null) {
+        setState(() {
+          _isSavePending = false;
+          _isSaved = false;
+        });
+        return;
+      }
+    }
+
+    final result = wasSaved
+        ? await _repository.unsavePost(postId, myId)
+        : await _repository.savePost(postId, myId);
+    if (result.isLeft()) {
+      if (!mounted) return;
+      setState(() {
+        _isSavePending = false;
+        _isSaved = wasSaved;
+      });
+      _showSafeMessage(
+        wasSaved
+            ? '저장 취소를 반영하지 못했어요. 잠시 후 다시 시도해주세요.'
+            : '게시물을 저장하지 못했어요. 잠시 후 다시 시도해주세요.',
+      );
+      return;
+    }
+
+    notifier.publish(
+      type:
+          wasSaved ? SavedPostsChangeType.unsaved : SavedPostsChangeType.saved,
+      postId: postId,
+      wasSaved: wasSaved,
+      isSaved: !wasSaved,
+      oldCollectionId: previousLocation?.collectionId,
+      newCollectionId: null,
+    );
+    if (!mounted) return;
+    setState(() {
+      _isSavePending = false;
+      _isSaved = !wasSaved;
     });
+    if (!wasSaved) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: const Text('게시물을 저장했어요'),
+            action: SnackBarAction(
+              label: '컬렉션 선택',
+              onPressed: _openCollectionPicker,
+            ),
+          ),
+        );
+    }
+  }
+
+  Future<void> _openCollectionPicker() async {
+    final myId = _currentUserId;
+    if (!_isSaved || _isSavePending || myId.isEmpty || !mounted) return;
+    await CollectionPickerSheet.show(
+      context,
+      postId: widget.postId,
+      userId: myId,
+      repository: _repository,
+      changeNotifier: _savedPostsNotifier,
+    );
   }
 
   void _onScroll() {
@@ -148,6 +282,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 
   void _submitComment(BuildContext ctx) {
+    final commentState = ctx.read<CommentBloc>().state;
+    if (commentState is CommentLoaded && commentState.isSubmitting) return;
     final content = _commentController.text.trim();
     if (content.isEmpty) return;
     if (ContentFilter.hasBannedKeyword(content)) {
@@ -164,27 +300,25 @@ class _PostDetailPageState extends State<PostDetailPage> {
         authState is AuthAuthenticated ? authState.user.displayName : '사용자';
 
     if (_replyToCommentId != null) {
-      ctx.read<CommentBloc>().add(CreateReplyRequested(
-            postId: widget.postId,
-            parentId: _replyToCommentId!,
-            content: content,
-            postAuthorId: _post?['author_id'] as String?,
-            senderName: senderName,
-          ));
-      setState(() {
-        _replyToCommentId = null;
-        _replyToAuthorName = null;
-      });
+      ctx.read<CommentBloc>().add(
+            CreateReplyRequested(
+              postId: widget.postId,
+              parentId: _replyToCommentId!,
+              content: content,
+              postAuthorId: _post?['author_id'] as String?,
+              senderName: senderName,
+            ),
+          );
     } else {
-      ctx.read<CommentBloc>().add(CreateCommentRequested(
-            postId: widget.postId,
-            content: content,
-            postAuthorId: _post?['author_id'] as String?,
-            senderName: senderName,
-          ));
+      ctx.read<CommentBloc>().add(
+            CreateCommentRequested(
+              postId: widget.postId,
+              content: content,
+              postAuthorId: _post?['author_id'] as String?,
+              senderName: senderName,
+            ),
+          );
     }
-    _commentController.clear();
-    FocusScope.of(ctx).unfocus();
   }
 
   void _showReplyInput(String commentId, String authorName) {
@@ -206,96 +340,157 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final injectedBloc = widget.commentBloc;
+    if (injectedBloc != null) {
+      return BlocProvider<CommentBloc>.value(
+        value: injectedBloc,
+        child: _buildScaffold(),
+      );
+    }
     return BlocProvider(
       create: (_) => CommentBloc(
         getComments: di.sl(),
         createComment: di.sl(),
         deleteComment: di.sl(),
         updateComment: di.sl(),
-        currentUserId: Supabase.instance.client.auth.currentUser?.id ?? '',
+        currentUserId: _currentUserId,
+        socialRepository: _repository,
       )..add(LoadComments(postId: widget.postId)),
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        appBar: AppBar(
-          title: Text('게시글',
-              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
-          centerTitle: true,
+      child: _buildScaffold(),
+    );
+  }
+
+  Widget _buildScaffold() {
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        title: Text(
+          '게시글',
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
         ),
-        body: Column(children: [
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
           Expanded(
             child: BlocConsumer<CommentBloc, CommentState>(
+              listenWhen: (previous, current) {
+                if (current is CommentError && previous != current) return true;
+                if (current is! CommentLoaded ||
+                    current.actionOutcome == null) {
+                  return false;
+                }
+                if (previous is CommentError &&
+                    current.actionOutcome?.succeeded == false) {
+                  return false;
+                }
+                final previousOutcome =
+                    previous is CommentLoaded ? previous.actionOutcome : null;
+                return previousOutcome != current.actionOutcome;
+              },
               listener: (context, state) {
                 if (state is CommentError) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(state.message),
-                      backgroundColor: AppTheme.errorColor));
+                  _showSafeMessage(state.message);
+                  return;
+                }
+                if (state is CommentLoaded && state.actionOutcome != null) {
+                  final outcome = state.actionOutcome!;
+                  if (!outcome.succeeded) {
+                    _showSafeMessage(
+                      outcome.message ?? '요청을 완료하지 못했어요. 잠시 후 다시 시도해주세요.',
+                    );
+                    return;
+                  }
+                  if (outcome.kind == CommentActionKind.commentCreated ||
+                      outcome.kind == CommentActionKind.replyCreated) {
+                    _commentController.clear();
+                    setState(() {
+                      _replyToCommentId = null;
+                      _replyToAuthorName = null;
+                    });
+                    FocusScope.of(context).unfocus();
+                  }
                 }
               },
               builder: (context, state) => CustomScrollView(
                 controller: _scrollController,
                 slivers: [
-                  SliverToBoxAdapter(child: _buildPostBody()),
+                  SliverToBoxAdapter(child: _buildPostBody(state)),
                   SliverToBoxAdapter(child: _buildCommentHeader(state)),
                   if (state is CommentLoaded && state.comments.isEmpty)
                     SliverToBoxAdapter(child: _buildEmptyComments()),
                   if (state is CommentLoading || state is CommentInitial)
                     SliverToBoxAdapter(
-                        child: Center(
-                            child: Padding(
-                                padding: EdgeInsets.all(24.h),
-                                child: const CircularProgressIndicator()))),
-                  if (state is CommentError)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.all(24.h),
-                        child: const Text('댓글을 불러오지 못했습니다',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppTheme.errorColor)),
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24.h),
+                          child: const CircularProgressIndicator(),
+                        ),
                       ),
                     ),
+                  if (state is CommentError)
+                    SliverToBoxAdapter(child: _buildCommentLoadError()),
                   if (state is CommentLoaded)
                     SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                      (ctx, i) {
+                      delegate: SliverChildBuilderDelegate((ctx, i) {
                         if (i == state.comments.length) {
-                          return state.isLoadingMore
-                              ? const Center(
-                                  child: Padding(
-                                      padding: EdgeInsets.all(8),
-                                      child: CircularProgressIndicator()))
-                              : const SizedBox.shrink();
+                          return _buildCommentFooter(state);
                         }
                         final comment = state.comments[i];
-                        final myId =
-                            Supabase.instance.client.auth.currentUser?.id ?? '';
+                        final myId = _currentUserId;
                         return CommentListItem(
                           comment: comment,
                           currentUserId: myId,
                           onDelete: comment.authorId == myId
                               ? () => context.read<CommentBloc>().add(
-                                  DeleteCommentRequested(commentId: comment.id))
+                                    DeleteCommentRequested(
+                                        commentId: comment.id),
+                                  )
                               : null,
-                          onReply: () => _showReplyInput(
-                              comment.id, comment.authorName),
+                          onReply: () =>
+                              _showReplyInput(comment.id, comment.authorName),
+                          pendingLikeIds: state.pendingLikeIds,
+                          pendingDeleteIds: state.pendingDeleteIds,
                         );
-                      },
-                      childCount: state.comments.length + 1,
-                    )),
+                      }, childCount: state.comments.length + 1),
+                    ),
                 ],
               ),
             ),
           ),
           Builder(builder: (ctx) => _buildCommentInput(ctx)),
-        ]),
+        ],
       ),
     );
   }
 
-  Widget _buildPostBody() {
-    if (_postLoading) {
-      return Padding(
+  Widget _buildPostBody(CommentState commentState) {
+    if (_postStatus == _PostLoadStatus.loading) {
+      return SizedBox(
+        height: 220.h,
+        child: Padding(
           padding: EdgeInsets.all(24.w),
-          child: const CommentShimmerLoading());
+          child: const CommentShimmerLoading(),
+        ),
+      );
+    }
+    if (_postStatus == _PostLoadStatus.error) {
+      return _buildPostState(
+        key: const Key('post_detail_error'),
+        icon: Icons.cloud_off_outlined,
+        title: '게시글을 불러오지 못했어요',
+        description: '연결 상태를 확인하고 다시 시도해주세요.',
+        actionLabel: '다시 시도',
+        onAction: _loadPost,
+      );
+    }
+    if (_postStatus == _PostLoadStatus.notFound) {
+      return _buildPostState(
+        key: const Key('post_detail_not_found'),
+        icon: Icons.find_in_page_outlined,
+        title: '게시글을 찾을 수 없어요',
+        description: '삭제되었거나 더 이상 볼 수 없는 게시글이에요.',
+      );
     }
     if (_post == null) return const SizedBox.shrink();
 
@@ -305,88 +500,157 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final content = _post!['caption'] as String? ?? '';
     // image_urls 배열 우선, 없으면 image_url 단일 필드 폴백
     final rawUrls = _post!['image_urls'];
-    final List<String> imageUrls = rawUrls != null && (rawUrls as List).isNotEmpty
-        ? List<String>.from(rawUrls)
-        : (_post!['image_url'] as String?) != null
-            ? [_post!['image_url'] as String]
-            : [];
+    final List<String> imageUrls =
+        rawUrls != null && (rawUrls as List).isNotEmpty
+            ? List<String>.from(rawUrls)
+            : (_post!['image_url'] as String?) != null
+                ? [_post!['image_url'] as String]
+                : [];
     final createdAt = _post!['created_at'] as String? ?? '';
-    final commentsCount = _post!['comments_count'] as int? ?? 0;
+    final commentsCount = _commentTotalCount(commentState);
 
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: AppTheme.dividerColor))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          // 아바타 폴백: 발바닥 아이콘 + 연블루 배경 (사람 아이콘 금지)
-          CircleAvatar(
-            radius: 20.r,
-            backgroundColor: AppTheme.tilePastelBlue,
-            backgroundImage:
-                photoUrl != null ? CachedNetworkImageProvider(photoUrl) : null,
-            child: photoUrl == null
-                ? Icon(Icons.pets, size: 20.w, color: AppTheme.primaryColor)
-                : null,
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-              child: Column(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppTheme.dividerColor)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // 아바타 폴백: 발바닥 아이콘 + 연블루 배경 (사람 아이콘 금지)
+              CircleAvatar(
+                radius: 20.r,
+                backgroundColor: AppTheme.tilePastelBlue,
+                backgroundImage: photoUrl != null
+                    ? CachedNetworkImageProvider(photoUrl)
+                    : null,
+                child: photoUrl == null
+                    ? Icon(Icons.pets, size: 20.w, color: AppTheme.primaryColor)
+                    : null,
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text(authorName,
-                    style: TextStyle(
-                        fontSize: 14.sp, fontWeight: FontWeight.w600)),
-                Text(_timeAgo(createdAt),
-                    style: TextStyle(
-                        fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
-              ])),
-        ]),
-        if (imageUrls.isNotEmpty) ...[
+                    Text(
+                      authorName,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      _timeAgo(createdAt),
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: AppTheme.secondaryTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (imageUrls.isNotEmpty) ...[
+            SizedBox(height: 12.h),
+            _MultiImageCarousel(imageUrls: imageUrls),
+          ],
+          if (content.isNotEmpty) ...[
+            SizedBox(height: 12.h),
+            Text(content, style: TextStyle(fontSize: 14.sp, height: 1.6)),
+          ],
+          // 감정 분석 컨텍스트 카드 (emotion 타입 게시물)
+          _buildEmotionContextCard(),
           SizedBox(height: 12.h),
-          _MultiImageCarousel(imageUrls: imageUrls),
-        ],
-        if (content.isNotEmpty) ...[
-          SizedBox(height: 12.h),
-          Text(content, style: TextStyle(fontSize: 14.sp, height: 1.6))
-        ],
-        // 감정 분석 컨텍스트 카드 (emotion 타입 게시물)
-        _buildEmotionContextCard(),
-        SizedBox(height: 12.h),
-        Row(children: [
-          GestureDetector(
-            onTap: _toggleLike,
-            child: Row(children: [
+          Row(
+            children: [
+              Semantics(
+                button: true,
+                label: _isLiked ? '게시글 좋아요 취소' : '게시글 좋아요',
+                child: SizedBox(
+                  height: 44,
+                  child: TextButton.icon(
+                    key: const Key('post_detail_like_button'),
+                    onPressed: _isLikePending ? null : _toggleLike,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                      padding: EdgeInsets.symmetric(horizontal: 4.w),
+                      foregroundColor: _isLiked
+                          ? AppTheme.highlightColor
+                          : AppTheme.secondaryTextColor,
+                    ),
+                    icon: _isLikePending
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            _isLiked ? Icons.favorite : Icons.favorite_border,
+                            size: 20.w,
+                          ),
+                    label: Text(
+                      '$_likesCount',
+                      key: const Key('post_detail_likes_count'),
+                      style: TextStyle(fontSize: 13.sp),
+                    ),
+                  ),
+                ),
+              ),
               Icon(
-                _isLiked ? Icons.favorite : Icons.favorite_border,
+                Icons.chat_bubble_outline,
                 size: 20.w,
-                color: _isLiked ? AppTheme.highlightColor : AppTheme.secondaryTextColor,
+                color: AppTheme.secondaryTextColor,
               ),
               SizedBox(width: 4.w),
-              Text('$_likesCount',
-                  style: TextStyle(
-                      fontSize: 13.sp, color: AppTheme.secondaryTextColor)),
-            ]),
+              Text(
+                '$commentsCount',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: AppTheme.secondaryTextColor,
+                ),
+              ),
+              const Spacer(),
+              if (_isSaved)
+                TextButton.icon(
+                  key: const Key('post_detail_collection_button'),
+                  onPressed: _isSavePending ? null : _openCollectionPicker,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(44, 44),
+                    padding: EdgeInsets.symmetric(horizontal: 6.w),
+                  ),
+                  icon: Icon(Icons.folder_outlined, size: 18.w),
+                  label: Text('컬렉션 변경', style: TextStyle(fontSize: 12.sp)),
+                ),
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: IconButton(
+                  key: const Key('post_detail_save_button'),
+                  onPressed: _isSavePending ? null : _toggleSave,
+                  tooltip: _isSaved ? '저장 취소' : '게시글 저장',
+                  icon: _isSavePending
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                          size: 20.w,
+                          color: _isSaved
+                              ? AppTheme.primaryColor
+                              : AppTheme.secondaryTextColor,
+                        ),
+                ),
+              ),
+            ],
           ),
-          SizedBox(width: 12.w),
-          Icon(Icons.chat_bubble_outline,
-              size: 20.w, color: AppTheme.secondaryTextColor),
-          SizedBox(width: 4.w),
-          Text('$commentsCount',
-              style: TextStyle(
-                  fontSize: 13.sp, color: AppTheme.secondaryTextColor)),
-          const Spacer(),
-          GestureDetector(
-            onTap: _toggleSave,
-            child: Icon(
-              _isSaved ? Icons.bookmark : Icons.bookmark_border,
-              size: 20.w,
-              color: _isSaved ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
-            ),
-          ),
-        ]),
-      ]),
+        ],
+      ),
     );
   }
 
@@ -395,10 +659,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final petId = _post?['pet_id'] as String?;
     if (rawEmotion == null || petId == null) return const SizedBox.shrink();
 
-    final emotion = rawEmotion is Map<String, dynamic> ? rawEmotion : <String, dynamic>{};
-    final numEntries = emotion.entries
-        .where((e) => e.value is num)
-        .toList()
+    final emotion =
+        rawEmotion is Map<String, dynamic> ? rawEmotion : <String, dynamic>{};
+    final numEntries = emotion.entries.where((e) => e.value is num).toList()
       ..sort((a, b) => (b.value as num).compareTo(a.value as num));
     if (numEntries.isEmpty) return const SizedBox.shrink();
 
@@ -420,48 +683,82 @@ class _PostDetailPageState extends State<PostDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(Icons.psychology_outlined, size: 14.sp, color: cardColor),
-            SizedBox(width: 6.w),
-            Text('이 사진의 AI 감정분석',
-                style: TextStyle(fontSize: 12.sp,
-                    fontWeight: FontWeight.w600, color: cardColor)),
-          ]),
+          Row(
+            children: [
+              Icon(Icons.psychology_outlined, size: 14.sp, color: cardColor),
+              SizedBox(width: 6.w),
+              Text(
+                '이 사진의 AI 감정분석',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w600,
+                  color: cardColor,
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: 8.h),
-          Row(children: [
-            Icon(AppTheme.getEmotionIcon(dominant.key),
-                size: 28.sp, color: AppTheme.getEmotionColor(dominant.key)),
-            SizedBox(width: 8.w),
-            // 감정 라벨만 — 퍼센트 수치 노출 금지 (P0 정책, 수치는 데이터만 보존)
-            Text(label,
-                style: TextStyle(fontSize: 17.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.primaryTextColor)),
-          ]),
+          Row(
+            children: [
+              Icon(
+                AppTheme.getEmotionIcon(dominant.key),
+                size: 28.sp,
+                color: AppTheme.getEmotionColor(dominant.key),
+              ),
+              SizedBox(width: 8.w),
+              // 감정 라벨만 — 퍼센트 수치 노출 금지 (P0 정책, 수치는 데이터만 보존)
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: 6.h),
           FutureBuilder<String?>(
-            future: _getComparisonInsight(petId, dominant.key, dominant.value as num),
+            future: _getComparisonInsight(
+              petId,
+              dominant.key,
+              dominant.value as num,
+            ),
             builder: (ctx, snap) {
-              if (!snap.hasData || snap.data == null) return const SizedBox.shrink();
+              if (!snap.hasData || snap.data == null) {
+                return const SizedBox.shrink();
+              }
               return Padding(
                 padding: EdgeInsets.only(bottom: 6.h),
-                child: Text(snap.data!,
-                    style: TextStyle(fontSize: 12.sp,
-                        color: AppTheme.secondaryTextColor)),
+                child: Text(
+                  snap.data!,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ),
               );
             },
           ),
           GestureDetector(
-            onTap: () => context.push('/emotion-timeline', extra: {
-              'petId': petId,
-              'petName': petName,
-            }),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('전체 추이 보기',
-                  style: TextStyle(fontSize: 12.sp,
-                      fontWeight: FontWeight.w600, color: cardColor)),
-              Icon(Icons.chevron_right, size: 14.w, color: cardColor),
-            ]),
+            onTap: () => context.push(
+              '/emotion-timeline',
+              extra: {'petId': petId, 'petName': petName},
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '전체 추이 보기',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: cardColor,
+                  ),
+                ),
+                Icon(Icons.chevron_right, size: 14.w, color: cardColor),
+              ],
+            ),
           ),
         ],
       ),
@@ -469,7 +766,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 
   Future<String?> _getComparisonInsight(
-      String petId, String emotion, num value) async {
+    String petId,
+    String emotion,
+    num value,
+  ) async {
     final result = await di.sl<EmotionRepository>().getEmotionComparisonInsight(
           petId: petId,
           emotion: emotion,
@@ -479,13 +779,110 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 
   Widget _buildCommentHeader(CommentState state) {
-    final count = state is CommentLoaded ? state.comments.length : 0;
+    final count = _commentTotalCount(state);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       color: AppTheme.subtleBackground,
-      child: Text('댓글 $count개',
-          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600)),
+      child: Text(
+        '댓글 $count개',
+        style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+      ),
     );
+  }
+
+  int _commentTotalCount(CommentState state) {
+    if (state is CommentLoaded) return state.totalCount;
+    return (_post?['comments_count'] as num?)?.toInt() ?? 0;
+  }
+
+  Widget _buildPostState({
+    required Key key,
+    required IconData icon,
+    required String title,
+    required String description,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    return Padding(
+      key: key,
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 44.w, color: AppTheme.lightTextColor),
+          SizedBox(height: 12.h),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700),
+          ),
+          SizedBox(height: 6.h),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            SizedBox(height: 16.h),
+            OutlinedButton(onPressed: onAction, child: Text(actionLabel)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommentLoadError() {
+    return Padding(
+      key: const Key('post_comments_error'),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.cloud_off_outlined,
+            size: 40.w,
+            color: AppTheme.lightTextColor,
+          ),
+          SizedBox(height: 10.h),
+          const Text('댓글을 불러오지 못했어요'),
+          SizedBox(height: 12.h),
+          OutlinedButton(
+            key: const Key('post_comments_retry'),
+            onPressed: () => context.read<CommentBloc>().add(
+                  LoadComments(postId: widget.postId),
+                ),
+            child: const Text('다시 시도'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommentFooter(CommentLoaded state) {
+    if (state.isLoadingMore) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    if (state.error != null) {
+      return Center(
+        child: TextButton.icon(
+          key: const Key('post_comments_load_more_retry'),
+          onPressed: () => context.read<CommentBloc>().add(
+                LoadMoreComments(postId: widget.postId),
+              ),
+          icon: const Icon(Icons.refresh),
+          label: const Text('댓글 더 불러오기'),
+        ),
+      );
+    }
+    return const SizedBox(height: 12);
   }
 
   Widget _buildEmptyComments() => Padding(
@@ -493,8 +890,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.mode_comment_outlined,
-                size: 40.w, color: AppTheme.secondaryTextColor),
+            Icon(
+              Icons.mode_comment_outlined,
+              size: 40.w,
+              color: AppTheme.secondaryTextColor,
+            ),
             SizedBox(height: 12.h),
             Text(
               '아직 댓글이 없어요',
@@ -516,76 +916,97 @@ class _PostDetailPageState extends State<PostDetailPage> {
         ),
       );
 
-  Widget _buildCommentInput(BuildContext ctx) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 4.r,
-                offset: Offset(0, -2.h))
-          ],
-        ),
-        padding: EdgeInsets.only(
-            left: 16.w,
-            right: 8.w,
-            top: 8.h,
-            bottom: 8.h),
-        child: SafeArea(top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_replyToAuthorName != null)
-                Container(
-                  margin: EdgeInsets.only(bottom: 6.h),
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                  decoration: BoxDecoration(
-                    color: AppTheme.subtleBackground,
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Row(children: [
+  Widget _buildCommentInput(BuildContext ctx) {
+    final state = ctx.watch<CommentBloc>().state;
+    final isSubmitting = state is CommentLoaded && state.isSubmitting;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4.r,
+            offset: Offset(0, -2.h),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.only(left: 16.w, right: 8.w, top: 8.h, bottom: 8.h),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_replyToAuthorName != null)
+              Container(
+                margin: EdgeInsets.only(bottom: 6.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: AppTheme.subtleBackground,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Row(
+                  children: [
                     Icon(Icons.reply, size: 14.w, color: AppTheme.primaryColor),
                     SizedBox(width: 6.w),
                     Expanded(
                       child: Text(
                         '${_replyToAuthorName!}에게 답글',
                         style: TextStyle(
-                            fontSize: 12.sp, color: AppTheme.primaryColor),
+                          fontSize: 12.sp,
+                          color: AppTheme.primaryColor,
+                        ),
                       ),
                     ),
                     GestureDetector(
                       onTap: _cancelReply,
-                      child: Icon(Icons.close,
-                          size: 16.w, color: AppTheme.secondaryTextColor),
+                      child: Icon(
+                        Icons.close,
+                        size: 16.w,
+                        color: AppTheme.secondaryTextColor,
+                      ),
                     ),
-                  ]),
+                  ],
                 ),
-              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
                 Expanded(
                   child: TextField(
+                    key: const Key('post_comment_input'),
                     controller: _commentController,
+                    enabled: !isSubmitting,
                     style: TextStyle(fontSize: 14.sp),
                     decoration: InputDecoration(
                       hintText: _replyToAuthorName != null
                           ? '답글을 입력하세요...'
                           : '댓글을 입력하세요...',
                       hintStyle: TextStyle(
-                          fontSize: 14.sp, color: AppTheme.hintColor),
+                        fontSize: 14.sp,
+                        color: AppTheme.hintColor,
+                      ),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24.r),
-                          borderSide:
-                              const BorderSide(color: AppTheme.dividerColor)),
+                        borderRadius: BorderRadius.circular(24.r),
+                        borderSide: const BorderSide(
+                          color: AppTheme.dividerColor,
+                        ),
+                      ),
                       enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24.r),
-                          borderSide:
-                              const BorderSide(color: AppTheme.dividerColor)),
+                        borderRadius: BorderRadius.circular(24.r),
+                        borderSide: const BorderSide(
+                          color: AppTheme.dividerColor,
+                        ),
+                      ),
                       focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24.r),
-                          borderSide:
-                              const BorderSide(color: AppTheme.primaryColor)),
+                        borderRadius: BorderRadius.circular(24.r),
+                        borderSide: const BorderSide(
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
                       contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16.w, vertical: 10.h),
+                        horizontal: 16.w,
+                        vertical: 10.h,
+                      ),
                     ),
                     maxLines: null,
                     textInputAction: TextInputAction.send,
@@ -593,15 +1014,33 @@ class _PostDetailPageState extends State<PostDetailPage> {
                   ),
                 ),
                 IconButton(
-                    onPressed: () => _submitComment(ctx),
-                    icon: Icon(Icons.send_rounded, size: 24.w),
-                    tooltip: '댓글 전송',
-                    color: AppTheme.primaryColor),
-              ]),
-            ],
-          ),
+                  key: const Key('post_comment_send'),
+                  onPressed: isSubmitting ? null : () => _submitComment(ctx),
+                  icon: isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(Icons.send_rounded, size: 24.w),
+                  tooltip: '댓글 전송',
+                  color: AppTheme.primaryColor,
+                ),
+              ],
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  void _showSafeMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
       );
+  }
 
   String _timeAgo(String iso) {
     if (iso.isEmpty) return '';
@@ -659,8 +1098,11 @@ class _MultiImageCarouselState extends State<_MultiImageCarousel> {
                     Container(color: AppTheme.subtleBackground),
                 errorWidget: (_, __, ___) => Container(
                   color: AppTheme.subtleBackground,
-                  child: Icon(Icons.broken_image,
-                      size: 48.w, color: AppTheme.hintColor),
+                  child: Icon(
+                    Icons.broken_image,
+                    size: 48.w,
+                    color: AppTheme.hintColor,
+                  ),
                 ),
               ),
             ),
@@ -677,9 +1119,8 @@ class _MultiImageCarouselState extends State<_MultiImageCarousel> {
                 width: _current == i ? 16.w : 6.w,
                 height: 6.h,
                 decoration: BoxDecoration(
-                  color: _current == i
-                      ? AppTheme.primaryColor
-                      : Colors.grey[300],
+                  color:
+                      _current == i ? AppTheme.primaryColor : Colors.grey[300],
                   borderRadius: BorderRadius.circular(3.r),
                 ),
               );

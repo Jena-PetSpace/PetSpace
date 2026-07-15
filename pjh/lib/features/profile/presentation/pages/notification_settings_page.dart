@@ -8,6 +8,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../config/injection_container.dart';
 import '../../../../core/services/permission_helper.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_page_scaffold.dart';
+import '../../../../shared/widgets/petspace_settings_components.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
@@ -93,7 +95,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
       if (mounted) setState(() => _loading = false);
       return;
     }
-    final result = await sl<SocialRepository>().getNotificationPreferences(userId);
+    final result =
+        await sl<SocialRepository>().getNotificationPreferences(userId);
     await result.fold(
       (failure) async {
         dev.log('서버 알림 설정 로드 실패(로컬 값 유지): ${failure.message}',
@@ -157,149 +160,179 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('알림 설정'),
-        actions: [
-          if (_loading)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
+    return PetSpacePageScaffold(
+      title: '알림 설정',
+      actions: [
+        if (_loading)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Center(
               child: SizedBox(
                 width: 18.w,
                 height: 18.w,
                 child: const CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
       body: ListView(
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
         children: [
-          if (!_systemPermissionGranted) _SystemPermissionWarning(
-            onTap: () async {
-              await PermissionHelper.showSettingsBottomSheet(
-                context,
-                permissionName: '알림',
-                reason: '푸시 알림을 받으려면 시스템 알림 권한이 필요합니다.',
-              );
-              await _checkSystemPermission();
-            },
-          ),
-          SwitchListTile(
-            title: Text('푸시 알림', style: TextStyle(fontSize: 14.sp)),
-            subtitle:
-                Text('전체 푸시 알림을 켜거나 끕니다', style: TextStyle(fontSize: 12.sp)),
-            value: _pushEnabled,
-            activeThumbColor: AppTheme.primaryColor,
-            onChanged: (value) {
-              setState(() => _pushEnabled = value);
-              _saveSetting('notification_push_enabled', 'enabled_push', value,
-                  onRollback: () => setState(() => _pushEnabled = !value));
-            },
-          ),
-          const Divider(),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            child: Text(
-              '알림 유형',
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[600],
-              ),
+          if (!_systemPermissionGranted)
+            _SystemPermissionWarning(
+              onTap: () async {
+                await PermissionHelper.showSettingsBottomSheet(
+                  context,
+                  permissionName: '알림',
+                  reason: '푸시 알림을 받으려면 시스템 알림 권한이 필요합니다.',
+                );
+                await _checkSystemPermission();
+              },
             ),
+          PetSpaceSettingsSection(
+            children: [
+              _buildSwitchTile(
+                title: '푸시 알림',
+                subtitle: '전체 푸시 알림을 켜거나 끕니다',
+                value: _pushEnabled,
+                onChanged: (value) {
+                  setState(() => _pushEnabled = value);
+                  _saveSetting(
+                      'notification_push_enabled', 'enabled_push', value,
+                      onRollback: () => setState(() => _pushEnabled = !value));
+                },
+              ),
+            ],
           ),
-          SwitchListTile(
-            title: Text('좋아요', style: TextStyle(fontSize: 14.sp)),
-            subtitle:
-                Text('내 게시물에 좋아요가 달리면 알림', style: TextStyle(fontSize: 12.sp)),
-            value: _likeNotification && _pushEnabled,
-            activeThumbColor: AppTheme.primaryColor,
-            onChanged: _pushEnabled
-                ? (value) {
-                    setState(() => _likeNotification = value);
-                    _saveSetting('notification_like', 'enabled_like', value,
-                        onRollback: () =>
-                            setState(() => _likeNotification = !value));
-                  }
-                : null,
+          SizedBox(height: 24.h),
+          PetSpaceSettingsSection(
+            title: '알림 유형',
+            children: [
+              _buildSwitchTile(
+                title: '좋아요',
+                subtitle: '내 게시물에 좋아요가 달리면 알림',
+                value: _likeNotification && _pushEnabled,
+                onChanged: _pushEnabled
+                    ? (value) {
+                        setState(() => _likeNotification = value);
+                        _saveSetting('notification_like', 'enabled_like', value,
+                            onRollback: () =>
+                                setState(() => _likeNotification = !value));
+                      }
+                    : null,
+              ),
+              _buildSwitchTile(
+                title: '댓글',
+                subtitle: '내 게시물에 댓글이 달리면 알림',
+                value: _commentNotification && _pushEnabled,
+                onChanged: _pushEnabled
+                    ? (value) {
+                        setState(() => _commentNotification = value);
+                        _saveSetting(
+                            'notification_comment', 'enabled_comment', value,
+                            onRollback: () =>
+                                setState(() => _commentNotification = !value));
+                      }
+                    : null,
+              ),
+              _buildSwitchTile(
+                title: '팔로우',
+                subtitle: '누군가 나를 팔로우하면 알림',
+                value: _followNotification && _pushEnabled,
+                onChanged: _pushEnabled
+                    ? (value) {
+                        setState(() => _followNotification = value);
+                        _saveSetting(
+                            'notification_follow', 'enabled_follow', value,
+                            onRollback: () =>
+                                setState(() => _followNotification = !value));
+                      }
+                    : null,
+              ),
+              _buildSwitchTile(
+                title: '멘션',
+                subtitle: '누군가 나를 언급하면 알림',
+                value: _mentionNotification && _pushEnabled,
+                onChanged: _pushEnabled
+                    ? (value) {
+                        setState(() => _mentionNotification = value);
+                        _saveSetting(
+                            'notification_mention', 'enabled_mention', value,
+                            onRollback: () =>
+                                setState(() => _mentionNotification = !value));
+                      }
+                    : null,
+              ),
+              _buildSwitchTile(
+                title: '채팅',
+                subtitle: '새 채팅 메시지가 오면 알림',
+                value: _chatNotification && _pushEnabled,
+                onChanged: _pushEnabled
+                    ? (value) {
+                        setState(() => _chatNotification = value);
+                        _saveSetting('notification_chat', null, value);
+                      }
+                    : null,
+              ),
+              _buildSwitchTile(
+                title: '시스템',
+                subtitle: '공지사항 및 시스템 안내',
+                value: _systemNotification && _pushEnabled,
+                onChanged: _pushEnabled
+                    ? (value) {
+                        setState(() => _systemNotification = value);
+                        _saveSetting(
+                            'notification_system', 'enabled_system', value,
+                            onRollback: () =>
+                                setState(() => _systemNotification = !value));
+                      }
+                    : null,
+              ),
+            ],
           ),
-          SwitchListTile(
-            title: Text('댓글', style: TextStyle(fontSize: 14.sp)),
-            subtitle:
-                Text('내 게시물에 댓글이 달리면 알림', style: TextStyle(fontSize: 12.sp)),
-            value: _commentNotification && _pushEnabled,
-            activeThumbColor: AppTheme.primaryColor,
-            onChanged: _pushEnabled
-                ? (value) {
-                    setState(() => _commentNotification = value);
-                    _saveSetting(
-                        'notification_comment', 'enabled_comment', value,
-                        onRollback: () =>
-                            setState(() => _commentNotification = !value));
-                  }
-                : null,
-          ),
-          SwitchListTile(
-            title: Text('팔로우', style: TextStyle(fontSize: 14.sp)),
-            subtitle:
-                Text('누군가 나를 팔로우하면 알림', style: TextStyle(fontSize: 12.sp)),
-            value: _followNotification && _pushEnabled,
-            activeThumbColor: AppTheme.primaryColor,
-            onChanged: _pushEnabled
-                ? (value) {
-                    setState(() => _followNotification = value);
-                    _saveSetting('notification_follow', 'enabled_follow', value,
-                        onRollback: () =>
-                            setState(() => _followNotification = !value));
-                  }
-                : null,
-          ),
-          SwitchListTile(
-            title: Text('멘션', style: TextStyle(fontSize: 14.sp)),
-            subtitle:
-                Text('누군가 나를 언급하면 알림', style: TextStyle(fontSize: 12.sp)),
-            value: _mentionNotification && _pushEnabled,
-            activeThumbColor: AppTheme.primaryColor,
-            onChanged: _pushEnabled
-                ? (value) {
-                    setState(() => _mentionNotification = value);
-                    _saveSetting(
-                        'notification_mention', 'enabled_mention', value,
-                        onRollback: () =>
-                            setState(() => _mentionNotification = !value));
-                  }
-                : null,
-          ),
-          SwitchListTile(
-            title: Text('채팅', style: TextStyle(fontSize: 14.sp)),
-            subtitle:
-                Text('새 채팅 메시지가 오면 알림', style: TextStyle(fontSize: 12.sp)),
-            value: _chatNotification && _pushEnabled,
-            activeThumbColor: AppTheme.primaryColor,
-            onChanged: _pushEnabled
-                ? (value) {
-                    setState(() => _chatNotification = value);
-                    _saveSetting('notification_chat', null, value);
-                  }
-                : null,
-          ),
-          SwitchListTile(
-            title: Text('시스템', style: TextStyle(fontSize: 14.sp)),
-            subtitle:
-                Text('공지사항 및 시스템 안내', style: TextStyle(fontSize: 12.sp)),
-            value: _systemNotification && _pushEnabled,
-            activeThumbColor: AppTheme.primaryColor,
-            onChanged: _pushEnabled
-                ? (value) {
-                    setState(() => _systemNotification = value);
-                    _saveSetting('notification_system', 'enabled_system', value,
-                        onRollback: () =>
-                            setState(() => _systemNotification = !value));
-                  }
-                : null,
-          ),
+          SizedBox(height: 32.h),
         ],
       ),
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool>? onChanged,
+  }) {
+    final enabled = onChanged != null;
+    // 다크모드는 Theme의 text를 우선하고 라이트모드 시각값은 유지한다.
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color bodyColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
+    final Color mutedColor =
+        isDark ? theme.colorScheme.onSurfaceVariant : AppTheme.textMuted;
+    final Color disabledColor = isDark
+        ? theme.colorScheme.onSurface.withValues(alpha: 0.38)
+        : AppTheme.disabledColor;
+    return SwitchListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: AppTheme.fontBody.sp,
+          fontWeight: FontWeight.w500,
+          color: enabled ? bodyColor : disabledColor,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: AppTheme.fontCaption.sp,
+          color: enabled ? mutedColor : disabledColor,
+        ),
+      ),
+      value: value,
+      activeThumbColor: AppTheme.actionBase,
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 2.h),
+      onChanged: onChanged,
     );
   }
 }
@@ -311,19 +344,30 @@ class _SystemPermissionWarning extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 다크모드는 Theme의 surface/text를 우선하고,
+    // 라이트모드 시각값과 warning 의미 토큰(icon·border·CTA)은 유지한다.
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color bannerSurface =
+        isDark ? theme.colorScheme.surface : AppTheme.surfaceWarm;
+    final Color bodyColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.textBody;
+
     return Container(
-      margin: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
-      padding: EdgeInsets.all(14.w),
+      margin: EdgeInsets.only(bottom: 16.h),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceWarm, // v2-review: FFF4E5 근사
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppTheme.warningColor, width: 1), // v2-review: FFB266 근사
+        color: bannerSurface, // v2-review: 라이트 FFF4E5 근사
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+        border: Border.all(
+            color: AppTheme.warningColor, width: 1), // v2-review: FFB266 근사
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(Icons.notifications_off_outlined,
-              size: 22.sp, color: AppTheme.warningColor), // v2-review: D97706 근사
+              size: 22.sp,
+              color: AppTheme.warningColor), // v2-review: D97706 근사
           SizedBox(width: 12.w),
           Expanded(
             child: Column(
@@ -334,7 +378,7 @@ class _SystemPermissionWarning extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textBody, // v2-review: 7A4500 근사
+                    color: bodyColor, // v2-review: 라이트 7A4500 근사
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -342,19 +386,31 @@ class _SystemPermissionWarning extends StatelessWidget {
                   '아래 알림을 모두 켜더라도 시스템 권한이 꺼져 있으면 알림이 오지 않습니다.',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: AppTheme.textBody, // v2-review: 7A4500 근사
+                    color: bodyColor, // v2-review: 라이트 7A4500 근사
                     height: 1.4,
                   ),
                 ),
-                SizedBox(height: 8.h),
-                GestureDetector(
-                  onTap: onTap,
-                  child: Text(
-                    '설정에서 켜기 →',
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.warningColor, // v2-review: D97706 근사
+                SizedBox(height: 4.h),
+                // v2-addendum: 44px 최소 터치 영역 + Material semantics.
+                // 문자열·onTap 의미는 기존과 동일.
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: onTap,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.warningColor,
+                      minimumSize: const Size(44, 44),
+                      padding: EdgeInsets.symmetric(horizontal: 4.w),
+                      alignment: Alignment.centerLeft,
+                      tapTargetSize: MaterialTapTargetSize.padded,
+                    ),
+                    child: Text(
+                      '설정에서 켜기 →',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.warningColor, // v2-review: D97706 근사
+                      ),
                     ),
                   ),
                 ),

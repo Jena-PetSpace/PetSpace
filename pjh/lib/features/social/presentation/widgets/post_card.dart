@@ -11,7 +11,9 @@ import '../../../../core/utils/relative_time.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_viewer_page.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/entities/saved_posts_page.dart';
 import '../../domain/repositories/social_repository.dart';
+import '../utils/saved_posts_change_notifier.dart';
 import 'collection_picker_sheet.dart';
 import 'likes_bottom_sheet.dart';
 
@@ -29,6 +31,8 @@ class PostCard extends StatefulWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
   final void Function(String hashtag)? onHashtagTap;
+  final SocialRepository? repository;
+  final SavedPostsChangeNotifier? savedPostsNotifier;
 
   const PostCard({
     super.key,
@@ -40,6 +44,8 @@ class PostCard extends StatefulWidget {
     this.onDelete,
     this.onEdit,
     this.onHashtagTap,
+    this.repository,
+    this.savedPostsNotifier,
   });
 
   @override
@@ -56,10 +62,15 @@ class _PostCardState extends State<PostCard> {
   Timer? _likeDebounce;
   Timer? _commentDebounce;
   bool _isSaved = false;
+  bool _isSavePending = false;
   bool _showHeart = false;
   bool _isContentExpanded = false;
 
   Post get post => widget.post;
+  SocialRepository get socialRepository =>
+      widget.repository ?? sl<SocialRepository>();
+  SavedPostsChangeNotifier get savedPostsNotifier =>
+      widget.savedPostsNotifier ?? SavedPostsChangeNotifier.instance;
 
   @override
   void initState() {
@@ -70,8 +81,17 @@ class _PostCardState extends State<PostCard> {
   @override
   void didUpdateWidget(PostCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.post.isSavedByCurrentUser != widget.post.isSavedByCurrentUser) {
-      setState(() => _isSaved = widget.post.isSavedByCurrentUser);
+    if (oldWidget.post.id != widget.post.id) {
+      setState(() {
+        _isSaved = widget.post.isSavedByCurrentUser;
+        _isSavePending = false;
+      });
+    } else if (oldWidget.post.isSavedByCurrentUser !=
+        widget.post.isSavedByCurrentUser) {
+      setState(() {
+        _isSaved = widget.post.isSavedByCurrentUser;
+        if (!_isSaved) _isSavePending = false;
+      });
     }
   }
 
@@ -81,6 +101,7 @@ class _PostCardState extends State<PostCard> {
     _commentDebounce?.cancel();
     super.dispose();
   }
+
   String get currentUserId => widget.currentUserId;
 
   @override
@@ -273,16 +294,26 @@ class _PostCardState extends State<PostCard> {
 
   IconData _getEmotionIcon(String emotion) {
     switch (emotion) {
-      case 'happiness':  return Icons.mood;
-      case 'calm':       return Icons.self_improvement;
-      case 'excitement': return Icons.celebration;
-      case 'curiosity':  return Icons.psychology;
-      case 'anxiety':    return Icons.warning;
-      case 'fear':       return Icons.warning_amber_outlined;
-      case 'sadness':    return Icons.mood_bad;
-      case 'discomfort': return Icons.sick_outlined;
-      case 'sleepiness': return Icons.bedtime; // 하위 호환
-      default:           return Icons.help_outline;
+      case 'happiness':
+        return Icons.mood;
+      case 'calm':
+        return Icons.self_improvement;
+      case 'excitement':
+        return Icons.celebration;
+      case 'curiosity':
+        return Icons.psychology;
+      case 'anxiety':
+        return Icons.warning;
+      case 'fear':
+        return Icons.warning_amber_outlined;
+      case 'sadness':
+        return Icons.mood_bad;
+      case 'discomfort':
+        return Icons.sick_outlined;
+      case 'sleepiness':
+        return Icons.bedtime; // 하위 호환
+      default:
+        return Icons.help_outline;
     }
   }
 }

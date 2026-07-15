@@ -20,7 +20,8 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
       _logger.debug('Post row created: $insertedId', tag: 'SocialDataSource');
       List<String> uploadedUrls = [];
       if (images.isNotEmpty) {
-        uploadedUrls = await _uploadPostImages(post.authorId, insertedId, images);
+        uploadedUrls =
+            await _uploadPostImages(post.authorId, insertedId, images);
       }
       final updateData = <String, dynamic>{
         'image_urls': uploadedUrls,
@@ -44,8 +45,8 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
         try {
           await supabaseClient
               .from('posts')
-              .update({'deleted_at': DateTime.now().toIso8601String()})
-              .eq('id', insertedId);
+              .update({'deleted_at': DateTime.now().toIso8601String()}).eq(
+                  'id', insertedId);
         } catch (_) {}
       }
       throw Exception('게시물 작성 중 오류가 발생했습니다: ${e.toString()}');
@@ -80,8 +81,7 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
             list.map((f) => 'posts/$userId/$postId/${f.name}').toList();
         await supabaseClient.storage.from('images').remove(paths);
       }
-      _logger.debug('Deleted images for post $postId',
-          tag: 'SocialDataSource');
+      _logger.debug('Deleted images for post $postId', tag: 'SocialDataSource');
     } catch (e, stackTrace) {
       _logger.error('Failed to delete post images',
           error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
@@ -143,15 +143,15 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
   }) async {
     var query = supabaseClient
         .from('posts')
-        .select('id, image_url, image_urls, caption, post_type, created_at, pet_id')
+        .select(
+            'id, image_url, image_urls, caption, post_type, created_at, pet_id')
         .eq('author_id', authorId)
         .isFilter('deleted_at', null);
     if (petId != null) query = query.eq('pet_id', petId);
     if (beforeCreatedAt != null) {
       query = query.lt('created_at', beforeCreatedAt);
     }
-    final rows =
-        await query.order('created_at', ascending: false).limit(limit);
+    final rows = await query.order('created_at', ascending: false).limit(limit);
     return List<Map<String, dynamic>>.from(rows);
   }
 
@@ -180,30 +180,89 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  Future<List<Map<String, dynamic>>> _getSavedPostsRaw(
-    String userId, {
+  Future<List<Map<String, dynamic>>> _getSavedPostsPageRaw({
+    required String userId,
+    required SavedPostsScope scope,
+    SavedPostsCursor? cursor,
     int limit = 30,
-    String? beforeSavedAt,
   }) async {
+    if (limit <= 0) throw ArgumentError.value(limit, 'limit');
+    if (scope.type == SavedPostsScopeType.collection &&
+        (scope.collectionId == null || scope.collectionId!.trim().isEmpty)) {
+      throw ArgumentError('collectionId가 필요합니다.');
+    }
+
     var query = supabaseClient
         .from('saved_posts')
-        .select('post_id, created_at, posts(id, image_url, caption, author_id)')
-        .eq('user_id', userId);
-    // 키셋 페이지네이션: 저장 시각(saved_posts.created_at) 기준. 내 글 커서와 동일 방식.
-    if (beforeSavedAt != null) {
-      query = query.lt('created_at', beforeSavedAt);
+        .select(
+          'id, post_id, collection_id, created_at, '
+          'posts!inner(id, author_id, pet_id, image_url, image_urls, post_type, '
+          'emotion_analysis, caption, hashtags, category, likes_count, '
+          'comments_count, created_at, updated_at, is_private, location, '
+          'location_lat, location_lng, deleted_at, '
+          'users!posts_author_id_fkey(display_name, photo_url))',
+        )
+        .eq('user_id', userId)
+        .isFilter('posts.deleted_at', null);
+
+    switch (scope.type) {
+      case SavedPostsScopeType.all:
+        break;
+      case SavedPostsScopeType.unassigned:
+        query = query.isFilter('collection_id', null);
+      case SavedPostsScopeType.collection:
+        query = query.eq('collection_id', scope.collectionId!);
     }
-    final response =
-        await query.order('created_at', ascending: false).limit(limit);
-    return (response as List)
-        .map((e) {
-          final post = e['posts'] as Map<String, dynamic>?;
-          if (post == null) return null;
-          // 저장 시각을 커서로 쓰도록 post 맵에 주입(post 자체 created_at과 구분).
-          return {...post, 'saved_at': e['created_at']};
-        })
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    if (cursor != null) {
+      final timestamp = cursor.savedAt.toUtc().toIso8601String();
+      query = query.or(
+        'created_at.lt.$timestamp,'
+        'and(created_at.eq.$timestamp,id.lt.${cursor.savedPostId})',
+      );
+    }
+
+    final response = await query
+        .order('created_at', ascending: false)
+        .order('id', ascending: false)
+        .limit(limit + 1);
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  Future<int> _countSavedPosts({
+    required String userId,
+    required SavedPostsScope scope,
+  }) async {
+    if (scope.type == SavedPostsScopeType.collection &&
+        (scope.collectionId == null || scope.collectionId!.trim().isEmpty)) {
+      throw ArgumentError('collectionId가 필요합니다.');
+    }
+    var query = supabaseClient
+        .from('saved_posts')
+        .select('id, posts!inner(id, deleted_at)')
+        .eq('user_id', userId)
+        .isFilter('posts.deleted_at', null);
+    switch (scope.type) {
+      case SavedPostsScopeType.all:
+        break;
+      case SavedPostsScopeType.unassigned:
+        query = query.isFilter('collection_id', null);
+      case SavedPostsScopeType.collection:
+        query = query.eq('collection_id', scope.collectionId!);
+    }
+    final response = await query.count(CountOption.exact);
+    return response.count;
+  }
+
+  Future<Map<String, dynamic>?> _getSavedPostLocation({
+    required String postId,
+    required String userId,
+  }) async {
+    return supabaseClient
+        .from('saved_posts')
+        .select('id, collection_id')
+        .eq('post_id', postId)
+        .eq('user_id', userId)
+        .maybeSingle();
   }
 
   Future<Set<String>> _getEarnedBadgeIds(String userId) async {
@@ -211,8 +270,7 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
         .from('user_badges')
         .select('badge_id')
         .eq('user_id', userId);
-    return Set<String>.from(
-        (res as List).map((r) => r['badge_id'] as String));
+    return Set<String>.from((res as List).map((r) => r['badge_id'] as String));
   }
 
   Future<void> _checkAndAwardBadges(String userId) async {
@@ -382,8 +440,7 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
     });
   }
 
-  Future<List<Post>> _getUserPosts(
-      String userId, int limit, String? lastPostId,
+  Future<List<Post>> _getUserPosts(String userId, int limit, String? lastPostId,
       {DateTime? lastCreatedAt}) async {
     try {
       _logger.debug('Getting user posts: $userId', tag: 'SocialDataSource');
@@ -443,8 +500,7 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
     }
   }
 
-  Future<List<Post>> _getFeedPosts(
-      String userId, int limit, String? lastPostId,
+  Future<List<Post>> _getFeedPosts(String userId, int limit, String? lastPostId,
       {DateTime? lastCreatedAt, bool followingOnly = false}) async {
     try {
       _logger.debug(
@@ -454,9 +510,8 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
           .from('user_blocks')
           .select('blocked_id')
           .eq('blocker_id', userId);
-      final blockedIds = (blockedRes as List)
-          .map((b) => b['blocked_id'] as String)
-          .toList();
+      final blockedIds =
+          (blockedRes as List).map((b) => b['blocked_id'] as String).toList();
       List<String> followingIds = [];
       if (followingOnly) {
         final followingRes = await supabaseClient
@@ -492,8 +547,7 @@ extension _SocialDsPost on SocialRemoteDataSourceImpl {
       }
       final response =
           await query.order('created_at', ascending: false).limit(limit);
-      _logger.debug(
-          'Fetched ${(response as List).length} feed posts',
+      _logger.debug('Fetched ${(response as List).length} feed posts',
           tag: 'SocialDataSource');
       final rawPosts =
           (response as List).map((json) => PostModel.fromJson(json)).toList();

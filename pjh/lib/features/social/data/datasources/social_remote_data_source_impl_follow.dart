@@ -54,20 +54,38 @@ extension _SocialDsFollow on SocialRemoteDataSourceImpl {
   }
 
   Future<List<SocialUser>> _getFollowers(
-      String userId, int limit, String? lastUserId) async {
+      String userId, int limit, String? lastUserId,
+      {String query = ''}) async {
     try {
       _logger.debug('Getting followers for user: $userId',
           tag: 'SocialDataSource');
-      final response = await supabaseClient
-          .from('follows')
-          .select('''
-            follower_id,
-            users!follows_follower_id_fkey(
+      final cursor = await _getFollowCursor(
+        ownerColumn: 'following_id',
+        ownerId: userId,
+        memberColumn: 'follower_id',
+        lastUserId: lastUserId,
+      );
+      if (lastUserId != null && cursor == null) return [];
+
+      var queryBuilder = supabaseClient.from('follows').select('''
+            id, created_at, follower_id,
+            users!follows_follower_id_fkey!inner(
               id, display_name, email, username, photo_url, bio, created_at, updated_at
             )
-          ''')
-          .eq('following_id', userId)
+          ''').eq('following_id', userId);
+      if (cursor != null) {
+        queryBuilder = queryBuilder.or(_followCursorFilter(cursor));
+      }
+      final normalizedQuery = _normalizeFollowQuery(query);
+      if (normalizedQuery.isNotEmpty) {
+        queryBuilder = queryBuilder.or(
+          _followUserSearchFilter(normalizedQuery),
+          referencedTable: 'users',
+        );
+      }
+      final response = await queryBuilder
           .order('created_at', ascending: false)
+          .order('id', ascending: false)
           .limit(limit);
       final followers = (response as List).map((json) {
         final userData = json['users'];
@@ -97,20 +115,38 @@ extension _SocialDsFollow on SocialRemoteDataSourceImpl {
   }
 
   Future<List<SocialUser>> _getFollowing(
-      String userId, int limit, String? lastUserId) async {
+      String userId, int limit, String? lastUserId,
+      {String query = ''}) async {
     try {
       _logger.debug('Getting following for user: $userId',
           tag: 'SocialDataSource');
-      final response = await supabaseClient
-          .from('follows')
-          .select('''
-            following_id,
-            users!follows_following_id_fkey(
+      final cursor = await _getFollowCursor(
+        ownerColumn: 'follower_id',
+        ownerId: userId,
+        memberColumn: 'following_id',
+        lastUserId: lastUserId,
+      );
+      if (lastUserId != null && cursor == null) return [];
+
+      var queryBuilder = supabaseClient.from('follows').select('''
+            id, created_at, following_id,
+            users!follows_following_id_fkey!inner(
               id, display_name, email, username, photo_url, bio, created_at, updated_at
             )
-          ''')
-          .eq('follower_id', userId)
+          ''').eq('follower_id', userId);
+      if (cursor != null) {
+        queryBuilder = queryBuilder.or(_followCursorFilter(cursor));
+      }
+      final normalizedQuery = _normalizeFollowQuery(query);
+      if (normalizedQuery.isNotEmpty) {
+        queryBuilder = queryBuilder.or(
+          _followUserSearchFilter(normalizedQuery),
+          referencedTable: 'users',
+        );
+      }
+      final response = await queryBuilder
           .order('created_at', ascending: false)
+          .order('id', ascending: false)
           .limit(limit);
       final following = (response as List).map((json) {
         final userData = json['users'];
@@ -137,5 +173,41 @@ extension _SocialDsFollow on SocialRemoteDataSourceImpl {
           error: e, stackTrace: stackTrace, tag: 'SocialDataSource');
       throw Exception('팔로잉 목록을 불러오는 중 오류가 발생했습니다: ${e.toString()}');
     }
+  }
+
+  Future<Map<String, dynamic>?> _getFollowCursor({
+    required String ownerColumn,
+    required String ownerId,
+    required String memberColumn,
+    required String? lastUserId,
+  }) async {
+    if (lastUserId == null || lastUserId.isEmpty) return null;
+    final response = await supabaseClient
+        .from('follows')
+        .select('id, created_at')
+        .eq(ownerColumn, ownerId)
+        .eq(memberColumn, lastUserId)
+        .maybeSingle();
+    return response == null ? null : Map<String, dynamic>.from(response);
+  }
+
+  String _followCursorFilter(Map<String, dynamic> cursor) {
+    final createdAt =
+        _quotePostgrestValue(cursor['created_at']?.toString() ?? '');
+    final id = _quotePostgrestValue(cursor['id']?.toString() ?? '');
+    return 'created_at.lt.$createdAt,and(created_at.eq.$createdAt,id.lt.$id)';
+  }
+
+  String _followUserSearchFilter(String query) {
+    final pattern = _quotePostgrestValue('*$query*');
+    return 'display_name.ilike.$pattern,username.ilike.$pattern';
+  }
+
+  String _normalizeFollowQuery(String query) =>
+      query.trim().replaceFirst(RegExp(r'^@+'), '');
+
+  String _quotePostgrestValue(String value) {
+    final escaped = value.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
+    return '"$escaped"';
   }
 }

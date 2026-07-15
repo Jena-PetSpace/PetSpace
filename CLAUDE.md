@@ -1,10 +1,12 @@
+@AGENTS.md
+
 # PetSpace (펫페이스 / 멍냥다이어리)
 
 AI 기반 반려동물 감정 분석 + 소셜 네트워킹 Flutter 앱. 백엔드는 Supabase, AI는 Gemini, 푸시는 Firebase FCM.
 
-- 앱 패키지명: `com.petspace.app` / Flutter 패키지명: `meong_nyang_diary`
-- 버전: 1.0.0+1 · Flutter 3.41.6 (stable) · Dart 3.11.4
-- Android minSdk 21 / targetSdk 34
+- Android applicationId: `com.jena.petspace` / Flutter 패키지명: `meong_nyang_diary`
+- 버전: 1.0.0+4 · Flutter 3.41.6 (stable) · Dart 3.11.4
+- Android minSdk: Flutter 기본값 / targetSdk 36
 
 ## 프로젝트 위치
 
@@ -40,15 +42,15 @@ Clean Architecture (feature별 3계층) + BLoC + GetIt DI + GoRouter.
 lib/
 ├── config/        # app_config, api_config, secrets, injection_container (DI)
 ├── core/          # cache, error(12 Failure), navigation(50+ 라우트), services, utils
-├── features/      # 12개 feature: auth, chat, diary, emotion, feed_hub, health,
-│                  #   home, my, onboarding, pets, profile, social
+├── features/      # 15개: auth, chat, emotion, feed_hub, fortune, health, home,
+│                  #   mbti, my, news, onboarding, pets, profile, quiz, social
 ├── shared/        # themes(app_theme 디자인시스템), 공통 위젯 22개
 └── main.dart      # 진입점
 ```
 
 각 feature는 `data/`(datasources·models·repositories) · `domain/`(entities·repositories·usecases) · `presentation/`(bloc·pages·widgets) 3계층으로 분리.
 
-전역 BLoC: AuthBloc, EmotionAnalysisBloc, FeedBloc, ChatBadgeBloc, NotificationBadgeBloc, ThemeCubit, PetBloc.
+상태관리 목록은 `docs/FUNCTIONAL_SPEC.md`와 실제 `*_bloc.dart`/`*_cubit.dart` 파일을 대조한다.
 
 ## 기술 스택 / 컨벤션
 
@@ -65,8 +67,10 @@ lib/
 
 ## 작업 규칙
 
-- 브랜치: 윈도우=`win-android-release`, 맥=`mac-ios-release`, 최종=`main`. 이 흐름 준수.
+- 공통 작업·보안·Git 규칙은 루트 `AGENTS.md`를 따른다.
+- 브랜치 흐름: 윈도우=`win-android-release`, 맥=`mac-ios-release`, 최종=`main`.
 - 커밋: 멀티라인/한글 커밋 메시지는 파일(`-F`)로 작성.
+- Claude Code 전용 에이전트와 스킬은 아래 `.claude/` 구성을 사용한다.
 
 ---
 

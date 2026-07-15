@@ -22,32 +22,54 @@ class UserListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Semantics(
-        label: '$userName 프로필 사진',
-        image: true,
-        child: CircleAvatar(
-          radius: 20.r,
-          backgroundImage: userProfileImage != null
-              ? CachedNetworkImageProvider(userProfileImage!)
-              : null,
-          child: userProfileImage == null
+    final imageUrl = userProfileImage?.trim();
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
+    final fallback = userName.trim().isEmpty
+        ? '?'
+        : userName.trim().substring(0, 1).toUpperCase();
+
+    return Semantics(
+      button: onTap != null,
+      label: '$userName 프로필 보기',
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: 64.h),
+        child: ListTile(
+          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+          leading: Semantics(
+            label: '$userName 프로필 사진',
+            image: true,
+            child: CircleAvatar(
+              radius: 22.r,
+              backgroundImage:
+                  hasImage ? CachedNetworkImageProvider(imageUrl) : null,
+              child: !hasImage
+                  ? Text(
+                      fallback,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14.sp),
+                    )
+                  : null,
+            ),
+          ),
+          title: Text(
+            userName,
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
+          ),
+          subtitle: subtitle != null
               ? Text(
-                  userName.isNotEmpty ? userName[0].toUpperCase() : '?',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
+                  subtitle!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 )
               : null,
+          trailing: trailing ?? Icon(Icons.chevron_right, size: 20.w),
+          onTap: onTap,
         ),
       ),
-      title: Text(
-        userName,
-        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
-      ),
-      subtitle: subtitle != null
-          ? Text(subtitle!, style: TextStyle(fontSize: 12.sp))
-          : null,
-      trailing: trailing ?? Icon(Icons.chevron_right, size: 20.w),
-      onTap: onTap,
     );
   }
 }

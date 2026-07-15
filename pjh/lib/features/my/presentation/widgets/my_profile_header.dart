@@ -25,171 +25,306 @@ class MyProfileHeader extends StatefulWidget {
 }
 
 class _MyProfileHeaderState extends State<MyProfileHeader> {
+  late Future<Map<String, dynamic>?> _profileFuture;
   late Future<Map<String, int>> _statsFuture;
+
+  ProfileService get _profileService => sl<ProfileService>();
 
   @override
   void initState() {
     super.initState();
-    _statsFuture = sl<ProfileService>().getProfileStats();
+    _reloadAll();
   }
 
   @override
   void didUpdateWidget(MyProfileHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.statsRefreshKey != widget.statsRefreshKey) {
-      _statsFuture = sl<ProfileService>().getProfileStats();
+    if (oldWidget.statsRefreshKey != widget.statsRefreshKey ||
+        oldWidget.user != widget.user) {
+      _reloadAll();
+    }
+  }
+
+  void _reloadAll() {
+    _profileFuture = _profileService.getProfile();
+    _statsFuture = _profileService.getProfileStats();
+  }
+
+  void _retryProfile() {
+    setState(() {
+      _profileFuture = _profileService.getProfile();
+    });
+  }
+
+  void _retryStats() {
+    setState(() {
+      _statsFuture = _profileService.getProfileStats();
+    });
+  }
+
+  Future<void> _openProfileEdit() async {
+    final updated = await context.push<bool>('/my/edit-profile');
+    if (updated == true && mounted) {
+      setState(_reloadAll);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = widget.user;
-    final photoUrl = user.photoURL;
-    final displayName = user.displayName.isNotEmpty ? user.displayName : '사용자';
-    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = isDark ? theme.colorScheme.surface : AppTheme.surfaceColor;
+    final textColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
+    final mutedColor =
+        isDark ? theme.colorScheme.onSurfaceVariant : AppTheme.textMuted;
 
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTheme.primaryColor, AppTheme.secondaryColor, AppTheme.accentColor],
-          stops: [0.0, 0.55, 1.0],
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 20.h),
+      key: const Key('my_profile_header'),
+      color: surface,
+      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 18.h),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 상단 Row: 설정 버튼
-          Row(
-            children: [
-              const Spacer(),
-              InkWell(
-                onTap: () => context.push('/settings/my'),
-                borderRadius: BorderRadius.circular(17.r),
-                child: Container(
-                  width: 34.w,
-                  height: 34.w,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
+          SizedBox(
+            height: 44.h,
+            child: Row(
+              children: [
+                Text(
+                  'MY',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontTitle.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.brandDeep,
                   ),
-                  child: Icon(Icons.settings_outlined, size: 20.w, color: Colors.white),
                 ),
-              ),
-            ],
+                const Spacer(),
+                IconButton(
+                  key: const Key('my_settings_button'),
+                  onPressed: () => context.push('/settings/my'),
+                  tooltip: '설정',
+                  icon: Icon(
+                    Icons.settings_outlined,
+                    color: textColor,
+                    size: 22.w,
+                  ),
+                ),
+              ],
+            ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 10.h),
+          FutureBuilder<Map<String, dynamic>?>(
+            future: _profileFuture,
+            builder: (context, snapshot) {
+              final profile = snapshot.data;
+              final displayName =
+                  (profile?['display_name'] as String?)?.trim().isNotEmpty ==
+                          true
+                      ? (profile!['display_name'] as String).trim()
+                      : (widget.user.displayName.trim().isNotEmpty
+                          ? widget.user.displayName.trim()
+                          : '사용자');
+              final photoUrl =
+                  (profile?['photo_url'] as String?)?.isNotEmpty == true
+                      ? profile!['photo_url'] as String
+                      : widget.user.photoURL;
+              final bio = (profile?['bio'] as String?)?.trim() ?? '';
+              final initial = displayName.characters.first.toUpperCase();
 
-          // 아바타 + 정보 Row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 아바타
-              Container(
-                width: 72.w,
-                height: 72.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.25),
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.5), width: 2.5),
-                ),
-                child: ClipOval(
-                  child: photoUrl != null && photoUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: photoUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => _buildInitialAvatar(initial),
-                        )
-                      : _buildInitialAvatar(initial),
-                ),
-              ),
-              SizedBox(width: 14.w),
-
-              // 이름 + 핸들 + 바이오
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(displayName,
-                        style: TextStyle(
-                            fontSize: 16.sp,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500)),
-                    SizedBox(height: 3.h),
-                    Text(
-                      '@${user.email.split('@').first} · 레벨 1 견주',
-                      style: TextStyle(
-                          fontSize: 11.sp,
-                          color: Colors.white.withValues(alpha: 0.6)),
-                    ),
-                    SizedBox(height: 6.h),
-                    Text(
-                      '반려동물 이야기를 들려주세요',
-                      style: TextStyle(
-                          fontSize: 11.sp,
-                          color: Colors.white.withValues(alpha: 0.75),
-                          height: 1.4),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 8.h),
-                    // 포인트 배지
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10.r),
+              return Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _buildAvatar(photoUrl, initial),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              key: const Key('my_profile_name'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: AppTheme.fontHeading.sp,
+                                fontWeight: FontWeight.w700,
+                                color: textColor,
+                              ),
+                            ),
+                            SizedBox(height: 6.h),
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting)
+                              Text(
+                                '프로필을 불러오는 중이에요',
+                                style: TextStyle(
+                                  fontSize: AppTheme.fontCaption.sp,
+                                  color: mutedColor,
+                                ),
+                              )
+                            else if (snapshot.hasError)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '프로필을 불러오지 못했어요',
+                                      key: const Key('my_profile_error'),
+                                      style: TextStyle(
+                                        fontSize: AppTheme.fontCaption.sp,
+                                        color: mutedColor,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    key: const Key('my_profile_retry'),
+                                    onPressed: _retryProfile,
+                                    child: const Text('다시 시도'),
+                                  ),
+                                ],
+                              )
+                            else
+                              InkWell(
+                                key: const Key('my_profile_bio_action'),
+                                onTap: bio.isEmpty ? _openProfileEdit : null,
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusSm.r),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 4.h),
+                                  child: Text(
+                                    bio.isEmpty ? '소개를 작성해보세요' : bio,
+                                    key: const Key('my_profile_bio'),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: AppTheme.fontCaption.sp,
+                                      height: 1.45,
+                                      color: bio.isEmpty
+                                          ? AppTheme.actionBase
+                                          : mutedColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                      child: Text('0 P',
-                          style: TextStyle(
-                              fontSize: 11.sp,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                  SizedBox(height: 14.h),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44.h,
+                    child: OutlinedButton(
+                      key: const Key('my_profile_edit_button'),
+                      onPressed: _openProfileEdit,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.actionBase,
+                        side: const BorderSide(color: AppTheme.border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusMd.r),
+                        ),
+                      ),
+                      child: Text(
+                        '프로필 편집',
+                        style: TextStyle(
+                          fontSize: AppTheme.fontCaption.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
+              );
+            },
           ),
           SizedBox(height: 14.h),
-
-          // 통계 바 (게시글 | 팔로워 | 팔로잉)
           FutureBuilder<Map<String, int>>(
             future: _statsFuture,
             builder: (context, snapshot) {
-              final posts = snapshot.data?['posts'] ?? 0;
-              final followers = snapshot.data?['followers'] ?? 0;
-              final following = snapshot.data?['following'] ?? 0;
+              if (snapshot.hasError) {
+                return Container(
+                  key: const Key('my_stats_error'),
+                  width: double.infinity,
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? theme.colorScheme.surfaceContainerHighest
+                        : AppTheme.subtleBackground,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '활동 통계를 불러오지 못했어요',
+                          style: TextStyle(
+                            fontSize: AppTheme.fontCaption.sp,
+                            color: mutedColor,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        key: const Key('my_stats_retry'),
+                        onPressed: _retryStats,
+                        child: const Text('다시 시도'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final loading =
+                  snapshot.connectionState == ConnectionState.waiting;
+              final stats = snapshot.data;
               return Container(
+                key: const Key('my_stats_bar'),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10.r),
+                  color: isDark
+                      ? theme.colorScheme.surfaceContainerHighest
+                      : AppTheme.subtleBackground,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
                 ),
                 child: Row(
                   children: [
                     Expanded(
-                      child: GestureDetector(
+                      child: InkWell(
                         onTap: widget.onPostsTapped,
-                        child: _buildStat('$posts', '게시글'),
+                        child: _buildStat(
+                          loading ? '—' : '${stats?['posts'] ?? 0}',
+                          '게시글',
+                          textColor,
+                          mutedColor,
+                        ),
                       ),
                     ),
-                    Container(width: 0.5, height: 36.h,
-                        color: Colors.white.withValues(alpha: 0.2)),
+                    _buildDivider(isDark, theme),
                     Expanded(
-                      child: GestureDetector(
-                        onTap: () => context.push('/followers/${user.uid}?name=${Uri.encodeComponent(displayName)}'),
-                        child: _buildStat('$followers', '팔로워'),
+                      child: InkWell(
+                        onTap: () => context.push(
+                          '/followers/${widget.user.uid}?name=${Uri.encodeComponent(widget.user.displayName)}',
+                        ),
+                        child: _buildStat(
+                          loading ? '—' : '${stats?['followers'] ?? 0}',
+                          '팔로워',
+                          textColor,
+                          mutedColor,
+                        ),
                       ),
                     ),
-                    Container(width: 0.5, height: 36.h,
-                        color: Colors.white.withValues(alpha: 0.2)),
+                    _buildDivider(isDark, theme),
                     Expanded(
-                      child: GestureDetector(
-                        onTap: () => context.push('/following/${user.uid}?name=${Uri.encodeComponent(displayName)}'),
-                        child: _buildStat('$following', '팔로잉'),
+                      child: InkWell(
+                        onTap: () => context.push(
+                          '/following/${widget.user.uid}?name=${Uri.encodeComponent(widget.user.displayName)}',
+                        ),
+                        child: _buildStat(
+                          loading ? '—' : '${stats?['following'] ?? 0}',
+                          '팔로잉',
+                          textColor,
+                          mutedColor,
+                        ),
                       ),
                     ),
                   ],
@@ -197,26 +332,68 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
               );
             },
           ),
-          SizedBox(height: 12.h),
+        ],
+      ),
+    );
+  }
 
-          // 프로필 편집 버튼
-          GestureDetector(
-            onTap: () => context.push('/my/edit-profile'),
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 8.h),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3), width: 0.5),
-              ),
-              child: Text('프로필 편집',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 12.sp,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500)),
+  Widget _buildAvatar(String? photoUrl, String initial) {
+    return Container(
+      key: const Key('my_profile_avatar'),
+      width: 72.w,
+      height: 72.w,
+      decoration: const BoxDecoration(
+        color: AppTheme.actionContainer,
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: photoUrl != null && photoUrl.isNotEmpty
+          ? CachedNetworkImage(
+              imageUrl: photoUrl,
+              fit: BoxFit.cover,
+              errorWidget: (_, __, ___) => _buildInitialAvatar(initial),
+            )
+          : _buildInitialAvatar(initial),
+    );
+  }
+
+  Widget _buildInitialAvatar(String initial) {
+    return Center(
+      child: Text(
+        initial,
+        style: TextStyle(
+          fontSize: 26.sp,
+          color: AppTheme.brandDeep,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStat(
+    String value,
+    String label,
+    Color valueColor,
+    Color labelColor,
+  ) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 11.h),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: AppTheme.fontBody.sp,
+              color: valueColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 2.h),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: AppTheme.fontMicro.sp,
+              color: labelColor,
             ),
           ),
         ],
@@ -224,36 +401,11 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
     );
   }
 
-  Widget _buildInitialAvatar(String initial) {
+  Widget _buildDivider(bool isDark, ThemeData theme) {
     return Container(
-      color: Colors.white.withValues(alpha: 0.3),
-      child: Center(
-        child: Text(initial,
-            style: TextStyle(
-                fontSize: 28.sp,
-                color: Colors.white,
-                fontWeight: FontWeight.w700)),
-      ),
-    );
-  }
-
-  Widget _buildStat(String value, String label) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10.h),
-      child: Column(
-        children: [
-          Text(value,
-              style: TextStyle(
-                  fontSize: 17.sp,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500)),
-          SizedBox(height: 2.h),
-          Text(label,
-              style: TextStyle(
-                  fontSize: 10.sp,
-                  color: Colors.white.withValues(alpha: 0.6))),
-        ],
-      ),
+      width: 1,
+      height: 32.h,
+      color: isDark ? theme.dividerColor : AppTheme.dividerColor,
     );
   }
 }

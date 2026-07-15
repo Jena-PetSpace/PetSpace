@@ -13,6 +13,7 @@ import '../../domain/entities/comment.dart';
 import '../../domain/entities/notification.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/entities/social_user.dart';
+import '../../domain/entities/saved_posts_page.dart';
 
 part 'social_remote_data_source_impl_user.dart';
 part 'social_remote_data_source_impl_post.dart';
@@ -32,7 +33,8 @@ abstract class SocialRemoteDataSource {
       String query, int limit, String? lastUserId);
 
   Future<Post> createPost(Post post, List<File> images);
-  Future<List<String>> uploadPostImages(String userId, String postId, List<File> files);
+  Future<List<String>> uploadPostImages(
+      String userId, String postId, List<File> files);
   Future<void> deletePostImages(String userId, String postId);
   Future<String> uploadCoverImage(String userId, File file);
   Future<Post> getPost(String postId);
@@ -48,10 +50,19 @@ abstract class SocialRemoteDataSource {
     int limit = 30,
     DateTime? beforeCreatedAt,
   });
-  Future<List<Map<String, dynamic>>> getSavedPostsRaw(
-    String userId, {
+  Future<List<Map<String, dynamic>>> getSavedPostsPageRaw({
+    required String userId,
+    required SavedPostsScope scope,
+    SavedPostsCursor? cursor,
     int limit,
-    String? beforeSavedAt,
+  });
+  Future<int> countSavedPosts({
+    required String userId,
+    required SavedPostsScope scope,
+  });
+  Future<Map<String, dynamic>?> getSavedPostLocation({
+    required String postId,
+    required String userId,
   });
   Future<Set<String>> getEarnedBadgeIds(String userId);
   Future<void> checkAndAwardBadges(String userId);
@@ -78,8 +89,10 @@ abstract class SocialRemoteDataSource {
     required bool value,
   });
   Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId);
-  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId, {DateTime? lastCreatedAt, bool followingOnly = false});
-  Future<List<Post>> getExplorePosts(int limit, String? lastPostId, {DateTime? lastCreatedAt});
+  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId,
+      {DateTime? lastCreatedAt, bool followingOnly = false});
+  Future<List<Post>> getExplorePosts(int limit, String? lastPostId,
+      {DateTime? lastCreatedAt});
   Future<Post> updatePost(Post post);
   Future<void> deletePost(String postId);
 
@@ -101,9 +114,11 @@ abstract class SocialRemoteDataSource {
   Future<void> unfollowUser(String followerId, String followingId);
   Future<bool> isFollowing(String followerId, String followingId);
   Future<List<SocialUser>> getFollowers(
-      String userId, int limit, String? lastUserId);
+      String userId, int limit, String? lastUserId,
+      {String query = ''});
   Future<List<SocialUser>> getFollowing(
-      String userId, int limit, String? lastUserId);
+      String userId, int limit, String? lastUserId,
+      {String query = ''});
 
   Future<List<Notification>> getUserNotifications(
       String userId, int limit, String? lastNotificationId);
@@ -133,7 +148,8 @@ abstract class SocialRemoteDataSource {
   Future<List<String>> getTrendingHashtags({int limit = 10, int days = 7});
 
   // Discovery operations (M-F3)
-  Future<List<Post>> getRecommendedPosts(String userId, {int limit = 20, int offset = 0});
+  Future<List<Post>> getRecommendedPosts(String userId,
+      {int limit = 20, int offset = 0});
   Future<List<Post>> getPostsByHashtag({
     required String hashtag,
     String? userId,
@@ -157,7 +173,10 @@ abstract class SocialRemoteDataSource {
     required String name,
     String emoji = '📁',
   });
-  Future<void> deleteBookmarkCollection(String collectionId);
+  Future<void> deleteBookmarkCollection({
+    required String collectionId,
+    required String userId,
+  });
   Future<void> updateSavedPostCollection({
     required String postId,
     required String userId,
@@ -173,129 +192,294 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   SocialRemoteDataSourceImpl({required this.supabaseClient});
 
   // ── User ──────────────────────────────────────────────────────────────────
-  @override Future<SocialUser> createUser(SocialUser user) => _createUser(user);
-  @override Future<SocialUser> getUser(String userId) => _getUser(userId);
-  @override Future<SocialUser> updateUser(SocialUser user) => _updateUser(user);
-  @override Future<void> deleteUser(String userId) => _deleteUser(userId);
-  @override Future<List<SocialUser>> searchUsers(String query, int limit, String? lastUserId) =>
+  @override
+  Future<SocialUser> createUser(SocialUser user) => _createUser(user);
+  @override
+  Future<SocialUser> getUser(String userId) => _getUser(userId);
+  @override
+  Future<SocialUser> updateUser(SocialUser user) => _updateUser(user);
+  @override
+  Future<void> deleteUser(String userId) => _deleteUser(userId);
+  @override
+  Future<List<SocialUser>> searchUsers(
+          String query, int limit, String? lastUserId) =>
       _searchUsers(query, limit, lastUserId);
 
   // ── Post ──────────────────────────────────────────────────────────────────
-  @override Future<Post> createPost(Post post, List<File> images) => _createPost(post, images);
-  @override Future<List<String>> uploadPostImages(String userId, String postId, List<File> files) =>
+  @override
+  Future<Post> createPost(Post post, List<File> images) =>
+      _createPost(post, images);
+  @override
+  Future<List<String>> uploadPostImages(
+          String userId, String postId, List<File> files) =>
       _uploadPostImages(userId, postId, files);
-  @override Future<void> deletePostImages(String userId, String postId) =>
+  @override
+  Future<void> deletePostImages(String userId, String postId) =>
       _deletePostImages(userId, postId);
-  @override Future<String> uploadCoverImage(String userId, File file) =>
+  @override
+  Future<String> uploadCoverImage(String userId, File file) =>
       _uploadCoverImage(userId, file);
-  @override Future<Post> getPost(String postId) => _getPost(postId);
-  @override Future<Map<String, dynamic>?> getPostDetail(String postId) => _getPostDetail(postId);
-  @override Future<List<Map<String, dynamic>>> getUserPostsFiltered({
-    required String authorId, String? petId, String? beforeCreatedAt, int limit = 30,
-  }) => _getUserPostsFiltered(authorId: authorId, petId: petId, beforeCreatedAt: beforeCreatedAt, limit: limit);
-  @override Future<List<Map<String, dynamic>>> getCommunityPosts({String? category, int limit = 30, DateTime? beforeCreatedAt}) =>
-      _getCommunityPosts(category: category, limit: limit, beforeCreatedAt: beforeCreatedAt);
-  @override Future<List<Map<String, dynamic>>> getSavedPostsRaw(String userId, {int limit = 30, String? beforeSavedAt}) =>
-      _getSavedPostsRaw(userId, limit: limit, beforeSavedAt: beforeSavedAt);
-  @override Future<Set<String>> getEarnedBadgeIds(String userId) => _getEarnedBadgeIds(userId);
-  @override Future<void> checkAndAwardBadges(String userId) => _checkAndAwardBadges(userId);
-  @override Future<List<Map<String, dynamic>>> getPointTransactions(String userId) => _getPointTransactions(userId);
-  @override Future<List<Map<String, dynamic>>> getBlockedUsersDetailed(String blockerId) =>
+  @override
+  Future<Post> getPost(String postId) => _getPost(postId);
+  @override
+  Future<Map<String, dynamic>?> getPostDetail(String postId) =>
+      _getPostDetail(postId);
+  @override
+  Future<List<Map<String, dynamic>>> getUserPostsFiltered({
+    required String authorId,
+    String? petId,
+    String? beforeCreatedAt,
+    int limit = 30,
+  }) =>
+      _getUserPostsFiltered(
+          authorId: authorId,
+          petId: petId,
+          beforeCreatedAt: beforeCreatedAt,
+          limit: limit);
+  @override
+  Future<List<Map<String, dynamic>>> getCommunityPosts(
+          {String? category, int limit = 30, DateTime? beforeCreatedAt}) =>
+      _getCommunityPosts(
+          category: category, limit: limit, beforeCreatedAt: beforeCreatedAt);
+  @override
+  Future<List<Map<String, dynamic>>> getSavedPostsPageRaw({
+    required String userId,
+    required SavedPostsScope scope,
+    SavedPostsCursor? cursor,
+    int limit = 30,
+  }) =>
+      _getSavedPostsPageRaw(
+        userId: userId,
+        scope: scope,
+        cursor: cursor,
+        limit: limit,
+      );
+  @override
+  Future<int> countSavedPosts({
+    required String userId,
+    required SavedPostsScope scope,
+  }) =>
+      _countSavedPosts(userId: userId, scope: scope);
+  @override
+  Future<Map<String, dynamic>?> getSavedPostLocation({
+    required String postId,
+    required String userId,
+  }) =>
+      _getSavedPostLocation(postId: postId, userId: userId);
+  @override
+  Future<Set<String>> getEarnedBadgeIds(String userId) =>
+      _getEarnedBadgeIds(userId);
+  @override
+  Future<void> checkAndAwardBadges(String userId) =>
+      _checkAndAwardBadges(userId);
+  @override
+  Future<List<Map<String, dynamic>>> getPointTransactions(String userId) =>
+      _getPointTransactions(userId);
+  @override
+  Future<List<Map<String, dynamic>>> getBlockedUsersDetailed(
+          String blockerId) =>
       _getBlockedUsersDetailed(blockerId);
-  @override Future<int> getUserPoints(String userId) => _getUserPoints(userId);
-  @override Future<bool> hasQuestActivityToday({required String userId, required String questType}) =>
+  @override
+  Future<int> getUserPoints(String userId) => _getUserPoints(userId);
+  @override
+  Future<bool> hasQuestActivityToday(
+          {required String userId, required String questType}) =>
       _hasQuestActivityToday(userId: userId, questType: questType);
-  @override Future<void> incrementUserPoints({required String userId, required int points}) =>
+  @override
+  Future<void> incrementUserPoints(
+          {required String userId, required int points}) =>
       _incrementUserPoints(userId: userId, points: points);
-  @override Future<bool> awardBadgeIfAbsent({required String userId, required String badgeId}) =>
+  @override
+  Future<bool> awardBadgeIfAbsent(
+          {required String userId, required String badgeId}) =>
       _awardBadgeIfAbsent(userId: userId, badgeId: badgeId);
-  @override Future<int> getUserStreak(String userId) => _getUserStreak(userId);
-  @override Future<Map<String, dynamic>?> getNotificationPreferences(String userId) =>
+  @override
+  Future<int> getUserStreak(String userId) => _getUserStreak(userId);
+  @override
+  Future<Map<String, dynamic>?> getNotificationPreferences(String userId) =>
       _getNotificationPreferences(userId);
-  @override Future<void> upsertNotificationPreference({
-    required String userId, required String column, required bool value,
-  }) => _upsertNotificationPreference(userId: userId, column: column, value: value);
-  @override Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId) =>
+  @override
+  Future<void> upsertNotificationPreference({
+    required String userId,
+    required String column,
+    required bool value,
+  }) =>
+      _upsertNotificationPreference(
+          userId: userId, column: column, value: value);
+  @override
+  Future<List<Post>> getUserPosts(
+          String userId, int limit, String? lastPostId) =>
       _getUserPosts(userId, limit, lastPostId);
-  @override Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId,
-      {DateTime? lastCreatedAt, bool followingOnly = false}) =>
-      _getFeedPosts(userId, limit, lastPostId, lastCreatedAt: lastCreatedAt, followingOnly: followingOnly);
-  @override Future<List<Post>> getExplorePosts(int limit, String? lastPostId, {DateTime? lastCreatedAt}) =>
+  @override
+  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId,
+          {DateTime? lastCreatedAt, bool followingOnly = false}) =>
+      _getFeedPosts(userId, limit, lastPostId,
+          lastCreatedAt: lastCreatedAt, followingOnly: followingOnly);
+  @override
+  Future<List<Post>> getExplorePosts(int limit, String? lastPostId,
+          {DateTime? lastCreatedAt}) =>
       _getExplorePosts(limit, lastPostId, lastCreatedAt: lastCreatedAt);
-  @override Future<Post> updatePost(Post post) => _updatePost(post);
-  @override Future<void> deletePost(String postId) => _deletePost(postId);
+  @override
+  Future<Post> updatePost(Post post) => _updatePost(post);
+  @override
+  Future<void> deletePost(String postId) => _deletePost(postId);
 
   // ── Like ──────────────────────────────────────────────────────────────────
-  @override Future<void> likePost(String postId, String userId) => _likePost(postId, userId);
-  @override Future<void> unlikePost(String postId, String userId) => _unlikePost(postId, userId);
-  @override Future<bool> isPostLiked(String postId, String userId) => _isPostLiked(postId, userId);
-  @override Future<List<String>> getPostLikes(String postId, int limit) => _getPostLikes(postId, limit);
+  @override
+  Future<void> likePost(String postId, String userId) =>
+      _likePost(postId, userId);
+  @override
+  Future<void> unlikePost(String postId, String userId) =>
+      _unlikePost(postId, userId);
+  @override
+  Future<bool> isPostLiked(String postId, String userId) =>
+      _isPostLiked(postId, userId);
+  @override
+  Future<List<String>> getPostLikes(String postId, int limit) =>
+      _getPostLikes(postId, limit);
 
   // ── Comment ───────────────────────────────────────────────────────────────
-  @override Future<Comment> createComment(Comment comment) => _createComment(comment);
-  @override Future<Comment> getComment(String commentId) => _getComment(commentId);
-  @override Future<List<Comment>> getPostComments(String postId, int limit, String? lastCommentId) =>
+  @override
+  Future<Comment> createComment(Comment comment) => _createComment(comment);
+  @override
+  Future<Comment> getComment(String commentId) => _getComment(commentId);
+  @override
+  Future<List<Comment>> getPostComments(
+          String postId, int limit, String? lastCommentId) =>
       _getPostComments(postId, limit, lastCommentId);
-  @override Future<Comment> updateComment(Comment comment) => _updateComment(comment);
-  @override Future<void> deleteComment(String commentId) => _deleteComment(commentId);
-  @override Future<void> likeComment(String commentId, String userId) => _likeComment(commentId, userId);
-  @override Future<void> unlikeComment(String commentId, String userId) => _unlikeComment(commentId, userId);
+  @override
+  Future<Comment> updateComment(Comment comment) => _updateComment(comment);
+  @override
+  Future<void> deleteComment(String commentId) => _deleteComment(commentId);
+  @override
+  Future<void> likeComment(String commentId, String userId) =>
+      _likeComment(commentId, userId);
+  @override
+  Future<void> unlikeComment(String commentId, String userId) =>
+      _unlikeComment(commentId, userId);
 
   // ── Follow ────────────────────────────────────────────────────────────────
-  @override Future<void> followUser(String followerId, String followingId) =>
+  @override
+  Future<void> followUser(String followerId, String followingId) =>
       _followUser(followerId, followingId);
-  @override Future<void> unfollowUser(String followerId, String followingId) =>
+  @override
+  Future<void> unfollowUser(String followerId, String followingId) =>
       _unfollowUser(followerId, followingId);
-  @override Future<bool> isFollowing(String followerId, String followingId) =>
+  @override
+  Future<bool> isFollowing(String followerId, String followingId) =>
       _isFollowing(followerId, followingId);
-  @override Future<List<SocialUser>> getFollowers(String userId, int limit, String? lastUserId) =>
-      _getFollowers(userId, limit, lastUserId);
-  @override Future<List<SocialUser>> getFollowing(String userId, int limit, String? lastUserId) =>
-      _getFollowing(userId, limit, lastUserId);
+  @override
+  Future<List<SocialUser>> getFollowers(
+          String userId, int limit, String? lastUserId,
+          {String query = ''}) =>
+      _getFollowers(userId, limit, lastUserId, query: query);
+  @override
+  Future<List<SocialUser>> getFollowing(
+          String userId, int limit, String? lastUserId,
+          {String query = ''}) =>
+      _getFollowing(userId, limit, lastUserId, query: query);
 
   // ── Notification / Report ─────────────────────────────────────────────────
-  @override Future<List<Notification>> getUserNotifications(String userId, int limit, String? lastNotificationId) =>
+  @override
+  Future<List<Notification>> getUserNotifications(
+          String userId, int limit, String? lastNotificationId) =>
       _getUserNotifications(userId, limit, lastNotificationId);
-  @override Future<void> markNotificationAsRead(String notificationId) =>
+  @override
+  Future<void> markNotificationAsRead(String notificationId) =>
       _markNotificationAsRead(notificationId);
-  @override Future<void> markAllNotificationsAsRead(String userId) =>
+  @override
+  Future<void> markAllNotificationsAsRead(String userId) =>
       _markAllNotificationsAsRead(userId);
-  @override Future<void> createNotification(Notification notification) =>
+  @override
+  Future<void> createNotification(Notification notification) =>
       _createNotification(notification);
-  @override Future<void> deleteNotification(String notificationId) =>
+  @override
+  Future<void> deleteNotification(String notificationId) =>
       _deleteNotification(notificationId);
-  @override Future<void> reportPost(String postId, String reporterId, String reason) =>
+  @override
+  Future<void> reportPost(String postId, String reporterId, String reason) =>
       _reportPost(postId, reporterId, reason);
-  @override Future<void> reportComment(String commentId, String reporterId, String reason) =>
+  @override
+  Future<void> reportComment(
+          String commentId, String reporterId, String reason) =>
       _reportComment(commentId, reporterId, reason);
-  @override Future<void> reportUser(String reportedUserId, String reporterId, String reason) =>
+  @override
+  Future<void> reportUser(
+          String reportedUserId, String reporterId, String reason) =>
       _reportUser(reportedUserId, reporterId, reason);
 
   // ── Search / Discovery / Bookmark ─────────────────────────────────────────
-  @override Future<List<Post>> searchPosts({required String query, int limit = 20, String? lastPostId}) =>
+  @override
+  Future<List<Post>> searchPosts(
+          {required String query, int limit = 20, String? lastPostId}) =>
       _searchPosts(query: query, limit: limit, lastPostId: lastPostId);
-  @override Future<List<Post>> searchPostsByHashtag({required String hashtag, int limit = 20, String? lastPostId}) =>
-      _searchPostsByHashtag(hashtag: hashtag, limit: limit, lastPostId: lastPostId);
-  @override Future<List<String>> getPopularHashtags({int limit = 20}) => _getPopularHashtags(limit: limit);
-  @override Future<List<String>> getTrendingHashtags({int limit = 10, int days = 7}) =>
+  @override
+  Future<List<Post>> searchPostsByHashtag(
+          {required String hashtag, int limit = 20, String? lastPostId}) =>
+      _searchPostsByHashtag(
+          hashtag: hashtag, limit: limit, lastPostId: lastPostId);
+  @override
+  Future<List<String>> getPopularHashtags({int limit = 20}) =>
+      _getPopularHashtags(limit: limit);
+  @override
+  Future<List<String>> getTrendingHashtags({int limit = 10, int days = 7}) =>
       _getTrendingHashtags(limit: limit, days: days);
-  @override Future<List<Post>> getRecommendedPosts(String userId, {int limit = 20, int offset = 0}) =>
+  @override
+  Future<List<Post>> getRecommendedPosts(String userId,
+          {int limit = 20, int offset = 0}) =>
       _getRecommendedPosts(userId, limit: limit, offset: offset);
-  @override Future<List<Post>> getPostsByHashtag({
-    required String hashtag, String? userId, String sort = 'popular', int limit = 20, int offset = 0,
-  }) => _getPostsByHashtag(hashtag: hashtag, userId: userId, sort: sort, limit: limit, offset: offset);
-  @override Future<List<Post>> getPostsByLocation({
-    required double lat, required double lng, int radiusM = 50,
-    String? userId, int limit = 20, int offset = 0,
-  }) => _getPostsByLocation(lat: lat, lng: lng, radiusM: radiusM, userId: userId, limit: limit, offset: offset);
-  @override Future<List<BookmarkCollection>> getBookmarkCollections(String userId) =>
+  @override
+  Future<List<Post>> getPostsByHashtag({
+    required String hashtag,
+    String? userId,
+    String sort = 'popular',
+    int limit = 20,
+    int offset = 0,
+  }) =>
+      _getPostsByHashtag(
+          hashtag: hashtag,
+          userId: userId,
+          sort: sort,
+          limit: limit,
+          offset: offset);
+  @override
+  Future<List<Post>> getPostsByLocation({
+    required double lat,
+    required double lng,
+    int radiusM = 50,
+    String? userId,
+    int limit = 20,
+    int offset = 0,
+  }) =>
+      _getPostsByLocation(
+          lat: lat,
+          lng: lng,
+          radiusM: radiusM,
+          userId: userId,
+          limit: limit,
+          offset: offset);
+  @override
+  Future<List<BookmarkCollection>> getBookmarkCollections(String userId) =>
       _getBookmarkCollections(userId);
-  @override Future<BookmarkCollection> createBookmarkCollection({
-    required String userId, required String name, String emoji = '📁',
-  }) => _createBookmarkCollection(userId: userId, name: name, emoji: emoji);
-  @override Future<void> deleteBookmarkCollection(String collectionId) =>
-      _deleteBookmarkCollection(collectionId);
-  @override Future<void> updateSavedPostCollection({
-    required String postId, required String userId, String? collectionId,
-  }) => _updateSavedPostCollection(postId: postId, userId: userId, collectionId: collectionId);
+  @override
+  Future<BookmarkCollection> createBookmarkCollection({
+    required String userId,
+    required String name,
+    String emoji = '📁',
+  }) =>
+      _createBookmarkCollection(userId: userId, name: name, emoji: emoji);
+  @override
+  Future<void> deleteBookmarkCollection({
+    required String collectionId,
+    required String userId,
+  }) =>
+      _deleteBookmarkCollection(collectionId: collectionId, userId: userId);
+  @override
+  Future<void> updateSavedPostCollection({
+    required String postId,
+    required String userId,
+    String? collectionId,
+  }) =>
+      _updateSavedPostCollection(
+          postId: postId, userId: userId, collectionId: collectionId);
 }
