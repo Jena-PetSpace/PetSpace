@@ -66,12 +66,14 @@
 
 ## Git, 병렬 작업, 배포
 
-- `git push`, merge, rebase, tag 생성, 배포를 수행하지 않는다.
-- `main`, `win-android-release`, `mac-ios-release`에 직접 커밋하지 않는다.
-- 작업마다 `feature/<작업명>` 브랜치를 사용한다.
+- 기본 작업은 이 노트북의 로컬 `feature/<작업명>` 브랜치와 전용 worktree에서 수행한다.
+- 구현·format·정적 분석·관련 테스트·승인된 교차 리뷰를 통과하면 feature 브랜치에 커밋한다.
+- Windows 앱의 승인된 변경은 로컬 `win-android-release`에 merge하고 동일 브랜치에서 재검증한 뒤 `origin/win-android-release`로 push하여 노트북·GitHub·실기기 빌드 소스를 일치시킨다.
+- `win-android-release`에서 기능 코드를 직접 편집하지 않는다. merge 충돌 해결과 생성 파일 정리만 허용한다.
+- `main`, `mac-ios-release` 직접 커밋·merge·push, rebase, tag 생성, 배포는 별도 사용자 승인 없이는 수행하지 않는다.
 - Claude Code와 Codex가 동시에 작업하면 에이전트별 Git worktree를 사용하고 같은 파일을 동시에 수정하지 않는다.
 - 다른 에이전트의 브랜치·worktree·커밋을 reset, clean, stash, checkout 등으로 제거하지 않는다.
-- 브랜치 생성과 커밋은 작업지시서에서 허용된 경우에만 수행한다.
+- 브랜치 생성과 커밋, Windows 통합은 작업지시서 또는 사용자의 현재·상시 지시가 허용한 범위에서만 수행한다.
 - 커밋 메시지는 `[codex|claude] 영역: 요약` 형식을 사용한다.
 
 ## 검증과 완료 보고
