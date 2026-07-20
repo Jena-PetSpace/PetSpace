@@ -36,7 +36,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(user);
     } catch (e) {
       return Left(
-          ServerFailure(message: '사용자 정보 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '사용자 정보 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -51,13 +52,16 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(updatedUser);
     } catch (e) {
       return Left(
-          ServerFailure(message: '프로필 업데이트 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '프로필 업데이트 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
-  Future<Either<Failure, List<SocialUser>>> searchUsers(String query,
-      {int limit = 20}) async {
+  Future<Either<Failure, List<SocialUser>>> searchUsers(
+    String query, {
+    int limit = 20,
+  }) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -67,13 +71,16 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(users);
     } catch (e) {
       return Left(
-          ServerFailure(message: '사용자 검색 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '사용자 검색 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
-  Future<Either<Failure, Post>> createPost(Post post,
-      {List<File> images = const []}) async {
+  Future<Either<Failure, Post>> createPost(
+    Post post, {
+    List<File> images = const [],
+  }) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -83,7 +90,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(createdPost);
     } catch (e) {
       return Left(
-          ServerFailure(message: '게시물 작성 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '게시물 작성 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -98,13 +106,15 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(post);
     } catch (e) {
       return Left(
-          ServerFailure(message: '게시물 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '게시물 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, Map<String, dynamic>?>> getPostDetail(
-      String postId) async {
+    String postId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -113,7 +123,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(detail);
     } catch (e) {
       return Left(
-          ServerFailure(message: '게시물 상세 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '게시물 상세 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -168,7 +179,8 @@ class SocialRepositoryImpl implements SocialRepository {
 
   @override
   Future<Either<Failure, List<Map<String, dynamic>>>> getPointTransactions(
-      String userId) async {
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -182,7 +194,8 @@ class SocialRepositoryImpl implements SocialRepository {
 
   @override
   Future<Either<Failure, List<Map<String, dynamic>>>> getBlockedUsersDetailed(
-      String blockerId) async {
+    String blockerId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -217,7 +230,9 @@ class SocialRepositoryImpl implements SocialRepository {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
       final achieved = await remoteDataSource.hasQuestActivityToday(
-          userId: userId, questType: questType);
+        userId: userId,
+        questType: questType,
+      );
       return Right(achieved);
     } catch (e) {
       return Left(ServerFailure(message: '퀘스트 확인 중 오류: ${e.toString()}'));
@@ -234,7 +249,9 @@ class SocialRepositoryImpl implements SocialRepository {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
       await remoteDataSource.incrementUserPoints(
-          userId: userId, points: points);
+        userId: userId,
+        points: points,
+      );
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure(message: '포인트 지급 중 오류: ${e.toString()}'));
@@ -251,7 +268,9 @@ class SocialRepositoryImpl implements SocialRepository {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
       final granted = await remoteDataSource.awardBadgeIfAbsent(
-          userId: userId, badgeId: badgeId);
+        userId: userId,
+        badgeId: badgeId,
+      );
       return Right(granted);
     } catch (e) {
       return Left(ServerFailure(message: '뱃지 지급 중 오류: ${e.toString()}'));
@@ -288,31 +307,35 @@ class SocialRepositoryImpl implements SocialRepository {
         if (savedAt == null || savedId == null) {
           throw const FormatException('invalid-saved-post');
         }
-        final post = PostModel.fromJson(postJson)
-            .copyWith(isSavedByCurrentUser: true)
-            .toEntity();
-        items.add(SavedPostItem(
-          savedPostId: savedId,
-          collectionId: row['collection_id'] as String?,
-          savedAt: savedAt,
-          post: post,
-        ));
+        final post = PostModel.fromJson(
+          postJson,
+        ).copyWith(isSavedByCurrentUser: true).toEntity();
+        items.add(
+          SavedPostItem(
+            savedPostId: savedId,
+            collectionId: row['collection_id'] as String?,
+            savedAt: savedAt,
+            post: post,
+          ),
+        );
       }
       final last = items.isEmpty ? null : items.last;
-      return Right(SavedPostsPage(
-        items: items,
-        hasMore: hasMore,
-        nextCursor: last == null
-            ? null
-            : SavedPostsCursor(
-                savedAt: last.savedAt,
-                savedPostId: last.savedPostId,
-              ),
-      ));
+      return Right(
+        SavedPostsPage(
+          items: items,
+          hasMore: hasMore,
+          nextCursor: last == null
+              ? null
+              : SavedPostsCursor(
+                  savedAt: last.savedAt,
+                  savedPostId: last.savedPostId,
+                ),
+        ),
+      );
     } catch (_) {
-      return const Left(ServerFailure(
-        message: '저장한 게시글을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-      ));
+      return const Left(
+        ServerFailure(message: '저장한 게시글을 불러오지 못했어요. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -325,14 +348,13 @@ class SocialRepositoryImpl implements SocialRepository {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
-      return Right(await remoteDataSource.countSavedPosts(
-        userId: userId,
-        scope: scope,
-      ));
+      return Right(
+        await remoteDataSource.countSavedPosts(userId: userId, scope: scope),
+      );
     } catch (_) {
-      return const Left(ServerFailure(
-        message: '저장 개수를 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-      ));
+      return const Left(
+        ServerFailure(message: '저장 개수를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -352,14 +374,16 @@ class SocialRepositoryImpl implements SocialRepository {
       if (row == null) return const Right(null);
       final id = row['id'] as String?;
       if (id == null) throw const FormatException('invalid-saved-post');
-      return Right(SavedPostLocation(
-        savedPostId: id,
-        collectionId: row['collection_id'] as String?,
-      ));
+      return Right(
+        SavedPostLocation(
+          savedPostId: id,
+          collectionId: row['collection_id'] as String?,
+        ),
+      );
     } catch (_) {
-      return const Left(ServerFailure(
-        message: '저장 위치를 확인하지 못했어요. 잠시 후 다시 시도해주세요.',
-      ));
+      return const Left(
+        ServerFailure(message: '저장 위치를 확인하지 못했어요. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -374,7 +398,10 @@ class SocialRepositoryImpl implements SocialRepository {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
       final rows = await remoteDataSource.getCommunityPosts(
-          category: category, limit: limit, beforeCreatedAt: beforeCreatedAt);
+        category: category,
+        limit: limit,
+        beforeCreatedAt: beforeCreatedAt,
+      );
       return Right(rows);
     } catch (e) {
       return Left(ServerFailure(message: '커뮤니티 게시물 조회 중 오류: ${e.toString()}'));
@@ -397,7 +424,8 @@ class SocialRepositoryImpl implements SocialRepository {
 
   @override
   Future<Either<Failure, Map<String, dynamic>?>> getNotificationPreferences(
-      String userId) async {
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -406,7 +434,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(row);
     } catch (e) {
       return Left(
-          ServerFailure(message: '알림 설정 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '알림 설정 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -421,17 +450,23 @@ class SocialRepositoryImpl implements SocialRepository {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
       await remoteDataSource.upsertNotificationPreference(
-          userId: userId, column: column, value: value);
+        userId: userId,
+        column: column,
+        value: value,
+      );
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '알림 설정 저장 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '알림 설정 저장 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, bool>> isPostLiked(
-      String postId, String userId) async {
+    String postId,
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -440,7 +475,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(liked);
     } catch (e) {
       return Left(
-          ServerFailure(message: '좋아요 상태 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '좋아요 상태 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -467,7 +503,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(posts);
     } catch (e) {
       return Left(
-          ServerFailure(message: '피드 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '피드 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -482,12 +519,16 @@ class SocialRepositoryImpl implements SocialRepository {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
-      final posts = await remoteDataSource.getExplorePosts(limit, lastPostId,
-          lastCreatedAt: lastCreatedAt);
+      final posts = await remoteDataSource.getExplorePosts(
+        limit,
+        lastPostId,
+        lastCreatedAt: lastCreatedAt,
+      );
       return Right(posts);
     } catch (e) {
       return Left(
-          ServerFailure(message: '탐색 게시물 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '탐색 게시물 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -502,12 +543,16 @@ class SocialRepositoryImpl implements SocialRepository {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
-      final posts =
-          await remoteDataSource.getUserPosts(userId, limit, lastPostId);
+      final posts = await remoteDataSource.getUserPosts(
+        userId,
+        limit,
+        lastPostId,
+      );
       return Right(posts);
     } catch (e) {
       return Left(
-          ServerFailure(message: '사용자 게시물 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '사용자 게시물 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -522,7 +567,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '좋아요 처리 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '좋아요 처리 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -537,7 +583,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '좋아요 취소 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '좋아요 취소 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -552,7 +599,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '게시물 삭제 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '게시물 삭제 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -567,7 +615,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(createdComment);
     } catch (e) {
       return Left(
-          ServerFailure(message: '댓글 작성 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '댓글 작성 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -582,43 +631,54 @@ class SocialRepositoryImpl implements SocialRepository {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
-      final comments =
-          await remoteDataSource.getPostComments(postId, limit, lastCommentId);
+      final comments = await remoteDataSource.getPostComments(
+        postId,
+        limit,
+        lastCommentId,
+      );
       return Right(comments);
     } catch (e) {
       return Left(
-          ServerFailure(message: '댓글 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '댓글 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, Follow>> followUser(
-      String followerId, String followingId) async {
+    String followerId,
+    String followingId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       await remoteDataSource.followUser(followerId, followingId);
-      return Right(Follow(
-        id: '$followerId-$followingId',
-        followerId: followerId,
-        followingId: followingId,
-        followerName: 'Unknown',
-        followingName: 'Unknown',
-        status: FollowStatus.accepted,
-        createdAt: DateTime.now(),
-        acceptedAt: DateTime.now(),
-      ));
+      return Right(
+        Follow(
+          id: '$followerId-$followingId',
+          followerId: followerId,
+          followingId: followingId,
+          followerName: 'Unknown',
+          followingName: 'Unknown',
+          status: FollowStatus.accepted,
+          createdAt: DateTime.now(),
+          acceptedAt: DateTime.now(),
+        ),
+      );
     } catch (e) {
       return Left(
-          ServerFailure(message: '팔로우 처리 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '팔로우 처리 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, void>> unfollowUser(
-      String followerId, String followingId) async {
+    String followerId,
+    String followingId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -628,13 +688,15 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '팔로우 취소 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '팔로우 취소 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, void>> markNotificationAsRead(
-      String notificationId) async {
+    String notificationId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -644,7 +706,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '알림 읽음 처리 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '알림 읽음 처리 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -661,23 +724,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Left(ServerFailure(message: '팔로우 요청 승인 기능은 아직 지원하지 않습니다'));
     } catch (e) {
       return Left(
-          ServerFailure(message: '팔로우 요청 승인 중 오류가 발생했습니다: ${e.toString()}'));
-    }
-  }
-
-  @override
-  Future<Either<Failure, void>> createNotification(
-      Notification notification) async {
-    try {
-      if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure(message: ErrorMessages.networkError));
-      }
-
-      await remoteDataSource.createNotification(notification);
-      return const Right(null);
-    } catch (e) {
-      return Left(
-          ServerFailure(message: '알림 생성 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '팔로우 요청 승인 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -692,7 +740,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '댓글 삭제 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '댓글 삭제 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -706,12 +755,16 @@ class SocialRepositoryImpl implements SocialRepository {
     bool followingOnly = false,
   }) async {
     // userId가 null이거나 빈 문자열이면 전체 피드 조회 (explore)
-    final effectiveUserId =
-        (userId != null && userId.isNotEmpty) ? userId : null;
+    final effectiveUserId = (userId != null && userId.isNotEmpty)
+        ? userId
+        : null;
 
     if (effectiveUserId == null) {
       return await getExplorePosts(
-          limit: limit, lastPostId: lastPostId, lastCreatedAt: lastCreatedAt);
+        limit: limit,
+        lastPostId: lastPostId,
+        lastCreatedAt: lastCreatedAt,
+      );
     }
     return await getFeedPosts(
       userId: effectiveUserId,
@@ -747,24 +800,27 @@ class SocialRepositoryImpl implements SocialRepository {
         query: normalizedQuery,
       );
       final follows = users
-          .map((user) => Follow(
-                id: '${user.id}-$userId',
-                followerId: user.id,
-                followingId: userId,
-                followerName: user.displayName,
-                followingName: 'Me',
-                followerUsername: user.username,
-                followerProfileImage: user.profileImageUrl,
-                status: FollowStatus.accepted,
-                createdAt: user.createdAt,
-                acceptedAt: user.createdAt,
-              ))
+          .map(
+            (user) => Follow(
+              id: '${user.id}-$userId',
+              followerId: user.id,
+              followingId: userId,
+              followerName: user.displayName,
+              followingName: 'Me',
+              followerUsername: user.username,
+              followerProfileImage: user.profileImageUrl,
+              status: FollowStatus.accepted,
+              createdAt: user.createdAt,
+              acceptedAt: user.createdAt,
+            ),
+          )
           .toList();
 
       return Right(follows);
     } catch (e) {
       return Left(
-          ServerFailure(message: '팔로워 목록 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '팔로워 목록 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -793,58 +849,71 @@ class SocialRepositoryImpl implements SocialRepository {
         query: normalizedQuery,
       );
       final follows = users
-          .map((user) => Follow(
-                id: '$userId-${user.id}',
-                followerId: userId,
-                followingId: user.id,
-                followerName: 'Me',
-                followingName: user.displayName,
-                followingUsername: user.username,
-                followingProfileImage: user.profileImageUrl,
-                status: FollowStatus.accepted,
-                createdAt: user.createdAt,
-                acceptedAt: user.createdAt,
-              ))
+          .map(
+            (user) => Follow(
+              id: '$userId-${user.id}',
+              followerId: userId,
+              followingId: user.id,
+              followerName: 'Me',
+              followingName: user.displayName,
+              followingUsername: user.username,
+              followingProfileImage: user.profileImageUrl,
+              status: FollowStatus.accepted,
+              createdAt: user.createdAt,
+              acceptedAt: user.createdAt,
+            ),
+          )
           .toList();
 
       return Right(follows);
     } catch (e) {
       return Left(
-          ServerFailure(message: '팔로잉 목록 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '팔로잉 목록 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
-  Future<Either<Failure, List<Notification>>> getNotifications(
-      {required String userId,
-      int limit = 20,
-      String? lastNotificationId}) async {
+  Future<Either<Failure, List<Notification>>> getNotifications({
+    required String userId,
+    int limit = 20,
+    String? lastNotificationId,
+  }) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
       final notifications = await remoteDataSource.getUserNotifications(
-          userId, limit, lastNotificationId);
+        userId,
+        limit,
+        lastNotificationId,
+      );
       return Right(notifications);
     } catch (e) {
       return Left(
-          ServerFailure(message: '알림 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '알림 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
-  Future<Either<Failure, List<Notification>>> getUserNotifications(
-      {required String userId,
-      int limit = 20,
-      String? lastNotificationId}) async {
+  Future<Either<Failure, List<Notification>>> getUserNotifications({
+    required String userId,
+    int limit = 20,
+    String? lastNotificationId,
+  }) async {
     return await getNotifications(
-        userId: userId, limit: limit, lastNotificationId: lastNotificationId);
+      userId: userId,
+      limit: limit,
+      lastNotificationId: lastNotificationId,
+    );
   }
 
   @override
   Future<Either<Failure, List<Follow>>> getPendingFollowRequests(
-      String userId) async {
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -855,7 +924,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right([]);
     } catch (e) {
       return Left(
-          ServerFailure(message: '팔로우 요청 목록 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '팔로우 요청 목록 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -883,7 +953,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(users);
     } catch (e) {
       return Left(
-          ServerFailure(message: '좋아요 목록 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '좋아요 목록 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -899,49 +970,58 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right([]);
     } catch (e) {
       return Left(
-          ServerFailure(message: '공유된 게시물 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '공유된 게시물 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, int>> getUnreadNotificationsCount(
-      String userId) async {
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
-      // 안읽은 알림을 가져와서 개수 반환
-      final notifications =
-          await remoteDataSource.getUserNotifications(userId, 100, null);
-      final unreadCount = notifications.where((n) => !n.isRead).length;
+      final unreadCount = await remoteDataSource.getUnreadNotificationsCount(
+        userId,
+      );
       return Right(unreadCount);
     } catch (e) {
       return Left(
-          ServerFailure(message: '안읽은 알림 개수 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '안읽은 알림 개수 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, bool>> isFollowing(
-      String followerId, String followingId) async {
+    String followerId,
+    String followingId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
 
-      final isFollowing =
-          await remoteDataSource.isFollowing(followerId, followingId);
+      final isFollowing = await remoteDataSource.isFollowing(
+        followerId,
+        followingId,
+      );
       return Right(isFollowing);
     } catch (e) {
       return Left(
-          ServerFailure(message: '팔로우 여부 확인 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '팔로우 여부 확인 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, void>> likeComment(
-      String commentId, String userId) async {
+    String commentId,
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -951,13 +1031,15 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '댓글 좋아요 처리 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '댓글 좋아요 처리 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, void>> markAllNotificationsAsRead(
-      String userId) async {
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -968,7 +1050,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '모든 알림 읽음 처리 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '모든 알림 읽음 처리 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -984,13 +1067,17 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Left(ServerFailure(message: '팔로우 요청 거절 기능은 아직 지원하지 않습니다'));
     } catch (e) {
       return Left(
-          ServerFailure(message: '팔로우 요청 거절 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '팔로우 요청 거절 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, void>> reportPost(
-      String postId, String userId, String reason) async {
+    String postId,
+    String userId,
+    String reason,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -1000,13 +1087,17 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '게시물 신고 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '게시물 신고 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, void>> reportUser(
-      String reportedUserId, String reporterId, String reason) async {
+    String reportedUserId,
+    String reporterId,
+    String reason,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -1016,7 +1107,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '사용자 신고 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '사용자 신고 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -1060,13 +1152,16 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '포스트 공유 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '포스트 공유 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, void>> unlikeComment(
-      String commentId, String userId) async {
+    String commentId,
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -1076,7 +1171,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '댓글 좋아요 취소 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '댓글 좋아요 취소 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -1091,7 +1187,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(updatedComment);
     } catch (e) {
       return Left(
-          ServerFailure(message: '댓글 수정 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '댓글 수정 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -1106,7 +1203,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(updatedPost);
     } catch (e) {
       return Left(
-          ServerFailure(message: '게시물 수정 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '게시물 수정 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -1129,7 +1227,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(posts);
     } catch (e) {
       return Left(
-          ServerFailure(message: '게시물 검색 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '게시물 검색 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -1152,7 +1251,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(posts);
     } catch (e) {
       return Left(
-          ServerFailure(message: '해시태그 검색 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '해시태그 검색 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -1169,7 +1269,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(hashtags);
     } catch (e) {
       return Left(
-          ServerFailure(message: '인기 해시태그 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '인기 해시태그 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -1190,7 +1291,8 @@ class SocialRepositoryImpl implements SocialRepository {
       return Right(hashtags);
     } catch (e) {
       return Left(
-          ServerFailure(message: '트렌딩 해시태그 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '트렌딩 해시태그 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -1205,12 +1307,15 @@ class SocialRepositoryImpl implements SocialRepository {
       await remoteDataSource.supabaseClient.from('saved_posts').upsert({
         'post_id': postId,
         'user_id': userId,
-        'created_at': DateTime.now().toIso8601String()
+        'created_at': DateTime.now().toIso8601String(),
       });
       return const Right(null);
     } catch (e) {
-      return const Left(ServerFailure(
-          message: '${ErrorMessages.savePostFailed}: \${e.toString()}'));
+      return const Left(
+        ServerFailure(
+          message: '${ErrorMessages.savePostFailed}: \${e.toString()}',
+        ),
+      );
     }
   }
 
@@ -1227,14 +1332,19 @@ class SocialRepositoryImpl implements SocialRepository {
           .eq('user_id', userId);
       return const Right(null);
     } catch (e) {
-      return const Left(ServerFailure(
-          message: '${ErrorMessages.unsavePostFailed}: \${e.toString()}'));
+      return const Left(
+        ServerFailure(
+          message: '${ErrorMessages.unsavePostFailed}: \${e.toString()}',
+        ),
+      );
     }
   }
 
   @override
-  Future<Either<Failure, List<Post>>> getSavedPosts(
-      {required String userId, int limit = 20}) async {
+  Future<Either<Failure, List<Post>>> getSavedPosts({
+    required String userId,
+    int limit = 20,
+  }) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -1256,14 +1366,19 @@ class SocialRepositoryImpl implements SocialRepository {
           .toList();
       return Right(posts);
     } catch (e) {
-      return const Left(ServerFailure(
-          message: '${ErrorMessages.savedPostsLoadFailed}: \${e.toString()}'));
+      return const Left(
+        ServerFailure(
+          message: '${ErrorMessages.savedPostsLoadFailed}: \${e.toString()}',
+        ),
+      );
     }
   }
 
   @override
   Future<Either<Failure, bool>> isPostSaved(
-      String postId, String userId) async {
+    String postId,
+    String userId,
+  ) async {
     try {
       final response = await remoteDataSource.supabaseClient
           .from('saved_posts')
@@ -1281,7 +1396,9 @@ class SocialRepositoryImpl implements SocialRepository {
 
   @override
   Future<Either<Failure, String>> uploadCoverImage(
-      String userId, File file) async {
+    String userId,
+    File file,
+  ) async {
     try {
       final url = await remoteDataSource.uploadCoverImage(userId, file);
       return Right(url);
@@ -1294,7 +1411,9 @@ class SocialRepositoryImpl implements SocialRepository {
 
   @override
   Future<Either<Failure, void>> blockUser(
-      String blockerId, String blockedId) async {
+    String blockerId,
+    String blockedId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -1302,18 +1421,21 @@ class SocialRepositoryImpl implements SocialRepository {
       await remoteDataSource.supabaseClient.from('user_blocks').upsert({
         'blocker_id': blockerId,
         'blocked_id': blockedId,
-        'created_at': DateTime.now().toIso8601String()
+        'created_at': DateTime.now().toIso8601String(),
       });
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '차단 처리 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '차단 처리 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, void>> unblockUser(
-      String blockerId, String blockedId) async {
+    String blockerId,
+    String blockedId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -1326,13 +1448,16 @@ class SocialRepositoryImpl implements SocialRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '차단 해제 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '차단 해제 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, bool>> isBlocked(
-      String blockerId, String blockedId) async {
+    String blockerId,
+    String blockedId,
+  ) async {
     try {
       final response = await remoteDataSource.supabaseClient
           .from('user_blocks')
@@ -1358,8 +1483,11 @@ class SocialRepositoryImpl implements SocialRepository {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
       }
-      final posts = await remoteDataSource.getRecommendedPosts(userId,
-          limit: limit, offset: offset);
+      final posts = await remoteDataSource.getRecommendedPosts(
+        userId,
+        limit: limit,
+        offset: offset,
+      );
       return Right(posts);
     } catch (e) {
       return Left(ServerFailure(message: '추천 게시물 조회 실패: ${e.toString()}'));
@@ -1422,7 +1550,8 @@ class SocialRepositoryImpl implements SocialRepository {
 
   @override
   Future<Either<Failure, List<BookmarkCollection>>> getBookmarkCollections(
-      String userId) async {
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: ErrorMessages.networkError));
@@ -1430,9 +1559,9 @@ class SocialRepositoryImpl implements SocialRepository {
       final collections = await remoteDataSource.getBookmarkCollections(userId);
       return Right(collections);
     } catch (e) {
-      return const Left(ServerFailure(
-        message: '컬렉션을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-      ));
+      return const Left(
+        ServerFailure(message: '컬렉션을 불러오지 못했어요. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -1453,9 +1582,9 @@ class SocialRepositoryImpl implements SocialRepository {
       );
       return Right(collection);
     } catch (e) {
-      return const Left(ServerFailure(
-        message: '컬렉션을 만들지 못했어요. 잠시 후 다시 시도해주세요.',
-      ));
+      return const Left(
+        ServerFailure(message: '컬렉션을 만들지 못했어요. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -1474,9 +1603,9 @@ class SocialRepositoryImpl implements SocialRepository {
       );
       return const Right(null);
     } catch (e) {
-      return const Left(ServerFailure(
-        message: '컬렉션을 삭제하지 못했어요. 잠시 후 다시 시도해주세요.',
-      ));
+      return const Left(
+        ServerFailure(message: '컬렉션을 삭제하지 못했어요. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -1497,9 +1626,9 @@ class SocialRepositoryImpl implements SocialRepository {
       );
       return const Right(null);
     } catch (e) {
-      return const Left(ServerFailure(
-        message: '저장 위치를 변경하지 못했어요. 잠시 후 다시 시도해주세요.',
-      ));
+      return const Left(
+        ServerFailure(message: '저장 위치를 변경하지 못했어요. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 }

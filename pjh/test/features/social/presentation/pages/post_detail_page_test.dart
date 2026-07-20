@@ -9,7 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:meong_nyang_diary/core/error/failures.dart';
-import 'package:meong_nyang_diary/core/services/push_notification_service.dart';
 import 'package:meong_nyang_diary/core/services/realtime_service.dart';
 import 'package:meong_nyang_diary/features/auth/domain/entities/user.dart';
 import 'package:meong_nyang_diary/features/auth/presentation/bloc/auth_bloc.dart';
@@ -34,9 +33,6 @@ class _MockCommentBloc extends MockBloc<CommentEvent, CommentState>
 
 class _MockAuthBloc extends MockBloc<AuthEvent, AuthState>
     implements AuthBloc {}
-
-class _MockPushNotificationService extends Mock
-    implements PushNotificationService {}
 
 class _MockRealtimeService extends Mock implements RealtimeService {}
 
@@ -246,7 +242,6 @@ void main() {
       updateComment: UpdateComment(repository),
       currentUserId: 'viewer',
       socialRepository: repository,
-      pushNotificationService: _MockPushNotificationService(),
       realtimeService: _MockRealtimeService(),
       enableRealtime: false,
     );
@@ -293,21 +288,14 @@ void main() {
       () => repository.getBookmarkCollections('viewer'),
     ).thenAnswer((_) async => const Right(<BookmarkCollection>[]));
     when(
-      () => repository.getSavedPostLocation(
-        postId: 'post-1',
-        userId: 'viewer',
-      ),
+      () => repository.getSavedPostLocation(postId: 'post-1', userId: 'viewer'),
     ).thenAnswer(
       (_) async => const Right(SavedPostLocation(savedPostId: 'saved-1')),
     );
     final notifier = SavedPostsChangeNotifier.forTest();
     final bloc = mockCommentBloc();
 
-    await pumpPage(
-      tester,
-      commentBloc: bloc,
-      savedPostsNotifier: notifier,
-    );
+    await pumpPage(tester, commentBloc: bloc, savedPostsNotifier: notifier);
 
     final saveButton = find.byKey(const Key('post_detail_save_button'));
     await tester.tap(saveButton);
@@ -325,7 +313,9 @@ void main() {
     expect(notifier.lastChange?.type, SavedPostsChangeType.saved);
     expect(find.text('게시물을 저장했어요'), findsOneWidget);
     expect(
-        find.byKey(const Key('post_detail_collection_button')), findsOneWidget);
+      find.byKey(const Key('post_detail_collection_button')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('컬렉션 선택'));
     await tester.pumpAndSettle();
@@ -343,28 +333,19 @@ void main() {
       () => repository.isPostSaved('post-1', 'viewer'),
     ).thenAnswer((_) async => const Right(true));
     when(
-      () => repository.getSavedPostLocation(
-        postId: 'post-1',
-        userId: 'viewer',
-      ),
+      () => repository.getSavedPostLocation(postId: 'post-1', userId: 'viewer'),
     ).thenAnswer(
       (_) async => const Right(
         SavedPostLocation(savedPostId: 'saved-1', collectionId: 'walks'),
       ),
     );
-    when(
-      () => repository.unsavePost('post-1', 'viewer'),
-    ).thenAnswer(
+    when(() => repository.unsavePost('post-1', 'viewer')).thenAnswer(
       (_) async => const Left(ServerFailure(message: 'unsave-secret')),
     );
     final notifier = SavedPostsChangeNotifier.forTest();
     final bloc = mockCommentBloc();
 
-    await pumpPage(
-      tester,
-      commentBloc: bloc,
-      savedPostsNotifier: notifier,
-    );
+    await pumpPage(tester, commentBloc: bloc, savedPostsNotifier: notifier);
     await tester.tap(find.byKey(const Key('post_detail_save_button')));
     await tester.pumpAndSettle();
 

@@ -24,7 +24,3 @@ class NotificationBadgeRefreshRequested extends NotificationBadgeEvent {
   @override
   List<Object?> get props => [userId];
 }
-
-class NotificationBadgeIncrementRequested extends NotificationBadgeEvent {
-  const NotificationBadgeIncrementRequested();
-}

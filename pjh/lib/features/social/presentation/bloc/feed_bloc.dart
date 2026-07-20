@@ -14,7 +14,6 @@ import '../../domain/usecases/like_post.dart';
 import '../../domain/usecases/unlike_post.dart';
 import '../../domain/usecases/save_post.dart';
 import '../../../../core/services/realtime_service.dart';
-import '../../../../core/services/push_notification_service.dart';
 import '../../domain/usecases/unsave_post.dart';
 import '../../domain/usecases/get_saved_posts.dart';
 import '../../domain/usecases/update_post.dart';
@@ -35,7 +34,6 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   final GetSavedPosts _getSavedPosts;
   final SocialRepository _socialRepository;
   final RealtimeService _realtimeService;
-  final PushNotificationService _pushService = PushNotificationService();
   StreamSubscription<Map<String, dynamic>>? _likeSub;
   StreamSubscription<Map<String, dynamic>>? _commentSub;
 
@@ -51,18 +49,18 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     required GetSavedPosts getSavedPosts,
     required SocialRepository socialRepository,
     RealtimeService? realtimeService,
-  })  : _getFeed = getFeed,
-        _createPost = createPost,
-        _updatePost = updatePost,
-        _deletePost = deletePost,
-        _likePost = likePost,
-        _unlikePost = unlikePost,
-        _savePost = savePost,
-        _unsavePost = unsavePost,
-        _getSavedPosts = getSavedPosts,
-        _socialRepository = socialRepository,
-        _realtimeService = realtimeService ?? RealtimeService(),
-        super(FeedInitial()) {
+  }) : _getFeed = getFeed,
+       _createPost = createPost,
+       _updatePost = updatePost,
+       _deletePost = deletePost,
+       _likePost = likePost,
+       _unlikePost = unlikePost,
+       _savePost = savePost,
+       _unsavePost = unsavePost,
+       _getSavedPosts = getSavedPosts,
+       _socialRepository = socialRepository,
+       _realtimeService = realtimeService ?? RealtimeService(),
+       super(FeedInitial()) {
     on<LoadFeedRequested>(_onLoadFeedRequested);
     on<RefreshFeedRequested>(_onRefreshFeedRequested);
     on<LoadMorePostsRequested>(_onLoadMorePostsRequested);
@@ -85,18 +83,21 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   ) async {
     emit(FeedLoading());
 
-    final result = await _getFeed(GetFeedParams(
-      userId: event.userId,
-      limit: event.limit,
-      followingOnly: event.followingOnly,
-    ));
+    final result = await _getFeed(
+      GetFeedParams(
+        userId: event.userId,
+        limit: event.limit,
+        followingOnly: event.followingOnly,
+      ),
+    );
 
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
-      (posts) => emit(FeedLoaded(
-        posts: posts,
-        hasReachedMax: posts.length < event.limit,
-      )),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
+      (posts) => emit(
+        FeedLoaded(posts: posts, hasReachedMax: posts.length < event.limit),
+      ),
     );
   }
 
@@ -104,18 +105,20 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     RefreshFeedRequested event,
     Emitter<FeedState> emit,
   ) async {
-    final result = await _getFeed(GetFeedParams(
-      userId: event.userId,
-      limit: 20,
-      followingOnly: event.followingOnly,
-    ));
+    final result = await _getFeed(
+      GetFeedParams(
+        userId: event.userId,
+        limit: 20,
+        followingOnly: event.followingOnly,
+      ),
+    );
 
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
-      (posts) => emit(FeedLoaded(
-        posts: posts,
-        hasReachedMax: posts.length < 20,
-      )),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
+      (posts) =>
+          emit(FeedLoaded(posts: posts, hasReachedMax: posts.length < 20)),
     );
   }
 
@@ -129,25 +132,32 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
       emit(currentState.copyWith(isLoadingMore: true));
 
-      final result = await _getFeed(GetFeedParams(
-        userId: event.userId,
-        limit: 20,
-        lastPostId: currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
-        lastCreatedAt: currentState.posts.isNotEmpty ? currentState.posts.last.createdAt : null,
-        followingOnly: event.followingOnly,
-      ));
+      final result = await _getFeed(
+        GetFeedParams(
+          userId: event.userId,
+          limit: 20,
+          lastPostId: currentState.posts.isNotEmpty
+              ? currentState.posts.last.id
+              : null,
+          lastCreatedAt: currentState.posts.isNotEmpty
+              ? currentState.posts.last.createdAt
+              : null,
+          followingOnly: event.followingOnly,
+        ),
+      );
 
       result.fold(
-        (failure) => emit(currentState.copyWith(
-          isLoadingMore: false,
-          error: failure.message,
-        )),
-        (newPosts) => emit(currentState.copyWith(
-          posts: [...currentState.posts, ...newPosts],
-          hasReachedMax: newPosts.length < 20,
-          isLoadingMore: false,
-          error: null,
-        )),
+        (failure) => emit(
+          currentState.copyWith(isLoadingMore: false, error: failure.message),
+        ),
+        (newPosts) => emit(
+          currentState.copyWith(
+            posts: [...currentState.posts, ...newPosts],
+            hasReachedMax: newPosts.length < 20,
+            isLoadingMore: false,
+            error: null,
+          ),
+        ),
       );
     }
   }
@@ -161,10 +171,14 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
     emit(FeedCreatingPost());
 
-    final result = await _createPost(CreatePostParams(post: event.post, images: event.images));
+    final result = await _createPost(
+      CreatePostParams(post: event.post, images: event.images),
+    );
 
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (post) {
         AnalyticsService.instance.logPostCreated(
           postType: post.type.name,
@@ -176,10 +190,12 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
         // 기존 피드 목록 앞에 새 게시물 추가
         final existingPosts = prevLoaded?.posts ?? [];
-        emit(FeedLoaded(
-          posts: [post, ...existingPosts],
-          hasReachedMax: prevLoaded?.hasReachedMax ?? false,
-        ));
+        emit(
+          FeedLoaded(
+            posts: [post, ...existingPosts],
+            hasReachedMax: prevLoaded?.hasReachedMax ?? false,
+          ),
+        );
       },
     );
   }
@@ -215,33 +231,18 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
       emit(current.copyWith(posts: updatedPosts));
     }
 
-    final result = await _likePost(LikePostParams(
-      postId: event.postId,
-      userId: event.userId,
-    ));
-
-    result.fold(
-      (_) {
-        // 실패 시 원본 상태로 복원
-        if (current is FeedLoaded) {
-          emit(current.copyWith(posts: originalPosts));
-        } else if (current is FeedRecommendedLoaded) {
-          emit(current.copyWith(posts: originalPosts));
-        }
-      },
-      (_) {
-        final likedPost =
-            posts.where((p) => p.id == event.postId).firstOrNull;
-        if (likedPost != null && likedPost.authorId != event.userId) {
-          _pushService.sendLikeNotification(
-            toUserId: likedPost.authorId,
-            fromUserId: event.userId,
-            fromUserName: '사용자',
-            postId: event.postId,
-          );
-        }
-      },
+    final result = await _likePost(
+      LikePostParams(postId: event.postId, userId: event.userId),
     );
+
+    result.fold((_) {
+      // 실패 시 원본 상태로 복원
+      if (current is FeedLoaded) {
+        emit(current.copyWith(posts: originalPosts));
+      } else if (current is FeedRecommendedLoaded) {
+        emit(current.copyWith(posts: originalPosts));
+      }
+    }, (_) {});
   }
 
   Future<void> _onUnlikePostRequested(
@@ -275,21 +276,17 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
       emit(current.copyWith(posts: updatedPosts));
     }
 
-    final result = await _unlikePost(UnlikePostParams(
-      postId: event.postId,
-      userId: event.userId,
-    ));
-
-    result.fold(
-      (_) {
-        if (current is FeedLoaded) {
-          emit(current.copyWith(posts: originalPosts));
-        } else if (current is FeedRecommendedLoaded) {
-          emit(current.copyWith(posts: originalPosts));
-        }
-      },
-      (_) {},
+    final result = await _unlikePost(
+      UnlikePostParams(postId: event.postId, userId: event.userId),
     );
+
+    result.fold((_) {
+      if (current is FeedLoaded) {
+        emit(current.copyWith(posts: originalPosts));
+      } else if (current is FeedRecommendedLoaded) {
+        emit(current.copyWith(posts: originalPosts));
+      }
+    }, (_) {});
   }
 
   Future<void> _onUpdatePostRequested(
@@ -344,8 +341,9 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
       final currentState = state as FeedLoaded;
 
       // 낙관적 삭제: 먼저 UI에서 제거
-      final updatedPosts =
-          currentState.posts.where((post) => post.id != event.postId).toList();
+      final updatedPosts = currentState.posts
+          .where((post) => post.id != event.postId)
+          .toList();
       emit(currentState.copyWith(posts: updatedPosts));
 
       // 서버 요청
@@ -368,9 +366,12 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     Emitter<FeedState> emit,
   ) async {
     final result = await _savePost(
-        SavePostParams(postId: event.postId, userId: event.userId));
+      SavePostParams(postId: event.postId, userId: event.userId),
+    );
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (_) => emit(FeedPostSaved(event.postId)),
     );
   }
@@ -380,9 +381,12 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     Emitter<FeedState> emit,
   ) async {
     final result = await _unsavePost(
-        UnsavePostParams(postId: event.postId, userId: event.userId));
+      UnsavePostParams(postId: event.postId, userId: event.userId),
+    );
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (_) => emit(FeedPostUnsaved(event.postId)),
     );
   }
@@ -407,27 +411,33 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     );
 
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (posts) {
         // 콜드스타트 폴백(P0-5): 추천 RPC는 본인·팔로우 글을 제외하므로
         // 초기에는 빈 결과가 날 수 있다 → 최신 전체 피드로 대체.
         // FeedLoaded 경로로 넘어가므로 keyset 무한스크롤·새로고침이 그대로 동작.
         if (event.offset == 0 && posts.isEmpty) {
-          add(LoadFeedRequested(
-            userId: event.userId,
-            limit: event.limit,
-            followingOnly: false,
-          ));
+          add(
+            LoadFeedRequested(
+              userId: event.userId,
+              limit: event.limit,
+              followingOnly: false,
+            ),
+          );
           return;
         }
         final existing = state is FeedRecommendedLoaded && event.offset > 0
             ? (state as FeedRecommendedLoaded).posts
             : <Post>[];
-        emit(FeedRecommendedLoaded(
-          posts: [...existing, ...posts],
-          hasReachedMax: posts.length < event.limit,
-          isLoadingMore: false,
-        ));
+        emit(
+          FeedRecommendedLoaded(
+            posts: [...existing, ...posts],
+            hasReachedMax: posts.length < event.limit,
+            isLoadingMore: false,
+          ),
+        );
       },
     );
   }
@@ -437,10 +447,13 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     Emitter<FeedState> emit,
   ) async {
     emit(FeedLoading());
-    final result =
-        await _getSavedPosts(GetSavedPostsParams(userId: event.userId));
+    final result = await _getSavedPosts(
+      GetSavedPostsParams(userId: event.userId),
+    );
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (posts) => emit(FeedSavedPostsLoaded(posts)),
     );
   }
@@ -477,7 +490,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     final updated = current.posts.map((p) {
       if (p.id == postId) {
         return p.copyWith(
-            commentsCount: (p.commentsCount + delta).clamp(0, 999999));
+          commentsCount: (p.commentsCount + delta).clamp(0, 999999),
+        );
       }
       return p;
     }).toList();

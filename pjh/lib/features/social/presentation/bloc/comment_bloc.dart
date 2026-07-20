@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../config/injection_container.dart';
-import '../../../../core/services/push_notification_service.dart';
 import '../../../../core/services/realtime_service.dart';
 import '../../domain/entities/comment.dart';
 import '../../domain/repositories/social_repository.dart';
@@ -27,7 +26,6 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
   final UpdateComment _updateComment;
   final String _currentUserId;
   final SocialRepository _socialRepository;
-  final PushNotificationService _pushService;
   final RealtimeService _realtimeService;
   final bool _enableRealtime;
 
@@ -46,7 +44,6 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     required UpdateComment updateComment,
     required String currentUserId,
     SocialRepository? socialRepository,
-    PushNotificationService? pushNotificationService,
     RealtimeService? realtimeService,
     bool enableRealtime = true,
   }) : _getComments = getComments,
@@ -55,7 +52,6 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
        _updateComment = updateComment,
        _currentUserId = currentUserId,
        _socialRepository = socialRepository ?? sl<SocialRepository>(),
-       _pushService = pushNotificationService ?? PushNotificationService(),
        _realtimeService = realtimeService ?? RealtimeService(),
        _enableRealtime = enableRealtime,
        super(CommentInitial()) {
@@ -206,12 +202,6 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
         ),
       ),
     );
-    _sendCommentNotification(
-      postId: event.postId,
-      postAuthorId: event.postAuthorId,
-      senderName: event.senderName,
-      content: event.content,
-    );
     await _finishSubmissionWithServerCount(event.postId, emit);
   }
 
@@ -277,12 +267,6 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
           succeeded: true,
         ),
       ),
-    );
-    _sendCommentNotification(
-      postId: event.postId,
-      postAuthorId: event.postAuthorId,
-      senderName: event.senderName,
-      content: event.content,
     );
     await _finishSubmissionWithServerCount(event.postId, emit);
   }
@@ -572,28 +556,6 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
 
   List<Comment> _replaceById(List<Comment> comments, Comment replacement) {
     return _updateById(comments, replacement.id, (_) => replacement);
-  }
-
-  void _sendCommentNotification({
-    required String postId,
-    required String? postAuthorId,
-    required String? senderName,
-    required String content,
-  }) {
-    if (postAuthorId == null ||
-        postAuthorId.isEmpty ||
-        postAuthorId == _currentUserId) {
-      return;
-    }
-    unawaited(
-      _pushService.sendCommentNotification(
-        toUserId: postAuthorId,
-        fromUserId: _currentUserId,
-        fromUserName: senderName ?? '사용자',
-        postId: postId,
-        commentPreview: content,
-      ),
-    );
   }
 
   void _subscribeToRealtime(String postId) {

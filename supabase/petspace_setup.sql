@@ -149,7 +149,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     body TEXT NOT NULL,
     data JSONB DEFAULT '{}'::jsonb,
     read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    event_key TEXT
 );
 
 -- 9. User Devices (FCM)
@@ -2276,6 +2277,16 @@ BEGIN
         ALTER TABLE notifications
             ADD COLUMN sent_at TIMESTAMP WITH TIME ZONE;
     END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'notifications'
+          AND column_name = 'event_key'
+    ) THEN
+        ALTER TABLE notifications
+            ADD COLUMN event_key TEXT;
+    END IF;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user_created
@@ -2309,6 +2320,92 @@ DROP POLICY IF EXISTS notifications_insert_service ON notifications;
 -- anon/authenticated 의 직접 INSERT는 허용하지 않는다.
 
 -- ── 11.2 알림 자동 생성 트리거 (like / comment / follow) ──────────────────
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_event_key
+    ON notifications(event_key)
+    WHERE event_key IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION notification_type_preference_enabled(
+    p_user_id UUID,
+    p_type TEXT
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_enabled BOOLEAN;
+BEGIN
+    SELECT CASE p_type
+        WHEN 'like' THEN enabled_like
+        WHEN 'comment' THEN enabled_comment
+        WHEN 'follow' THEN enabled_follow
+        WHEN 'mention' THEN enabled_mention
+        WHEN 'system' THEN enabled_system
+        WHEN 'admin_new_post' THEN enabled_system
+        WHEN 'emotion_analysis' THEN enabled_system
+        WHEN 'health_alert' THEN enabled_health_alert
+        ELSE FALSE
+    END
+    INTO v_enabled
+    FROM notification_preferences
+    WHERE user_id = p_user_id;
+
+    RETURN COALESCE(v_enabled, FALSE);
+EXCEPTION WHEN OTHERS THEN
+    RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION create_notification(
+    p_user_id UUID,
+    p_sender_id UUID,
+    p_type TEXT,
+    p_title TEXT,
+    p_body TEXT,
+    p_post_id UUID DEFAULT NULL,
+    p_comment_id UUID DEFAULT NULL,
+    p_data JSONB DEFAULT '{}'::JSONB,
+    p_event_key TEXT DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+    v_notification_id UUID;
+    v_event_key TEXT := NULLIF(BTRIM(p_event_key), '');
+BEGIN
+    IF p_user_id IS NULL
+       OR p_type IS NULL
+       OR BTRIM(p_type) = ''
+       OR p_title IS NULL
+       OR BTRIM(p_title) = ''
+       OR p_body IS NULL
+       OR BTRIM(p_body) = ''
+       OR v_event_key IS NULL THEN
+        RAISE EXCEPTION 'invalid notification contract';
+    END IF;
+
+    IF p_sender_id IS NOT NULL AND p_sender_id = p_user_id THEN
+        RETURN NULL;
+    END IF;
+
+    IF NOT notification_type_preference_enabled(p_user_id, p_type) THEN
+        RETURN NULL;
+    END IF;
+
+    INSERT INTO notifications (
+        user_id, sender_id, type, title, body, post_id, comment_id,
+        data, read, is_sent, event_key
+    )
+    VALUES (
+        p_user_id, p_sender_id, p_type, p_title, p_body, p_post_id,
+        p_comment_id,
+        COALESCE(p_data, '{}'::JSONB) || jsonb_build_object('type', p_type),
+        FALSE, FALSE, v_event_key
+    )
+    ON CONFLICT (event_key) WHERE event_key IS NOT NULL
+    DO UPDATE SET event_key = EXCLUDED.event_key
+    RETURNING id INTO v_notification_id;
+
+    RETURN v_notification_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 CREATE OR REPLACE FUNCTION notify_on_like()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -2323,14 +2420,19 @@ BEGIN
         END IF;
         SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.user_id;
 
-        INSERT INTO notifications (user_id, sender_id, type, title, body, post_id, data, is_sent)
-        VALUES (
-            v_post_author_id, NEW.user_id, 'like',
-            '새로운 좋아요',
-            v_sender_name || '님이 회원님의 게시글을 좋아합니다.',
-            NEW.post_id,
-            jsonb_build_object('post_id', NEW.post_id::text, 'sender_id', NEW.user_id::text),
-            FALSE
+        PERFORM create_notification(
+            p_user_id := v_post_author_id,
+            p_sender_id := NEW.user_id,
+            p_type := 'like',
+            p_title := '새로운 좋아요',
+            p_body := v_sender_name || '님이 회원님의 게시글을 좋아합니다.',
+            p_post_id := NEW.post_id,
+            p_data := jsonb_build_object(
+                'post_id', NEW.post_id::text,
+                'sender_id', NEW.user_id::text,
+                'sender_name', v_sender_name
+            ),
+            p_event_key := 'like:' || NEW.id::text
         );
     EXCEPTION WHEN OTHERS THEN
         RAISE LOG 'notify_on_like error: %', SQLERRM;
@@ -2364,18 +2466,21 @@ BEGIN
             v_preview := v_preview || '...';
         END IF;
 
-        INSERT INTO notifications (user_id, sender_id, type, title, body, post_id, comment_id, data, is_sent)
-        VALUES (
-            v_post_author_id, NEW.author_id, 'comment',
-            '새로운 댓글',
-            v_sender_name || ': ' || v_preview,
-            NEW.post_id, NEW.id,
-            jsonb_build_object(
+        PERFORM create_notification(
+            p_user_id := v_post_author_id,
+            p_sender_id := NEW.author_id,
+            p_type := 'comment',
+            p_title := '새로운 댓글',
+            p_body := v_sender_name || ': ' || v_preview,
+            p_post_id := NEW.post_id,
+            p_comment_id := NEW.id,
+            p_data := jsonb_build_object(
                 'post_id', NEW.post_id::text,
                 'comment_id', NEW.id::text,
-                'sender_id', NEW.author_id::text
+                'sender_id', NEW.author_id::text,
+                'sender_name', v_sender_name
             ),
-            FALSE
+            p_event_key := 'comment:' || NEW.id::text
         );
     EXCEPTION WHEN OTHERS THEN
         RAISE LOG 'notify_on_comment error: %', SQLERRM;
@@ -2400,13 +2505,17 @@ BEGIN
         END IF;
         SELECT COALESCE(display_name, '사용자') INTO v_sender_name FROM users WHERE id = NEW.follower_id;
 
-        INSERT INTO notifications (user_id, sender_id, type, title, body, data, is_sent)
-        VALUES (
-            NEW.following_id, NEW.follower_id, 'follow',
-            '새로운 팔로워',
-            v_sender_name || '님이 회원님을 팔로우하기 시작했어요.',
-            jsonb_build_object('sender_id', NEW.follower_id::text),
-            FALSE
+        PERFORM create_notification(
+            p_user_id := NEW.following_id,
+            p_sender_id := NEW.follower_id,
+            p_type := 'follow',
+            p_title := '새로운 팔로워',
+            p_body := v_sender_name || '님이 회원님을 팔로우하기 시작했어요.',
+            p_data := jsonb_build_object(
+                'sender_id', NEW.follower_id::text,
+                'sender_name', v_sender_name
+            ),
+            p_event_key := 'follow:' || NEW.id::text
         );
     EXCEPTION WHEN OTHERS THEN
         RAISE LOG 'notify_on_follow error: %', SQLERRM;
@@ -2570,6 +2679,14 @@ REVOKE EXECUTE ON FUNCTION notify_on_like() FROM anon, authenticated;
 REVOKE EXECUTE ON FUNCTION notify_on_comment() FROM anon, authenticated;
 REVOKE EXECUTE ON FUNCTION notify_on_follow() FROM anon, authenticated;
 REVOKE EXECUTE ON FUNCTION handle_new_user() FROM anon, authenticated;
+REVOKE ALL ON FUNCTION notification_type_preference_enabled(UUID, TEXT)
+    FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION create_notification(
+    UUID, UUID, TEXT, TEXT, TEXT, UUID, UUID, JSONB, TEXT
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION create_notification(
+    UUID, UUID, TEXT, TEXT, TEXT, UUID, UUID, JSONB, TEXT
+) TO service_role;
 
 -- 개인 데이터 조회 함수 (authenticated 전용)
 REVOKE EXECUTE ON FUNCTION get_user_pets(UUID) FROM anon;
@@ -2803,8 +2920,6 @@ AS $$
 DECLARE
   _supabase_url  text;
   _service_key   text;
-  _payload       jsonb;
-  _data          jsonb;
 BEGIN
   _supabase_url := current_setting('app.settings.supabase_url', true);
   _service_key  := current_setting('app.settings.service_role_key', true);
@@ -2814,28 +2929,13 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  _data := jsonb_build_object('type', NEW.type);
-  IF NEW.post_id IS NOT NULL THEN
-    _data := _data || jsonb_build_object('post_id', NEW.post_id::text);
-  END IF;
-  IF NEW.sender_id IS NOT NULL THEN
-    _data := _data || jsonb_build_object('sender_id', NEW.sender_id::text);
-  END IF;
-
-  _payload := jsonb_build_object(
-    'user_id', NEW.user_id::text,
-    'title',   NEW.title,
-    'body',    NEW.body,
-    'data',    _data
-  );
-
   PERFORM net.http_post(
     url     := _supabase_url || '/functions/v1/send-push-notification',
     headers := jsonb_build_object(
       'Content-Type',  'application/json',
       'Authorization', 'Bearer ' || _service_key
     ),
-    body    := _payload
+    body    := jsonb_build_object('notification_id', NEW.id::text)
   );
 
   RETURN NEW;
