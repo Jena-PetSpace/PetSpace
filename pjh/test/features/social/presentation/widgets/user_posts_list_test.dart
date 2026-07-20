@@ -17,11 +17,18 @@ void main() {
     repository = _MockSocialRepository();
   });
 
-  Future<void> pumpList(WidgetTester tester) async {
+  Future<void> pumpList(WidgetTester tester, {double textScale = 1}) async {
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(390, 844),
+        minTextAdapt: true,
         builder: (_, __) => MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
           home: Scaffold(
             body: SizedBox(
               height: 500,
@@ -38,8 +45,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('renders a neutral caption preview for text-only posts',
-      (tester) async {
+  testWidgets('renders a neutral caption preview for text-only posts', (
+    tester,
+  ) async {
     when(
       () => repository.getUserPostsFiltered(
         authorId: 'user-1',
@@ -66,8 +74,38 @@ void main() {
     expect(find.text('A complete caption preview'), findsOneWidget);
   });
 
-  testWidgets('separates first-load error from empty and retries safely',
-      (tester) async {
+  testWidgets('emotion badge stays readable at 150 percent text scale', (
+    tester,
+  ) async {
+    when(
+      () => repository.getUserPostsFiltered(
+        authorId: 'user-1',
+        petId: null,
+        beforeCreatedAt: null,
+        limit: 30,
+      ),
+    ).thenAnswer(
+      (_) async => const Right([
+        {
+          'id': 'post-emotion',
+          'post_type': 'emotion',
+          'caption': '편안해요',
+          'image_urls': null,
+          'image_url': null,
+          'created_at': '2026-07-15T00:00:00Z',
+        },
+      ]),
+    );
+
+    await pumpList(tester, textScale: 1.5);
+    final label = tester.widget<Text>(find.text('감정분석'));
+    expect(label.style!.fontSize, greaterThanOrEqualTo(12));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('separates first-load error from empty and retries safely', (
+    tester,
+  ) async {
     var attempts = 0;
     when(
       () => repository.getUserPostsFiltered(
@@ -92,6 +130,7 @@ void main() {
     await tester.tap(find.byKey(const Key('user_posts_retry')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('user_posts_retry')), findsNothing);
+    expect(find.textContaining('📸'), findsNothing);
     expect(attempts, 2);
   });
 }

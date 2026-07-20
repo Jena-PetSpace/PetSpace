@@ -2,17 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/services/app_package_info.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../../../shared/widgets/petspace_settings_components.dart';
 
-class HelpPage extends StatelessWidget {
-  const HelpPage({super.key});
+class HelpPage extends StatefulWidget {
+  final Future<AppPackageInfo> Function() packageInfoLoader;
+
+  const HelpPage({super.key, this.packageInfoLoader = AppPackageInfo.load});
+
+  @override
+  State<HelpPage> createState() => _HelpPageState();
+}
+
+class _HelpPageState extends State<HelpPage> {
+  late final Future<AppPackageInfo> _packageInfo;
 
   static const List<_FaqItem> _faqItems = [
     _FaqItem(
       question: '감정 분석은 어떻게 하나요?',
-      answer: '홈 화면에서 "감정 분석" 버튼을 눌러 반려동물 사진을 촬영하거나 갤러리에서 선택하세요. '
+      answer:
+          '홈 화면에서 "감정 분석" 버튼을 눌러 반려동물 사진을 촬영하거나 갤러리에서 선택하세요. '
           'AI가 반려동물의 감정 상태를 분석해줍니다.',
     ),
     _FaqItem(
@@ -28,6 +39,12 @@ class HelpPage extends StatelessWidget {
       answer: '차단한 사용자는 내 게시물을 볼 수 없고, 메시지를 보낼 수 없습니다.',
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _packageInfo = widget.packageInfoLoader();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,15 +83,23 @@ class HelpPage extends StatelessWidget {
             ],
           ),
           SizedBox(height: 24.h),
-          Text(
-            '앱 버전: 1.0.0',
-            style: TextStyle(
-              fontSize: AppTheme.fontCaption.sp,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).colorScheme.onSurfaceVariant
-                  : AppTheme.textMuted,
+          FutureBuilder<AppPackageInfo>(
+            future: _packageInfo,
+            builder: (context, snapshot) => Text(
+              key: const Key('help_app_version'),
+              snapshot.hasData
+                  ? '앱 버전: ${snapshot.data!.displayVersion}'
+                  : snapshot.hasError
+                  ? '앱 버전: 확인할 수 없음'
+                  : '앱 버전을 확인하고 있어요',
+              style: TextStyle(
+                fontSize: AppTheme.fontCaption.sp,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                    : AppTheme.textMuted,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
           SizedBox(height: 32.h),
         ],
@@ -86,12 +111,15 @@ class HelpPage extends StatelessWidget {
     // 다크모드는 Theme의 text를 우선하고 라이트모드 시각값은 유지한다.
     final ThemeData theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color bodyColor =
-        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
-    final Color answerColor =
-        isDark ? theme.colorScheme.onSurface : AppTheme.textBody;
-    final Color mutedColor =
-        isDark ? theme.colorScheme.onSurfaceVariant : AppTheme.textMuted;
+    final Color bodyColor = isDark
+        ? theme.colorScheme.onSurface
+        : AppTheme.primaryTextColor;
+    final Color answerColor = isDark
+        ? theme.colorScheme.onSurface
+        : AppTheme.textBody;
+    final Color mutedColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.textMuted;
     return ExpansionTile(
       shape: const Border(),
       collapsedShape: const Border(),
