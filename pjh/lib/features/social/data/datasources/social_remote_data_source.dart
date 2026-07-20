@@ -8,6 +8,7 @@ import '../models/comment_model.dart';
 import '../models/social_user_model.dart';
 import '../models/notification_model.dart';
 import '../../domain/entities/bookmark_collection.dart';
+import '../../domain/entities/blocked_user.dart';
 import '../../domain/entities/comment.dart';
 // import '../../domain/entities/follow.dart'; // 현재 사용하지 않음
 import '../../domain/entities/notification.dart';
@@ -30,11 +31,17 @@ abstract class SocialRemoteDataSource {
   Future<SocialUser> updateUser(SocialUser user);
   Future<void> deleteUser(String userId);
   Future<List<SocialUser>> searchUsers(
-      String query, int limit, String? lastUserId);
+    String query,
+    int limit,
+    String? lastUserId,
+  );
 
   Future<Post> createPost(Post post, List<File> images);
   Future<List<String>> uploadPostImages(
-      String userId, String postId, List<File> files);
+    String userId,
+    String postId,
+    List<File> files,
+  );
   Future<void> deletePostImages(String userId, String postId);
   Future<String> uploadCoverImage(String userId, File file);
   Future<Post> getPost(String postId);
@@ -67,7 +74,14 @@ abstract class SocialRemoteDataSource {
   Future<Set<String>> getEarnedBadgeIds(String userId);
   Future<void> checkAndAwardBadges(String userId);
   Future<List<Map<String, dynamic>>> getPointTransactions(String userId);
-  Future<List<Map<String, dynamic>>> getBlockedUsersDetailed(String blockerId);
+  Future<void> blockUser(String blockedId);
+  Future<void> unblockUser(String blockedId);
+  Future<bool> isBlocked(String blockedId);
+  Future<List<BlockedUser>> getBlockedUsers({
+    required String query,
+    required int limit,
+    BlockedUsersCursor? cursor,
+  });
   Future<int> getUserPoints(String userId);
   Future<bool> hasQuestActivityToday({
     required String userId,
@@ -89,10 +103,18 @@ abstract class SocialRemoteDataSource {
     required bool value,
   });
   Future<List<Post>> getUserPosts(String userId, int limit, String? lastPostId);
-  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId,
-      {DateTime? lastCreatedAt, bool followingOnly = false});
-  Future<List<Post>> getExplorePosts(int limit, String? lastPostId,
-      {DateTime? lastCreatedAt});
+  Future<List<Post>> getFeedPosts(
+    String userId,
+    int limit,
+    String? lastPostId, {
+    DateTime? lastCreatedAt,
+    bool followingOnly = false,
+  });
+  Future<List<Post>> getExplorePosts(
+    int limit,
+    String? lastPostId, {
+    DateTime? lastCreatedAt,
+  });
   Future<Post> updatePost(Post post);
   Future<void> deletePost(String postId);
 
@@ -104,7 +126,10 @@ abstract class SocialRemoteDataSource {
   Future<Comment> createComment(Comment comment);
   Future<Comment> getComment(String commentId);
   Future<List<Comment>> getPostComments(
-      String postId, int limit, String? lastCommentId);
+    String postId,
+    int limit,
+    String? lastCommentId,
+  );
   Future<Comment> updateComment(Comment comment);
   Future<void> deleteComment(String commentId);
   Future<void> likeComment(String commentId, String userId);
@@ -114,24 +139,39 @@ abstract class SocialRemoteDataSource {
   Future<void> unfollowUser(String followerId, String followingId);
   Future<bool> isFollowing(String followerId, String followingId);
   Future<List<SocialUser>> getFollowers(
-      String userId, int limit, String? lastUserId,
-      {String query = ''});
+    String userId,
+    int limit,
+    String? lastUserId, {
+    String query = '',
+  });
   Future<List<SocialUser>> getFollowing(
-      String userId, int limit, String? lastUserId,
-      {String query = ''});
+    String userId,
+    int limit,
+    String? lastUserId, {
+    String query = '',
+  });
 
   Future<List<Notification>> getUserNotifications(
-      String userId, int limit, String? lastNotificationId);
+    String userId,
+    int limit,
+    String? lastNotificationId,
+  );
+  Future<int> getUnreadNotificationsCount(String userId);
   Future<void> markNotificationAsRead(String notificationId);
   Future<void> markAllNotificationsAsRead(String userId);
-  Future<void> createNotification(Notification notification);
   Future<void> deleteNotification(String notificationId);
 
   Future<void> reportPost(String postId, String reporterId, String reason);
   Future<void> reportComment(
-      String commentId, String reporterId, String reason);
+    String commentId,
+    String reporterId,
+    String reason,
+  );
   Future<void> reportUser(
-      String reportedUserId, String reporterId, String reason);
+    String reportedUserId,
+    String reporterId,
+    String reason,
+  );
 
   // Search operations
   Future<List<Post>> searchPosts({
@@ -148,8 +188,11 @@ abstract class SocialRemoteDataSource {
   Future<List<String>> getTrendingHashtags({int limit = 10, int days = 7});
 
   // Discovery operations (M-F3)
-  Future<List<Post>> getRecommendedPosts(String userId,
-      {int limit = 20, int offset = 0});
+  Future<List<Post>> getRecommendedPosts(
+    String userId, {
+    int limit = 20,
+    int offset = 0,
+  });
   Future<List<Post>> getPostsByHashtag({
     required String hashtag,
     String? userId,
@@ -202,7 +245,10 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   Future<void> deleteUser(String userId) => _deleteUser(userId);
   @override
   Future<List<SocialUser>> searchUsers(
-          String query, int limit, String? lastUserId) =>
+    String query,
+    int limit,
+    String? lastUserId,
+  ) =>
       _searchUsers(query, limit, lastUserId);
 
   // ── Post ──────────────────────────────────────────────────────────────────
@@ -211,7 +257,10 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _createPost(post, images);
   @override
   Future<List<String>> uploadPostImages(
-          String userId, String postId, List<File> files) =>
+    String userId,
+    String postId,
+    List<File> files,
+  ) =>
       _uploadPostImages(userId, postId, files);
   @override
   Future<void> deletePostImages(String userId, String postId) =>
@@ -232,15 +281,22 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     int limit = 30,
   }) =>
       _getUserPostsFiltered(
-          authorId: authorId,
-          petId: petId,
-          beforeCreatedAt: beforeCreatedAt,
-          limit: limit);
+        authorId: authorId,
+        petId: petId,
+        beforeCreatedAt: beforeCreatedAt,
+        limit: limit,
+      );
   @override
-  Future<List<Map<String, dynamic>>> getCommunityPosts(
-          {String? category, int limit = 30, DateTime? beforeCreatedAt}) =>
+  Future<List<Map<String, dynamic>>> getCommunityPosts({
+    String? category,
+    int limit = 30,
+    DateTime? beforeCreatedAt,
+  }) =>
       _getCommunityPosts(
-          category: category, limit: limit, beforeCreatedAt: beforeCreatedAt);
+        category: category,
+        limit: limit,
+        beforeCreatedAt: beforeCreatedAt,
+      );
   @override
   Future<List<Map<String, dynamic>>> getSavedPostsPageRaw({
     required String userId,
@@ -276,22 +332,72 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   Future<List<Map<String, dynamic>>> getPointTransactions(String userId) =>
       _getPointTransactions(userId);
   @override
-  Future<List<Map<String, dynamic>>> getBlockedUsersDetailed(
-          String blockerId) =>
-      _getBlockedUsersDetailed(blockerId);
+  Future<void> blockUser(String blockedId) async {
+    await supabaseClient.rpc('block_user', params: {'p_blocked_id': blockedId});
+  }
+
+  @override
+  Future<void> unblockUser(String blockedId) async {
+    await supabaseClient.rpc(
+      'unblock_user',
+      params: {'p_blocked_id': blockedId},
+    );
+  }
+
+  @override
+  Future<bool> isBlocked(String blockedId) async =>
+      await supabaseClient.rpc(
+        'is_mutually_blocked_with',
+        params: {'p_other_user_id': blockedId},
+      ) ==
+      true;
+  @override
+  Future<List<BlockedUser>> getBlockedUsers({
+    required String query,
+    required int limit,
+    BlockedUsersCursor? cursor,
+  }) async {
+    final response = await supabaseClient.rpc(
+      'get_blocked_users',
+      params: {
+        'p_limit': limit,
+        'p_before_created_at': cursor?.blockedAt.toIso8601String(),
+        'p_before_id': cursor?.blockId,
+        'p_query': query,
+      },
+    );
+    return (response as List).map((raw) {
+      final row = raw as Map<String, dynamic>;
+      return BlockedUser(
+        id: row['blocked_id'] as String,
+        blockId: row['block_id'] as String,
+        displayName: row['display_name'] as String? ?? '사용자',
+        username: row['username'] as String?,
+        photoUrl: row['photo_url'] as String?,
+        blockedAt: DateTime.parse(row['blocked_at'] as String),
+      );
+    }).toList(growable: false);
+  }
+
   @override
   Future<int> getUserPoints(String userId) => _getUserPoints(userId);
   @override
-  Future<bool> hasQuestActivityToday(
-          {required String userId, required String questType}) =>
+  Future<bool> hasQuestActivityToday({
+    required String userId,
+    required String questType,
+  }) =>
       _hasQuestActivityToday(userId: userId, questType: questType);
   @override
-  Future<void> incrementUserPoints(
-          {required String userId, required int points}) =>
+  Future<void> incrementUserPoints({
+    required String userId,
+    required int points,
+  }) =>
       _incrementUserPoints(userId: userId, points: points);
   @override
-  Future<bool> awardBadgeIfAbsent(
-          {required String userId, required String badgeId}) =>
+  Future<bool> awardBadgeIfAbsent({
+    required String userId,
+    required String badgeId,
+  }) =>
       _awardBadgeIfAbsent(userId: userId, badgeId: badgeId);
   @override
   Future<int> getUserStreak(String userId) => _getUserStreak(userId);
@@ -305,19 +411,38 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     required bool value,
   }) =>
       _upsertNotificationPreference(
-          userId: userId, column: column, value: value);
+        userId: userId,
+        column: column,
+        value: value,
+      );
   @override
   Future<List<Post>> getUserPosts(
-          String userId, int limit, String? lastPostId) =>
+    String userId,
+    int limit,
+    String? lastPostId,
+  ) =>
       _getUserPosts(userId, limit, lastPostId);
   @override
-  Future<List<Post>> getFeedPosts(String userId, int limit, String? lastPostId,
-          {DateTime? lastCreatedAt, bool followingOnly = false}) =>
-      _getFeedPosts(userId, limit, lastPostId,
-          lastCreatedAt: lastCreatedAt, followingOnly: followingOnly);
+  Future<List<Post>> getFeedPosts(
+    String userId,
+    int limit,
+    String? lastPostId, {
+    DateTime? lastCreatedAt,
+    bool followingOnly = false,
+  }) =>
+      _getFeedPosts(
+        userId,
+        limit,
+        lastPostId,
+        lastCreatedAt: lastCreatedAt,
+        followingOnly: followingOnly,
+      );
   @override
-  Future<List<Post>> getExplorePosts(int limit, String? lastPostId,
-          {DateTime? lastCreatedAt}) =>
+  Future<List<Post>> getExplorePosts(
+    int limit,
+    String? lastPostId, {
+    DateTime? lastCreatedAt,
+  }) =>
       _getExplorePosts(limit, lastPostId, lastCreatedAt: lastCreatedAt);
   @override
   Future<Post> updatePost(Post post) => _updatePost(post);
@@ -345,7 +470,10 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   Future<Comment> getComment(String commentId) => _getComment(commentId);
   @override
   Future<List<Comment>> getPostComments(
-          String postId, int limit, String? lastCommentId) =>
+    String postId,
+    int limit,
+    String? lastCommentId,
+  ) =>
       _getPostComments(postId, limit, lastCommentId);
   @override
   Future<Comment> updateComment(Comment comment) => _updateComment(comment);
@@ -370,29 +498,38 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _isFollowing(followerId, followingId);
   @override
   Future<List<SocialUser>> getFollowers(
-          String userId, int limit, String? lastUserId,
-          {String query = ''}) =>
+    String userId,
+    int limit,
+    String? lastUserId, {
+    String query = '',
+  }) =>
       _getFollowers(userId, limit, lastUserId, query: query);
   @override
   Future<List<SocialUser>> getFollowing(
-          String userId, int limit, String? lastUserId,
-          {String query = ''}) =>
+    String userId,
+    int limit,
+    String? lastUserId, {
+    String query = '',
+  }) =>
       _getFollowing(userId, limit, lastUserId, query: query);
 
   // ── Notification / Report ─────────────────────────────────────────────────
   @override
   Future<List<Notification>> getUserNotifications(
-          String userId, int limit, String? lastNotificationId) =>
+    String userId,
+    int limit,
+    String? lastNotificationId,
+  ) =>
       _getUserNotifications(userId, limit, lastNotificationId);
+  @override
+  Future<int> getUnreadNotificationsCount(String userId) =>
+      _getUnreadNotificationsCount(userId);
   @override
   Future<void> markNotificationAsRead(String notificationId) =>
       _markNotificationAsRead(notificationId);
   @override
   Future<void> markAllNotificationsAsRead(String userId) =>
       _markAllNotificationsAsRead(userId);
-  @override
-  Future<void> createNotification(Notification notification) =>
-      _createNotification(notification);
   @override
   Future<void> deleteNotification(String notificationId) =>
       _deleteNotification(notificationId);
@@ -401,23 +538,38 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       _reportPost(postId, reporterId, reason);
   @override
   Future<void> reportComment(
-          String commentId, String reporterId, String reason) =>
+    String commentId,
+    String reporterId,
+    String reason,
+  ) =>
       _reportComment(commentId, reporterId, reason);
   @override
   Future<void> reportUser(
-          String reportedUserId, String reporterId, String reason) =>
+    String reportedUserId,
+    String reporterId,
+    String reason,
+  ) =>
       _reportUser(reportedUserId, reporterId, reason);
 
   // ── Search / Discovery / Bookmark ─────────────────────────────────────────
   @override
-  Future<List<Post>> searchPosts(
-          {required String query, int limit = 20, String? lastPostId}) =>
+  Future<List<Post>> searchPosts({
+    required String query,
+    int limit = 20,
+    String? lastPostId,
+  }) =>
       _searchPosts(query: query, limit: limit, lastPostId: lastPostId);
   @override
-  Future<List<Post>> searchPostsByHashtag(
-          {required String hashtag, int limit = 20, String? lastPostId}) =>
+  Future<List<Post>> searchPostsByHashtag({
+    required String hashtag,
+    int limit = 20,
+    String? lastPostId,
+  }) =>
       _searchPostsByHashtag(
-          hashtag: hashtag, limit: limit, lastPostId: lastPostId);
+        hashtag: hashtag,
+        limit: limit,
+        lastPostId: lastPostId,
+      );
   @override
   Future<List<String>> getPopularHashtags({int limit = 20}) =>
       _getPopularHashtags(limit: limit);
@@ -425,8 +577,11 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   Future<List<String>> getTrendingHashtags({int limit = 10, int days = 7}) =>
       _getTrendingHashtags(limit: limit, days: days);
   @override
-  Future<List<Post>> getRecommendedPosts(String userId,
-          {int limit = 20, int offset = 0}) =>
+  Future<List<Post>> getRecommendedPosts(
+    String userId, {
+    int limit = 20,
+    int offset = 0,
+  }) =>
       _getRecommendedPosts(userId, limit: limit, offset: offset);
   @override
   Future<List<Post>> getPostsByHashtag({
@@ -437,11 +592,12 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     int offset = 0,
   }) =>
       _getPostsByHashtag(
-          hashtag: hashtag,
-          userId: userId,
-          sort: sort,
-          limit: limit,
-          offset: offset);
+        hashtag: hashtag,
+        userId: userId,
+        sort: sort,
+        limit: limit,
+        offset: offset,
+      );
   @override
   Future<List<Post>> getPostsByLocation({
     required double lat,
@@ -452,12 +608,13 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     int offset = 0,
   }) =>
       _getPostsByLocation(
-          lat: lat,
-          lng: lng,
-          radiusM: radiusM,
-          userId: userId,
-          limit: limit,
-          offset: offset);
+        lat: lat,
+        lng: lng,
+        radiusM: radiusM,
+        userId: userId,
+        limit: limit,
+        offset: offset,
+      );
   @override
   Future<List<BookmarkCollection>> getBookmarkCollections(String userId) =>
       _getBookmarkCollections(userId);
@@ -481,5 +638,8 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
     String? collectionId,
   }) =>
       _updateSavedPostCollection(
-          postId: postId, userId: userId, collectionId: collectionId);
+        postId: postId,
+        userId: userId,
+        collectionId: collectionId,
+      );
 }

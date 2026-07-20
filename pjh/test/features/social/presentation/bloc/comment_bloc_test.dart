@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:meong_nyang_diary/core/error/failures.dart';
-import 'package:meong_nyang_diary/core/services/push_notification_service.dart';
 import 'package:meong_nyang_diary/core/services/realtime_service.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/comment.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
@@ -16,9 +15,6 @@ import 'package:meong_nyang_diary/features/social/presentation/bloc/comment_even
 import 'package:meong_nyang_diary/features/social/presentation/bloc/comment_state.dart';
 
 class _MockSocialRepository extends Mock implements SocialRepository {}
-
-class _MockPushNotificationService extends Mock
-    implements PushNotificationService {}
 
 class _MockRealtimeService extends Mock implements RealtimeService {}
 
@@ -45,7 +41,6 @@ Comment _comment(
 
 void main() {
   late _MockSocialRepository repository;
-  late _MockPushNotificationService pushService;
   late _MockRealtimeService realtimeService;
   late CommentBloc bloc;
   late List<Comment> initialComments;
@@ -57,7 +52,6 @@ void main() {
 
   setUp(() {
     repository = _MockSocialRepository();
-    pushService = _MockPushNotificationService();
     realtimeService = _MockRealtimeService();
     initialComments = <Comment>[];
     serverTotal = 0;
@@ -78,7 +72,6 @@ void main() {
       updateComment: UpdateComment(repository),
       currentUserId: 'viewer',
       socialRepository: repository,
-      pushNotificationService: pushService,
       realtimeService: realtimeService,
       enableRealtime: false,
     );

@@ -32,12 +32,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required SignInWithKakao signInWithKakao,
     required SignInWithApple signInWithApple,
     required SignOut signOut,
-  })  : _authRepository = authRepository,
-        _signInWithGoogle = signInWithGoogle,
-        _signInWithKakao = signInWithKakao,
-        _signInWithApple = signInWithApple,
-        _signOut = signOut,
-        super(AuthInitial()) {
+  }) : _authRepository = authRepository,
+       _signInWithGoogle = signInWithGoogle,
+       _signInWithKakao = signInWithKakao,
+       _signInWithApple = signInWithApple,
+       _signOut = signOut,
+       super(AuthInitial()) {
     on<AuthStarted>(_onAuthStarted);
     on<AuthUserChanged>(_onAuthUserChanged);
     on<AuthSignInWithGoogleRequested>(_onSignInWithGoogleRequested);
@@ -54,7 +54,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onAuthStarted(
-      AuthStarted event, Emitter<AuthState> emit) async {
+    AuthStarted event,
+    Emitter<AuthState> emit,
+  ) async {
     // 1) 즉시 현재 세션 체크 → AuthInitial 에서 빠르게 탈출
     //    (실기기에서 onAuthStateChange 의 INITIAL 이벤트 누락 시 무한 스플래시 방지)
     try {
@@ -90,8 +92,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     return AuthAuthenticated(user);
   }
 
-  void _onAuthUserChanged(AuthUserChanged event, Emitter<AuthState> emit) {
+  Future<void> _onAuthUserChanged(
+    AuthUserChanged event,
+    Emitter<AuthState> emit,
+  ) async {
     if (event.user != null) {
+      if (!event.user!.isDeleted) {
+        await NotificationService().registerToken(event.user!.id);
+      }
       emit(_stateForUser(event.user!));
     } else {
       emit(AuthUnauthenticated());
@@ -105,16 +113,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await _signInWithGoogle();
-    result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (user) {
-        if (!user.isDeleted) {
-          AnalyticsService.instance.logLogin(method: 'google');
-          NotificationService().registerToken(user.id);
-        }
-        emit(_stateForUser(user));
-      },
-    );
+    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      if (!user.isDeleted) {
+        AnalyticsService.instance.logLogin(method: 'google');
+      }
+      emit(_stateForUser(user));
+    });
   }
 
   Future<void> _onSignInWithKakaoRequested(
@@ -124,16 +128,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await _signInWithKakao();
-    result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (user) {
-        if (!user.isDeleted) {
-          AnalyticsService.instance.logLogin(method: 'kakao');
-          NotificationService().registerToken(user.id);
-        }
-        emit(_stateForUser(user));
-      },
-    );
+    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      if (!user.isDeleted) {
+        AnalyticsService.instance.logLogin(method: 'kakao');
+      }
+      emit(_stateForUser(user));
+    });
   }
 
   Future<void> _onSignInWithAppleRequested(
@@ -143,16 +143,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await _signInWithApple();
-    result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (user) {
-        if (!user.isDeleted) {
-          AnalyticsService.instance.logLogin(method: 'apple');
-          NotificationService().registerToken(user.id);
-        }
-        emit(_stateForUser(user));
-      },
-    );
+    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      if (!user.isDeleted) {
+        AnalyticsService.instance.logLogin(method: 'apple');
+      }
+      emit(_stateForUser(user));
+    });
   }
 
   Future<void> _onSignInWithEmailRequested(
@@ -165,16 +161,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       event.email,
       event.password,
     );
-    result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (user) {
-        if (!user.isDeleted) {
-          AnalyticsService.instance.logLogin(method: 'email');
-          NotificationService().registerToken(user.id);
-        }
-        emit(_stateForUser(user));
-      },
-    );
+    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      if (!user.isDeleted) {
+        AnalyticsService.instance.logLogin(method: 'email');
+      }
+      emit(_stateForUser(user));
+    });
   }
 
   Future<void> _onSignUpWithEmailRequested(
@@ -255,18 +247,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await _authRepository.restoreAccount();
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (_) async {
-        final refreshed = await _authRepository.getCurrentUser();
-        refreshed.fold(
-          (failure) => emit(AuthError(failure.message)),
-          (user) => user != null
-              ? emit(AuthAuthenticated(user))
-              : emit(AuthUnauthenticated()),
-        );
-      },
-    );
+    await result.fold((failure) async => emit(AuthError(failure.message)), (
+      _,
+    ) async {
+      final refreshed = await _authRepository.getCurrentUser();
+      refreshed.fold(
+        (failure) => emit(AuthError(failure.message)),
+        (user) => user != null
+            ? emit(AuthAuthenticated(user))
+            : emit(AuthUnauthenticated()),
+      );
+    });
   }
 
   Future<void> _onOnboardingCompleted(
@@ -279,26 +270,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     // DB에서 최신 프로필 가져오기 (온보딩 중 ProfileService로 저장된 값 반영)
     var baseUser = currentState.user;
     final freshProfile = await _authRepository.getCurrentUser();
-    freshProfile.fold(
-      (_) {},
-      (user) {
-        if (user != null) baseUser = user;
-      },
-    );
+    freshProfile.fold((_) {}, (user) {
+      if (user != null) baseUser = user;
+    });
 
     // 온보딩 완료 상태만 업데이트 (프로필은 이미 ProfileService에서 저장됨)
-    final updatedUser = baseUser.copyWith(
-      isOnboardingCompleted: true,
-    );
+    final updatedUser = baseUser.copyWith(isOnboardingCompleted: true);
 
     final result = await _authRepository.updateUserProfile(updatedUser);
-    result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (user) {
-        AnalyticsService.instance.logOnboardingComplete();
-        emit(AuthAuthenticated(user));
-      },
-    );
+    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+      AnalyticsService.instance.logOnboardingComplete();
+      emit(AuthAuthenticated(user));
+    });
   }
 
   Future<void> _onProfileRefreshRequested(
@@ -306,12 +289,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     final result = await _authRepository.getCurrentUser();
-    result.fold(
-      (_) {},
-      (user) {
-        if (user != null) emit(AuthAuthenticated(user));
-      },
-    );
+    result.fold((_) {}, (user) {
+      if (user != null) emit(AuthAuthenticated(user));
+    });
   }
 
   @override

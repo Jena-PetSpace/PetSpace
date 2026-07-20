@@ -9,6 +9,7 @@ import '../entities/comment.dart';
 import '../entities/follow.dart';
 import '../entities/notification.dart';
 import '../entities/bookmark_collection.dart';
+import '../entities/blocked_user.dart';
 import '../entities/saved_posts_page.dart';
 
 abstract class SocialRepository {
@@ -18,8 +19,10 @@ abstract class SocialRepository {
   Future<Either<Failure, List<SocialUser>>> searchUsers(String query);
 
   // Post operations
-  Future<Either<Failure, Post>> createPost(Post post,
-      {List<File> images = const []});
+  Future<Either<Failure, Post>> createPost(
+    Post post, {
+    List<File> images = const [],
+  });
   Future<Either<Failure, Post>> updatePost(Post post);
   Future<Either<Failure, void>> deletePost(String postId);
   Future<Either<Failure, List<Post>>> getFeed({
@@ -92,7 +95,8 @@ abstract class SocialRepository {
 
   /// 포인트 거래 내역 조회 (reward_store_page 용)
   Future<Either<Failure, List<Map<String, dynamic>>>> getPointTransactions(
-      String userId);
+    String userId,
+  );
 
   /// 포인트 잔액 조회 (user_points 뷰)
   Future<Either<Failure, int>> getUserPoints(String userId);
@@ -137,9 +141,13 @@ abstract class SocialRepository {
 
   // Follow operations
   Future<Either<Failure, Follow>> followUser(
-      String followerId, String followingId);
+    String followerId,
+    String followingId,
+  );
   Future<Either<Failure, void>> unfollowUser(
-      String followerId, String followingId);
+    String followerId,
+    String followingId,
+  );
   Future<Either<Failure, void>> acceptFollowRequest(String followId);
   Future<Either<Failure, void>> rejectFollowRequest(String followId);
   Future<Either<Failure, List<Follow>>> getFollowers(String userId);
@@ -158,7 +166,9 @@ abstract class SocialRepository {
   });
   Future<Either<Failure, List<Follow>>> getPendingFollowRequests(String userId);
   Future<Either<Failure, bool>> isFollowing(
-      String followerId, String followingId);
+    String followerId,
+    String followingId,
+  );
 
   // Notification operations
   Future<Either<Failure, List<Notification>>> getNotifications({
@@ -174,7 +184,6 @@ abstract class SocialRepository {
   Future<Either<Failure, void>> markNotificationAsRead(String notificationId);
   Future<Either<Failure, void>> markAllNotificationsAsRead(String userId);
   Future<Either<Failure, int>> getUnreadNotificationsCount(String userId);
-  Future<Either<Failure, void>> createNotification(Notification notification);
 
   // Share operations
   Future<Either<Failure, void>> sharePost(String postId, String userId);
@@ -183,8 +192,10 @@ abstract class SocialRepository {
   // Bookmark operations
   Future<Either<Failure, void>> savePost(String postId, String userId);
   Future<Either<Failure, void>> unsavePost(String postId, String userId);
-  Future<Either<Failure, List<Post>>> getSavedPosts(
-      {required String userId, int limit = 20});
+  Future<Either<Failure, List<Post>>> getSavedPosts({
+    required String userId,
+    int limit = 20,
+  });
   Future<Either<Failure, bool>> isPostSaved(String postId, String userId);
 
   /// 유저 연속 활동 일수 조회 (RPC get_user_streak).
@@ -193,7 +204,8 @@ abstract class SocialRepository {
 
   /// 알림 설정 전체 조회 (notification_preferences 테이블)
   Future<Either<Failure, Map<String, dynamic>?>> getNotificationPreferences(
-      String userId);
+    String userId,
+  );
 
   /// 알림 설정 단일 컬럼 upsert.
   /// 예: serverColumn='enabled_like', value=false
@@ -205,7 +217,8 @@ abstract class SocialRepository {
 
   // Bookmark collection operations
   Future<Either<Failure, List<BookmarkCollection>>> getBookmarkCollections(
-      String userId);
+    String userId,
+  );
   Future<Either<Failure, BookmarkCollection>> createBookmarkCollection({
     required String userId,
     required String name,
@@ -247,19 +260,26 @@ abstract class SocialRepository {
   Future<Either<Failure, String>> uploadCoverImage(String userId, File file);
 
   // Block operations
-  Future<Either<Failure, void>> blockUser(String blockerId, String blockedId);
-  Future<Either<Failure, void>> unblockUser(String blockerId, String blockedId);
-  Future<Either<Failure, bool>> isBlocked(String blockerId, String blockedId);
-
-  /// 차단 목록 (users JOIN 포함) — 설정 화면 렌더링용 raw Map
-  Future<Either<Failure, List<Map<String, dynamic>>>> getBlockedUsersDetailed(
-      String blockerId);
+  Future<Either<Failure, void>> blockUser(String blockedId);
+  Future<Either<Failure, void>> unblockUser(String blockedId);
+  Future<Either<Failure, bool>> isBlocked(String blockedId);
+  Future<Either<Failure, BlockedUsersPage>> getBlockedUsers({
+    String query = '',
+    int limit = 20,
+    BlockedUsersCursor? cursor,
+  });
 
   // Report operations
   Future<Either<Failure, void>> reportPost(
-      String postId, String userId, String reason);
+    String postId,
+    String userId,
+    String reason,
+  );
   Future<Either<Failure, void>> reportUser(
-      String reportedUserId, String reporterId, String reason);
+    String reportedUserId,
+    String reporterId,
+    String reason,
+  );
 
   // Search operations
   Future<Either<Failure, List<Post>>> searchPosts({
@@ -272,9 +292,7 @@ abstract class SocialRepository {
     int limit = 20,
     String? lastPostId,
   });
-  Future<Either<Failure, List<String>>> getPopularHashtags({
-    int limit = 20,
-  });
+  Future<Either<Failure, List<String>>> getPopularHashtags({int limit = 20});
   Future<Either<Failure, List<String>>> getTrendingHashtags({
     int limit = 10,
     int days = 7,

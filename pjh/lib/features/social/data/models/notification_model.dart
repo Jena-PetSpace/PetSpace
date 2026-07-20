@@ -33,44 +33,33 @@ class NotificationModel {
     this.data = const {},
   });
 
-  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+  factory NotificationModel.fromSupabaseJson(Map<String, dynamic> json) {
+    final rawData = json['data'];
+    final data = rawData is Map
+        ? Map<String, dynamic>.from(rawData)
+        : const <String, dynamic>{};
+    final rawSender = json['sender'];
+    final sender = rawSender is Map
+        ? Map<String, dynamic>.from(rawSender)
+        : const <String, dynamic>{};
+
     return NotificationModel(
       id: json['id'] ?? '',
-      userId: json['userId'] ?? '',
-      senderId: json['senderId'] ?? '',
-      senderName: json['senderName'] ?? '',
-      senderProfileImage: json['senderProfileImage'],
-      type: NotificationType.values.firstWhere(
-        (e) => e.toString() == 'NotificationType.${json['type']}',
-        orElse: () => NotificationType.like,
-      ),
+      userId: json['user_id'] ?? '',
+      senderId: json['sender_id'] ?? data['sender_id'] ?? '',
+      senderName: sender['display_name'] ?? data['sender_name'] ?? 'PetSpace',
+      senderProfileImage: sender['photo_url'],
+      type: NotificationTypeContract.fromWireName(json['type'] as String?),
       title: json['title'] ?? '',
       body: json['body'] ?? '',
-      isRead: json['isRead'] ?? false,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+      isRead: json['read'] ?? false,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
-      postId: json['postId'],
-      commentId: json['commentId'],
-      data: Map<String, dynamic>.from(json['data'] ?? {}),
+      postId: json['post_id'],
+      commentId: json['comment_id'],
+      data: data,
     );
-  }
-
-  Map<String, dynamic> toFirestore() {
-    return {
-      'userId': userId,
-      'senderId': senderId,
-      'senderName': senderName,
-      'senderProfileImage': senderProfileImage,
-      'type': type.toString().split('.').last,
-      'title': title,
-      'body': body,
-      'isRead': isRead,
-      'createdAt': createdAt.toIso8601String(),
-      'postId': postId,
-      'commentId': commentId,
-      'data': data,
-    };
   }
 
   Notification toEntity() {
@@ -88,24 +77,6 @@ class NotificationModel {
       postId: postId,
       commentId: commentId,
       data: data,
-    );
-  }
-
-  factory NotificationModel.fromEntity(Notification notification) {
-    return NotificationModel(
-      id: notification.id,
-      userId: notification.userId,
-      senderId: notification.senderId,
-      senderName: notification.senderName,
-      senderProfileImage: notification.senderProfileImage,
-      type: notification.type,
-      title: notification.title,
-      body: notification.body,
-      isRead: notification.isRead,
-      createdAt: notification.createdAt,
-      postId: notification.postId,
-      commentId: notification.commentId,
-      data: notification.data,
     );
   }
 
