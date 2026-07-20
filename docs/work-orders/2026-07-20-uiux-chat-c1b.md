@@ -192,4 +192,3 @@ C1A에서 확보한 전송·검색·권한·오류 복구 계약을 유지하면
 - 다중 이미지 부분 업로드 orphan 정리 정책
 - 실제 방별 알림 preference와 push gate
 - 운영 DB·Edge·배포
-

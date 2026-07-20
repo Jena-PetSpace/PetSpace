@@ -1,9 +1,9 @@
 # PetSpace 건강관리 H1 공동 기획 초안
 
-> 상태: Codex 예비 코드 감사와 반응형 목업을 바탕으로 만든 공동 검토 초안  
-> 구현 승인: 없음  
-> 선행 게이트: Feed F2 구현·테스트·Codex/Claude 리뷰 완료  
-> 다음 게이트: Claude Fable 5 우선 검토 → 필요 시 Opus 4.8 fallback → Codex 합의 → 사용자 목업·정확한 manifest 승인  
+> 상태: Codex 예비 코드 감사와 반응형 목업을 바탕으로 만든 공동 검토 초안
+> 구현 승인: 없음
+> 선행 게이트: Feed F2 구현·테스트·Codex/Claude 리뷰 완료
+> 다음 게이트: Claude Fable 5 우선 검토 → 필요 시 Opus 4.8 fallback → Codex 합의 → 사용자 목업·정확한 manifest 승인
 > 금지: 이 문서만으로 Flutter·DB·Edge·운영 환경을 수정하지 않는다.
 
 ## 1. 목표
