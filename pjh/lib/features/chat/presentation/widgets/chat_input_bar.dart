@@ -5,6 +5,7 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
 
 class ChatInputBar extends StatefulWidget {
+  final TextEditingController controller;
   final bool isSending;
   final ValueChanged<String> onSendText;
   final ValueChanged<File> onSendImage;
@@ -12,6 +13,7 @@ class ChatInputBar extends StatefulWidget {
 
   const ChatInputBar({
     super.key,
+    required this.controller,
     this.isSending = false,
     required this.onSendText,
     required this.onSendImage,
@@ -23,31 +25,41 @@ class ChatInputBar extends StatefulWidget {
 }
 
 class _ChatInputBarState extends State<ChatInputBar> {
-  final TextEditingController _controller = TextEditingController();
   bool _hasText = false;
 
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() {
-      final hasText = _controller.text.trim().isNotEmpty;
-      if (hasText != _hasText) {
-        setState(() => _hasText = hasText);
-      }
-    });
+    _hasText = widget.controller.text.trim().isNotEmpty;
+    widget.controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatInputBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    oldWidget.controller.removeListener(_onTextChanged);
+    widget.controller.addListener(_onTextChanged);
+    _onTextChanged();
+  }
+
+  void _onTextChanged() {
+    final hasText = widget.controller.text.trim().isNotEmpty;
+    if (hasText != _hasText && mounted) {
+      setState(() => _hasText = hasText);
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    widget.controller.removeListener(_onTextChanged);
     super.dispose();
   }
 
   void _handleSendText() {
-    final text = _controller.text.trim();
+    final text = widget.controller.text.trim();
     if (text.isEmpty || widget.isSending) return;
     widget.onSendText(text);
-    _controller.clear();
   }
 
   Future<void> _showImageSourceSheet() async {
@@ -85,80 +97,112 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   @override
   Widget build(BuildContext context) {
-    // iOS home indicator(34pt) 영역을 피하기 위해 SafeArea.bottom 반영
-    final safeBottom = MediaQuery.of(context).padding.bottom;
-    return Container(
-      padding: EdgeInsets.only(
-        left: 8.w,
-        right: 8.w,
-        top: 8.h,
-        bottom: 8.h + safeBottom,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4.r,
-            offset: Offset(0, -2.h),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = isDark ? theme.colorScheme.surface : AppTheme.surfaceColor;
+    final inputSurface = isDark
+        ? theme.colorScheme.surfaceContainerHighest
+        : AppTheme.actionContainer.withValues(alpha: 0.55);
+    final muted = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        key: const Key('chat_input_safe_area'),
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: surface,
+          border: Border(
+            top: BorderSide(
+              color:
+                  isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: _showImageSourceSheet,
-            icon: Icon(Icons.add_photo_alternate_outlined, size: 24.w),
-            tooltip: '사진 선택',
-            color: Colors.grey[600],
-          ),
-          Expanded(
-            child: Container(
-              constraints: BoxConstraints(maxHeight: 100.h),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            IconButton(
+              onPressed: widget.isSending ? null : _showImageSourceSheet,
+              icon: Icon(Icons.add_rounded, size: 24.w),
+              tooltip: '사진 선택',
+              color: muted,
+              constraints: const BoxConstraints(
+                minWidth: 44,
+                minHeight: 44,
               ),
-              child: TextField(
-                controller: _controller,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
-                onSubmitted: (_) => _handleSendText(),
-                decoration: InputDecoration(
-                  hintText: '메시지를 입력하세요',
-                  hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 10.h,
+            ),
+            SizedBox(width: 4.w),
+            Expanded(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: 44, maxHeight: 104.h),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: inputSurface,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusXl.r),
+                  ),
+                  child: TextField(
+                    controller: widget.controller,
+                    readOnly: widget.isSending,
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
+                    onSubmitted: (_) => _handleSendText(),
+                    style: TextStyle(
+                      fontSize: AppTheme.fontBody.sp,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    decoration: InputDecoration(
+                      hintText:
+                          widget.isSending ? '메시지를 보내는 중입니다' : '메시지를 입력하세요',
+                      hintStyle: TextStyle(
+                        fontSize: AppTheme.fontCaption.sp,
+                        color: muted,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 11.h,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          SizedBox(width: 4.w),
-          widget.isSending
-              ? Padding(
-                  padding: EdgeInsets.all(8.w),
+            SizedBox(width: 4.w),
+            if (widget.isSending)
+              const SizedBox(
+                width: 44,
+                height: 44,
+                child: Center(
                   child: SizedBox(
-                    width: 24.w,
-                    height: 24.w,
-                    child: const CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : IconButton(
-                  onPressed: _hasText ? _handleSendText : null,
-                  tooltip: '메시지 전송',
-                  icon: Icon(
-                    Icons.send_rounded,
-                    size: 24.w,
-                    color: _hasText
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.grey[400],
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-        ],
+              )
+            else
+              IconButton(
+                onPressed: _hasText ? _handleSendText : null,
+                tooltip: '메시지 전송',
+                constraints: const BoxConstraints(
+                  minWidth: 44,
+                  minHeight: 44,
+                ),
+                icon: Icon(
+                  Icons.send_rounded,
+                  size: 22.w,
+                  color: _hasText ? AppTheme.actionBase : muted,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

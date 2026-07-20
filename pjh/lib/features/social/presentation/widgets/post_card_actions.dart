@@ -155,160 +155,211 @@ extension _PostCardActions on _PostCardState {
   void _showSaveFailure(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(message),
-      ));
+      ..showSnackBar(
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
+      );
   }
 
   Widget _buildActions() {
     return Padding(
       padding: EdgeInsets.all(16.w),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Semantics(
-                label: post.isLikedByCurrentUser ? '좋아요 취소' : '좋아요',
-                button: true,
-                child: InkWell(
-                  onTap: () {
-                    _likeDebounce?.cancel();
-                    _likeDebounce =
-                        Timer(const Duration(milliseconds: 300), () {
-                      if (mounted) widget.onLike();
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(20.r),
-                  child: Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                    child: Icon(
-                      post.isLikedByCurrentUser
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: post.isLikedByCurrentUser
-                          ? AppTheme.errorColor
-                          : null,
-                      size: 20.w,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Semantics(
+                    label: post.isLikedByCurrentUser ? '좋아요 취소' : '좋아요',
+                    button: true,
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: InkWell(
+                        key: const Key('post_card_like_button'),
+                        onTap: () {
+                          _likeDebounce?.cancel();
+                          _likeDebounce = Timer(
+                            const Duration(milliseconds: 300),
+                            () {
+                              if (mounted) widget.onLike();
+                            },
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(22.r),
+                        child: Center(
+                          child: Icon(
+                            post.isLikedByCurrentUser
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: post.isLikedByCurrentUser
+                                ? AppTheme.errorColor
+                                : null,
+                            size: 20.w,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              GestureDetector(
-                onTap: post.likesCount > 0
-                    ? () => LikesBottomSheet.show(
+                  Semantics(
+                    label: '좋아요 ${post.likesCount}명 보기',
+                    button: true,
+                    child: SizedBox(
+                      height: 44,
+                      child: InkWell(
+                        key: const Key('post_card_likes_count'),
+                        onTap: () => LikesBottomSheet.show(
                           context,
                           postId: post.id,
                           currentUserId: currentUserId,
-                        )
-                    : null,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-                  child: Text('${post.likesCount}',
-                      style: TextStyle(fontSize: 12.sp)),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(width: 16.w),
-          Semantics(
-            label: '댓글 ${post.commentsCount}개 보기',
-            button: true,
-            child: InkWell(
-              onTap: widget.onComment,
-              borderRadius: BorderRadius.circular(20.r),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.comment_outlined, size: 20.w),
-                    SizedBox(width: 4.w),
-                    Text('${post.commentsCount}',
-                        style: TextStyle(fontSize: 12.sp)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 16.w),
-          Semantics(
-            label: '게시글 공유',
-            button: true,
-            child: InkWell(
-              onTap: widget.onShare,
-              borderRadius: BorderRadius.circular(20.r),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 10.h),
-                child: Icon(Icons.share_outlined, size: 20.w),
-              ),
-            ),
-          ),
-          const Spacer(),
-          Semantics(
-            label: _isSaved ? '저장 옵션' : '게시글 저장',
-            button: true,
-            enabled: !_isSavePending,
-            child: SizedBox(
-              width: 44.w,
-              height: 44.w,
-              child: InkWell(
-                key: const Key('post_card_bookmark_button'),
-                onTap: _handleBookmarkTap,
-                borderRadius: BorderRadius.circular(22.r),
-                child: Center(
-                  child: _isSavePending
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          _isSaved
-                              ? Icons.bookmark_rounded
-                              : Icons.bookmark_border_outlined,
-                          size: 22.w,
-                          color: _isSaved
-                              ? AppTheme.primaryColor
-                              : AppTheme.secondaryTextColor,
+                          likeCount: post.likesCount,
+                          repository: socialRepository,
                         ),
-                ),
-              ),
-            ),
-          ),
-          if (post.location != null)
-            GestureDetector(
-              onTap: (post.locationLat != null && post.locationLng != null)
-                  ? () => context.push('/location', extra: {
-                        'lat': post.locationLat,
-                        'lng': post.locationLng,
-                        'locationName': post.location,
-                      })
-                  : null,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 16.w,
-                    color: post.locationLat != null && post.locationLng != null
-                        ? AppTheme.primaryColor
-                        : Colors.grey,
-                  ),
-                  SizedBox(width: 4.w),
-                  Text(
-                    post.location!,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color:
-                          post.locationLat != null && post.locationLng != null
-                              ? AppTheme.primaryColor
-                              : Colors.grey,
+                        borderRadius: BorderRadius.circular(12.r),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w),
+                          child: Center(
+                            child: Text(
+                              '${post.likesCount}',
+                              style: TextStyle(fontSize: 12.sp),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
+              SizedBox(width: 8.w),
+              Semantics(
+                label: '댓글 ${post.commentsCount}개 보기',
+                button: true,
+                child: SizedBox(
+                  height: 44,
+                  child: InkWell(
+                    key: const Key('post_card_comment_button'),
+                    onTap: widget.onComment,
+                    borderRadius: BorderRadius.circular(22.r),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.comment_outlined, size: 20.w),
+                          SizedBox(width: 4.w),
+                          Text(
+                            '${post.commentsCount}',
+                            style: TextStyle(fontSize: 12.sp),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 4.w),
+              Semantics(
+                label: '게시글 공유',
+                button: true,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: InkWell(
+                    key: const Key('post_card_share_button'),
+                    onTap: widget.onShare,
+                    borderRadius: BorderRadius.circular(22.r),
+                    child: Center(
+                      child: Icon(Icons.share_outlined, size: 20.w),
+                    ),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Semantics(
+                label: _isSaved ? '저장 옵션' : '게시글 저장',
+                button: true,
+                enabled: !_isSavePending,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: InkWell(
+                    key: const Key('post_card_bookmark_button'),
+                    onTap: _handleBookmarkTap,
+                    borderRadius: BorderRadius.circular(22.r),
+                    child: Center(
+                      child: _isSavePending
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              _isSaved
+                                  ? Icons.bookmark_rounded
+                                  : Icons.bookmark_border_outlined,
+                              size: 22.w,
+                              color: _isSaved
+                                  ? AppTheme.primaryColor
+                                  : AppTheme.secondaryTextColor,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (post.location != null) ...[
+            SizedBox(height: 4.h),
+            Semantics(
+              label: '위치 ${post.location} 게시물 보기',
+              button: post.locationLat != null && post.locationLng != null,
+              child: SizedBox(
+                height: 44,
+                child: InkWell(
+                  key: const Key('post_card_location_button'),
+                  onTap: (post.locationLat != null && post.locationLng != null)
+                      ? () => context.push(
+                            '/location',
+                            extra: {
+                              'lat': post.locationLat,
+                              'lng': post.locationLng,
+                              'locationName': post.location,
+                            },
+                          )
+                      : null,
+                  borderRadius: BorderRadius.circular(12.r),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 18.w,
+                        color:
+                            post.locationLat != null && post.locationLng != null
+                                ? AppTheme.primaryColor
+                                : AppTheme.secondaryTextColor,
+                      ),
+                      SizedBox(width: 6.w),
+                      Expanded(
+                        child: Text(
+                          post.location!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: post.locationLat != null &&
+                                    post.locationLng != null
+                                ? AppTheme.primaryColor
+                                : AppTheme.secondaryTextColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
+          ],
         ],
       ),
     );

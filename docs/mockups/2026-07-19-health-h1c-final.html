@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PetSpace 건강관리 H1C</title>
+  <style>
+    :root{--brand:#1e3a5f;--action:#3a6ea8;--soft:#e8f0f8;--bg:#f7f8fa;
+      --surface:#fff;--text:#3a4552;--muted:#7f8998;--border:#e4e8ed}
+    *{box-sizing:border-box} body{margin:0;padding:24px;background:#edf1f5;
+      color:var(--text);font:15px/1.5 system-ui,-apple-system,sans-serif}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,390px));
+      gap:24px;justify-content:center}.phone{min-height:680px;background:var(--bg);
+      border:1px solid #d9dee5;border-radius:28px;overflow:hidden;box-shadow:0 14px 40px #24364b20}
+    header{height:72px;display:grid;place-items:center;background:#fff;border-bottom:1px solid var(--border)}
+    h1{margin:0;color:var(--brand);font-size:18px} main{padding:18px;display:grid;gap:18px}
+    .card{padding:18px;background:#fff;border:1px solid var(--border);border-radius:16px}
+    .row{display:flex;gap:12px;align-items:center}.icon{width:44px;height:44px;display:grid;
+      place-items:center;border-radius:12px;background:var(--soft);color:var(--action)}
+    .grow{flex:1}.title{font-weight:700;color:var(--brand)}.desc{margin-top:4px;color:var(--muted);font-size:13px}
+    .badge{padding:5px 9px;border-radius:8px;background:var(--soft);color:var(--brand);font-size:12px;font-weight:700}
+    button{width:100%;min-height:48px;margin-top:16px;border:0;border-radius:12px;background:var(--action);
+      color:#fff;font:inherit;font-weight:700}.result{margin-top:12px;padding:12px;border-radius:12px;background:var(--soft);
+      color:var(--brand);font-size:13px}.error{background:#fff3f1;color:#7f3129}
+    .state{text-align:center;padding:36px 18px}.state .icon{margin:auto}.state button{width:auto;padding:0 22px}
+    h2{margin:0 0 4px;color:var(--brand);font-size:17px}.note{color:var(--muted);font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="grid">
+    <section class="phone" aria-label="건강 알림 화면">
+      <header><h1>건강 알림</h1></header>
+      <main>
+        <article class="card">
+          <div class="row">
+            <div class="icon">🔔</div>
+            <div class="grow"><div class="title">자동 예정일 알림</div>
+              <div class="desc">건강 기록 예정일에 맞춘 자동 알림은 운영 연결 후 제공됩니다.</div></div>
+            <span class="badge">준비 중</span>
+          </div>
+        </article>
+        <article class="card">
+          <div class="row"><div class="icon">✓</div><div class="grow">
+            <div class="title">기기 알림 테스트</div>
+            <div class="desc">현재 기기에서 알림 권한과 수신 여부를 확인합니다.</div>
+          </div></div>
+          <button>5초 뒤 테스트 알림 보내기</button>
+          <div class="result" role="status">테스트 알림을 예약했어요. 5초 뒤 확인해주세요.</div>
+        </article>
+        <p class="note">권한 거부·초기화 불가·예약 실패에는 성공 문구를 표시하지 않습니다.</p>
+      </main>
+    </section>
+    <section class="phone" aria-label="건강 변화 오류 화면">
+      <header><h1>건강 변화</h1></header>
+      <main>
+        <article class="card state">
+          <div class="icon">↻</div>
+          <h2>건강 변화를 불러오지 못했어요</h2>
+          <p class="desc">잠시 후 다시 시도해주세요.</p>
+          <button>다시 시도</button>
+        </article>
+        <article class="card">
+          <h2>건강 리포트</h2>
+          <p class="desc">AI 요약은 분석일과 한국어 대표 감정만 공유합니다. 내부 키와 비율은 표시하지 않습니다.</p>
+          <div class="result error">생성 실패 시 내부 오류 대신 안전한 안내와 재시도를 제공합니다.</div>
+        </article>
+      </main>
+    </section>
+  </div>
+</body>
+</html>

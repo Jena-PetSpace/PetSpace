@@ -17,6 +17,7 @@ abstract class HealthRepository {
 
   Future<Either<Failure, List<HealthRecord>>> getUpcomingRecords({
     required String userId,
+    required String petId,
     int daysAhead = 30,
   });
 }

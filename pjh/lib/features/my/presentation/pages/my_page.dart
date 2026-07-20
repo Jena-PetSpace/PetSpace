@@ -37,11 +37,7 @@ class MyPage extends StatefulWidget {
   final Future<List<Map<String, dynamic>>> Function()? loadMyPostsInitial;
   final Future<List<Map<String, dynamic>>> Function()? loadMyPostsMore;
 
-  const MyPage({
-    super.key,
-    this.loadMyPostsInitial,
-    this.loadMyPostsMore,
-  });
+  const MyPage({super.key, this.loadMyPostsInitial, this.loadMyPostsMore});
 
   @override
   State<MyPage> createState() => _MyPageState();
@@ -100,16 +96,19 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
       limit: _pageSize,
       beforeCreatedAt: _myPostsCursor,
     );
-    return result.fold((failure) {
-      dev.log('내 게시글 로드 실패: ${failure.message}', name: 'MyPage');
-      throw StateError('my-posts-load-failed');
-    }, (list) {
-      if (list.isNotEmpty) {
-        _myPostsCursor = list.last['created_at'] as String?;
-      }
-      if (list.length < _pageSize) _myPostsHasMore = false;
-      return list;
-    });
+    return result.fold(
+      (failure) {
+        dev.log('내 게시글 로드 실패: ${failure.message}', name: 'MyPage');
+        throw StateError('my-posts-load-failed');
+      },
+      (list) {
+        if (list.isNotEmpty) {
+          _myPostsCursor = list.last['created_at'] as String?;
+        }
+        if (list.length < _pageSize) _myPostsHasMore = false;
+        return list;
+      },
+    );
   }
 
   @override
@@ -118,7 +117,8 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
       builder: (context, state) {
         if (state is! AuthAuthenticated) {
           return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         final user = state.user;
         return Scaffold(
@@ -250,71 +250,83 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
           imageCount = thumbUrl != null ? 1 : 0;
         }
 
-        return GestureDetector(
-          onTap: () => context.push('/post/$postId'),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              thumbUrl != null && thumbUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: thumbUrl,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) =>
-                          _buildColorBlock(postId, caption),
-                    )
-                  : _buildColorBlock(postId, caption),
-              if (isEmotion)
-                Positioned(
-                  left: 4,
-                  bottom: 4,
-                  child: Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(4.r),
-                    ),
-                    child: Text(
-                      '감정분석',
-                      style: TextStyle(
-                        fontSize: 9.sp,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+        return Semantics(
+          button: true,
+          label: caption.trim().isEmpty ? '게시물 상세 보기' : '$caption 게시물 상세 보기',
+          child: GestureDetector(
+            onTap: () => context.push('/post/$postId'),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                thumbUrl != null && thumbUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: thumbUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) =>
+                            _buildNeutralPreview(postId, caption),
+                      )
+                    : _buildNeutralPreview(postId, caption),
+                if (isEmotion)
+                  Positioned(
+                    left: 4,
+                    bottom: 4,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 6.w,
+                        vertical: 3.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(4.r),
+                      ),
+                      child: Text(
+                        '감정분석',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (isMulti && imageCount > 1)
-                Positioned(
-                  right: 4,
-                  top: 4,
-                  child: Icon(Icons.copy, size: 14.w, color: Colors.white),
-                ),
-            ],
+                if (isMulti && imageCount > 1)
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: Icon(Icons.copy, size: 14.w, color: Colors.white),
+                  ),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildColorBlock(String postId, String caption) {
-    final colors = [
-      AppTheme.primaryColor,
-      AppTheme.accentColor,
-      AppTheme.highlightColor,
-      AppTheme.secondaryColor,
-      AppTheme.successColor,
-    ];
-    final color = colors[postId.hashCode.abs() % colors.length];
+  Widget _buildNeutralPreview(String postId, String caption) {
+    final text = caption.trim();
     return Container(
-      color: color.withValues(alpha: 0.15),
+      key: Key('my_post_preview_$postId'),
+      color: AppTheme.subtleBackground,
+      padding: EdgeInsets.all(12.w),
       child: Center(
-        child: caption.isNotEmpty
+        child: text.isNotEmpty
             ? Text(
-                caption[0],
-                style: TextStyle(fontSize: 24.sp, color: color),
+                text,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  height: 1.4,
+                  color: AppTheme.secondaryTextColor,
+                ),
               )
-            : Icon(Icons.edit_note_rounded, size: 28.w, color: color),
+            : Icon(
+                Icons.notes_rounded,
+                size: 26.w,
+                color: AppTheme.lightTextColor,
+              ),
       ),
     );
   }

@@ -40,6 +40,14 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (!supabaseUrl || !serviceRoleKey) {
+      return json({ error: "Notification service is not configured" }, 500);
+    }
+    if (
+      req.headers.get("authorization") !== `Bearer ${serviceRoleKey}`
+    ) {
+      return json({ error: "Forbidden" }, 403);
+    }
 
     const adminIds = (Deno.env.get("ADMIN_USER_IDS") ?? "")
       .split(",")
@@ -86,8 +94,9 @@ serve(async (req) => {
       (author?.display_name as string | undefined)?.trim() || "이웃 집사";
     const typeLabel = postType === "photo" ? "사진" : "커뮤니티";
 
-    // 운영자별 send-notification 호출 (notifications 저장 + FCM + 토큰 정리 재사용)
+    // 운영자별로 중앙 알림 생성 RPC 경로를 호출한다.
     let notified = 0;
+    let skipped = 0;
     const failures: string[] = [];
     await Promise.all(
       adminIds.map(async (adminId) => {
@@ -101,22 +110,29 @@ serve(async (req) => {
             body: JSON.stringify({
               userId: adminId,
               senderId: authorId,
-              senderName: authorName,
-              type: "adminNewPost", // 기존 6종과 구분되는 전용 값
+              type: "admin_new_post",
               title: "새 글이 올라왔어요",
               body: `${authorName}님의 ${typeLabel} 글 — 첫 반응을 부탁해요`,
               postId,
+              data: { sender_name: authorName },
+              eventKey: `admin_new_post:${postId}:${adminId}`,
             }),
           });
           if (res.ok) {
-            notified++;
+            const result = await res.json();
+            if (result.skipped === true) {
+              skipped++;
+            } else {
+              notified++;
+            }
           } else {
-            failures.push(`${adminId}: HTTP ${res.status}`);
-            console.error("send-notification 실패:", adminId, await res.text());
+            failures.push(`HTTP ${res.status}`);
+            console.error("send-notification 실패", { status: res.status });
           }
         } catch (e) {
-          failures.push(`${adminId}: ${e instanceof Error ? e.message : String(e)}`);
-          console.error("send-notification 호출 오류:", adminId, e);
+          const message = e instanceof Error ? e.message : String(e);
+          failures.push(message);
+          console.error("send-notification 호출 오류", { message });
         }
       })
     );
@@ -127,6 +143,7 @@ serve(async (req) => {
     return json({
       success: true,
       notified,
+      skipped,
       total: adminIds.length,
       ...(failures.length > 0 ? { failures } : {}),
     });

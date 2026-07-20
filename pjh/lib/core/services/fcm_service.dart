@@ -1,5 +1,4 @@
 import 'dart:developer' as dev;
-import 'dart:io' show Platform;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +9,9 @@ import 'analytics_service.dart';
 import 'local_notification_service.dart';
 
 /// Firebase Cloud Messaging 서비스
-/// 푸시 알림을 관리하고 토큰을 Supabase에 저장
+/// 푸시 알림 수신과 라우팅을 관리합니다.
+///
+/// 토큰 생명주기와 user_devices 저장은 NotificationService 한 곳에서 담당합니다.
 /// 포그라운드 수신 시 LocalNotificationService로 알림 표시
 class FCMService {
   FirebaseMessaging get _firebaseMessaging => FirebaseMessaging.instance;
@@ -80,19 +81,6 @@ class FCMService {
         return;
       }
 
-      // FCM 토큰 가져오기
-      final token = await _firebaseMessaging.getToken();
-      if (token != null) {
-        dev.log('FCM Token: $token', name: 'FCMService');
-        await _saveTokenToDatabase(token);
-      }
-
-      // 토큰 갱신 리스너
-      _firebaseMessaging.onTokenRefresh.listen((newToken) {
-        dev.log('FCM Token refreshed: $newToken', name: 'FCMService');
-        _saveTokenToDatabase(newToken);
-      });
-
       // 포그라운드 메시지 핸들러
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
@@ -103,33 +91,12 @@ class FCMService {
 
       dev.log('FCM 초기화 완료', name: 'FCMService');
     } catch (e, stackTrace) {
-      dev.log('FCM 초기화 실패',
-          error: e, stackTrace: stackTrace, name: 'FCMService');
-    }
-  }
-
-  /// FCM 토큰을 데이터베이스에 저장
-  Future<void> _saveTokenToDatabase(String token) async {
-    try {
-      final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) {
-        dev.log('사용자가 로그인되지 않아 토큰 저장 생략', name: 'FCMService');
-        return;
-      }
-
-      // user_devices 테이블에 토큰 저장 (중복 방지)
-      final platform = Platform.isIOS ? 'ios' : (Platform.isAndroid ? 'android' : 'other');
-      await _supabase.from('user_devices').upsert({
-        'user_id': userId,
-        'fcm_token': token,
-        'platform': platform,
-        'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'fcm_token');
-
-      dev.log('FCM 토큰 저장 완료: user_id=$userId', name: 'FCMService');
-    } catch (e, stackTrace) {
-      dev.log('FCM 토큰 저장 실패',
-          error: e, stackTrace: stackTrace, name: 'FCMService');
+      dev.log(
+        'FCM 초기화 실패',
+        error: e,
+        stackTrace: stackTrace,
+        name: 'FCMService',
+      );
     }
   }
 
@@ -148,9 +115,9 @@ class FCMService {
     );
 
     // 해시 기반 id — 중복 방지
-    final id = (message.messageId ??
-            DateTime.now().microsecondsSinceEpoch.toString())
-        .hashCode;
+    final id =
+        (message.messageId ?? DateTime.now().microsecondsSinceEpoch.toString())
+            .hashCode;
 
     localNotif.showSocialNotification(
       id: id,
@@ -192,37 +159,12 @@ class FCMService {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
       dev.log('토픽 구독 해제 완료: $topic', name: 'FCMService');
     } catch (e, stackTrace) {
-      dev.log('토픽 구독 해제 실패',
-          error: e, stackTrace: stackTrace, name: 'FCMService');
-    }
-  }
-
-  /// FCM 토큰 가져오기
-  Future<String?> getToken() async {
-    try {
-      return await _firebaseMessaging.getToken();
-    } catch (e, stackTrace) {
-      dev.log('FCM 토큰 가져오기 실패',
-          error: e, stackTrace: stackTrace, name: 'FCMService');
-      return null;
-    }
-  }
-
-  /// 현재 기기의 토큰 삭제
-  Future<void> deleteToken() async {
-    try {
-      final token = await _firebaseMessaging.getToken();
-      if (token != null) {
-        await _firebaseMessaging.deleteToken();
-
-        // 데이터베이스에서도 삭제
-        await _supabase.from('user_devices').delete().eq('fcm_token', token);
-
-        dev.log('FCM 토큰 삭제 완료', name: 'FCMService');
-      }
-    } catch (e, stackTrace) {
-      dev.log('FCM 토큰 삭제 실패',
-          error: e, stackTrace: stackTrace, name: 'FCMService');
+      dev.log(
+        '토픽 구독 해제 실패',
+        error: e,
+        stackTrace: stackTrace,
+        name: 'FCMService',
+      );
     }
   }
 }

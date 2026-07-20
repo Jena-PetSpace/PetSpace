@@ -42,25 +42,28 @@ void main() {
     socialRepository = _MockSocialRepository();
     sl.registerSingleton<ProfileService>(profileService);
     sl.registerSingleton<SocialRepository>(socialRepository);
-    when(() => socialRepository.getSavedPostsPage(
-          userId: any(named: 'userId'),
-          scope: any(named: 'scope'),
-          cursor: any(named: 'cursor'),
-          limit: any(named: 'limit'),
-        )).thenAnswer((_) async => const Right(SavedPostsPage(
-          items: [],
-          hasMore: false,
-        )));
-    when(() => socialRepository.countSavedPosts(
-          userId: any(named: 'userId'),
-          scope: any(named: 'scope'),
-        )).thenAnswer((_) async => const Right(0));
+    when(
+      () => socialRepository.getSavedPostsPage(
+        userId: any(named: 'userId'),
+        scope: any(named: 'scope'),
+        cursor: any(named: 'cursor'),
+        limit: any(named: 'limit'),
+      ),
+    ).thenAnswer(
+      (_) async => const Right(SavedPostsPage(items: [], hasMore: false)),
+    );
+    when(
+      () => socialRepository.countSavedPosts(
+        userId: any(named: 'userId'),
+        scope: any(named: 'scope'),
+      ),
+    ).thenAnswer((_) async => const Right(0));
     when(() => profileService.getProfile()).thenAnswer(
       (_) async => {'display_name': '정현', 'bio': '흰둥이 보호자', 'photo_url': null},
     );
-    when(() => profileService.getProfileStats()).thenAnswer(
-      (_) async => {'posts': 1, 'followers': 2, 'following': 3},
-    );
+    when(
+      () => profileService.getProfileStats(),
+    ).thenAnswer((_) async => {'posts': 1, 'followers': 2, 'following': 3});
     user = User(
       uid: 'user-1',
       email: 'private@example.com',
@@ -127,12 +130,14 @@ void main() {
       ],
     );
     if (savedResult != null) {
-      when(() => socialRepository.getSavedPostsPage(
-            userId: any(named: 'userId'),
-            scope: any(named: 'scope'),
-            cursor: any(named: 'cursor'),
-            limit: any(named: 'limit'),
-          )).thenAnswer((_) async => savedResult);
+      when(
+        () => socialRepository.getSavedPostsPage(
+          userId: any(named: 'userId'),
+          scope: any(named: 'scope'),
+          cursor: any(named: 'cursor'),
+          limit: any(named: 'limit'),
+        ),
+      ).thenAnswer((_) async => savedResult);
     }
     addTearDown(router.dispose);
     await tester.pumpWidget(
@@ -143,8 +148,9 @@ void main() {
           theme: AppTheme.lightTheme,
           routerConfig: router,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: TextScaler.linear(textScale)),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
             child: child!,
           ),
         ),
@@ -178,7 +184,32 @@ void main() {
     fail = false;
     await tester.tap(find.text('다시 시도').last);
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.edit_note_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.notes_rounded), findsOneWidget);
+    expect(find.byKey(const Key('my_post_preview_post-1')), findsOneWidget);
+  });
+
+  testWidgets('텍스트 게시물은 임의 색·첫 글자 대신 읽을 수 있는 중립 미리보기를 표시한다', (tester) async {
+    await pumpPage(
+      tester,
+      myInitial: () async => [
+        {
+          'id': 'post-neutral',
+          'caption': '산책 후 편안하게 쉬고 있어요',
+          'post_type': 'text',
+          'image_urls': null,
+          'image_url': null,
+        },
+      ],
+      surface: const Size(360, 800),
+      textScale: 1.5,
+    );
+
+    expect(
+      find.byKey(const Key('my_post_preview_post-neutral')),
+      findsOneWidget,
+    );
+    expect(find.text('산책 후 편안하게 쉬고 있어요'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('성공 empty만 빈 상태로 표시하고 가상 뱃지 섹션은 노출하지 않는다', (tester) async {

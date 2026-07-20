@@ -1,28 +1,38 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../../core/services/block_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
+import '../../../../shared/widgets/petspace_page_scaffold.dart';
+import '../../../../shared/widgets/petspace_settings_components.dart';
+import '../../../../shared/widgets/petspace_state_view.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../domain/entities/chat_room.dart';
 import '../../domain/entities/chat_participant.dart';
 import '../../../../config/injection_container.dart';
 import '../../domain/repositories/chat_repository.dart';
+import '../../domain/usecases/report_chat_target.dart';
 import '../../domain/usecases/search_users_for_chat.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../widgets/chat_report_sheet.dart';
 
 class ChatRoomSettingsPage extends StatefulWidget {
   final String roomId;
   final String? roomName;
+  final Future<File?> Function(BuildContext context)? photoPicker;
 
   const ChatRoomSettingsPage({
     super.key,
     required this.roomId,
     this.roomName,
+    this.photoPicker,
   });
 
   @override
@@ -30,22 +40,43 @@ class ChatRoomSettingsPage extends StatefulWidget {
 }
 
 class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
-  final _supabase = Supabase.instance.client;
   final _nameController = TextEditingController();
   List<ChatParticipant> _participants = [];
   bool _isLoading = true;
-  bool _notificationsEnabled = true;
   String? _currentPhotoUrl;
   File? _pendingPhotoFile; // 저장 전 대기 중인 사진
   bool _hasNameChanged = false;
   bool _isSaving = false;
+  bool _loadFailed = false;
+  ChatRoomType? _roomType;
+  String _initialName = '';
 
-  String get _currentUserId => _supabase.auth.currentUser?.id ?? '';
+  String get _currentUserId {
+    final authState = context.read<AuthBloc>().state;
+    return authState is AuthAuthenticated ? authState.user.id : '';
+  }
+
+  ChatParticipant? get _currentParticipant {
+    for (final participant in _participants) {
+      if (participant.userId == _currentUserId) return participant;
+    }
+    return null;
+  }
+
+  bool get _isAdmin => _currentParticipant?.role == ChatRole.admin;
+  bool get _hasSaveableChanges {
+    final hasValidNameChange =
+        _hasNameChanged && _nameController.text.trim().isNotEmpty;
+    return _isAdmin &&
+        !_isSaving &&
+        (hasValidNameChange || _pendingPhotoFile != null);
+  }
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = widget.roomName ?? '';
+    _initialName = (widget.roomName ?? '').trim();
+    _nameController.text = _initialName;
     _nameController.addListener(_onNameChanged);
     _loadData();
   }
@@ -58,77 +89,91 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   void _onNameChanged() {
-    final changed =
-        _nameController.text.trim() != (widget.roomName ?? '').trim();
+    final changed = _nameController.text.trim() != _initialName;
     if (changed != _hasNameChanged) {
       setState(() => _hasNameChanged = changed);
     }
   }
 
   Future<void> _loadData() async {
-    await Future.wait([
+    setState(() {
+      _isLoading = true;
+      _loadFailed = false;
+    });
+    final results = await Future.wait([
       _loadParticipants(),
-      _loadNotificationSetting(),
       _loadRoomInfo(),
     ]);
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  Future<void> _loadRoomInfo() async {
-    final result = await sl<ChatRepository>().getChatRoomInfo(widget.roomId);
-    result.fold(
-      (failure) => log('[ChatRoomSettings] 채팅방 정보 로드 실패: ${failure.message}',
-          name: 'ChatRoomSettings'),
-      (info) {
-        if (info == null || !mounted) return;
-        setState(() {
-          _currentPhotoUrl = info['avatar_url'] as String?;
-          if (_nameController.text.isEmpty && info['name'] != null) {
-            _nameController.text = info['name'] as String;
-          }
-        });
-      },
-    );
-  }
-
-  Future<void> _loadParticipants() async {
-    final result = await sl<ChatRepository>().getRoomParticipants(widget.roomId);
-    result.fold(
-      (failure) => log('[ChatRoomSettings] 참여자 로드 실패: ${failure.message}',
-          name: 'ChatRoomSettings'),
-      (participants) {
-        if (!mounted) return;
-        setState(() => _participants = participants);
-      },
-    );
-  }
-
-  Future<void> _loadNotificationSetting() async {
-    final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        _notificationsEnabled =
-            prefs.getBool('chat_notification_${widget.roomId}') ?? true;
+        _isLoading = false;
+        _loadFailed = results.any((succeeded) => !succeeded);
       });
     }
   }
 
-  Future<void> _toggleNotification(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('chat_notification_${widget.roomId}', value);
-    if (mounted) setState(() => _notificationsEnabled = value);
+  Future<bool> _loadRoomInfo() async {
+    final result = await sl<ChatRepository>().getChatRoomInfo(widget.roomId);
+    return result.fold(
+      (failure) {
+        log('[ChatRoomSettings] 채팅방 정보 로드 실패: ${failure.message}',
+            name: 'ChatRoomSettings');
+        return false;
+      },
+      (info) {
+        if (info == null || !mounted) return false;
+        final serverName =
+            (info['name'] as String? ?? widget.roomName ?? '').trim();
+        setState(() {
+          _currentPhotoUrl = info['avatar_url'] as String?;
+          _roomType = switch (info['type']) {
+            'direct' => ChatRoomType.direct,
+            'group' => ChatRoomType.group,
+            _ => _roomType,
+          };
+          _initialName = serverName;
+          _nameController.text = serverName;
+          _hasNameChanged = false;
+        });
+        return true;
+      },
+    );
+  }
+
+  Future<bool> _loadParticipants() async {
+    final result =
+        await sl<ChatRepository>().getRoomParticipants(widget.roomId);
+    return result.fold(
+      (failure) {
+        log('[ChatRoomSettings] 참여자 로드 실패: ${failure.message}',
+            name: 'ChatRoomSettings');
+        return false;
+      },
+      (participants) {
+        if (!mounted) return false;
+        setState(() => _participants = participants);
+        return true;
+      },
+    );
   }
 
   Future<void> _pickPhoto() async {
-    final pickedFile = await ImageSourcePicker.pickSingle(
-      context,
-      maxWidth: 512,
-      maxHeight: 512,
-      imageQuality: 80,
-    );
-    if (pickedFile == null) return;
+    if (!_isAdmin) return;
+    final picker = widget.photoPicker;
+    File? file;
+    if (picker != null) {
+      file = await picker(context);
+    } else {
+      final pickedFile = await ImageSourcePicker.pickSingle(
+        context,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 80,
+      );
+      file = pickedFile == null ? null : File(pickedFile.path);
+    }
+    if (!mounted || file == null) return;
 
-    final file = File(pickedFile.path);
     // 저장 버튼 누를 때까지 대기 — 미리보기만 표시
     setState(() {
       _pendingPhotoFile = file;
@@ -145,20 +190,26 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Future<void> _saveChanges() async {
+    if (!_isAdmin || _isSaving || !_hasSaveableChanges) return;
+    final newName = _nameController.text.trim();
+    if (_hasNameChanged && newName.isEmpty) {
+      _showMessage('채팅방 이름을 입력해주세요.');
+      return;
+    }
     setState(() => _isSaving = true);
     final repo = sl<ChatRepository>();
 
-    // 이름 저장
-    final newName = _nameController.text.trim();
-    if (newName.isNotEmpty) {
-      final nameResult = await repo.updateChatRoomName(
-          roomId: widget.roomId, name: newName);
+    // 실제 이름 변경이 있을 때만 저장한다.
+    if (_hasNameChanged) {
+      final nameResult =
+          await repo.updateChatRoomName(roomId: widget.roomId, name: newName);
       final nameError = nameResult.fold((f) => f.message, (_) => null);
       if (nameError != null) {
         if (mounted) {
           setState(() => _isSaving = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('저장에 실패했습니다: $nameError'),
+            const SnackBar(
+                content: Text('저장에 실패했습니다. 다시 시도해주세요.'),
                 backgroundColor: AppTheme.errorColor),
           );
         }
@@ -178,7 +229,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
         if (mounted) {
           setState(() => _isSaving = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('저장에 실패했습니다: $photoError'),
+            const SnackBar(
+                content: Text('저장에 실패했습니다. 다시 시도해주세요.'),
                 backgroundColor: AppTheme.errorColor),
           );
         }
@@ -188,6 +240,11 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     }
 
     if (mounted) {
+      setState(() {
+        _initialName = newName;
+        _hasNameChanged = false;
+        _isSaving = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('설정이 저장되었습니다.'),
@@ -245,8 +302,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
       (failure) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('채팅방 나가기에 실패했습니다: ${failure.message}'),
+            const SnackBar(
+              content: Text('채팅방에서 나가지 못했습니다. 다시 시도해주세요.'),
               backgroundColor: AppTheme.errorColor,
             ),
           );
@@ -259,6 +316,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Future<void> _showAddMembersSheet() async {
+    if (!_isAdmin || _roomType != ChatRoomType.group) return;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -275,71 +333,233 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('채팅방 설정', style: TextStyle(fontSize: 16.sp)),
-        centerTitle: true,
+  Future<void> _reportParticipant(ChatParticipant participant) async {
+    final reason = await showChatReportSheet(context, title: '사용자 신고');
+    if (reason == null || !mounted) return;
+    final result = await sl<ReportChatTarget>()(
+      ReportChatTargetParams(
+        target: ChatReportTarget.user,
+        targetId: participant.userId,
+        reporterId: _currentUserId,
+        reason: reason,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  SizedBox(height: 24.h),
-                  _buildPhotoSection(),
-                  SizedBox(height: 16.h),
-                  _buildNameSection(),
-                  SizedBox(height: 24.h),
-                  _buildParticipantsSection(),
-                  SizedBox(height: 8.h),
-                  _buildSettingsSection(),
-                  SizedBox(height: 8.h),
-                  _buildLeaveSection(),
-                  SizedBox(height: 16.h),
-                  _buildBottomButtons(),
-                  SizedBox(height: 32.h),
-                ],
-              ),
-            ),
+    );
+    if (!mounted) return;
+    result.fold(
+      (_) => _showMessage('신고 접수에 실패했습니다. 다시 시도해주세요.'),
+      (_) => _showMessage('신고가 접수되었습니다. 검토 후 조치하겠습니다.'),
     );
   }
 
-  Widget _buildPhotoSection() {
-    return GestureDetector(
-      onTap: _isSaving ? null : _pickPhoto,
-      child: Stack(
+  Future<void> _blockParticipant(ChatParticipant participant) async {
+    final name = participant.displayName ?? '이 사용자';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('사용자 차단'),
+        content: Text('$name님의 메시지를 더 이상 표시하지 않을까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.highlightColor,
+            ),
+            child: const Text('차단'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final succeeded = await sl<BlockService>().blockUser(participant.userId);
+    if (!mounted) return;
+    if (!succeeded) {
+      _showMessage('차단에 실패했습니다. 다시 시도해주세요.');
+      return;
+    }
+    await sl<BlockService>().getBlockedUserIds(forceRefresh: true);
+    if (mounted) _showMessage('$name님을 차단했습니다.');
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PetSpacePageScaffold(
+      title: '채팅방 정보',
+      body: _isLoading
+          ? const PetSpaceStateView.loading(
+              key: Key('chat_room_settings_loading'),
+            )
+          : _loadFailed
+              ? PetSpaceStateView.error(
+                  key: const Key('chat_room_settings_error'),
+                  icon: Icons.cloud_off_outlined,
+                  title: '채팅방 정보를 불러오지 못했어요',
+                  message: '인터넷 연결을 확인하고 다시 시도해주세요.',
+                  actionLabel: '다시 시도',
+                  onAction: _loadData,
+                )
+              : ListView(
+                  key: const Key('chat_room_settings_content'),
+                  padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
+                  children: [
+                    _buildSummaryCard(),
+                    SizedBox(height: 24.h),
+                    _buildEditSection(),
+                    SizedBox(height: 24.h),
+                    _buildParticipantsSection(),
+                    SizedBox(height: 24.h),
+                    _buildLeaveSection(),
+                  ],
+                ),
+      bottomNavigationBar:
+          !_isLoading && !_loadFailed && _isAdmin ? _buildSaveBar() : null,
+    );
+  }
+
+  Widget _buildSummaryCard() {
+    final displayName = _initialName.isNotEmpty ? _initialName : '이름 없는 채팅방';
+    return Container(
+      key: const Key('chat_room_summary_card'),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
         children: [
           CircleAvatar(
-            radius: 48.r,
-            backgroundColor: Colors.grey[200],
+            radius: 28.r,
+            backgroundColor: AppTheme.actionContainer,
             backgroundImage: _pendingPhotoFile != null
                 ? FileImage(_pendingPhotoFile!)
                 : (_currentPhotoUrl != null
                     ? CachedNetworkImageProvider(_currentPhotoUrl!)
                     : null) as ImageProvider?,
             child: _pendingPhotoFile == null && _currentPhotoUrl == null
-                ? Icon(Icons.group, size: 40.w, color: Colors.grey[500])
+                ? Icon(
+                    _roomType == ChatRoomType.group
+                        ? Icons.group_rounded
+                        : Icons.person_rounded,
+                    color: AppTheme.actionBase,
+                  )
                 : null,
           ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: Container(
-              padding: EdgeInsets.all(6.w),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: Icon(
-                Icons.camera_alt,
-                size: 16.w,
-                color: Colors.white,
-              ),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: AppTheme.fontHeading.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.brandDeep,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  '참여자 ${_participants.length}명',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontCaption.sp,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ),
+              ],
             ),
           ),
+          if (_isAdmin)
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 5.h),
+              decoration: BoxDecoration(
+                color: AppTheme.actionContainer,
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
+              ),
+              child: Text(
+                '관리자',
+                style: TextStyle(
+                  fontSize: AppTheme.fontMicro.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.actionBase,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditSection() {
+    return PetSpaceSettingsSection(
+      title: '채팅방 꾸미기',
+      children: [
+        Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            children: [
+              _buildPhotoSection(),
+              SizedBox(height: 16.h),
+              _buildNameSection(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhotoSection() {
+    return GestureDetector(
+      key: const Key('chat_room_photo_picker'),
+      onTap: _isSaving || !_isAdmin ? null : _pickPhoto,
+      child: Stack(
+        children: [
+          CircleAvatar(
+            radius: 48.r,
+            backgroundColor: AppTheme.actionContainer,
+            backgroundImage: _pendingPhotoFile != null
+                ? FileImage(_pendingPhotoFile!)
+                : (_currentPhotoUrl != null
+                    ? CachedNetworkImageProvider(_currentPhotoUrl!)
+                    : null) as ImageProvider?,
+            child: _pendingPhotoFile == null && _currentPhotoUrl == null
+                ? Icon(
+                    Icons.group,
+                    size: 40.w,
+                    color: AppTheme.actionBase,
+                  )
+                : null,
+          ),
+          if (_isAdmin)
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.all(6.w),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: Icon(
+                  Icons.camera_alt,
+                  size: 16.w,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           if (_isSaving)
             Positioned.fill(
               child: Container(
@@ -364,7 +584,9 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w),
       child: TextField(
+        key: const Key('chat_room_name_field'),
         controller: _nameController,
+        enabled: _isAdmin,
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
@@ -393,91 +615,51 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     );
   }
 
-  Widget _buildBottomButtons() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 24.w),
-      child: Row(
-        children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: _isSaving ? null : _saveChanges,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.actionBase,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-              child: _isSaving
-                  ? SizedBox(
-                      width: 20.w,
-                      height: 20.w,
-                      child: const CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text('저장', style: TextStyle(fontSize: 15.sp)),
-            ),
+  Widget _buildSaveBar() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
+        decoration: const BoxDecoration(
+          color: AppTheme.surfaceColor,
+          border: Border(top: BorderSide(color: AppTheme.border)),
+        ),
+        child: ElevatedButton(
+          key: const Key('chat_room_save_button'),
+          onPressed: _hasSaveableChanges ? _saveChanges : null,
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+            backgroundColor: AppTheme.actionBase,
+            foregroundColor: Colors.white,
           ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: OutlinedButton(
-              onPressed: _goBack,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.grey),
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-              child: Text(
-                '취소',
-                style: TextStyle(fontSize: 15.sp, color: Colors.grey[700]),
-              ),
-            ),
-          ),
-        ],
+          child: _isSaving
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('변경사항 저장'),
+        ),
       ),
     );
   }
 
   Widget _buildParticipantsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return PetSpaceSettingsSection(
+      title: '참여자',
+      description: '${_participants.length}명이 함께하고 있어요.',
       children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-          child: Text(
-            '참여자 (${_participants.length}명)',
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.secondaryTextColor,
-            ),
+        ..._participants.map(_buildParticipantTile),
+        if (_isAdmin && _roomType == ChatRoomType.group)
+          PetSpaceSettingsTile(
+            icon: Icons.person_add_alt_1_rounded,
+            title: '멤버 초대',
+            subtitle: '새로운 참여자를 채팅방에 초대합니다.',
+            onTap: _showAddMembersSheet,
           ),
-        ),
-        const Divider(height: 1, color: AppTheme.dividerColor),
-        ..._participants.map((p) => _buildParticipantTile(p)),
-        ListTile(
-          leading: CircleAvatar(
-            radius: 20.r,
-            backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-            child: Icon(Icons.person_add,
-                size: 20.w, color: AppTheme.primaryColor),
-          ),
-          title: Text(
-            '멤버 초대',
-            style: TextStyle(
-              fontSize: 15.sp,
-              color: AppTheme.primaryColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          onTap: _showAddMembersSheet,
-        ),
-        const Divider(height: 1, color: AppTheme.dividerColor),
       ],
     );
   }
@@ -485,102 +667,66 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   Widget _buildParticipantTile(ChatParticipant participant) {
     final isMe = participant.userId == _currentUserId;
     return ListTile(
+      key: Key('chat_participant_${participant.userId}'),
+      minTileHeight: 64,
       leading: CircleAvatar(
         radius: 20.r,
-        backgroundColor: Colors.grey[200],
+        backgroundColor: AppTheme.actionContainer,
         backgroundImage: participant.photoUrl != null
             ? CachedNetworkImageProvider(participant.photoUrl!)
             : null,
         child: participant.photoUrl == null
-            ? Icon(Icons.person, size: 20.w, color: Colors.grey[500])
+            ? Icon(Icons.person, size: 20.w, color: AppTheme.actionBase)
             : null,
       ),
-      title: Row(
-        children: [
-          Text(
-            participant.displayName ?? '알 수 없는 사용자',
-            style: TextStyle(fontSize: 15.sp),
-          ),
-          if (isMe) ...[
-            SizedBox(width: 6.w),
-            Text(
-              '나',
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: AppTheme.secondaryTextColor,
-              ),
-            ),
-          ],
-        ],
+      title: Text(
+        participant.displayName ?? '알 수 없는 사용자',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontSize: AppTheme.fontBody.sp),
       ),
-      trailing: null,
-    );
-  }
-
-  Widget _buildSettingsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-          child: Text(
-            '설정',
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.secondaryTextColor,
-            ),
-          ),
+      subtitle: Text(
+        [
+          if (isMe) '나',
+          participant.role == ChatRole.admin ? '관리자' : '참여자',
+        ].join(' · '),
+        style: TextStyle(
+          fontSize: AppTheme.fontCaption.sp,
+          color: AppTheme.secondaryTextColor,
         ),
-        const Divider(height: 1, color: AppTheme.dividerColor),
-        SwitchListTile(
-          title: Text('알림', style: TextStyle(fontSize: 15.sp)),
-          subtitle: Text(
-            _notificationsEnabled ? '알림을 받고 있습니다' : '알림이 꺼져 있습니다',
-            style:
-                TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor),
-          ),
-          secondary: Icon(
-            _notificationsEnabled
-                ? Icons.notifications_active
-                : Icons.notifications_off_outlined,
-            color: _notificationsEnabled
-                ? AppTheme.primaryColor
-                : AppTheme.disabledColor,
-          ),
-          value: _notificationsEnabled,
-          activeTrackColor: AppTheme.primaryColor,
-          onChanged: _toggleNotification,
-        ),
-        const Divider(height: 1, color: AppTheme.dividerColor),
-      ],
+      ),
+      trailing: !isMe && _roomType == ChatRoomType.group
+          ? PopupMenuButton<String>(
+              key: Key('chat_participant_menu_${participant.userId}'),
+              tooltip: '${participant.displayName ?? '참여자'} 메뉴',
+              constraints: const BoxConstraints(minWidth: 44),
+              onSelected: (value) {
+                if (value == 'report') {
+                  _reportParticipant(participant);
+                } else if (value == 'block') {
+                  _blockParticipant(participant);
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'report', child: Text('신고하기')),
+                PopupMenuItem(value: 'block', child: Text('차단하기')),
+              ],
+            )
+          : null,
     );
   }
 
   Widget _buildLeaveSection() {
-    return Column(
+    return PetSpaceSettingsSection(
+      title: '채팅방 관리',
       children: [
-        const Divider(height: 1, color: AppTheme.dividerColor),
-        ListTile(
-          leading:
-              Icon(Icons.exit_to_app, color: AppTheme.errorColor, size: 24.w),
-          title: Text(
-            '채팅방 나가기',
-            style: TextStyle(
-              fontSize: 15.sp,
-              color: AppTheme.errorColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          subtitle: Text(
-            '채팅방에서 나갑니다',
-            style: TextStyle(
-                fontSize: 12.sp,
-                color: AppTheme.errorColor.withValues(alpha: 0.7)),
-          ),
+        PetSpaceSettingsTile(
+          icon: Icons.logout_rounded,
+          title: '채팅방 나가기',
+          subtitle: '나간 후에는 대화 내용을 볼 수 없습니다.',
+          destructive: true,
           onTap: _leaveRoom,
         ),
-        const Divider(height: 1, color: AppTheme.dividerColor),
       ],
     );
   }
@@ -611,38 +757,63 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
   final List<ChatParticipant> _selectedUsers = [];
   bool _isSearching = false;
   bool _isAdding = false;
+  String? _searchError;
+  Timer? _searchDebounce;
+  int _searchGeneration = 0;
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _searchUsers(String query) async {
-    if (query.trim().isEmpty) {
+  void _scheduleSearch(String query) {
+    _searchDebounce?.cancel();
+    final normalized = query.trim();
+    final generation = ++_searchGeneration;
+    if (normalized.isEmpty) {
       setState(() {
         _searchResults = [];
         _isSearching = false;
+        _searchError = null;
       });
       return;
     }
 
-    setState(() => _isSearching = true);
+    setState(() {
+      _isSearching = true;
+      _searchError = null;
+    });
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 300),
+      () => _searchUsers(normalized, generation),
+    );
+  }
 
-    final result = await _searchUsersForChat(StringParams(value: query.trim()));
+  Future<void> _searchUsers(String query, int generation) async {
+    final result = await _searchUsersForChat(StringParams(value: query));
+    if (!mounted ||
+        generation != _searchGeneration ||
+        query != _searchController.text.trim()) {
+      return;
+    }
     result.fold(
       (failure) {
-        if (mounted) setState(() => _isSearching = false);
+        setState(() {
+          _searchResults = [];
+          _isSearching = false;
+          _searchError = failure.message;
+        });
       },
       (users) {
-        if (mounted) {
-          setState(() {
-            _searchResults = users
-                .where((u) => !widget.existingUserIds.contains(u.userId))
-                .toList();
-            _isSearching = false;
-          });
-        }
+        setState(() {
+          _searchResults = users
+              .where((u) => !widget.existingUserIds.contains(u.userId))
+              .toList();
+          _isSearching = false;
+          _searchError = null;
+        });
       },
     );
   }
@@ -673,8 +844,8 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
         if (mounted) {
           setState(() => _isAdding = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('멤버 추가에 실패했습니다: ${failure.message}'),
+            const SnackBar(
+              content: Text('멤버 추가에 실패했습니다. 다시 시도해주세요.'),
               backgroundColor: AppTheme.errorColor,
             ),
           );
@@ -780,7 +951,7 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
             padding: EdgeInsets.all(16.w),
             child: TextField(
               controller: _searchController,
-              onChanged: (value) => _searchUsers(value),
+              onChanged: _scheduleSearch,
               decoration: InputDecoration(
                 hintText: '닉네임 또는 반려동물 이름으로 검색',
                 hintStyle: TextStyle(fontSize: 14.sp, color: Colors.grey),
@@ -790,9 +961,12 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
+                          _searchDebounce?.cancel();
+                          _searchGeneration++;
                           setState(() {
                             _searchResults = [];
                             _isSearching = false;
+                            _searchError = null;
                           });
                         },
                       )
@@ -808,48 +982,67 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
           Expanded(
             child: _isSearching
                 ? const Center(child: CircularProgressIndicator())
-                : _searchResults.isEmpty
+                : _searchError != null
                     ? Center(
-                        child: Text(
-                          _searchController.text.isEmpty
-                              ? '사용자를 검색하세요'
-                              : '검색 결과가 없습니다',
-                          style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('검색 결과를 불러오지 못했습니다'),
+                            SizedBox(height: 12.h),
+                            OutlinedButton(
+                              onPressed: () {
+                                final query = _searchController.text.trim();
+                                if (query.isNotEmpty) _scheduleSearch(query);
+                              },
+                              child: const Text('다시 시도'),
+                            ),
+                          ],
                         ),
                       )
-                    : ListView.builder(
-                        controller: scrollController,
-                        itemCount: _searchResults.length,
-                        itemBuilder: (context, index) {
-                          final user = _searchResults[index];
-                          final isSelected = _selectedUsers
-                              .any((u) => u.userId == user.userId);
-                          return ListTile(
-                            leading: CircleAvatar(
-                              radius: 20.r,
-                              backgroundColor: Colors.grey[200],
-                              backgroundImage: user.photoUrl != null
-                                  ? NetworkImage(user.photoUrl!)
-                                  : null,
-                              child: user.photoUrl == null
-                                  ? Icon(Icons.person,
-                                      size: 20.w, color: Colors.grey[500])
-                                  : null,
+                    : _searchResults.isEmpty
+                        ? Center(
+                            child: Text(
+                              _searchController.text.isEmpty
+                                  ? '사용자를 검색하세요'
+                                  : '검색 결과가 없습니다',
+                              style: TextStyle(
+                                  fontSize: 14.sp, color: Colors.grey),
                             ),
-                            title: Text(
-                              user.displayName ?? '알 수 없는 사용자',
-                              style: TextStyle(fontSize: 15.sp),
-                            ),
-                            trailing: isSelected
-                                ? Icon(Icons.check_circle,
-                                    color:
-                                        Theme.of(context).colorScheme.primary)
-                                : Icon(Icons.circle_outlined,
-                                    color: Colors.grey[400]),
-                            onTap: () => _toggleUser(user),
-                          );
-                        },
-                      ),
+                          )
+                        : ListView.builder(
+                            controller: scrollController,
+                            itemCount: _searchResults.length,
+                            itemBuilder: (context, index) {
+                              final user = _searchResults[index];
+                              final isSelected = _selectedUsers
+                                  .any((u) => u.userId == user.userId);
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  radius: 20.r,
+                                  backgroundColor: Colors.grey[200],
+                                  backgroundImage: user.photoUrl != null
+                                      ? NetworkImage(user.photoUrl!)
+                                      : null,
+                                  child: user.photoUrl == null
+                                      ? Icon(Icons.person,
+                                          size: 20.w, color: Colors.grey[500])
+                                      : null,
+                                ),
+                                title: Text(
+                                  user.displayName ?? '알 수 없는 사용자',
+                                  style: TextStyle(fontSize: 15.sp),
+                                ),
+                                trailing: isSelected
+                                    ? Icon(Icons.check_circle,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary)
+                                    : Icon(Icons.circle_outlined,
+                                        color: Colors.grey[400]),
+                                onTap: () => _toggleUser(user),
+                              );
+                            },
+                          ),
           ),
         ],
       ),

@@ -55,6 +55,29 @@ class ChatDetailSendImageRequested extends ChatDetailEvent {
   List<Object?> get props => [roomId, senderId, imageFile];
 }
 
+class ChatDetailSendMultipleImagesRequested extends ChatDetailEvent {
+  final String roomId;
+  final String senderId;
+  final List<File> images;
+
+  const ChatDetailSendMultipleImagesRequested({
+    required this.roomId,
+    required this.senderId,
+    required this.images,
+  });
+
+  @override
+  List<Object?> get props => [
+        roomId,
+        senderId,
+        images.map((file) => file.path).toList(growable: false),
+      ];
+}
+
+class ChatDetailRetryLastSendRequested extends ChatDetailEvent {
+  const ChatDetailRetryLastSendRequested();
+}
+
 class ChatDetailMarkAsReadRequested extends ChatDetailEvent {
   final String roomId;
   final String userId;

@@ -1,15 +1,19 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_page_scaffold.dart';
+import '../../../../shared/widgets/petspace_state_view.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/chat_room.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../bloc/chat_rooms/chat_rooms_bloc.dart';
 import '../widgets/chat_room_tile.dart';
-import '../../../../shared/themes/app_theme.dart';
 
 class ChatRoomsPage extends StatefulWidget {
   const ChatRoomsPage({super.key});
@@ -19,6 +23,9 @@ class ChatRoomsPage extends StatefulWidget {
 }
 
 class _ChatRoomsPageState extends State<ChatRoomsPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
   String get _currentUserId {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) return authState.user.id;
@@ -38,81 +45,50 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('채팅', style: TextStyle(fontSize: 18.sp)),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_square),
-            tooltip: '새로운 채팅',
-            onPressed: () => context.push('/chat/new'),
-          ),
-        ],
-      ),
+    return PetSpacePageScaffold(
+      title: '채팅',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.add_rounded),
+          tooltip: '새 채팅',
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          onPressed: () => context.push('/chat/new'),
+        ),
+      ],
       body: BlocConsumer<ChatRoomsBloc, ChatRoomsState>(
         listener: (context, state) {
           if (state is ChatRoomCreated) {
             context.push('/chat/${state.room.id}');
-            // 목록 새로고침
-            context.read<ChatRoomsBloc>().add(
-                  ChatRoomsLoadRequested(userId: _currentUserId),
-                );
-          }
-          if (state is ChatRoomsError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppTheme.errorColor,
-              ),
-            );
+            _refreshRooms();
           }
         },
         builder: (context, state) {
           if (state is ChatRoomsInitial || state is ChatRoomsLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is ChatRoomsLoaded) {
-            if (state.rooms.isEmpty) {
-              return _buildEmptyState();
-            }
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<ChatRoomsBloc>().add(
-                      ChatRoomsRefreshRequested(userId: _currentUserId),
-                    );
-              },
-              child: ListView.separated(
-                itemCount: state.rooms.length,
-                separatorBuilder: (_, __) => Divider(
-                  height: 1,
-                  indent: 72.w,
-                  color: Colors.grey[200],
-                ),
-                itemBuilder: (context, index) {
-                  final room = state.rooms[index];
-                  return ChatRoomTile(
-                    room: room,
-                    currentUserId: _currentUserId,
-                    onTap: () async {
-                      await context.push('/chat/${room.id}');
-                      // 채팅방에서 돌아오면 목록 새로고침
-                      if (!context.mounted) return;
-                      context.read<ChatRoomsBloc>().add(
-                            ChatRoomsLoadRequested(userId: _currentUserId),
-                          );
-                    },
-                    onLongPress: () => _showRoomOptions(context, room),
-                  );
-                },
-              ),
+            return const PetSpaceStateView.loading(
+              key: Key('chat_rooms_loading'),
             );
           }
 
+          if (state is ChatRoomsLoaded) {
+            return _buildLoadedState(state);
+          }
+
           if (state is ChatRoomsError) {
-            return _buildErrorState(state.message);
+            return PetSpaceStateView.error(
+              key: const Key('chat_rooms_initial_error'),
+              icon: Icons.cloud_off_outlined,
+              title: '채팅을 불러오지 못했어요',
+              message: '인터넷 연결을 확인하고 다시 시도해주세요.',
+              actionLabel: '다시 시도',
+              onAction: _loadRooms,
+            );
           }
 
           return const SizedBox.shrink();
@@ -121,27 +97,199 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  void _loadRooms() {
+    context.read<ChatRoomsBloc>().add(
+          ChatRoomsLoadRequested(userId: _currentUserId),
+        );
+  }
+
+  Future<void> _refreshRooms() {
+    context.read<ChatRoomsBloc>().add(
+          ChatRoomsRefreshRequested(userId: _currentUserId),
+        );
+    // 진행·실패 표시는 ChatRoomsLoaded.isRefreshing/refreshErrorMessage가
+    // 화면 안에서 담당한다. RefreshIndicator 콜백은 이벤트 전달까지만 보장한다.
+    return Future<void>.value();
+  }
+
+  Widget _buildLoadedState(ChatRoomsLoaded state) {
+    final normalized = _query.trim().toLowerCase();
+    final filteredRooms = normalized.isEmpty
+        ? state.rooms
+        : state.rooms.where((room) {
+            final name = room.displayName(_currentUserId).toLowerCase();
+            final preview = (room.lastMessage ?? '').toLowerCase();
+            return name.contains(normalized) || preview.contains(normalized);
+          }).toList(growable: false);
+
+    return Column(
+      children: [
+        if (state.isRefreshing)
+          const LinearProgressIndicator(
+            key: Key('chat_rooms_refreshing'),
+            minHeight: 2,
+            color: AppTheme.actionBase,
+          ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
+          child: TextField(
+            key: const Key('chat_rooms_search_field'),
+            controller: _searchController,
+            onChanged: (value) => setState(() => _query = value),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: '채팅방 검색',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: '검색어 지우기',
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _query = '');
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return RefreshIndicator(
+                onRefresh: _refreshRooms,
+                color: AppTheme.actionBase,
+                child: ListView(
+                  key: const Key('chat_rooms_list'),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 32.h),
+                  children: [
+                    if (state.refreshErrorMessage != null) ...[
+                      _buildRefreshErrorCard(),
+                      SizedBox(height: 16.h),
+                    ],
+                    if (state.rooms.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            normalized.isEmpty ? '최근 대화' : '검색 결과',
+                            style: TextStyle(
+                              fontSize: AppTheme.fontCaption.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                          Text(
+                            '${filteredRooms.length}개',
+                            style: TextStyle(
+                              fontSize: AppTheme.fontCaption.sp,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10.h),
+                    ],
+                    if (filteredRooms.isEmpty)
+                      SizedBox(
+                        height: math.max(280.h, constraints.maxHeight - 120.h),
+                        child: normalized.isEmpty
+                            ? PetSpaceStateView.empty(
+                                key: const Key('chat_rooms_empty'),
+                                icon: Icons.chat_bubble_outline_rounded,
+                                title: '아직 채팅이 없어요',
+                                message: '새 채팅을 시작해보세요.',
+                                actionLabel: '새 채팅',
+                                onAction: () => context.push('/chat/new'),
+                              )
+                            : const PetSpaceStateView.empty(
+                                key: Key('chat_rooms_search_empty'),
+                                icon: Icons.search_off_rounded,
+                                title: '검색 결과가 없어요',
+                                message: '다른 채팅방 이름이나 메시지로 검색해보세요.',
+                              ),
+                      )
+                    else
+                      for (int index = 0;
+                          index < filteredRooms.length;
+                          index++) ...[
+                        ChatRoomTile(
+                          room: filteredRooms[index],
+                          currentUserId: _currentUserId,
+                          onTap: () async {
+                            await context
+                                .push('/chat/${filteredRooms[index].id}');
+                            if (!context.mounted) return;
+                            await _refreshRooms();
+                          },
+                          onLongPress: () => _showRoomOptions(
+                            context,
+                            filteredRooms[index],
+                          ),
+                          onMorePressed: () => _showRoomOptions(
+                            context,
+                            filteredRooms[index],
+                          ),
+                        ),
+                        if (index < filteredRooms.length - 1)
+                          SizedBox(height: 10.h),
+                      ],
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRefreshErrorCard() {
+    return Container(
+      key: const Key('chat_rooms_refresh_error'),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 64.w, color: Colors.grey[300]),
-          SizedBox(height: 16.h),
-          Text(
-            '아직 채팅이 없습니다',
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            '새 채팅을 시작해보세요!',
-            style: TextStyle(fontSize: 14.sp, color: Colors.grey),
-          ),
-          SizedBox(height: 24.h),
-          ElevatedButton.icon(
-            onPressed: () => context.push('/chat/new'),
-            icon: const Icon(Icons.add),
-            label: Text('새 채팅', style: TextStyle(fontSize: 14.sp)),
+          const Icon(Icons.sync_problem_rounded, color: AppTheme.actionBase),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '새 대화를 확인하지 못했어요',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontBody.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryTextColor,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  '기존 대화는 그대로 유지됩니다.',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontCaption.sp,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                OutlinedButton(
+                  key: const Key('chat_rooms_refresh_retry'),
+                  onPressed: _refreshRooms,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                  ),
+                  child: const Text('다시 시도'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -186,15 +334,13 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                 await context.push(
                   '/chat/${room.id}/settings?name=${Uri.encodeComponent(roomName)}',
                 );
-                // 설정에서 돌아오면 채팅 목록 새로고침
                 if (!context.mounted) return;
-                context.read<ChatRoomsBloc>().add(
-                      ChatRoomsLoadRequested(userId: _currentUserId),
-                    );
+                await _refreshRooms();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.exit_to_app, color: AppTheme.errorColor),
+              leading:
+                  const Icon(Icons.exit_to_app, color: AppTheme.errorColor),
               title: Text(
                 '채팅방 나가기',
                 style: TextStyle(fontSize: 14.sp, color: AppTheme.errorColor),
@@ -240,16 +386,14 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
               result.fold(
                 (failure) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('오류: ${failure.message}'),
+                    const SnackBar(
+                      content: Text('채팅방에서 나가지 못했습니다. 다시 시도해주세요.'),
                       backgroundColor: AppTheme.errorColor,
                     ),
                   );
                 },
                 (_) {
-                  context.read<ChatRoomsBloc>().add(
-                        ChatRoomsLoadRequested(userId: _currentUserId),
-                      );
+                  _refreshRooms();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('채팅방을 나갔습니다'),
@@ -263,28 +407,6 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
               '나가기',
               style: TextStyle(color: AppTheme.errorColor),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64.w, color: Colors.grey),
-          SizedBox(height: 16.h),
-          Text(message, style: TextStyle(fontSize: 14.sp, color: Colors.grey)),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: () {
-              context.read<ChatRoomsBloc>().add(
-                    ChatRoomsLoadRequested(userId: _currentUserId),
-                  );
-            },
-            child: const Text('다시 시도'),
           ),
         ],
       ),

@@ -44,9 +44,11 @@ class HealthRepositoryImpl implements HealthRepository {
           .toList();
 
       return Right(records);
-    } on PostgrestException catch (e) {
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
+    } on PostgrestException {
+      return const Left(
+        DatabaseFailure(message: ErrorMessages.healthRecordLoadFailed),
+      );
+    } catch (_) {
       return const Left(
           GeneralFailure(message: ErrorMessages.healthRecordLoadFailed));
     }
@@ -77,10 +79,14 @@ class HealthRepositoryImpl implements HealthRepository {
 
       return Right(
           HealthRecordModel.fromJson(Map<String, dynamic>.from(response)));
-    } on PostgrestException catch (e) {
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(GeneralFailure(message: '건강 기록 추가 실패: ${e.toString()}'));
+    } on PostgrestException {
+      return const Left(
+        DatabaseFailure(message: ErrorMessages.healthRecordCreateFailed),
+      );
+    } catch (_) {
+      return const Left(
+        GeneralFailure(message: ErrorMessages.healthRecordCreateFailed),
+      );
     }
   }
 
@@ -102,10 +108,14 @@ class HealthRepositoryImpl implements HealthRepository {
 
       return Right(
           HealthRecordModel.fromJson(Map<String, dynamic>.from(response)));
-    } on PostgrestException catch (e) {
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(GeneralFailure(message: '건강 기록 수정 실패: ${e.toString()}'));
+    } on PostgrestException {
+      return const Left(
+        DatabaseFailure(message: ErrorMessages.healthRecordUpdateFailed),
+      );
+    } catch (_) {
+      return const Left(
+        GeneralFailure(message: ErrorMessages.healthRecordUpdateFailed),
+      );
     }
   }
 
@@ -116,19 +126,33 @@ class HealthRepositoryImpl implements HealthRepository {
     }
 
     try {
-      await supabaseClient.from('health_records').delete().eq('id', recordId);
+      final response = await supabaseClient
+          .from('health_records')
+          .delete()
+          .eq('id', recordId)
+          .select('id');
+      if ((response as List).isEmpty) {
+        return const Left(
+          DatabaseFailure(message: ErrorMessages.healthRecordDeleteFailed),
+        );
+      }
 
       return const Right(null);
-    } on PostgrestException catch (e) {
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(GeneralFailure(message: '건강 기록 삭제 실패: ${e.toString()}'));
+    } on PostgrestException {
+      return const Left(
+        DatabaseFailure(message: ErrorMessages.healthRecordDeleteFailed),
+      );
+    } catch (_) {
+      return const Left(
+        GeneralFailure(message: ErrorMessages.healthRecordDeleteFailed),
+      );
     }
   }
 
   @override
   Future<Either<Failure, List<HealthRecord>>> getUpcomingRecords({
     required String userId,
+    required String petId,
     int daysAhead = 30,
   }) async {
     if (!await networkInfo.isConnected) {
@@ -137,27 +161,48 @@ class HealthRepositoryImpl implements HealthRepository {
 
     try {
       final now = DateTime.now();
-      final futureDate = now.add(Duration(days: daysAhead));
+      final today = DateTime(now.year, now.month, now.day);
+      final futureDate = today.add(Duration(days: daysAhead));
+      final start = today.toIso8601String().split('T').first;
+      final end = futureDate.toIso8601String().split('T').first;
 
       final response = await supabaseClient
           .from('health_records')
           .select()
           .eq('user_id', userId)
-          .eq('status', 'scheduled')
-          .gte('record_date', now.toIso8601String().split('T').first)
-          .lte('record_date', futureDate.toIso8601String().split('T').first)
-          .order('record_date', ascending: true);
+          .eq('pet_id', petId)
+          .neq('status', 'cancelled')
+          .or(
+            'and(next_date.gte.$start,next_date.lte.$end),'
+            'and(next_date.is.null,status.eq.scheduled,'
+            'record_date.gte.$start,record_date.lte.$end)',
+          );
 
-      final records = (response as List)
-          .map((json) =>
-              HealthRecordModel.fromJson(Map<String, dynamic>.from(json)))
-          .toList();
+      final byId = <String, HealthRecord>{};
+      for (final record in (response as List).map((json) =>
+          HealthRecordModel.fromJson(Map<String, dynamic>.from(json)))) {
+        final due = record.dueDate;
+        if (due == null) continue;
+        final dueDay = DateTime(due.year, due.month, due.day);
+        if (dueDay.isBefore(today) || dueDay.isAfter(futureDate)) continue;
+        byId[record.id] = record;
+      }
+
+      final records = byId.values.toList()
+        ..sort((left, right) {
+          final dateOrder = left.dueDate!.compareTo(right.dueDate!);
+          return dateOrder != 0 ? dateOrder : left.id.compareTo(right.id);
+        });
 
       return Right(records);
-    } on PostgrestException catch (e) {
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(GeneralFailure(message: '예정 기록 조회 실패: ${e.toString()}'));
+    } on PostgrestException {
+      return const Left(
+        DatabaseFailure(message: ErrorMessages.healthUpcomingLoadFailed),
+      );
+    } catch (_) {
+      return const Left(
+        GeneralFailure(message: ErrorMessages.healthUpcomingLoadFailed),
+      );
     }
   }
 }

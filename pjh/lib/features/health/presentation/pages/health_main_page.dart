@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -5,14 +7,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
-import '../../../../shared/widgets/empty_state_widget.dart';
+import '../../../../shared/widgets/petspace_state_view.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/health_record.dart';
+import '../controllers/health_emotion_loader.dart';
 import '../bloc/health_bloc.dart';
 import '../../../emotion/domain/entities/emotion_analysis.dart';
-import '../../../emotion/domain/repositories/emotion_repository.dart';
 import '../widgets/health_record_card.dart';
 import '../widgets/health_record_data.dart';
 import 'health_pdf_preview_page.dart';
@@ -21,7 +23,6 @@ import '../widgets/emotion_trend_mini_chart.dart';
 
 part '../widgets/health_record_sheets.dart';
 
-
 class HealthMainPage extends StatelessWidget {
   const HealthMainPage({super.key});
 
@@ -29,13 +30,19 @@ class HealthMainPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<HealthBloc>(),
-      child: const _HealthMainView(),
+      child: _HealthMainView(
+        emotionLoader: sl<HealthEmotionLoader>(),
+      ),
     );
   }
 }
 
 class _HealthMainView extends StatefulWidget {
-  const _HealthMainView();
+  final HealthEmotionLoader emotionLoader;
+
+  const _HealthMainView({
+    required this.emotionLoader,
+  });
 
   @override
   State<_HealthMainView> createState() => _HealthMainViewState();
@@ -74,8 +81,17 @@ class _HealthMainViewState extends State<_HealthMainView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PetBloc, PetState>(
+    return BlocConsumer<PetBloc, PetState>(
+      listenWhen: (previous, current) =>
+          _selectedPetId(previous) != _selectedPetId(current),
+      listener: (context, petState) {
+        setState(() => _selectedFilter = null);
+        if (_selectedPetId(petState) != null) {
+          _loadHealthData();
+        }
+      },
       builder: (context, petState) {
+        final selectedPet = petState is PetLoaded ? petState.selectedPet : null;
         final petName = petState is PetLoaded
             ? petState.selectedPet?.name ?? '반려동물'
             : '반려동물';
@@ -104,191 +120,216 @@ class _HealthMainViewState extends State<_HealthMainView> {
             centerTitle: true,
             actions: [
               IconButton(
-                icon: const Icon(Icons.picture_as_pdf_outlined),
-                tooltip: 'PDF 내보내기',
-                onPressed: () => _exportHealthPdf(context),
+                icon: const Icon(Icons.more_horiz),
+                tooltip: '건강 도구',
+                onPressed: () => _showHealthToolsSheet(context),
               ),
             ],
           ),
-          floatingActionButton: Semantics(
-            label: '건강 기록 추가',
-            button: true,
-            child: FloatingActionButton(
-              onPressed: () => _showAddRecordSheet(context),
-              backgroundColor: AppTheme.actionBase,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
-          ),
-          body: BlocBuilder<HealthBloc, HealthState>(
-            builder: (context, state) {
-              if (state is HealthLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          floatingActionButton: selectedPet == null
+              ? null
+              : Semantics(
+                  label: '건강 기록 추가',
+                  button: true,
+                  child: FloatingActionButton(
+                    onPressed: () => _showAddRecordSheet(context),
+                    backgroundColor: AppTheme.actionBase,
+                    child: const Icon(Icons.add, color: Colors.white),
+                  ),
+                ),
+          body: petState is! PetLoaded
+              ? const Center(child: CircularProgressIndicator())
+              : selectedPet == null
+                  ? _buildEmptyPetState()
+                  : BlocBuilder<HealthBloc, HealthState>(
+                      builder: (context, state) {
+                        if (state is HealthLoading) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
 
-              if (state is HealthError) {
-                return _buildErrorState(state.message);
-              }
+                        if (state is HealthError) {
+                          return _buildErrorState(state.message);
+                        }
 
-              if (state is HealthLoaded) {
-                return _buildContent(state, petName);
-              }
+                        if (state is HealthLoaded) {
+                          if (state.petId != selectedPet.id) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          return _buildContent(state, petName);
+                        }
 
-              // HealthInitial - 반려동물이 없는 경우
-              return _buildEmptyPetState();
-            },
-          ),
+                        return const Center(child: CircularProgressIndicator());
+                      },
+                    ),
         );
       },
     );
   }
 
+  String? _selectedPetId(PetState state) =>
+      state is PetLoaded ? state.selectedPet?.id : null;
+
   Widget _buildContent(HealthLoaded state, String petName) {
+    final visibleRecords = _selectedFilter == null
+        ? state.records
+        : state.records
+            .where((record) => record.recordType == _selectedFilter)
+            .toList();
+    final selectedLabel =
+        _filterTypes.firstWhere((entry) => entry.$1 == _selectedFilter).$2;
     return RefreshIndicator(
-      onRefresh: () async => _loadHealthData(),
+      onRefresh: _refreshHealthData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(16.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 예정된 알림
             if (state.upcomingAlerts.isNotEmpty) ...[
+              _buildSectionHeader(
+                title: '다가오는 일정',
+                trailing: '선택한 반려동물',
+              ),
+              SizedBox(height: 10.h),
               _buildUpcomingAlerts(state.upcomingAlerts),
               SizedBox(height: 20.h),
             ],
-
-            // 감정 분석 추이
-            Text(
-              '감정 분석 추이',
-              style: TextStyle(
-                fontSize: 15.sp,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.titleMedium?.color,
-              ),
-            ),
-            SizedBox(height: 12.h),
-            Builder(
-              builder: (context) {
-                final authState = context.read<AuthBloc>().state;
-                final userId =
-                    authState is AuthAuthenticated ? authState.user.uid : null;
-                final petState = context.read<PetBloc>().state;
-                final petId = petState is PetLoaded
-                    ? petState.selectedPet?.id
-                    : null;
-                if (userId == null) return const SizedBox.shrink();
-                return EmotionTrendMiniChart(
-                  key: ValueKey('emotion_trend_$petId'),
-                  userId: userId,
-                  petId: petId,
-                );
-              },
-            ),
-            SizedBox(height: 20.h),
-
-            // 건강 기록 리스트
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '건강 기록',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).textTheme.titleMedium?.color,
-                  ),
-                ),
-                Text(
-                  '${state.records.length}건',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                  ),
-                ),
-              ],
+            _buildSectionHeader(
+              title: '건강 기록',
+              trailing: '$selectedLabel ${visibleRecords.length}건',
             ),
             SizedBox(height: 10.h),
-
-            // 유형별 필터 칩
             _buildFilterChips(),
             SizedBox(height: 12.h),
-
-            // 체중 필터 선택 시 추이 차트 노출 (감정 트렌드와 위치 충돌 없음)
             if (_selectedFilter == HealthRecordType.weight) ...[
               WeightTrendChart(records: state.records),
               SizedBox(height: 12.h),
             ],
-
             if (state.records.isEmpty)
               _buildEmptyRecordState()
-            else ...[
-              Builder(
-                builder: (context) {
-                  final filtered = _selectedFilter == null
-                      ? state.records
-                      : state.records.where((r) => r.recordType == _selectedFilter).toList();
-                  if (filtered.isEmpty) {
-                    return Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24.h),
-                      child: Center(
-                        child: Text(
-                          _emptyFilterMessage(),
-                          style: TextStyle(fontSize: 13.sp, color: AppTheme.secondaryTextColor),
-                        ),
-                      ),
-                    );
-                  }
-                  return Column(
-                    children: filtered.map((record) => Padding(
-                      padding: EdgeInsets.only(bottom: 12.h),
-                      child: Dismissible(
-                        key: Key(record.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: EdgeInsets.only(right: 20.w),
-                          decoration: BoxDecoration(
-                            color: AppTheme.errorColor,
-                            borderRadius: BorderRadius.circular(12.r),
+            else if (visibleRecords.isEmpty)
+              PetSpaceStateView.empty(
+                key: ValueKey('empty-filter-${_selectedFilter?.name}'),
+                icon: Icons.filter_alt_off_outlined,
+                title: _emptyFilterMessage(),
+                message: '다른 기록 유형을 선택해보세요.',
+              )
+            else
+              Column(
+                children: visibleRecords
+                    .map((record) => Padding(
+                          padding: EdgeInsets.only(bottom: 10.h),
+                          child: Dismissible(
+                            key: Key(record.id),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: EdgeInsets.only(right: 20.w),
+                              decoration: BoxDecoration(
+                                color: AppTheme.errorColor,
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMd.r,
+                                ),
+                              ),
+                              child:
+                                  const Icon(Icons.delete, color: Colors.white),
+                            ),
+                            confirmDismiss: (_) async {
+                              final confirmed = await _confirmDelete(context);
+                              if (confirmed == true && mounted) {
+                                await _requestDelete(record.id);
+                              }
+                              return false;
+                            },
+                            child: HealthRecordCard(
+                              icon: _getRecordIcon(record.recordType),
+                              iconColor: _getRecordColor(record.recordType),
+                              title: _getRecordTypeName(record.recordType),
+                              subtitle: recordCardSubtitle(record),
+                              date: _formatDate(record.recordDate),
+                              status: _getStatusName(record.status),
+                              statusColor: _getStatusColor(record.status),
+                              semanticsLabel:
+                                  '${_getRecordTypeName(record.recordType)}, '
+                                  '${recordCardSubtitle(record)}, '
+                                  '${_formatDate(record.recordDate)}, '
+                                  '${_getStatusName(record.status)}, 편집',
+                              onTap: () =>
+                                  _showEditRecordSheet(context, record),
+                            ),
                           ),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        confirmDismiss: (_) => _confirmDelete(context),
-                        onDismissed: (_) {
-                          context.read<HealthBloc>().add(DeleteHealthRecordEvent(recordId: record.id));
-                        },
-                        child: GestureDetector(
-                          onTap: () => _showEditRecordSheet(context, record),
-                          child: HealthRecordCard(
-                            icon: _getRecordIcon(record.recordType),
-                            iconColor: _getRecordColor(record.recordType),
-                            title: _getRecordTypeName(record.recordType),
-                            subtitle: recordCardSubtitle(record),
-                            date: _formatDate(record.recordDate),
-                            status: _getStatusName(record.status),
-                            statusColor: _getStatusColor(record.status),
-                          ),
-                        ),
-                      ),
-                    )).toList(),
-                  );
-                },
+                        ))
+                    .toList(),
               ),
-
-            if (state.error != null)
-              Padding(
-                padding: EdgeInsets.only(top: 8.h),
+            if (state.error != null) ...[
+              SizedBox(height: 8.h),
+              Semantics(
+                liveRegion: true,
                 child: Text(
                   state.error!,
                   style: TextStyle(color: AppTheme.errorColor, fontSize: 12.sp),
                 ),
               ),
-
+            ],
+            SizedBox(height: 24.h),
+            _buildSectionHeader(
+              title: '건강 변화',
+              trailing: petName,
+            ),
+            SizedBox(height: 10.h),
+            _buildEmotionTrend(),
             SizedBox(height: 80.h),
-            ], // else [...] 닫힘
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    required String trailing,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: AppTheme.fontHeading.sp,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.titleLarge?.color,
+          ),
+        ),
+        Flexible(
+          child: Text(
+            trailing,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: AppTheme.fontCaption.sp,
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmotionTrend() {
+    final authState = context.read<AuthBloc>().state;
+    final userId = authState is AuthAuthenticated ? authState.user.uid : null;
+    final petState = context.read<PetBloc>().state;
+    final petId = petState is PetLoaded ? petState.selectedPet?.id : null;
+    if (userId == null || petId == null) return const SizedBox.shrink();
+    return EmotionTrendMiniChart(
+      key: ValueKey('emotion_trend_$petId'),
+      userId: userId,
+      petId: petId,
+      loader: widget.emotionLoader,
     );
   }
 
@@ -317,18 +358,15 @@ class _HealthMainViewState extends State<_HealthMainView> {
     final authState = context.read<AuthBloc>().state;
     final ownerName =
         authState is AuthAuthenticated ? authState.user.displayName : '보호자';
-    final userId =
-        authState is AuthAuthenticated ? authState.user.uid : null;
+    final userId = authState is AuthAuthenticated ? authState.user.uid : null;
 
     // 최근 AI 감정 분석 1건(선택, 읽기 전용).
     EmotionAnalysis? latest;
     if (userId != null) {
-      final res = await sl<EmotionRepository>().getAnalysisHistory(
+      latest = await widget.emotionLoader.loadLatest(
         userId: userId,
         petId: pet.id,
-        limit: 1,
       );
-      latest = res.fold((_) => null, (list) => list.isEmpty ? null : list.first);
     }
 
     if (!context.mounted) return;
@@ -353,19 +391,19 @@ class _HealthMainViewState extends State<_HealthMainView> {
     return '$label 기록이 없어요';
   }
 
-  /// 유형 칩 색 — 필터·기록 유형 선택(시트)이 공유.
+  /// 유형 선택은 아이콘·라벨로 구분하고 선택색은 브랜드 action 하나로 통일한다.
   static const _filterTypeColors = <HealthRecordType?, Color>{
-    null: AppTheme.primaryColor,
-    HealthRecordType.vaccination: AppTheme.successColor,
-    HealthRecordType.checkup: AppTheme.accentColor,
-    HealthRecordType.weight: AppTheme.highlightColor,
-    HealthRecordType.medication: AppTheme.secondaryColor,
-    HealthRecordType.surgery: AppTheme.errorColor,
+    null: AppTheme.actionBase,
+    HealthRecordType.vaccination: AppTheme.actionBase,
+    HealthRecordType.checkup: AppTheme.actionBase,
+    HealthRecordType.weight: AppTheme.actionBase,
+    HealthRecordType.medication: AppTheme.actionBase,
+    HealthRecordType.surgery: AppTheme.actionBase,
   };
 
   Widget _buildFilterChips() {
     return SizedBox(
-      height: 36.h,
+      height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.zero,
@@ -391,28 +429,39 @@ class _HealthMainViewState extends State<_HealthMainView> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: isSelected ? color : Colors.white,
-          borderRadius: BorderRadius.circular(18.r),
-          border: Border.all(
-            color: isSelected ? color : AppTheme.dividerColor,
-            width: 1.5,
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: '$label 기록 필터',
+      child: Material(
+        color: isSelected ? color : theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
+          side: BorderSide(
+            color: isSelected ? color : AppTheme.border,
           ),
-          boxShadow: isSelected
-              ? [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))]
-              : null,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.sp,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppTheme.secondaryTextColor,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14.w),
+              child: Center(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: AppTheme.fontCaption.sp,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected
+                        ? Colors.white
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -420,76 +469,178 @@ class _HealthMainViewState extends State<_HealthMainView> {
   }
 
   Widget _buildUpcomingAlerts(List<HealthRecord> alerts) {
-    return Card(
-      color: AppTheme.highlightColor.withValues(alpha: 0.1),
-      child: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.notifications_active,
-                    color: AppTheme.highlightColor, size: 20.w),
-                SizedBox(width: 8.w),
-                Text(
-                  '다가오는 일정',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.sp,
-                    color: AppTheme.highlightColor,
-                  ),
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        children: alerts.take(3).map((alert) {
+          final dueDate = alert.dueDate;
+          final dueLabel = dueDate == null ? '일정 없음' : _formatDate(dueDate);
+          return Semantics(
+            label:
+                '${alert.title}, $dueLabel, ${_formatDday(alert.daysUntilDue())}',
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 68),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44.w,
+                      height: 44.w,
+                      decoration: BoxDecoration(
+                        color: AppTheme.actionContainer,
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusSm.r),
+                      ),
+                      child: Icon(
+                        _getRecordIcon(alert.recordType),
+                        color: AppTheme.actionBase,
+                        size: 22.w,
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            alert.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: AppTheme.fontBody.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            '$dueLabel · ${_getRecordTypeName(alert.recordType)}',
+                            style: TextStyle(
+                              fontSize: AppTheme.fontCaption.sp,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 5.h),
+                      decoration: BoxDecoration(
+                        color: AppTheme.actionContainer,
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusSm.r),
+                      ),
+                      child: Text(
+                        _formatDday(alert.daysUntilDue()),
+                        style: TextStyle(
+                          fontSize: AppTheme.fontMicro.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.brandDeep,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-            SizedBox(height: 8.h),
-            ...alerts.take(3).map((alert) => Padding(
-                  padding: EdgeInsets.only(top: 4.h),
-                  child: Text(
-                    '${alert.title} - D${alert.daysUntilNext != null ? (alert.daysUntilNext! >= 0 ? "-${alert.daysUntilNext}" : "+${-alert.daysUntilNext!}") : ""}',
-                    style: TextStyle(fontSize: 13.sp),
-                  ),
-                )),
-          ],
-        ),
+          );
+        }).toList(),
       ),
     );
   }
 
   Widget _buildEmptyRecordState() {
-    return const EmptyStateWidget(
+    return PetSpaceStateView.empty(
       icon: Icons.health_and_safety_outlined,
-      title: '아직 기록이 없어요',
-      subtitle: '반려동물의 건강 변화를 추적해보세요!\n오른쪽 아래 + 버튼으로 첫 기록을 남길 수 있어요',
+      title: '아직 건강 기록이 없어요',
+      message: '백신, 검진, 체중, 투약, 수술 기록을 남겨 변화를 확인해보세요.',
+      actionLabel: '첫 기록 추가',
+      onAction: () => _showAddRecordSheet(context),
     );
   }
 
   Widget _buildEmptyPetState() {
-    return EmptyStateWidget(
+    return PetSpaceStateView.empty(
       icon: Icons.pets,
       title: '반려동물을 먼저 등록해주세요',
-      subtitle: '반려동물을 등록하면\n건강 기록과 AI 분석을 시작할 수 있어요!',
+      message: '등록한 반려동물별로 건강 기록과 예정 일정을 나누어 관리해요.',
       actionLabel: '반려동물 등록',
       onAction: () => context.push('/pets'),
     );
   }
 
   Widget _buildErrorState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64.w, color: AppTheme.errorColor),
-          SizedBox(height: 16.h),
-          Text(message,
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
-              textAlign: TextAlign.center),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: _loadHealthData,
-            child: const Text('다시 시도'),
-          ),
-        ],
+    return PetSpaceStateView.error(
+      icon: Icons.refresh_outlined,
+      title: '건강 기록을 불러오지 못했어요',
+      message: message,
+      actionLabel: '다시 시도',
+      onAction: _loadHealthData,
+    );
+  }
+
+  Future<void> _showHealthToolsSheet(BuildContext pageContext) async {
+    await showModalBottomSheet<void>(
+      context: pageContext,
+      useRootNavigator: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
+              child: Text(
+                '건강 도구',
+                style: TextStyle(
+                  fontSize: AppTheme.fontHeading.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(sheetContext).textTheme.titleLarge?.color,
+                ),
+              ),
+            ),
+            ListTile(
+              minTileHeight: 56,
+              leading: const Icon(
+                Icons.notifications_none,
+                color: AppTheme.actionBase,
+              ),
+              title: const Text('건강 알림'),
+              subtitle: const Text('예정일 알림 제공 범위와 기기 알림 테스트'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                pageContext.push('/health/alert-settings');
+              },
+            ),
+            ListTile(
+              minTileHeight: 56,
+              leading: const Icon(
+                Icons.description_outlined,
+                color: AppTheme.actionBase,
+              ),
+              title: const Text('건강 리포트'),
+              subtitle: const Text('선택한 반려동물의 PDF 미리보기'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _exportHealthPdf(pageContext);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -513,5 +664,56 @@ class _HealthMainViewState extends State<_HealthMainView> {
         ],
       ),
     );
+  }
+
+  Future<void> _refreshHealthData() async {
+    final petId = _selectedPetId(context.read<PetBloc>().state);
+    if (petId == null) return;
+    final bloc = context.read<HealthBloc>();
+    _loadHealthData();
+    try {
+      await bloc.stream
+          .firstWhere(
+            (state) =>
+                state is HealthError ||
+                (state is HealthLoaded && state.petId == petId),
+          )
+          .timeout(const Duration(seconds: 15));
+    } on TimeoutException {
+      // The existing page-level loading/error state remains authoritative.
+    }
+  }
+
+  Future<bool> _requestDelete(String recordId) async {
+    final bloc = context.read<HealthBloc>();
+    final messenger = ScaffoldMessenger.of(context);
+    final operationId =
+        'delete-$recordId-${DateTime.now().microsecondsSinceEpoch}';
+    bloc.add(DeleteHealthRecordEvent(
+      recordId: recordId,
+      operationId: operationId,
+    ));
+    final result = await _waitForMutation(bloc, operationId);
+    if (!mounted) return false;
+    if (result.phase == HealthMutationPhase.failed) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            result.message ?? '기록을 삭제하지 못했습니다. 다시 시도해주세요.',
+          ),
+        ),
+      );
+      return false;
+    }
+    messenger.showSnackBar(
+      const SnackBar(content: Text('기록을 삭제했어요')),
+    );
+    return true;
+  }
+
+  String _formatDday(int? days) {
+    if (days == null) return '일정 없음';
+    if (days == 0) return 'D-Day';
+    return days > 0 ? 'D-$days' : 'D+${-days}';
   }
 }

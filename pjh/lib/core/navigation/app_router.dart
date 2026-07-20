@@ -383,9 +383,12 @@ class AppRouter {
                 final hashtag = state.uri.queryParameters['hashtag'];
                 final query = state.uri.queryParameters['query'];
 
-                return ExplorePage(
-                  initialHashtag: hashtag,
-                  initialQuery: query,
+                return BlocProvider(
+                  create: (_) => sl<SearchBloc>(),
+                  child: ExplorePage(
+                    initialHashtag: hashtag,
+                    initialQuery: query,
+                  ),
                 );
               },
             ),

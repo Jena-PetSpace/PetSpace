@@ -174,13 +174,10 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
         _moreError = null;
       }),
     );
-    countResult.fold(
-      (_) => widget.onCountError?.call(),
-      (count) {
-        _visibleCount = count;
-        widget.onCountChanged?.call(count);
-      },
-    );
+    countResult.fold((_) => widget.onCountError?.call(), (count) {
+      _visibleCount = count;
+      widget.onCountChanged?.call(count);
+    });
   }
 
   Future<void> _loadInitial() async {
@@ -219,13 +216,10 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
           _loading = false;
           _error = null;
         });
-        countResult.fold(
-          (_) => widget.onCountError?.call(),
-          (count) {
-            _visibleCount = count;
-            widget.onCountChanged?.call(count);
-          },
-        );
+        countResult.fold((_) => widget.onCountError?.call(), (count) {
+          _visibleCount = count;
+          widget.onCountChanged?.call(count);
+        });
       },
     );
   }
@@ -252,9 +246,7 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
       (page) {
         final seen = _items.map((item) => item.savedPostId).toSet();
         setState(() {
-          _items.addAll(
-            page.items.where((item) => seen.add(item.savedPostId)),
-          );
+          _items.addAll(page.items.where((item) => seen.add(item.savedPostId)));
           _cursor = page.nextCursor;
           _hasMore = page.hasMore;
           _loadingMore = false;
@@ -271,26 +263,30 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
       return _withHeader(const Center(child: CircularProgressIndicator()));
     }
     if (_error != null) {
-      return _withHeader(_GridMessage(
-        key: const Key('saved_posts_error'),
-        icon: Icons.cloud_off_outlined,
-        title: '저장한 게시글을 불러오지 못했어요',
-        actionLabel: '다시 시도',
-        onAction: _loadInitial,
-      ));
+      return _withHeader(
+        _GridMessage(
+          key: const Key('saved_posts_error'),
+          icon: Icons.cloud_off_outlined,
+          title: '저장한 게시글을 불러오지 못했어요',
+          actionLabel: '다시 시도',
+          onAction: _loadInitial,
+        ),
+      );
     }
     if (_items.isEmpty) {
-      return _withHeader(_GridMessage(
-        key: const Key('saved_posts_empty'),
-        icon: Icons.bookmark_outline_rounded,
-        title: '저장한 게시글이 없어요',
-        subtitle: '마음에 드는 게시글을 저장해두면 여기서 볼 수 있어요.',
-        actionLabel:
-            widget.scope.type == SavedPostsScopeType.all ? '피드 탐색' : null,
-        onAction: widget.scope.type == SavedPostsScopeType.all
-            ? () => context.go('/feed')
-            : null,
-      ));
+      return _withHeader(
+        _GridMessage(
+          key: const Key('saved_posts_empty'),
+          icon: Icons.bookmark_outline_rounded,
+          title: '저장한 게시글이 없어요',
+          subtitle: '마음에 드는 게시글을 저장해두면 여기서 볼 수 있어요.',
+          actionLabel:
+              widget.scope.type == SavedPostsScopeType.all ? '피드 탐색' : null,
+          onAction: widget.scope.type == SavedPostsScopeType.all
+              ? () => context.go('/feed')
+              : null,
+        ),
+      );
     }
 
     return CustomScrollView(
@@ -348,49 +344,56 @@ class _SavedPostTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final post = item.post;
     final imageUrl = post.imageUrls.isEmpty ? null : post.imageUrls.first;
-    return InkWell(
-      key: Key('saved_post_${post.id}'),
-      onTap: () => context.push('/post/${post.id}'),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (imageUrl != null && imageUrl.isNotEmpty)
-            CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-              errorWidget: (_, __, ___) => _TextPreview(post: post),
-            )
-          else
-            _TextPreview(post: post),
-          if (post.type == PostType.emotionAnalysis)
-            Positioned(
-              left: 4,
-              bottom: 4,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: .9),
-                  borderRadius: BorderRadius.circular(4.r),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-                  child: Text(
-                    '감정분석',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9.sp,
-                      fontWeight: FontWeight.w600,
+    return Semantics(
+      button: true,
+      label: '${(post.content ?? '').trim()} 게시물 상세 보기'.trim(),
+      child: InkWell(
+        key: Key('saved_post_${post.id}'),
+        onTap: () => context.push('/post/${post.id}'),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (imageUrl != null && imageUrl.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => _TextPreview(post: post),
+              )
+            else
+              _TextPreview(post: post),
+            if (post.type == PostType.emotionAnalysis)
+              Positioned(
+                left: 4,
+                bottom: 4,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: .9),
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 6.w,
+                      vertical: 3.h,
+                    ),
+                    child: Text(
+                      '감정분석',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          if (post.imageUrls.length > 1)
-            const Positioned(
-              right: 6,
-              top: 6,
-              child: Icon(Icons.copy_rounded, size: 16, color: Colors.white),
-            ),
-        ],
+            if (post.imageUrls.length > 1)
+              const Positioned(
+                right: 6,
+                top: 6,
+                child: Icon(Icons.copy_rounded, size: 16, color: Colors.white),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -403,17 +406,28 @@ class _TextPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
+      key: Key('saved_post_preview_${post.id}'),
       color: AppTheme.primaryColor.withValues(alpha: .08),
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Text(
-            (post.content ?? '').trim().isEmpty ? '게시글' : post.content!.trim(),
-            textAlign: TextAlign.center,
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          child: (post.content ?? '').trim().isEmpty
+              ? const Icon(
+                  Icons.notes_rounded,
+                  size: 26,
+                  color: AppTheme.lightTextColor,
+                )
+              : Text(
+                  post.content!.trim(),
+                  textAlign: TextAlign.center,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    height: 1.4,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ),
         ),
       ),
     );

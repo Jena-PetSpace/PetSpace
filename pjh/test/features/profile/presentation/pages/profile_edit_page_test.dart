@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,6 +13,7 @@ import 'package:meong_nyang_diary/core/services/profile_service.dart';
 import 'package:meong_nyang_diary/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:meong_nyang_diary/features/profile/presentation/pages/profile_edit_page.dart';
 import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
+import 'package:meong_nyang_diary/shared/widgets/profile_image_picker.dart';
 
 class _MockProfileService extends Mock implements ProfileService {}
 
@@ -26,6 +30,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(_FakeAuthEvent());
+    registerFallbackValue(File('profile-image-fallback'));
   });
 
   setUp(() async {
@@ -33,6 +38,7 @@ void main() {
     service = _MockProfileService();
     sl.registerSingleton<ProfileService>(service);
     authBloc = _MockAuthBloc();
+    when(() => authBloc.close()).thenAnswer((_) async {});
     when(() => authBloc.state).thenReturn(AuthInitial());
     whenListen(
       authBloc,
@@ -65,8 +71,9 @@ void main() {
         builder: (context, _) => MaterialApp(
           theme: AppTheme.lightTheme,
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(textScaler: TextScaler.linear(textScale)),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(textScale)),
             child: child!,
           ),
           home: BlocProvider<AuthBloc>.value(
@@ -88,11 +95,7 @@ void main() {
       },
     );
 
-    await pumpPage(
-      tester,
-      surface: const Size(360, 800),
-      textScale: 1.5,
-    );
+    await pumpPage(tester, surface: const Size(360, 800), textScale: 1.5);
 
     final nameField = tester.widget<TextFormField>(
       find.byKey(const Key('profile_edit_name_field')),
@@ -157,7 +160,127 @@ void main() {
     verify(
       () => service.updateProfile(displayName: '새이름', bio: '새 소개'),
     ).called(1);
-    verify(() => authBloc.add(any(that: isA<AuthProfileRefreshRequested>())))
-        .called(1);
+    verify(
+      () => authBloc.add(any(that: isA<AuthProfileRefreshRequested>())),
+    ).called(1);
+  });
+
+  testWidgets('수정 중 뒤로 가면 미저장 변경 확인 후 편집을 계속할 수 있다', (tester) async {
+    when(() => service.getProfile()).thenAnswer(
+      (_) async => {'display_name': '정현', 'bio': '', 'photo_url': null},
+    );
+
+    await pumpPage(tester);
+    await tester.enterText(
+      find.byKey(const Key('profile_edit_bio_field')),
+      '새로운 소개',
+    );
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('profile_edit_discard_dialog')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('profile_edit_keep_editing')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('profile_edit_form')), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const Key('profile_edit_bio_field')),
+          )
+          .controller!
+          .text,
+      '새로운 소개',
+    );
+  });
+
+  testWidgets('사진만 선택한 상태에서 뒤로 가면 사진 전용 이탈 안내를 표시한다', (tester) async {
+    when(() => service.getProfile()).thenAnswer(
+      (_) async => {'display_name': '정현', 'bio': '', 'photo_url': null},
+    );
+    final image = File(
+      '${Directory.systemTemp.path}/petspace-profile-image-only-test.png',
+    );
+    image.writeAsBytesSync(
+      base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      ),
+    );
+    addTearDown(() {
+      if (image.existsSync()) image.deleteSync();
+    });
+
+    await pumpPage(tester);
+    tester
+        .widget<ProfileImagePicker>(find.byType(ProfileImagePicker))
+        .onImagePicked(image);
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('사진 저장을 중단할까요?'), findsOneWidget);
+    expect(
+      find.textContaining('선택한 프로필 사진이 아직 업로드되지 않았어요'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('텍스트 저장 뒤 사진 업로드만 실패하면 선택을 유지하고 사진만 재시도한다', (tester) async {
+    when(() => service.getProfile()).thenAnswer(
+      (_) async => {'display_name': '정현', 'bio': '', 'photo_url': null},
+    );
+    when(
+      () => service.updateProfile(
+        displayName: any(named: 'displayName'),
+        bio: any(named: 'bio'),
+      ),
+    ).thenAnswer((_) async {});
+    var imageAttempts = 0;
+    when(() => service.updateProfileImage(any())).thenAnswer((_) async {
+      imageAttempts++;
+      if (imageAttempts == 1) throw StateError('upload-failed');
+      return 'https://example.com/profile.png';
+    });
+
+    final image = File(
+      '${Directory.systemTemp.path}/petspace-profile-edit-test.png',
+    );
+    image.writeAsBytesSync(
+      base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      ),
+    );
+    addTearDown(() {
+      if (image.existsSync()) image.deleteSync();
+    });
+
+    await pumpPage(tester);
+    tester
+        .widget<ProfileImagePicker>(find.byType(ProfileImagePicker))
+        .onImagePicked(image);
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('profile_edit_save_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('profile_edit_image_failure')), findsOneWidget);
+    expect(find.byKey(const Key('profile_edit_image_retry')), findsOneWidget);
+    verify(() => service.updateProfile(displayName: '정현', bio: '')).called(1);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('사진 저장을 중단할까요?'), findsOneWidget);
+    expect(
+      find.textContaining('선택한 프로필 사진이 아직 업로드되지 않았어요'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('profile_edit_keep_editing')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('profile_edit_image_retry')));
+    await tester.pumpAndSettle();
+    expect(imageAttempts, 2);
   });
 }

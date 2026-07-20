@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -7,12 +8,15 @@ import '../../../../shared/widgets/shimmer_loading.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../config/injection_container.dart' as di;
+import '../../../../core/services/block_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../emotion/domain/repositories/emotion_repository.dart';
+import '../../domain/entities/comment.dart';
+import '../../domain/entities/post.dart';
 import '../../domain/entities/saved_posts_page.dart';
 import '../../domain/repositories/social_repository.dart';
 import '../bloc/comment_bloc.dart';
@@ -20,9 +24,15 @@ import '../bloc/comment_event.dart';
 import '../bloc/comment_state.dart';
 import '../utils/saved_posts_change_notifier.dart';
 import '../widgets/collection_picker_sheet.dart';
+import '../widgets/comment_composer.dart';
 import '../widgets/comment_list_item.dart';
+import '../widgets/edit_post_bottom_sheet.dart';
+import '../widgets/likes_bottom_sheet.dart';
+import '../widgets/social_content_report_sheet.dart';
 
 enum _PostLoadStatus { loading, loaded, error, notFound }
+
+enum _PostDetailMenuAction { edit, delete, report, block }
 
 class PostDetailPage extends StatefulWidget {
   final String postId;
@@ -30,6 +40,7 @@ class PostDetailPage extends StatefulWidget {
   final CommentBloc? commentBloc;
   final String? currentUserId;
   final SavedPostsChangeNotifier? savedPostsNotifier;
+  final ValueNotifier<bool>? commentMutationNotifier;
 
   const PostDetailPage({
     super.key,
@@ -38,6 +49,7 @@ class PostDetailPage extends StatefulWidget {
     this.commentBloc,
     this.currentUserId,
     this.savedPostsNotifier,
+    this.commentMutationNotifier,
   });
 
   @override
@@ -46,6 +58,8 @@ class PostDetailPage extends StatefulWidget {
 
 class _PostDetailPageState extends State<PostDetailPage> {
   final _commentController = TextEditingController();
+  final _commentFocusNode = FocusNode();
+  final _composerKey = GlobalKey();
   final _scrollController = ScrollController();
   Map<String, dynamic>? _post;
   late final SocialRepository _repository;
@@ -56,6 +70,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
   bool _isSavePending = false;
   int _likesCount = 0;
   bool _isLikePending = false;
+  bool _showLikeHeart = false;
+  Timer? _likeHeartTimer;
 
   // 답글 상태
   String? _replyToCommentId;
@@ -71,15 +87,24 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   @override
   void dispose() {
+    _likeHeartTimer?.cancel();
     _commentController.dispose();
+    _commentFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  String get _currentUserId =>
-      widget.currentUserId ??
-      Supabase.instance.client.auth.currentUser?.id ??
-      '';
+  String get _currentUserId {
+    final injected = widget.currentUserId;
+    if (injected != null && injected.isNotEmpty) return injected;
+    try {
+      final authState = context.read<AuthBloc>().state;
+      if (authState is AuthAuthenticated) return authState.user.id;
+    } catch (_) {
+      // Tests and isolated embeds may intentionally omit AuthBloc.
+    }
+    return '';
+  }
 
   SavedPostsChangeNotifier get _savedPostsNotifier =>
       widget.savedPostsNotifier ?? SavedPostsChangeNotifier.instance;
@@ -177,6 +202,27 @@ class _PostDetailPageState extends State<PostDetailPage> {
       }
       if (serverLiked != null) _isLiked = serverLiked;
     });
+  }
+
+  void _handleMediaDoubleTap() {
+    if (!_isLiked && !_isLikePending) {
+      _toggleLike();
+    }
+    _likeHeartTimer?.cancel();
+    setState(() => _showLikeHeart = true);
+    _likeHeartTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() => _showLikeHeart = false);
+    });
+  }
+
+  void _openLikes() {
+    LikesBottomSheet.show(
+      context,
+      postId: widget.postId,
+      currentUserId: _currentUserId,
+      likeCount: _likesCount,
+      repository: _repository,
+    );
   }
 
   Future<void> _toggleSave() async {
@@ -327,6 +373,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
       _replyToAuthorName = authorName;
     });
     _commentController.clear();
+    _focusComposer();
   }
 
   void _cancelReply() {
@@ -336,6 +383,21 @@ class _PostDetailPageState extends State<PostDetailPage> {
     });
     _commentController.clear();
     FocusScope.of(context).unfocus();
+  }
+
+  void _focusComposer() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _commentFocusNode.requestFocus();
+      final composerContext = _composerKey.currentContext;
+      if (composerContext != null) {
+        Scrollable.ensureVisible(
+          composerContext,
+          duration: const Duration(milliseconds: 180),
+          alignment: 1,
+        );
+      }
+    });
   }
 
   @override
@@ -369,6 +431,39 @@ class _PostDetailPageState extends State<PostDetailPage> {
           style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        actions: [
+          PopupMenuButton<_PostDetailMenuAction>(
+            key: const Key('post_detail_options'),
+            enabled: _post != null,
+            tooltip: '게시물 옵션',
+            onSelected: _handlePostOption,
+            itemBuilder: (_) {
+              final isOwner = _post?['author_id'] == _currentUserId;
+              if (isOwner) {
+                return const [
+                  PopupMenuItem(
+                    value: _PostDetailMenuAction.edit,
+                    child: Text('수정'),
+                  ),
+                  PopupMenuItem(
+                    value: _PostDetailMenuAction.delete,
+                    child: Text('삭제'),
+                  ),
+                ];
+              }
+              return const [
+                PopupMenuItem(
+                  value: _PostDetailMenuAction.report,
+                  child: Text('신고'),
+                ),
+                PopupMenuItem(
+                  value: _PostDetailMenuAction.block,
+                  child: Text('사용자 차단'),
+                ),
+              ];
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -400,6 +495,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
                       outcome.message ?? '요청을 완료하지 못했어요. 잠시 후 다시 시도해주세요.',
                     );
                     return;
+                  }
+                  if (outcome.kind == CommentActionKind.commentCreated ||
+                      outcome.kind == CommentActionKind.replyCreated ||
+                      outcome.kind == CommentActionKind.commentDeleted ||
+                      outcome.kind == CommentActionKind.replyDeleted) {
+                    widget.commentMutationNotifier?.value = true;
                   }
                   if (outcome.kind == CommentActionKind.commentCreated ||
                       outcome.kind == CommentActionKind.replyCreated) {
@@ -441,14 +542,15 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         return CommentListItem(
                           comment: comment,
                           currentUserId: myId,
+                          postAuthorId: _post?['author_id'] as String? ?? '',
                           onDelete: comment.authorId == myId
                               ? () => context.read<CommentBloc>().add(
                                     DeleteCommentRequested(
                                         commentId: comment.id),
                                   )
                               : null,
-                          onReply: () =>
-                              _showReplyInput(comment.id, comment.authorName),
+                          onReplyTo: _showReplyInput,
+                          onReport: _reportComment,
                           pendingLikeIds: state.pendingLikeIds,
                           pendingDeleteIds: state.pendingDeleteIds,
                         );
@@ -495,6 +597,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     if (_post == null) return const SizedBox.shrink();
 
     final user = _post!['users'] as Map<String, dynamic>?;
+    final authorId = _post!['author_id'] as String? ?? '';
     final authorName = user?['display_name'] as String? ?? '알 수 없음';
     final photoUrl = user?['photo_url'] as String?;
     final content = _post!['caption'] as String? ?? '';
@@ -518,46 +621,64 @@ class _PostDetailPageState extends State<PostDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              // 아바타 폴백: 발바닥 아이콘 + 연블루 배경 (사람 아이콘 금지)
-              CircleAvatar(
-                radius: 20.r,
-                backgroundColor: AppTheme.tilePastelBlue,
-                backgroundImage: photoUrl != null
-                    ? CachedNetworkImageProvider(photoUrl)
-                    : null,
-                child: photoUrl == null
-                    ? Icon(Icons.pets, size: 20.w, color: AppTheme.primaryColor)
-                    : null,
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      authorName,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
+          InkWell(
+            key: const Key('post_detail_author'),
+            onTap: authorId.isEmpty
+                ? null
+                : () => context.push('/user-profile/$authorId'),
+            borderRadius: BorderRadius.circular(10.r),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 44),
+              child: Row(
+                children: [
+                  // 아바타 폴백: 발바닥 아이콘 + 연블루 배경 (사람 아이콘 금지)
+                  CircleAvatar(
+                    radius: 20.r,
+                    backgroundColor: AppTheme.tilePastelBlue,
+                    backgroundImage: photoUrl != null
+                        ? CachedNetworkImageProvider(photoUrl)
+                        : null,
+                    child: photoUrl == null
+                        ? Icon(
+                            Icons.pets,
+                            size: 20.w,
+                            color: AppTheme.primaryColor,
+                          )
+                        : null,
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          authorName,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          _timeAgo(createdAt),
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      _timeAgo(createdAt),
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: AppTheme.secondaryTextColor,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
           if (imageUrls.isNotEmpty) ...[
             SizedBox(height: 12.h),
-            _MultiImageCarousel(imageUrls: imageUrls),
+            _MultiImageCarousel(
+              imageUrls: imageUrls,
+              onDoubleTap: _handleMediaDoubleTap,
+              showHeart: _showLikeHeart,
+            ),
           ],
           if (content.isNotEmpty) ...[
             SizedBox(height: 12.h),
@@ -572,17 +693,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 button: true,
                 label: _isLiked ? '게시글 좋아요 취소' : '게시글 좋아요',
                 child: SizedBox(
+                  width: 44,
                   height: 44,
-                  child: TextButton.icon(
+                  child: IconButton(
                     key: const Key('post_detail_like_button'),
                     onPressed: _isLikePending ? null : _toggleLike,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(44, 44),
-                      padding: EdgeInsets.symmetric(horizontal: 4.w),
-                      foregroundColor: _isLiked
-                          ? AppTheme.highlightColor
-                          : AppTheme.secondaryTextColor,
-                    ),
                     icon: _isLikePending
                         ? const SizedBox(
                             width: 18,
@@ -592,26 +707,58 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         : Icon(
                             _isLiked ? Icons.favorite : Icons.favorite_border,
                             size: 20.w,
+                            color: _isLiked
+                                ? AppTheme.highlightColor
+                                : AppTheme.secondaryTextColor,
                           ),
-                    label: Text(
+                  ),
+                ),
+              ),
+              Semantics(
+                button: true,
+                label: '좋아요 $_likesCount명 보기',
+                child: SizedBox(
+                  height: 44,
+                  child: TextButton(
+                    key: const Key('post_detail_likes_count'),
+                    onPressed: _openLikes,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                      foregroundColor: AppTheme.secondaryTextColor,
+                      padding: EdgeInsets.symmetric(horizontal: 8.w),
+                    ),
+                    child: Text(
                       '$_likesCount',
-                      key: const Key('post_detail_likes_count'),
                       style: TextStyle(fontSize: 13.sp),
                     ),
                   ),
                 ),
               ),
-              Icon(
-                Icons.chat_bubble_outline,
-                size: 20.w,
-                color: AppTheme.secondaryTextColor,
+              SizedBox(
+                height: 44,
+                child: TextButton.icon(
+                  key: const Key('post_detail_comment_action'),
+                  onPressed: _focusComposer,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(44, 44),
+                    foregroundColor: AppTheme.secondaryTextColor,
+                    padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  ),
+                  icon: Icon(Icons.chat_bubble_outline, size: 20.w),
+                  label: Text(
+                    '$commentsCount',
+                    style: TextStyle(fontSize: 13.sp),
+                  ),
+                ),
               ),
-              SizedBox(width: 4.w),
-              Text(
-                '$commentsCount',
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  color: AppTheme.secondaryTextColor,
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: IconButton(
+                  key: const Key('post_detail_share_button'),
+                  onPressed: _sharePost,
+                  tooltip: '게시글 공유',
+                  icon: Icon(Icons.share_outlined, size: 20.w),
                 ),
               ),
               const Spacer(),
@@ -919,119 +1066,163 @@ class _PostDetailPageState extends State<PostDetailPage> {
   Widget _buildCommentInput(BuildContext ctx) {
     final state = ctx.watch<CommentBloc>().state;
     final isSubmitting = state is CommentLoaded && state.isSubmitting;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4.r,
-            offset: Offset(0, -2.h),
+    return CommentComposer(
+      key: _composerKey,
+      controller: _commentController,
+      focusNode: _commentFocusNode,
+      isSubmitting: isSubmitting,
+      replyAuthorName: _replyToAuthorName,
+      onSend: () => _submitComment(ctx),
+      onCancelReply: _cancelReply,
+      inputKey: const Key('post_comment_input'),
+      sendKey: const Key('post_comment_send'),
+      replyTargetKey: const Key('post_comment_reply_target'),
+      replyCancelKey: const Key('post_comment_reply_cancel'),
+    );
+  }
+
+  void _handlePostOption(_PostDetailMenuAction action) {
+    switch (action) {
+      case _PostDetailMenuAction.edit:
+        unawaited(_editPost());
+        return;
+      case _PostDetailMenuAction.delete:
+        unawaited(_deletePost());
+        return;
+      case _PostDetailMenuAction.report:
+        unawaited(_reportPost());
+        return;
+      case _PostDetailMenuAction.block:
+        unawaited(_blockAuthor());
+        return;
+    }
+  }
+
+  Future<void> _editPost() async {
+    final result = await _repository.getPost(widget.postId);
+    if (!mounted) return;
+    await result.fold(
+      (_) async => _showSafeMessage('게시물을 수정할 준비를 하지 못했어요.'),
+      (post) async {
+        await showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          useSafeArea: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => EditPostBottomSheet(
+            post: post,
+            onSave: (updatedPost) => unawaited(_saveEditedPost(updatedPost)),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _saveEditedPost(Post updatedPost) async {
+    final result = await _repository.updatePost(updatedPost);
+    if (!mounted) return;
+    result.fold(
+      (_) => _showSafeMessage('게시물을 수정하지 못했어요. 잠시 후 다시 시도해주세요.'),
+      (_) {
+        _showSafeMessage('게시물이 수정되었습니다.');
+        unawaited(_loadPost());
+      },
+    );
+  }
+
+  Future<void> _deletePost() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('게시물 삭제'),
+        content: const Text('이 게시물을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
+            child: const Text('삭제'),
           ),
         ],
       ),
-      padding: EdgeInsets.only(left: 16.w, right: 8.w, top: 8.h, bottom: 8.h),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_replyToAuthorName != null)
-              Container(
-                margin: EdgeInsets.only(bottom: 6.h),
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                decoration: BoxDecoration(
-                  color: AppTheme.subtleBackground,
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.reply, size: 14.w, color: AppTheme.primaryColor),
-                    SizedBox(width: 6.w),
-                    Expanded(
-                      child: Text(
-                        '${_replyToAuthorName!}에게 답글',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: _cancelReply,
-                      child: Icon(
-                        Icons.close,
-                        size: 16.w,
-                        color: AppTheme.secondaryTextColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const Key('post_comment_input'),
-                    controller: _commentController,
-                    enabled: !isSubmitting,
-                    style: TextStyle(fontSize: 14.sp),
-                    decoration: InputDecoration(
-                      hintText: _replyToAuthorName != null
-                          ? '답글을 입력하세요...'
-                          : '댓글을 입력하세요...',
-                      hintStyle: TextStyle(
-                        fontSize: 14.sp,
-                        color: AppTheme.hintColor,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24.r),
-                        borderSide: const BorderSide(
-                          color: AppTheme.dividerColor,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24.r),
-                        borderSide: const BorderSide(
-                          color: AppTheme.dividerColor,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24.r),
-                        borderSide: const BorderSide(
-                          color: AppTheme.primaryColor,
-                        ),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 10.h,
-                      ),
-                    ),
-                    maxLines: null,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _submitComment(ctx),
-                  ),
-                ),
-                IconButton(
-                  key: const Key('post_comment_send'),
-                  onPressed: isSubmitting ? null : () => _submitComment(ctx),
-                  icon: isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(Icons.send_rounded, size: 24.w),
-                  tooltip: '댓글 전송',
-                  color: AppTheme.primaryColor,
-                ),
-              ],
-            ),
-          ],
+    );
+    if (confirmed != true || !mounted) return;
+    final result = await _repository.deletePost(widget.postId);
+    if (!mounted) return;
+    result.fold(
+      (_) => _showSafeMessage('게시물을 삭제하지 못했어요. 잠시 후 다시 시도해주세요.'),
+      (_) => Navigator.of(context).pop(true),
+    );
+  }
+
+  Future<void> _reportPost() async {
+    final accepted = await SocialContentReportSheet.show(
+      context,
+      target: SocialReportTarget.post,
+      targetId: widget.postId,
+      currentUserId: _currentUserId,
+      repository: _repository,
+    );
+    if (accepted && mounted) _showSafeMessage('신고가 접수되었습니다.');
+  }
+
+  Future<void> _reportComment(Comment comment) async {
+    final accepted = await SocialContentReportSheet.show(
+      context,
+      target: SocialReportTarget.comment,
+      targetId: comment.id,
+      currentUserId: _currentUserId,
+      repository: _repository,
+    );
+    if (accepted && mounted) _showSafeMessage('신고가 접수되었습니다.');
+  }
+
+  Future<void> _blockAuthor() async {
+    final authorId = _post?['author_id'] as String? ?? '';
+    if (authorId.isEmpty) return;
+    final user = _post?['users'] as Map<String, dynamic>?;
+    final authorName = user?['display_name'] as String? ?? '이 사용자';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('사용자 차단'),
+        content: Text(
+          '$authorName님을 차단하시겠습니까?\n\n차단하면 해당 사용자의 게시물과 댓글이 보이지 않습니다.',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
+            child: const Text('차단'),
+          ),
+        ],
       ),
     );
+    if (confirmed != true || !mounted) return;
+    final succeeded = await di.sl<BlockService>().blockUser(authorId);
+    if (!mounted) return;
+    if (!succeeded) {
+      _showSafeMessage('차단하지 못했어요. 잠시 후 다시 시도해주세요.');
+      return;
+    }
+    Navigator.of(context).pop(true);
+  }
+
+  Future<void> _sharePost() async {
+    final caption = (_post?['caption'] as String? ?? '').trim();
+    final preview =
+        caption.length > 100 ? '${caption.substring(0, 100)}...' : caption;
+    final text = preview.isEmpty
+        ? 'PetSpace에서 게시물을 확인해보세요.'
+        : '$preview\n\nPetSpace에서 게시물을 확인해보세요.';
+    await Share.share(text);
   }
 
   void _showSafeMessage(String message) {
@@ -1061,7 +1252,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
 // ─── 멀티 이미지 캐러셀 ────────────────────────────────────────────────────────
 class _MultiImageCarousel extends StatefulWidget {
   final List<String> imageUrls;
-  const _MultiImageCarousel({required this.imageUrls});
+  final VoidCallback onDoubleTap;
+  final bool showHeart;
+
+  const _MultiImageCarousel({
+    required this.imageUrls,
+    required this.onDoubleTap,
+    required this.showHeart,
+  });
 
   @override
   State<_MultiImageCarousel> createState() => _MultiImageCarouselState();
@@ -1086,25 +1284,54 @@ class _MultiImageCarouselState extends State<_MultiImageCarousel> {
           borderRadius: BorderRadius.circular(12.r),
           child: SizedBox(
             height: 280.h,
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: count,
-              onPageChanged: (i) => setState(() => _current = i),
-              itemBuilder: (context, i) => CachedNetworkImage(
-                imageUrl: widget.imageUrls[i],
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (_, __) =>
-                    Container(color: AppTheme.subtleBackground),
-                errorWidget: (_, __, ___) => Container(
-                  color: AppTheme.subtleBackground,
-                  child: Icon(
-                    Icons.broken_image,
-                    size: 48.w,
-                    color: AppTheme.hintColor,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PageView.builder(
+                  controller: _pageController,
+                  itemCount: count,
+                  onPageChanged: (i) => setState(() => _current = i),
+                  itemBuilder: (context, i) => GestureDetector(
+                    key: Key('post_detail_media_$i'),
+                    onDoubleTap: widget.onDoubleTap,
+                    child: CachedNetworkImage(
+                      imageUrl: widget.imageUrls[i],
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) =>
+                          Container(color: AppTheme.subtleBackground),
+                      errorWidget: (_, __, ___) => Container(
+                        color: AppTheme.subtleBackground,
+                        child: Icon(
+                          Icons.broken_image,
+                          size: 48.w,
+                          color: AppTheme.hintColor,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                IgnorePointer(
+                  child: AnimatedOpacity(
+                    key: const Key('post_detail_double_tap_heart'),
+                    opacity: widget.showHeart ? 1 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: AnimatedScale(
+                      scale: widget.showHeart ? 1 : 0.4,
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutBack,
+                      child: Icon(
+                        Icons.favorite,
+                        color: Colors.white,
+                        size: 80.w,
+                        shadows: const [
+                          Shadow(color: Colors.black26, blurRadius: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

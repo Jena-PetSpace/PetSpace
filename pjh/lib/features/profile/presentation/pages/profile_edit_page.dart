@@ -30,14 +30,33 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   File? _selectedImage;
   String? _currentImageUrl;
+  String _initialName = '';
+  String _initialBio = '';
   bool _isInitialLoading = true;
   bool _hasLoadError = false;
   bool _isSaving = false;
+  bool _imageUploadFailed = false;
+  bool _allowPop = false;
+  bool _trackingChanges = true;
 
   @override
   void initState() {
     super.initState();
+    _nameController.addListener(_onFieldChanged);
+    _bioController.addListener(_onFieldChanged);
     _loadCurrentProfile();
+  }
+
+  bool get _hasUnsavedChanges =>
+      _selectedImage != null ||
+      _nameController.text.trim() != _initialName ||
+      _bioController.text.trim() != _initialBio;
+
+  void _onFieldChanged() {
+    if (!mounted || !_trackingChanges) return;
+    setState(() {
+      _allowPop = false;
+    });
   }
 
   Future<void> _loadCurrentProfile() async {
@@ -48,11 +67,19 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     try {
       final profile = await _profileService.getProfile();
       if (!mounted) return;
+      final name = profile?['display_name'] as String? ?? '';
+      final bio = profile?['bio'] as String? ?? '';
+      _trackingChanges = false;
+      _nameController.text = name;
+      _bioController.text = bio;
+      _trackingChanges = true;
       setState(() {
-        _nameController.text = profile?['display_name'] as String? ?? '';
-        _bioController.text = profile?['bio'] as String? ?? '';
+        _initialName = name.trim();
+        _initialBio = bio.trim();
         _currentImageUrl = profile?['photo_url'] as String?;
         _isInitialLoading = false;
+        _imageUploadFailed = false;
+        _allowPop = false;
       });
     } catch (e) {
       developer.log('프로필 로드 오류: $e', name: 'ProfileEditPage', error: e);
@@ -66,19 +93,27 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PetSpacePageScaffold(
-      title: '프로필 편집',
-      body: _buildBody(),
-      bottomNavigationBar:
-          _isInitialLoading || _hasLoadError ? null : _buildSaveBar(),
+    return PopScope(
+      canPop: _allowPop || !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop || _isSaving) return;
+        final discard = await _confirmDiscardChanges();
+        if (!discard || !context.mounted) return;
+        setState(() => _allowPop = true);
+        Navigator.of(context).pop();
+      },
+      child: PetSpacePageScaffold(
+        title: '프로필 편집',
+        body: _buildBody(),
+        bottomNavigationBar:
+            _isInitialLoading || _hasLoadError ? null : _buildSaveBar(),
+      ),
     );
   }
 
   Widget _buildBody() {
     if (_isInitialLoading) {
-      return const PetSpaceStateView.loading(
-        key: Key('profile_edit_loading'),
-      );
+      return const PetSpaceStateView.loading(key: Key('profile_edit_loading'));
     }
     if (_hasLoadError) {
       return PetSpaceStateView.error(
@@ -109,6 +144,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
           children: [
+            if (_imageUploadFailed) ...[
+              _buildImageFailureBanner(),
+              SizedBox(height: 20.h),
+            ],
             Text(
               '프로필 사진',
               style: TextStyle(
@@ -132,7 +171,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       radius: 46.r,
                       onImageSelected: () {},
                       onImagePicked: (File image) {
-                        setState(() => _selectedImage = image);
+                        setState(() {
+                          _selectedImage = image;
+                          _imageUploadFailed = false;
+                          _allowPop = false;
+                        });
                       },
                     ),
                   ),
@@ -226,8 +269,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline,
-                      color: AppTheme.actionBase, size: 20.w),
+                  Icon(
+                    Icons.info_outline,
+                    color: AppTheme.actionBase,
+                    size: 20.w,
+                  ),
                   SizedBox(width: 10.w),
                   Expanded(
                     child: Text(
@@ -244,6 +290,63 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageFailureBanner() {
+    final theme = Theme.of(context);
+    return Container(
+      key: const Key('profile_edit_image_failure'),
+      padding: EdgeInsets.all(14.w),
+      decoration: BoxDecoration(
+        color: AppTheme.warningColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+        border: Border.all(
+          color: AppTheme.warningColor.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.cloud_upload_outlined,
+            color: AppTheme.warningColor,
+            size: 22.w,
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '기본 정보는 저장됐어요',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontBody.sp,
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  '프로필 사진만 업로드하지 못했습니다. 선택한 사진을 유지하고 있어요.',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontCaption.sp,
+                    height: 1.45,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                TextButton.icon(
+                  key: const Key('profile_edit_image_retry'),
+                  onPressed: _isSaving ? null : _retryProfileImage,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('사진만 다시 저장'),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -271,8 +374,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.actionBase,
               foregroundColor: Colors.white,
-              disabledBackgroundColor:
-                  AppTheme.actionBase.withValues(alpha: 0.5),
+              disabledBackgroundColor: AppTheme.actionBase.withValues(
+                alpha: 0.5,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
               ),
@@ -307,10 +411,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     final bio = _bioController.text.trim();
 
     try {
-      await _profileService.updateProfile(
-        displayName: displayName,
-        bio: bio,
-      );
+      await _profileService.updateProfile(displayName: displayName, bio: bio);
       developer.log('프로필 텍스트 저장 완료', name: 'ProfileEditPage');
     } catch (e) {
       developer.log('프로필 텍스트 저장 오류: $e', name: 'ProfileEditPage', error: e);
@@ -348,10 +449,21 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           duration: Duration(seconds: 3),
         ),
       );
-      setState(() => _isSaving = false);
+      setState(() {
+        _initialName = displayName;
+        _initialBio = bio;
+        _imageUploadFailed = true;
+        _isSaving = false;
+      });
       return;
     }
 
+    setState(() {
+      _initialName = displayName;
+      _initialBio = bio;
+      _selectedImage = null;
+      _allowPop = true;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('프로필이 저장되었습니다'),
@@ -360,6 +472,79 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       ),
     );
     Navigator.pop(context, true);
+  }
+
+  Future<void> _retryProfileImage() async {
+    final image = _selectedImage;
+    if (_isSaving || image == null) return;
+    setState(() => _isSaving = true);
+    try {
+      await _profileService.updateProfileImage(image);
+      if (!mounted) return;
+      context.read<AuthBloc>().add(AuthProfileRefreshRequested());
+      setState(() {
+        _selectedImage = null;
+        _imageUploadFailed = false;
+        _isSaving = false;
+        _allowPop = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('프로필 사진이 저장되었습니다'),
+          backgroundColor: AppTheme.successColor,
+        ),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      developer.log('프로필 이미지 재업로드 실패: $e', name: 'ProfileEditPage', error: e);
+      if (!mounted) return;
+      setState(() {
+        _imageUploadFailed = true;
+        _isSaving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_userFacingError(e, '프로필 사진 저장')),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    }
+  }
+
+  Future<bool> _confirmDiscardChanges() async {
+    final hasOnlyPendingImage = _selectedImage != null &&
+        _nameController.text.trim() == _initialName &&
+        _bioController.text.trim() == _initialBio;
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            key: const Key('profile_edit_discard_dialog'),
+            title: Text(
+              hasOnlyPendingImage ? '사진 저장을 중단할까요?' : '변경사항을 저장하지 않을까요?',
+            ),
+            content: Text(
+              hasOnlyPendingImage
+                  ? '선택한 프로필 사진이 아직 업로드되지 않았어요. 이 화면을 나가면 선택한 사진이 사라집니다.'
+                  : '이 화면에서 나가면 아직 저장하지 않은 내용이 사라집니다.',
+            ),
+            actions: [
+              TextButton(
+                key: const Key('profile_edit_keep_editing'),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('계속 편집'),
+              ),
+              TextButton(
+                key: const Key('profile_edit_discard'),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text(
+                  '나가기',
+                  style: TextStyle(color: AppTheme.errorColor),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   String _userFacingError(Object e, String operation) {
@@ -378,6 +563,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   @override
   void dispose() {
+    _nameController.removeListener(_onFieldChanged);
+    _bioController.removeListener(_onFieldChanged);
     _nameController.dispose();
     _bioController.dispose();
     super.dispose();

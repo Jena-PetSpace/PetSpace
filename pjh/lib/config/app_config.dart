@@ -70,7 +70,8 @@ class AppConfig {
   static const Duration loginLockoutDuration = Duration(minutes: 15);
 
   // Support
-  static const String supportEmail = 'support@petspace.app';
+  static const String supportEmail = 'jera.00003@gmail.com';
+  static const String supportOwner = '주식회사 제나 담당자';
   static const String privacyPolicyUrl = 'https://petspace.app/privacy';
   static const String termsOfServiceUrl = 'https://petspace.app/terms';
 

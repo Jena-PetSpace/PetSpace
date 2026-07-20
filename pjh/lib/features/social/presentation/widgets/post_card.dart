@@ -16,6 +16,7 @@ import '../../domain/repositories/social_repository.dart';
 import '../utils/saved_posts_change_notifier.dart';
 import 'collection_picker_sheet.dart';
 import 'likes_bottom_sheet.dart';
+import 'social_content_report_sheet.dart';
 
 part 'post_card_header.dart';
 part 'post_card_media.dart';
@@ -28,8 +29,10 @@ class PostCard extends StatefulWidget {
   final VoidCallback onLike;
   final VoidCallback onComment;
   final VoidCallback onShare;
+  final VoidCallback? onOpenDetail;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
+  final VoidCallback? onBlocked;
   final void Function(String hashtag)? onHashtagTap;
   final SocialRepository? repository;
   final SavedPostsChangeNotifier? savedPostsNotifier;
@@ -41,8 +44,10 @@ class PostCard extends StatefulWidget {
     required this.onLike,
     required this.onComment,
     required this.onShare,
+    this.onOpenDetail,
     this.onDelete,
     this.onEdit,
+    this.onBlocked,
     this.onHashtagTap,
     this.repository,
     this.savedPostsNotifier,
@@ -60,7 +65,6 @@ class _PostCardState extends State<PostCard> {
 
   int _currentImageIndex = 0;
   Timer? _likeDebounce;
-  Timer? _commentDebounce;
   bool _isSaved = false;
   bool _isSavePending = false;
   bool _showHeart = false;
@@ -98,11 +102,19 @@ class _PostCardState extends State<PostCard> {
   @override
   void dispose() {
     _likeDebounce?.cancel();
-    _commentDebounce?.cancel();
     super.dispose();
   }
 
   String get currentUserId => widget.currentUserId;
+
+  void _openDetail() {
+    final callback = widget.onOpenDetail;
+    if (callback != null) {
+      callback();
+      return;
+    }
+    context.push('/post/${post.id}');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +128,8 @@ class _PostCardState extends State<PostCard> {
           // 캡션 탭 → 게시글 상세
           if (post.content != null && post.content!.isNotEmpty)
             InkWell(
-              onTap: () => context.push('/post/${post.id}'),
+              key: const Key('post_card_open_detail'),
+              onTap: _openDetail,
               child: _buildContent(),
             ),
           // 이미지: 기존 탭/더블탭 동작 유지
@@ -124,7 +137,7 @@ class _PostCardState extends State<PostCard> {
           // 감정분석 카드 탭 → 게시글 상세
           if (post.emotionAnalysis != null)
             InkWell(
-              onTap: () => context.push('/post/${post.id}'),
+              onTap: _openDetail,
               child: _buildEmotionAnalysis(),
             ),
           _buildActions(),
