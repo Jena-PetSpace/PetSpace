@@ -12,7 +12,8 @@ const repoRoot = path.resolve(scriptDir, '..');
 const runsRoot = path.join(repoRoot, '.agent-collab', 'runs');
 const defaultBaseBranch = 'win-android-release';
 const defaultMaxRounds = 3;
-const claudeModel = process.env.CLAUDE_MODEL ?? 'claude-opus-4-8';
+const claudeModel = process.env.CLAUDE_MODEL ?? 'claude-fable-5';
+const claudeFallbackModel = process.env.CLAUDE_FALLBACK_MODEL ?? 'claude-opus-4-8';
 const processTimeoutMs = 30 * 60 * 1000;
 
 const proposalSchema = {
@@ -301,51 +302,101 @@ function extractClaudeStructured(stdout) {
   throw new Error('Claude 구조화 출력에서 result를 찾지 못했습니다.');
 }
 
+function isClaudeUsageLimitError(error) {
+  const message = String(error?.message ?? error).toLowerCase();
+  return [
+    /\b429\b/,
+    /usage[ _-]?limit/,
+    /rate[ _-]?limit/,
+    /session[ _-]?limit/,
+    /hit (?:your|the) .*limit/,
+    /reached .*limit/,
+    /limit .*reset/,
+    /resets? at/,
+    /사용량.*한도/,
+    /한도.*도달/
+  ].some((pattern) => pattern.test(message));
+}
+
 function invokeClaude({ prompt, schema, mode, runDir, label, cwd = repoRoot }) {
   const claude = locateClaude();
   const promptFile = path.join(runDir, `${label}.prompt.md`);
   const stdoutFile = path.join(runDir, `${label}.claude.stdout.json`);
   const stderrFile = path.join(runDir, `${label}.claude.stderr.log`);
+  const modelFile = path.join(runDir, `${label}.claude.model.json`);
   fs.writeFileSync(promptFile, prompt, 'utf8');
 
-  const args = [
-    '-p',
-    '--model', claudeModel,
-    '--output-format', 'json',
-    '--json-schema', JSON.stringify(schema),
-    '--permission-mode', mode.startsWith('write') ? 'acceptEdits' : 'plan',
-    '--no-session-persistence',
-    '--effort', 'high',
-    '--setting-sources', 'user,project,local'
-  ];
+  const createArgs = (model) => {
+    const args = [
+      '-p',
+      '--model', model,
+      '--output-format', 'json',
+      '--json-schema', JSON.stringify(schema),
+      '--permission-mode', mode.startsWith('write') ? 'acceptEdits' : 'plan',
+      '--no-session-persistence',
+      '--effort', 'high',
+      '--setting-sources', 'user,project,local'
+    ];
 
-  if (mode === 'write-limited') {
-    args.push(
-      '--allowed-tools', 'Edit,Write,Bash(dart format *),Bash(flutter analyze *),Bash(flutter test *)',
-      '--disallowed-tools',
-      'Read,Grep,Glob,Bash(git *),Bash(supabase *),Bash(powershell *),Bash(cmd *)'
+    if (mode === 'write-limited') {
+      args.push(
+        '--allowed-tools', 'Edit,Write,Bash(dart format *),Bash(flutter analyze *),Bash(flutter test *)',
+        '--disallowed-tools',
+        'Read,Grep,Glob,Bash(git *),Bash(supabase *),Bash(powershell *),Bash(cmd *)'
+      );
+    } else if (mode === 'write') {
+      args.push(
+        '--allowed-tools', 'Read,Grep,Glob,Edit,Write,Bash',
+        '--disallowed-tools',
+        'Bash(git push *),Bash(git merge *),Bash(git rebase *),Bash(git reset *),Bash(git clean *),Bash(supabase *)'
+      );
+    } else if (mode === 'inspect') {
+      args.push(
+        '--allowed-tools', 'Read,Grep,Glob,Bash',
+        '--disallowed-tools',
+        'Edit,Write,Bash(rm *),Bash(mv *),Bash(cp *),Bash(git add *),Bash(git commit *),Bash(git push *),Bash(git switch *),Bash(git checkout *),Bash(git reset *),Bash(git clean *),Bash(git stash *),Bash(supabase *)'
+      );
+    } else {
+      // 토론은 오케스트레이터가 만든 동일 인벤토리만 사용한다.
+      // 에이전트별 임의 탐색 차이와 장시간 전체 스캔을 방지한다.
+      args.push('--tools', '');
+    }
+
+    return args;
+  };
+
+  const fallbackEnabled = claudeModel === 'claude-fable-5'
+    && claudeFallbackModel
+    && claudeFallbackModel.toLowerCase() !== 'none'
+    && claudeFallbackModel !== claudeModel;
+  let usedModel = claudeModel;
+  let fallbackReason = null;
+  let result;
+  try {
+    result = run(claude, createArgs(claudeModel), { cwd, input: prompt });
+  } catch (error) {
+    fs.writeFileSync(
+      path.join(runDir, `${label}.${claudeModel}.error.log`),
+      `${String(error?.message ?? error)}\n`,
+      'utf8'
     );
-  } else if (mode === 'write') {
-    args.push(
-      '--allowed-tools', 'Read,Grep,Glob,Edit,Write,Bash',
-      '--disallowed-tools',
-      'Bash(git push *),Bash(git merge *),Bash(git rebase *),Bash(git reset *),Bash(git clean *),Bash(supabase *)'
+    if (!fallbackEnabled || !isClaudeUsageLimitError(error)) throw error;
+    usedModel = claudeFallbackModel;
+    fallbackReason = 'fable_usage_limit';
+    process.stderr.write(
+      `Claude ${claudeModel} 사용량 한도 감지: 같은 작업을 ${usedModel}로 한 번 재시도합니다.\n`
     );
-  } else if (mode === 'inspect') {
-    args.push(
-      '--allowed-tools', 'Read,Grep,Glob,Bash',
-      '--disallowed-tools',
-      'Edit,Write,Bash(rm *),Bash(mv *),Bash(cp *),Bash(git add *),Bash(git commit *),Bash(git push *),Bash(git switch *),Bash(git checkout *),Bash(git reset *),Bash(git clean *),Bash(git stash *),Bash(supabase *)'
-    );
-  } else {
-    // 토론은 오케스트레이터가 만든 동일 인벤토리만 사용한다.
-    // 에이전트별 임의 탐색 차이와 장시간 전체 스캔을 방지한다.
-    args.push('--tools', '');
+    result = run(claude, createArgs(usedModel), { cwd, input: prompt });
   }
 
-  const result = run(claude, args, { cwd, input: prompt });
   fs.writeFileSync(stdoutFile, result.stdout, 'utf8');
   fs.writeFileSync(stderrFile, result.stderr, 'utf8');
+  fs.writeFileSync(modelFile, `${JSON.stringify({
+    primaryModel: claudeModel,
+    usedModel,
+    fallbackModel: fallbackEnabled ? claudeFallbackModel : null,
+    fallbackReason
+  }, null, 2)}\n`, 'utf8');
   return extractClaudeStructured(result.stdout);
 }
 
@@ -771,6 +822,7 @@ function commandPreflight() {
     claude: {
       binary: claude,
       model: claudeModel,
+      fallbackModel: claudeModel === 'claude-fable-5' ? claudeFallbackModel : null,
       version: claudeVersion,
       auth: (() => {
         const value = JSON.parse(claudeAuth);

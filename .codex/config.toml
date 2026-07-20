@@ -7,7 +7,12 @@ approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
 [sandbox_workspace_write]
-network_access = false
+network_access = true
+
+# Claude Code 협업에 필요한 목적지만 허용한다.
+[features.network_proxy]
+enabled = true
+domains = { "api.anthropic.com" = "allow", "statsig.anthropic.com" = "allow", "**.sentry.io" = "allow" }
 
 # 모델, reasoning, 개인 프로파일은 각 사용자의 ~/.codex/config.toml에서 관리한다.
 # hooks와 추가 자동화는 현재 설치 버전의 공식 스키마 검증 후 도입한다.

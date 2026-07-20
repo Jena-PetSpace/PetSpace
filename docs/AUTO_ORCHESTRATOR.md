@@ -41,7 +41,7 @@ node scripts/agent-collab.mjs preflight
 
 Claude Code 로그인, Codex 로그인, CLI 버전, Git 상태를 확인한다.
 
-Claude 호출의 기본 모델은 `claude-opus-4-8`이다. 계정에서 다른 정확한 모델 ID를 써야 할 때만 `CLAUDE_MODEL` 환경 변수로 덮어쓴다. 별도 지정 없이 Fable 계열 모델로 대체하지 않는다.
+Claude 호출의 기본 모델은 `claude-fable-5`다. Fable 호출이 실제 사용량 한도 또는 429 오류로 실패할 때만 같은 작업을 `claude-opus-4-8`로 한 번 자동 재시도한다. 일반 실행 오류, 권한 오류, 구조화 출력 오류, 검토 불일치는 Opus로 우회하지 않고 중단한다. `CLAUDE_MODEL`로 기본 모델을, `CLAUDE_FALLBACK_MODEL`로 대체 모델을 덮어쓸 수 있으며 `CLAUDE_FALLBACK_MODEL=none`이면 자동 전환을 비활성화한다. 각 호출은 실제 사용 모델과 전환 사유를 run 폴더의 `*.claude.model.json`에 기록한다.
 
 구조화 출력 연결까지 실제로 시험하려면 다음을 한 번 실행한다. 이 명령은 양쪽 AI를 각각 한 번 호출한다.
 
