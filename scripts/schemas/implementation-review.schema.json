@@ -1,0 +1,64 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verdict",
+    "reviewed_manifest_sha256",
+    "summary",
+    "findings",
+    "verification_gaps"
+  ],
+  "properties": {
+    "verdict": {
+      "enum": [
+        "approve",
+        "changes_required",
+        "block"
+      ]
+    },
+    "reviewed_manifest_sha256": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "severity",
+          "location",
+          "issue",
+          "minimum_fix"
+        ],
+        "properties": {
+          "severity": {
+            "enum": [
+              "blocker",
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "location": {
+            "type": "string"
+          },
+          "issue": {
+            "type": "string"
+          },
+          "minimum_fix": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "verification_gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

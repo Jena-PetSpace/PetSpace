@@ -1,0 +1,128 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision",
+    "reviewed_manifest_sha256",
+    "summary",
+    "findings",
+    "required_changes",
+    "accepted_merge_rules",
+    "implementation_manifest",
+    "verification",
+    "recommended_executor",
+    "human_gates",
+    "required_context"
+  ],
+  "properties": {
+    "decision": {
+      "enum": [
+        "accept",
+        "changes_required",
+        "block"
+      ]
+    },
+    "reviewed_manifest_sha256": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "severity",
+          "location",
+          "issue",
+          "minimum_fix"
+        ],
+        "properties": {
+          "severity": {
+            "enum": [
+              "blocker",
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "location": {
+            "type": "string"
+          },
+          "issue": {
+            "type": "string"
+          },
+          "minimum_fix": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "required_changes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "accepted_merge_rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "implementation_manifest": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "path",
+          "reason"
+        ],
+        "properties": {
+          "action": {
+            "enum": [
+              "ADD",
+              "MODIFY",
+              "DELETE"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommended_executor": {
+      "enum": [
+        "codex",
+        "claude",
+        "human"
+      ]
+    },
+    "human_gates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_context": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

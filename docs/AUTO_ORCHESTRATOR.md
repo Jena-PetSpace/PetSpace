@@ -1,5 +1,133 @@
 # Claude × Codex 자동 오케스트레이터
 
+> 권장 실행 경로는 `scripts/agent-consensus.mjs` V2다. 기존
+> `scripts/agent-collab.mjs`는 진행 중인 기존 run을 재개할 때만 사용한다.
+
+## V2가 고정하는 협업 방식
+
+V2는 역할을 라운드마다 바꾸지 않는다.
+
+```text
+Codex 기획·작업지시서 작성
+  → 정확한 외부 검토 파일 승인
+  → Claude Opus 4.8 독립 검토
+  → Codex가 지적 수용·반박·수정
+  → Claude가 같은 계획·manifest 해시로 최종 비준
+  → 사람의 구현 승인 1회
+  → 합의된 실행자가 격리 worktree에서 구현
+  → Codex와 Claude가 각각 최종 코드 리뷰
+```
+
+- Claude는 Opus 4.8을 기본 모델로 사용한다. 다른 모델 fallback은
+  `CLAUDE_FALLBACK_MODEL`을 명시한 경우에만 사용한다.
+- Claude가 추가 자료를 요구하면 그 파일을 검토 manifest에 합친 뒤,
+  새 해시의 번들을 다시 검토한다. 이전 검토 결과를 재사용하지 않는다.
+- 양쪽이 실행자, 계획 해시, 파일 manifest 해시에 동의하고
+  `blocker/high`가 0일 때만 구현 승인 단계로 넘어간다.
+- 구현은 합의된 정확한 파일 목록만 허용하며, 그 밖의 파일이 바뀌면
+  중단한다.
+- 구현 전 Git 상태가 기획 시작 시점과 달라지면 중단한다. 최초 도입
+  중에는 V2 자체 문서·스크립트·테스트 3개의 미커밋 상태만 예외로
+  허용하며 앱 소스의 미커밋 변경은 허용하지 않는다.
+- `commit`, `merge`, `push`, 배포, 운영 DB·Edge 변경은 자동화하지 않는다.
+
+## V2 준비와 연결 확인
+
+Codex 앱 내부 샌드박스가 아니라 사용자 로컬 PowerShell에서 실행한다.
+그래야 로그인된 Codex CLI와 Claude Code CLI를 같은 로컬 스크립트가
+호출할 수 있다.
+
+```powershell
+node scripts/agent-consensus.mjs preflight
+node scripts/agent-consensus.mjs self-test --local
+node scripts/agent-consensus.mjs self-test
+```
+
+- `preflight`: CLI 버전, 로그인, Git 상태 확인
+- `self-test --local`: 외부 AI 호출 없이 로컬 구성만 확인
+- `self-test`: 파일을 읽지 않는 고정 프롬프트로 양쪽 구조화 출력을
+  각각 한 번 확인
+
+## V2 주제 시작과 외부 검토 승인
+
+```powershell
+node scripts/agent-consensus.mjs start --topic "MY 알림 설정의 다음 구현 범위를 기획해줘"
+```
+
+Codex가 초안을 만들고 Claude 검토에 필요한 정확한 파일을 제안한다.
+그 파일이 Anthropic 서비스 전송 승인 범위에 없으면 다음 상태에서
+자동으로 멈춘다.
+
+```text
+awaiting_external_review_approval
+```
+
+출력된 경로를 확인한 뒤 같은 run을 다음처럼 재개한다.
+
+```powershell
+node scripts/agent-consensus.mjs approve-review <run-id> --code <검토승인코드>
+```
+
+이 승인은 출력된 정확한 경로를 해당 run에서 Claude로 전송·열람하는
+것만 허용한다. `.env`, `secrets.dart`, 키·토큰·인증서와 비슷한 값은
+경로 차단과 내용 검사 두 단계로 제외한다.
+
+반복해서 쓰는 비밀 제외 소스 범위를 사용자가 명시적으로 상시
+승인하려면 다음처럼 로컬 정책을 만들 수 있다. 정책은
+`.agent-collab/runs/` 아래에 저장되어 Git에 포함되지 않는다.
+
+```powershell
+node scripts/agent-consensus.mjs authorize-source-review `
+  --include "pjh/lib/**,pjh/test/**,supabase/functions/**" `
+  --acknowledge-anthropic-transfer yes
+```
+
+상시 승인이 없거나 범위 밖 파일이 추가되면 다시 정확한 파일 승인을
+요구한다.
+
+## V2 합의·구현 승인·재개
+
+합의가 끝나면 `awaiting_implementation_approval` 상태와 함께 실행자,
+계획 해시, manifest 해시, 정확한 변경 파일, 승인 코드가 출력된다.
+이 한 번의 구현 승인은 정확한 변경 결과를 Claude에 최종 read-only
+리뷰 번들로 전송하는 것까지 포함한다.
+
+```powershell
+node scripts/agent-consensus.mjs approve <run-id> `
+  --code <구현승인코드> --execute
+```
+
+실행자를 사람이 바꾸면 override 사실을 상태에 남긴다.
+
+```powershell
+node scripts/agent-consensus.mjs approve <run-id> `
+  --code <구현승인코드> --executor claude `
+  --acknowledge-claude-worktree-access yes --execute
+```
+
+Claude를 구현 실행자로 선택하면 Claude Code가 비밀 제외 규칙 아래
+격리 worktree를 탐색할 수 있으므로 별도 명시 확인이 필요하다. Codex가
+실행자일 때 Claude는 구현 후 생성된 정확한 변경 번들만 받는다.
+
+상태 확인과 안전한 재개:
+
+```powershell
+node scripts/agent-consensus.mjs status <run-id>
+node scripts/agent-consensus.mjs resume <run-id>
+node scripts/agent-consensus.mjs execute <run-id>
+```
+
+모든 프롬프트, JSON 판정, 해시, 로그, 작업지시서는
+`.agent-collab/runs/<run-id>/`에 보관한다. 같은 단계의 완료 산출물이
+있으면 다시 호출하지 않으므로 한도 오류나 앱 재시작 뒤에도 같은
+run을 이어간다.
+
+---
+
+## Legacy V1
+
+아래 내용은 `scripts/agent-collab.mjs`로 생성한 기존 run의 설명이다.
+
 ## 목적
 
 사용자가 한 번 주제를 입력하면 Claude와 Codex가 읽기 전용으로 초안·반론·수정안을 교환하고, 두 AI가 같은 작업지시서와 실행자에 동의했을 때만 사람에게 승인을 요청한다. 승인 후에는 전용 Git worktree에서 선택된 AI가 구현하고 반대 AI가 자동 교차 리뷰한다.
@@ -41,7 +169,8 @@ node scripts/agent-collab.mjs preflight
 
 Claude Code 로그인, Codex 로그인, CLI 버전, Git 상태를 확인한다.
 
-Claude 호출의 기본 모델은 `claude-opus-4-8`이다. 계정에서 다른 정확한 모델 ID를 써야 할 때만 `CLAUDE_MODEL` 환경 변수로 덮어쓴다. 별도 지정 없이 Fable 계열 모델로 대체하지 않는다.
+Legacy run은 생성 당시의 스크립트와 환경 변수 설정을 따른다. V2의
+Opus 4.8 기본 정책은 기존 run의 과거 검토 기록에 소급 적용하지 않는다.
 
 구조화 출력 연결까지 실제로 시험하려면 다음을 한 번 실행한다. 이 명령은 양쪽 AI를 각각 한 번 호출한다.
 
