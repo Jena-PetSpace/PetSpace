@@ -8,6 +8,8 @@ import '../../domain/entities/comment.dart';
 import '../bloc/comment_bloc.dart';
 import '../bloc/comment_event.dart';
 
+enum _CommentMenuAction { delete }
+
 class CommentListItem extends StatefulWidget {
   final Comment comment;
   final String currentUserId;
@@ -104,9 +106,8 @@ class _CommentListItemState extends State<CommentListItem> {
             image: true,
             child: CircleAvatar(
               radius: isReply ? 12.r : 16.r,
-              backgroundImage: hasImage
-                  ? CachedNetworkImageProvider(imageUrl)
-                  : null,
+              backgroundImage:
+                  hasImage ? CachedNetworkImageProvider(imageUrl) : null,
               child: !hasImage
                   ? Text(
                       comment.authorName.trim().isEmpty
@@ -145,34 +146,11 @@ class _CommentListItemState extends State<CommentListItem> {
                     ),
                     if (comment.authorId == widget.currentUserId &&
                         (isReply || widget.onDelete != null))
-                      SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: IconButton(
-                          key: Key('comment_delete_${comment.id}'),
-                          tooltip: isReply ? '답글 삭제' : '댓글 삭제',
-                          onPressed: isDeletePending
-                              ? null
-                              : () => isReply
-                                    ? _showDeleteReplyConfirmation(
-                                        context,
-                                        comment.id,
-                                      )
-                                    : _showDeleteConfirmation(context),
-                          icon: isDeletePending
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.delete_outline,
-                                  size: 18.w,
-                                  color: Colors.grey[400],
-                                ),
-                        ),
+                      _buildOwnerMenu(
+                        context,
+                        commentId: comment.id,
+                        isReply: isReply,
+                        isDeletePending: isDeletePending,
                       ),
                   ],
                 ),
@@ -196,9 +174,8 @@ class _CommentListItemState extends State<CommentListItem> {
                   children: [
                     Semantics(
                       button: true,
-                      label: comment.isLikedByCurrentUser
-                          ? '댓글 좋아요 취소'
-                          : '댓글 좋아요',
+                      label:
+                          comment.isLikedByCurrentUser ? '댓글 좋아요 취소' : '댓글 좋아요',
                       child: SizedBox(
                         height: 44,
                         child: TextButton.icon(
@@ -206,12 +183,12 @@ class _CommentListItemState extends State<CommentListItem> {
                           onPressed: isLikePending
                               ? null
                               : () => context.read<CommentBloc>().add(
-                                  LikeCommentRequested(
-                                    commentId: comment.id,
-                                    isCurrentlyLiked:
-                                        comment.isLikedByCurrentUser,
+                                    LikeCommentRequested(
+                                      commentId: comment.id,
+                                      isCurrentlyLiked:
+                                          comment.isLikedByCurrentUser,
+                                    ),
                                   ),
-                                ),
                           style: TextButton.styleFrom(
                             minimumSize: const Size(44, 44),
                             padding: EdgeInsets.symmetric(horizontal: 4.w),
@@ -271,6 +248,58 @@ class _CommentListItemState extends State<CommentListItem> {
 
   String repliesLabel(int count) => count == 0 ? '답글' : '답글 $count';
 
+  Widget _buildOwnerMenu(
+    BuildContext context, {
+    required String commentId,
+    required bool isReply,
+    required bool isDeletePending,
+  }) {
+    if (isDeletePending) {
+      return const SizedBox(
+        width: 44,
+        height: 44,
+        child: Center(
+          child: SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: PopupMenuButton<_CommentMenuAction>(
+        key: Key('comment_delete_$commentId'),
+        tooltip: isReply ? '답글 더보기' : '댓글 더보기',
+        padding: EdgeInsets.zero,
+        icon: Icon(Icons.more_horiz, size: 20.w, color: Colors.grey[500]),
+        onSelected: (action) {
+          if (action != _CommentMenuAction.delete) return;
+          if (isReply) {
+            _showDeleteReplyConfirmation(context, commentId);
+          } else {
+            _showDeleteConfirmation(context);
+          }
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem<_CommentMenuAction>(
+            value: _CommentMenuAction.delete,
+            child: Row(
+              children: [
+                Icon(Icons.delete_outline, size: 20),
+                SizedBox(width: 10),
+                Text('삭제'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showDeleteConfirmation(BuildContext context) {
     showDialog<void>(
       context: context,
@@ -310,8 +339,8 @@ class _CommentListItemState extends State<CommentListItem> {
             onPressed: () {
               Navigator.pop(dialogContext);
               context.read<CommentBloc>().add(
-                DeleteCommentRequested(commentId: replyId),
-              );
+                    DeleteCommentRequested(commentId: replyId),
+                  );
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('삭제'),

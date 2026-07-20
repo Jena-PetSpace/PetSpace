@@ -7,8 +7,11 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../shared/widgets/haptic_refresh_indicator.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/post.dart';
+import '../../../../config/injection_container.dart' as di;
+import '../../domain/repositories/social_repository.dart';
 import '../bloc/feed_bloc.dart';
 import '../cubit/operational_cards_cubit.dart';
+import '../widgets/comments_bottom_sheet.dart';
 import '../widgets/operational_card_tile.dart';
 import '../widgets/post_card.dart';
 import '../widgets/create_post_bottom_sheet.dart';
@@ -23,6 +26,8 @@ class FeedPage extends StatefulWidget {
   final String? userId;
   final bool followingOnly;
   final bool recommended;
+  final SocialRepository? repository;
+  final CommentBlocFactory? commentsBlocFactory;
 
   /// 발견 탭 운영(이슈) 카드 인터리브. true면 상위에서
   /// [OperationalCardsCubit] provider가 공급되어야 한다.
@@ -34,6 +39,8 @@ class FeedPage extends StatefulWidget {
     this.followingOnly = false,
     this.recommended = false,
     this.interleaveOperational = false,
+    this.repository,
+    this.commentsBlocFactory,
   });
 
   @override
@@ -59,8 +66,9 @@ class _FeedPageState extends State<FeedPage> {
     if (widget.recommended) {
       final uid = _effectiveUserId;
       if (uid != null) {
-        context.read<FeedBloc>().add(
-            LoadRecommendedPostsRequested(userId: uid));
+        context
+            .read<FeedBloc>()
+            .add(LoadRecommendedPostsRequested(userId: uid));
       }
     } else {
       context.read<FeedBloc>().add(LoadFeedRequested(
@@ -141,8 +149,9 @@ class _FeedPageState extends State<FeedPage> {
             onRefresh: () async {
               final uid = _effectiveUserId;
               if (uid != null) {
-                context.read<FeedBloc>().add(
-                    LoadRecommendedPostsRequested(userId: uid));
+                context
+                    .read<FeedBloc>()
+                    .add(LoadRecommendedPostsRequested(userId: uid));
               }
             },
             child: _buildRecommendedList(state),
@@ -251,7 +260,7 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
-  Widget _buildPostCard(post) {
+  Widget _buildPostCard(Post post) {
     final uid = _effectiveUserId ?? '';
     return PostCard(
       post: post,
@@ -270,7 +279,7 @@ class _FeedPageState extends State<FeedPage> {
               ));
         }
       },
-      onComment: () => context.push('/post/${post.id}'),
+      onComment: () => _showComments(post),
       onShare: () => _sharePost(post),
       onEdit: () {
         showModalBottomSheet(
@@ -292,6 +301,34 @@ class _FeedPageState extends State<FeedPage> {
       },
       onHashtagTap: (hashtag) => context.push('/hashtag/$hashtag'),
     );
+  }
+
+  Future<void> _showComments(Post post) async {
+    final changed = await CommentsBottomSheet.show(
+      context: context,
+      postId: post.id,
+      postAuthorId: post.authorId,
+      currentUserId: _effectiveUserId ?? '',
+      repository: widget.repository ?? di.sl<SocialRepository>(),
+      commentBlocFactory: widget.commentsBlocFactory,
+    );
+    if (!mounted || !changed) return;
+
+    if (widget.recommended) {
+      final userId = _effectiveUserId;
+      if (userId != null) {
+        context.read<FeedBloc>().add(
+              LoadRecommendedPostsRequested(userId: userId),
+            );
+      }
+      return;
+    }
+    context.read<FeedBloc>().add(
+          RefreshFeedRequested(
+            userId: widget.userId,
+            followingOnly: widget.followingOnly,
+          ),
+        );
   }
 
   Widget _buildEmptyState() {

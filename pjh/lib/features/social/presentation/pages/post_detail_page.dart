@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as dev;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ import '../bloc/comment_state.dart';
 import '../utils/saved_posts_change_notifier.dart';
 import '../widgets/collection_picker_sheet.dart';
 import '../widgets/comment_list_item.dart';
+import '../widgets/likes_bottom_sheet.dart';
 
 enum _PostLoadStatus { loading, loaded, error, notFound }
 
@@ -30,6 +32,7 @@ class PostDetailPage extends StatefulWidget {
   final CommentBloc? commentBloc;
   final String? currentUserId;
   final SavedPostsChangeNotifier? savedPostsNotifier;
+  final ValueNotifier<bool>? commentMutationNotifier;
 
   const PostDetailPage({
     super.key,
@@ -38,6 +41,7 @@ class PostDetailPage extends StatefulWidget {
     this.commentBloc,
     this.currentUserId,
     this.savedPostsNotifier,
+    this.commentMutationNotifier,
   });
 
   @override
@@ -56,6 +60,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
   bool _isSavePending = false;
   int _likesCount = 0;
   bool _isLikePending = false;
+  bool _showLikeHeart = false;
+  Timer? _likeHeartTimer;
 
   // 답글 상태
   String? _replyToCommentId;
@@ -71,6 +77,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
 
   @override
   void dispose() {
+    _likeHeartTimer?.cancel();
     _commentController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -177,6 +184,26 @@ class _PostDetailPageState extends State<PostDetailPage> {
       }
       if (serverLiked != null) _isLiked = serverLiked;
     });
+  }
+
+  void _handleMediaDoubleTap() {
+    if (!_isLiked && !_isLikePending) {
+      _toggleLike();
+    }
+    _likeHeartTimer?.cancel();
+    setState(() => _showLikeHeart = true);
+    _likeHeartTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() => _showLikeHeart = false);
+    });
+  }
+
+  void _openLikes() {
+    LikesBottomSheet.show(
+      context,
+      postId: widget.postId,
+      currentUserId: _currentUserId,
+      repository: _repository,
+    );
   }
 
   Future<void> _toggleSave() async {
@@ -402,6 +429,12 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     return;
                   }
                   if (outcome.kind == CommentActionKind.commentCreated ||
+                      outcome.kind == CommentActionKind.replyCreated ||
+                      outcome.kind == CommentActionKind.commentDeleted ||
+                      outcome.kind == CommentActionKind.replyDeleted) {
+                    widget.commentMutationNotifier?.value = true;
+                  }
+                  if (outcome.kind == CommentActionKind.commentCreated ||
                       outcome.kind == CommentActionKind.replyCreated) {
                     _commentController.clear();
                     setState(() {
@@ -557,7 +590,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
           ),
           if (imageUrls.isNotEmpty) ...[
             SizedBox(height: 12.h),
-            _MultiImageCarousel(imageUrls: imageUrls),
+            _MultiImageCarousel(
+              imageUrls: imageUrls,
+              onDoubleTap: _handleMediaDoubleTap,
+              showHeart: _showLikeHeart,
+            ),
           ],
           if (content.isNotEmpty) ...[
             SizedBox(height: 12.h),
@@ -572,17 +609,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
                 button: true,
                 label: _isLiked ? '게시글 좋아요 취소' : '게시글 좋아요',
                 child: SizedBox(
+                  width: 44,
                   height: 44,
-                  child: TextButton.icon(
+                  child: IconButton(
                     key: const Key('post_detail_like_button'),
                     onPressed: _isLikePending ? null : _toggleLike,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(44, 44),
-                      padding: EdgeInsets.symmetric(horizontal: 4.w),
-                      foregroundColor: _isLiked
-                          ? AppTheme.highlightColor
-                          : AppTheme.secondaryTextColor,
-                    ),
                     icon: _isLikePending
                         ? const SizedBox(
                             width: 18,
@@ -592,10 +623,28 @@ class _PostDetailPageState extends State<PostDetailPage> {
                         : Icon(
                             _isLiked ? Icons.favorite : Icons.favorite_border,
                             size: 20.w,
+                            color: _isLiked
+                                ? AppTheme.highlightColor
+                                : AppTheme.secondaryTextColor,
                           ),
-                    label: Text(
+                  ),
+                ),
+              ),
+              Semantics(
+                button: true,
+                label: '좋아요 $_likesCount명 보기',
+                child: SizedBox(
+                  height: 44,
+                  child: TextButton(
+                    key: const Key('post_detail_likes_count'),
+                    onPressed: _openLikes,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                      foregroundColor: AppTheme.secondaryTextColor,
+                      padding: EdgeInsets.symmetric(horizontal: 8.w),
+                    ),
+                    child: Text(
                       '$_likesCount',
-                      key: const Key('post_detail_likes_count'),
                       style: TextStyle(fontSize: 13.sp),
                     ),
                   ),
@@ -1061,7 +1110,14 @@ class _PostDetailPageState extends State<PostDetailPage> {
 // ─── 멀티 이미지 캐러셀 ────────────────────────────────────────────────────────
 class _MultiImageCarousel extends StatefulWidget {
   final List<String> imageUrls;
-  const _MultiImageCarousel({required this.imageUrls});
+  final VoidCallback onDoubleTap;
+  final bool showHeart;
+
+  const _MultiImageCarousel({
+    required this.imageUrls,
+    required this.onDoubleTap,
+    required this.showHeart,
+  });
 
   @override
   State<_MultiImageCarousel> createState() => _MultiImageCarouselState();
@@ -1086,25 +1142,54 @@ class _MultiImageCarouselState extends State<_MultiImageCarousel> {
           borderRadius: BorderRadius.circular(12.r),
           child: SizedBox(
             height: 280.h,
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: count,
-              onPageChanged: (i) => setState(() => _current = i),
-              itemBuilder: (context, i) => CachedNetworkImage(
-                imageUrl: widget.imageUrls[i],
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (_, __) =>
-                    Container(color: AppTheme.subtleBackground),
-                errorWidget: (_, __, ___) => Container(
-                  color: AppTheme.subtleBackground,
-                  child: Icon(
-                    Icons.broken_image,
-                    size: 48.w,
-                    color: AppTheme.hintColor,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PageView.builder(
+                  controller: _pageController,
+                  itemCount: count,
+                  onPageChanged: (i) => setState(() => _current = i),
+                  itemBuilder: (context, i) => GestureDetector(
+                    key: Key('post_detail_media_$i'),
+                    onDoubleTap: widget.onDoubleTap,
+                    child: CachedNetworkImage(
+                      imageUrl: widget.imageUrls[i],
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) =>
+                          Container(color: AppTheme.subtleBackground),
+                      errorWidget: (_, __, ___) => Container(
+                        color: AppTheme.subtleBackground,
+                        child: Icon(
+                          Icons.broken_image,
+                          size: 48.w,
+                          color: AppTheme.hintColor,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                IgnorePointer(
+                  child: AnimatedOpacity(
+                    key: const Key('post_detail_double_tap_heart'),
+                    opacity: widget.showHeart ? 1 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: AnimatedScale(
+                      scale: widget.showHeart ? 1 : 0.4,
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutBack,
+                      child: Icon(
+                        Icons.favorite,
+                        color: Colors.white,
+                        size: 80.w,
+                        shadows: const [
+                          Shadow(color: Colors.black26, blurRadius: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

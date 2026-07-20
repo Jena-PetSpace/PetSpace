@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +18,7 @@ import 'package:meong_nyang_diary/features/social/domain/usecases/unsave_post.da
 import 'package:meong_nyang_diary/features/social/domain/usecases/get_saved_posts.dart';
 import 'package:meong_nyang_diary/features/social/presentation/bloc/feed_bloc.dart';
 import 'package:meong_nyang_diary/core/services/realtime_service.dart';
+import 'package:meong_nyang_diary/core/services/push_notification_service.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
 
 // Mocks
@@ -40,6 +43,9 @@ class MockUnsavePost extends Mock implements UnsavePost {}
 class MockGetSavedPosts extends Mock implements GetSavedPosts {}
 
 class MockRealtimeService extends Mock implements RealtimeService {}
+
+class MockPushNotificationService extends Mock
+    implements PushNotificationService {}
 
 // Fallbacks
 class FakeGetFeedParams extends Fake implements GetFeedParams {}
@@ -76,6 +82,7 @@ FeedBloc _buildBloc({
   MockUnsavePost? unsavePost,
   MockGetSavedPosts? getSavedPosts,
   MockRealtimeService? realtimeService,
+  MockSocialRepository? socialRepository,
 }) {
   return FeedBloc(
     getFeed: getFeed ?? MockGetFeed(),
@@ -87,8 +94,9 @@ FeedBloc _buildBloc({
     savePost: savePost ?? MockSavePost(),
     unsavePost: unsavePost ?? MockUnsavePost(),
     getSavedPosts: getSavedPosts ?? MockGetSavedPosts(),
-    socialRepository: MockSocialRepository(),
+    socialRepository: socialRepository ?? MockSocialRepository(),
     realtimeService: realtimeService ?? MockRealtimeService(),
+    pushNotificationService: MockPushNotificationService(),
   );
 }
 
@@ -160,9 +168,27 @@ void main() {
       build: () {
         final getFeed = MockGetFeed();
         final likePost = MockLikePost();
+        final repository = MockSocialRepository();
         when(() => getFeed(any())).thenAnswer((_) async => Right([_tPost]));
         when(() => likePost(any())).thenAnswer((_) async => const Right(null));
-        return _buildBloc(getFeed: getFeed, likePost: likePost);
+        when(
+          () => repository.getPost('post-001'),
+        ).thenAnswer(
+          (_) async => Right(
+            _tPost.copyWith(
+              isLikedByCurrentUser: true,
+              likesCount: 1,
+            ),
+          ),
+        );
+        when(
+          () => repository.isPostLiked('post-001', 'user-001'),
+        ).thenAnswer((_) async => const Right(true));
+        return _buildBloc(
+          getFeed: getFeed,
+          likePost: likePost,
+          socialRepository: repository,
+        );
       },
       act: (bloc) async {
         bloc.add(const LoadFeedRequested(userId: 'user-001'));
@@ -204,6 +230,91 @@ void main() {
         }
       },
     );
+
+    test('serializes one post and ignores its realtime echo while pending',
+        () async {
+      final getFeed = MockGetFeed();
+      final likePost = MockLikePost();
+      final repository = MockSocialRepository();
+      final mutation = Completer<Either<Failure, void>>();
+      when(() => getFeed(any())).thenAnswer((_) async => Right([_tPost]));
+      when(() => likePost(any())).thenAnswer((_) => mutation.future);
+      when(
+        () => repository.getPost('post-001'),
+      ).thenAnswer(
+        (_) async => Right(
+          _tPost.copyWith(
+            isLikedByCurrentUser: true,
+            likesCount: 1,
+          ),
+        ),
+      );
+      when(
+        () => repository.isPostLiked('post-001', 'user-001'),
+      ).thenAnswer((_) async => const Right(true));
+      final bloc = _buildBloc(
+        getFeed: getFeed,
+        likePost: likePost,
+        socialRepository: repository,
+      );
+      addTearDown(bloc.close);
+
+      bloc.add(const LoadFeedRequested(userId: 'user-001'));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      bloc.add(
+        const LikePostRequested(postId: 'post-001', userId: 'user-001'),
+      );
+      bloc.add(
+        const LikePostRequested(postId: 'post-001', userId: 'user-001'),
+      );
+      bloc.add(
+        const RealtimeLikeReceived({
+          'post_id': 'post-001',
+          'event': 'insert',
+        }),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      verify(() => likePost(any())).called(1);
+      expect((bloc.state as FeedLoaded).posts.single.likesCount, 1);
+
+      mutation.complete(const Right(null));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect((bloc.state as FeedLoaded).posts.single.likesCount, 1);
+    });
+
+    test('failed mutation rolls back only its target post', () async {
+      final second = _tPost.copyWith(id: 'post-002', likesCount: 3);
+      final getFeed = MockGetFeed();
+      final likePost = MockLikePost();
+      when(
+        () => getFeed(any()),
+      ).thenAnswer((_) async => Right([_tPost, second]));
+      when(
+        () => likePost(any()),
+      ).thenAnswer(
+        (_) async => const Left(ServerFailure(message: 'like failed')),
+      );
+      final bloc = _buildBloc(getFeed: getFeed, likePost: likePost);
+      addTearDown(bloc.close);
+
+      bloc.add(const LoadFeedRequested(userId: 'user-001'));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      bloc.add(
+        const LikePostRequested(postId: 'post-001', userId: 'user-001'),
+      );
+      bloc.add(
+        const RealtimeLikeReceived({
+          'post_id': 'post-002',
+          'event': 'insert',
+        }),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      final posts = (bloc.state as FeedLoaded).posts;
+      expect(posts.first.likesCount, 0);
+      expect(posts.last.likesCount, 4);
+    });
   });
 
   // ── SavePostRequested ─────────────────────────────────────────────────────
@@ -245,7 +356,6 @@ void main() {
       },
       act: (bloc) => bloc.add(const RefreshFeedRequested(userId: 'user-001')),
       expect: () => [
-        isA<FeedLoading>(),
         isA<FeedLoaded>(),
       ],
     );

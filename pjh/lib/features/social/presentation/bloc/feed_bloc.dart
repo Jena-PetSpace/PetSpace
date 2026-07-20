@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
@@ -35,9 +36,10 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   final GetSavedPosts _getSavedPosts;
   final SocialRepository _socialRepository;
   final RealtimeService _realtimeService;
-  final PushNotificationService _pushService = PushNotificationService();
+  final PushNotificationService _pushService;
   StreamSubscription<Map<String, dynamic>>? _likeSub;
   StreamSubscription<Map<String, dynamic>>? _commentSub;
+  final Set<String> _pendingLikePostIds = <String>{};
 
   FeedBloc({
     required GetFeed getFeed,
@@ -51,6 +53,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     required GetSavedPosts getSavedPosts,
     required SocialRepository socialRepository,
     RealtimeService? realtimeService,
+    PushNotificationService? pushNotificationService,
   })  : _getFeed = getFeed,
         _createPost = createPost,
         _updatePost = updatePost,
@@ -62,6 +65,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
         _getSavedPosts = getSavedPosts,
         _socialRepository = socialRepository,
         _realtimeService = realtimeService ?? RealtimeService(),
+        _pushService = pushNotificationService ?? PushNotificationService(),
         super(FeedInitial()) {
     on<LoadFeedRequested>(_onLoadFeedRequested);
     on<RefreshFeedRequested>(_onRefreshFeedRequested);
@@ -85,18 +89,21 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
   ) async {
     emit(FeedLoading());
 
-    final result = await _getFeed(GetFeedParams(
-      userId: event.userId,
-      limit: event.limit,
-      followingOnly: event.followingOnly,
-    ));
+    final result = await _getFeed(
+      GetFeedParams(
+        userId: event.userId,
+        limit: event.limit,
+        followingOnly: event.followingOnly,
+      ),
+    );
 
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
-      (posts) => emit(FeedLoaded(
-        posts: posts,
-        hasReachedMax: posts.length < event.limit,
-      )),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
+      (posts) => emit(
+        FeedLoaded(posts: posts, hasReachedMax: posts.length < event.limit),
+      ),
     );
   }
 
@@ -104,18 +111,20 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     RefreshFeedRequested event,
     Emitter<FeedState> emit,
   ) async {
-    final result = await _getFeed(GetFeedParams(
-      userId: event.userId,
-      limit: 20,
-      followingOnly: event.followingOnly,
-    ));
+    final result = await _getFeed(
+      GetFeedParams(
+        userId: event.userId,
+        limit: 20,
+        followingOnly: event.followingOnly,
+      ),
+    );
 
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
-      (posts) => emit(FeedLoaded(
-        posts: posts,
-        hasReachedMax: posts.length < 20,
-      )),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
+      (posts) =>
+          emit(FeedLoaded(posts: posts, hasReachedMax: posts.length < 20)),
     );
   }
 
@@ -129,25 +138,31 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
       emit(currentState.copyWith(isLoadingMore: true));
 
-      final result = await _getFeed(GetFeedParams(
-        userId: event.userId,
-        limit: 20,
-        lastPostId: currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
-        lastCreatedAt: currentState.posts.isNotEmpty ? currentState.posts.last.createdAt : null,
-        followingOnly: event.followingOnly,
-      ));
+      final result = await _getFeed(
+        GetFeedParams(
+          userId: event.userId,
+          limit: 20,
+          lastPostId:
+              currentState.posts.isNotEmpty ? currentState.posts.last.id : null,
+          lastCreatedAt: currentState.posts.isNotEmpty
+              ? currentState.posts.last.createdAt
+              : null,
+          followingOnly: event.followingOnly,
+        ),
+      );
 
       result.fold(
-        (failure) => emit(currentState.copyWith(
-          isLoadingMore: false,
-          error: failure.message,
-        )),
-        (newPosts) => emit(currentState.copyWith(
-          posts: [...currentState.posts, ...newPosts],
-          hasReachedMax: newPosts.length < 20,
-          isLoadingMore: false,
-          error: null,
-        )),
+        (failure) => emit(
+          currentState.copyWith(isLoadingMore: false, error: failure.message),
+        ),
+        (newPosts) => emit(
+          currentState.copyWith(
+            posts: [...currentState.posts, ...newPosts],
+            hasReachedMax: newPosts.length < 20,
+            isLoadingMore: false,
+            error: null,
+          ),
+        ),
       );
     }
   }
@@ -161,10 +176,14 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
     emit(FeedCreatingPost());
 
-    final result = await _createPost(CreatePostParams(post: event.post, images: event.images));
+    final result = await _createPost(
+      CreatePostParams(post: event.post, images: event.images),
+    );
 
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (post) {
         AnalyticsService.instance.logPostCreated(
           postType: post.type.name,
@@ -176,10 +195,12 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
         // 기존 피드 목록 앞에 새 게시물 추가
         final existingPosts = prevLoaded?.posts ?? [];
-        emit(FeedLoaded(
-          posts: [post, ...existingPosts],
-          hasReachedMax: prevLoaded?.hasReachedMax ?? false,
-        ));
+        emit(
+          FeedLoaded(
+            posts: [post, ...existingPosts],
+            hasReachedMax: prevLoaded?.hasReachedMax ?? false,
+          ),
+        );
       },
     );
   }
@@ -188,59 +209,13 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     LikePostRequested event,
     Emitter<FeedState> emit,
   ) async {
-    final current = state;
-    List<Post> posts;
-    if (current is FeedLoaded) {
-      posts = current.posts;
-    } else if (current is FeedRecommendedLoaded) {
-      posts = current.posts;
-    } else {
-      return;
-    }
-
-    final originalPosts = List<Post>.from(posts);
-    final updatedPosts = posts.map((post) {
-      if (post.id == event.postId) {
-        return post.copyWith(
-          isLikedByCurrentUser: true,
-          likesCount: post.likesCount + 1,
-        );
-      }
-      return post;
-    }).toList();
-
-    if (current is FeedLoaded) {
-      emit(current.copyWith(posts: updatedPosts));
-    } else if (current is FeedRecommendedLoaded) {
-      emit(current.copyWith(posts: updatedPosts));
-    }
-
-    final result = await _likePost(LikePostParams(
+    await _mutatePostLike(
       postId: event.postId,
       userId: event.userId,
-    ));
-
-    result.fold(
-      (_) {
-        // 실패 시 원본 상태로 복원
-        if (current is FeedLoaded) {
-          emit(current.copyWith(posts: originalPosts));
-        } else if (current is FeedRecommendedLoaded) {
-          emit(current.copyWith(posts: originalPosts));
-        }
-      },
-      (_) {
-        final likedPost =
-            posts.where((p) => p.id == event.postId).firstOrNull;
-        if (likedPost != null && likedPost.authorId != event.userId) {
-          _pushService.sendLikeNotification(
-            toUserId: likedPost.authorId,
-            fromUserId: event.userId,
-            fromUserName: '사용자',
-            postId: event.postId,
-          );
-        }
-      },
+      targetLiked: true,
+      emit: emit,
+      mutate: () =>
+          _likePost(LikePostParams(postId: event.postId, userId: event.userId)),
     );
   }
 
@@ -248,48 +223,141 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     UnlikePostRequested event,
     Emitter<FeedState> emit,
   ) async {
-    final current = state;
-    List<Post> posts;
-    if (current is FeedLoaded) {
-      posts = current.posts;
-    } else if (current is FeedRecommendedLoaded) {
-      posts = current.posts;
-    } else {
+    await _mutatePostLike(
+      postId: event.postId,
+      userId: event.userId,
+      targetLiked: false,
+      emit: emit,
+      mutate: () => _unlikePost(
+        UnlikePostParams(postId: event.postId, userId: event.userId),
+      ),
+    );
+  }
+
+  Future<void> _mutatePostLike({
+    required String postId,
+    required String userId,
+    required bool targetLiked,
+    required Emitter<FeedState> emit,
+    required Future<Either<Failure, void>> Function() mutate,
+  }) async {
+    if (_pendingLikePostIds.contains(postId)) return;
+    final original = _postFromState(state, postId);
+    if (original == null || original.isLikedByCurrentUser == targetLiked) {
       return;
     }
 
-    final originalPosts = List<Post>.from(posts);
-    final updatedPosts = posts.map((post) {
-      if (post.id == event.postId) {
-        return post.copyWith(
-          isLikedByCurrentUser: false,
-          likesCount: post.likesCount - 1,
-        );
-      }
-      return post;
-    }).toList();
+    _pendingLikePostIds.add(postId);
+    _emitLikeState(
+      emit,
+      postId: postId,
+      isLiked: targetLiked,
+      likesCount: targetLiked
+          ? original.likesCount + 1
+          : (original.likesCount - 1).clamp(0, 0x7fffffff).toInt(),
+    );
 
-    if (current is FeedLoaded) {
-      emit(current.copyWith(posts: updatedPosts));
-    } else if (current is FeedRecommendedLoaded) {
-      emit(current.copyWith(posts: updatedPosts));
+    Either<Failure, void> result;
+    try {
+      result = await mutate();
+    } catch (_) {
+      _pendingLikePostIds.remove(postId);
+      _emitLikeState(
+        emit,
+        postId: postId,
+        isLiked: original.isLikedByCurrentUser,
+        likesCount: original.likesCount.clamp(0, 0x7fffffff).toInt(),
+      );
+      return;
+    }
+    if (result.isLeft()) {
+      _pendingLikePostIds.remove(postId);
+      _emitLikeState(
+        emit,
+        postId: postId,
+        isLiked: original.isLikedByCurrentUser,
+        likesCount: original.likesCount.clamp(0, 0x7fffffff).toInt(),
+      );
+      return;
     }
 
-    final result = await _unlikePost(UnlikePostParams(
-      postId: event.postId,
-      userId: event.userId,
-    ));
+    if (targetLiked && original.authorId != userId) {
+      _pushService.sendLikeNotification(
+        toUserId: original.authorId,
+        fromUserId: userId,
+        fromUserName: '사용자',
+        postId: postId,
+      );
+    }
 
-    result.fold(
-      (_) {
-        if (current is FeedLoaded) {
-          emit(current.copyWith(posts: originalPosts));
-        } else if (current is FeedRecommendedLoaded) {
-          emit(current.copyWith(posts: originalPosts));
+    try {
+      final postResult = await _socialRepository.getPost(postId);
+      final likedResult = await _socialRepository.isPostLiked(postId, userId);
+      final serverPost = postResult.fold<Post?>((_) => null, (post) => post);
+      final serverLiked = likedResult.fold<bool?>(
+        (_) => null,
+        (liked) => liked,
+      );
+      if (serverPost != null || serverLiked != null) {
+        final current = _postFromState(state, postId);
+        if (current != null) {
+          _emitLikeState(
+            emit,
+            postId: postId,
+            isLiked: serverLiked ?? current.isLikedByCurrentUser,
+            likesCount: (serverPost?.likesCount ?? current.likesCount)
+                .clamp(0, 0x7fffffff)
+                .toInt(),
+          );
         }
-      },
-      (_) {},
-    );
+      }
+    } catch (_) {
+      // Keep the optimistic state if the server cannot be reconciled.
+    } finally {
+      _pendingLikePostIds.remove(postId);
+    }
+  }
+
+  Post? _postFromState(FeedState source, String postId) {
+    final posts = switch (source) {
+      FeedLoaded(:final posts) => posts,
+      FeedRecommendedLoaded(:final posts) => posts,
+      _ => const <Post>[],
+    };
+    for (final post in posts) {
+      if (post.id == postId) return post;
+    }
+    return null;
+  }
+
+  void _emitLikeState(
+    Emitter<FeedState> emit, {
+    required String postId,
+    required bool isLiked,
+    required int likesCount,
+  }) {
+    final current = state;
+    final posts = switch (current) {
+      FeedLoaded(:final posts) => posts,
+      FeedRecommendedLoaded(:final posts) => posts,
+      _ => null,
+    };
+    if (posts == null || !posts.any((post) => post.id == postId)) return;
+    final updated = posts
+        .map(
+          (post) => post.id == postId
+              ? post.copyWith(
+                  isLikedByCurrentUser: isLiked,
+                  likesCount: likesCount.clamp(0, 0x7fffffff).toInt(),
+                )
+              : post,
+        )
+        .toList();
+    if (current is FeedLoaded) {
+      emit(current.copyWith(posts: updated));
+    } else if (current is FeedRecommendedLoaded) {
+      emit(current.copyWith(posts: updated));
+    }
   }
 
   Future<void> _onUpdatePostRequested(
@@ -368,9 +436,12 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     Emitter<FeedState> emit,
   ) async {
     final result = await _savePost(
-        SavePostParams(postId: event.postId, userId: event.userId));
+      SavePostParams(postId: event.postId, userId: event.userId),
+    );
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (_) => emit(FeedPostSaved(event.postId)),
     );
   }
@@ -380,9 +451,12 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     Emitter<FeedState> emit,
   ) async {
     final result = await _unsavePost(
-        UnsavePostParams(postId: event.postId, userId: event.userId));
+      UnsavePostParams(postId: event.postId, userId: event.userId),
+    );
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (_) => emit(FeedPostUnsaved(event.postId)),
     );
   }
@@ -407,27 +481,33 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     );
 
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (posts) {
         // 콜드스타트 폴백(P0-5): 추천 RPC는 본인·팔로우 글을 제외하므로
         // 초기에는 빈 결과가 날 수 있다 → 최신 전체 피드로 대체.
         // FeedLoaded 경로로 넘어가므로 keyset 무한스크롤·새로고침이 그대로 동작.
         if (event.offset == 0 && posts.isEmpty) {
-          add(LoadFeedRequested(
-            userId: event.userId,
-            limit: event.limit,
-            followingOnly: false,
-          ));
+          add(
+            LoadFeedRequested(
+              userId: event.userId,
+              limit: event.limit,
+              followingOnly: false,
+            ),
+          );
           return;
         }
         final existing = state is FeedRecommendedLoaded && event.offset > 0
             ? (state as FeedRecommendedLoaded).posts
             : <Post>[];
-        emit(FeedRecommendedLoaded(
-          posts: [...existing, ...posts],
-          hasReachedMax: posts.length < event.limit,
-          isLoadingMore: false,
-        ));
+        emit(
+          FeedRecommendedLoaded(
+            posts: [...existing, ...posts],
+            hasReachedMax: posts.length < event.limit,
+            isLoadingMore: false,
+          ),
+        );
       },
     );
   }
@@ -437,10 +517,13 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     Emitter<FeedState> emit,
   ) async {
     emit(FeedLoading());
-    final result =
-        await _getSavedPosts(GetSavedPostsParams(userId: event.userId));
+    final result = await _getSavedPosts(
+      GetSavedPostsParams(userId: event.userId),
+    );
     result.fold(
-      (failure) => emit(FeedError(failure.message, isNetworkError: failure is NetworkFailure)),
+      (failure) => emit(
+        FeedError(failure.message, isNetworkError: failure is NetworkFailure),
+      ),
       (posts) => emit(FeedSavedPostsLoaded(posts)),
     );
   }
@@ -449,19 +532,17 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     RealtimeLikeReceived event,
     Emitter<FeedState> emit,
   ) async {
-    if (state is! FeedLoaded) return;
-    final current = state as FeedLoaded;
     final postId = event.data['post_id'] as String?;
     final delta = event.data['event'] == 'insert' ? 1 : -1;
-    if (postId == null) return;
-
-    final updated = current.posts.map((p) {
-      if (p.id == postId) {
-        return p.copyWith(likesCount: (p.likesCount + delta).clamp(0, 999999));
-      }
-      return p;
-    }).toList();
-    emit(current.copyWith(posts: updated));
+    if (postId == null || _pendingLikePostIds.contains(postId)) return;
+    final post = _postFromState(state, postId);
+    if (post == null) return;
+    _emitLikeState(
+      emit,
+      postId: postId,
+      isLiked: post.isLikedByCurrentUser,
+      likesCount: (post.likesCount + delta).clamp(0, 0x7fffffff).toInt(),
+    );
   }
 
   Future<void> _onRealtimeCommentReceived(
@@ -477,7 +558,8 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     final updated = current.posts.map((p) {
       if (p.id == postId) {
         return p.copyWith(
-            commentsCount: (p.commentsCount + delta).clamp(0, 999999));
+          commentsCount: (p.commentsCount + delta).clamp(0, 999999),
+        );
       }
       return p;
     }).toList();

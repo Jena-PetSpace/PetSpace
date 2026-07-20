@@ -15,6 +15,7 @@ import 'package:meong_nyang_diary/features/auth/domain/entities/user.dart';
 import 'package:meong_nyang_diary/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/bookmark_collection.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/comment.dart';
+import 'package:meong_nyang_diary/features/social/domain/entities/post_likes_page.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/saved_posts_page.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
 import 'package:meong_nyang_diary/features/social/domain/usecases/create_comment.dart';
@@ -42,7 +43,11 @@ class _MockRealtimeService extends Mock implements RealtimeService {}
 
 class _FakeComment extends Fake implements Comment {}
 
-Map<String, dynamic> _post({int likesCount = 0, int commentsCount = 5}) {
+Map<String, dynamic> _post({
+  int likesCount = 0,
+  int commentsCount = 5,
+  List<String> imageUrls = const <String>[],
+}) {
   return <String, dynamic>{
     'id': 'post-1',
     'author_id': 'author-1',
@@ -50,7 +55,7 @@ Map<String, dynamic> _post({int likesCount = 0, int commentsCount = 5}) {
     'created_at': '2026-07-15T00:00:00Z',
     'likes_count': likesCount,
     'comments_count': commentsCount,
-    'image_urls': const <String>[],
+    'image_urls': imageUrls,
     'users': <String, dynamic>{'display_name': 'Mina', 'photo_url': null},
   };
 }
@@ -98,6 +103,7 @@ void main() {
     WidgetTester tester, {
     required CommentBloc commentBloc,
     SavedPostsChangeNotifier? savedPostsNotifier,
+    ValueNotifier<bool>? commentMutationNotifier,
   }) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -116,6 +122,7 @@ void main() {
               commentBloc: commentBloc,
               currentUserId: 'viewer',
               savedPostsNotifier: savedPostsNotifier,
+              commentMutationNotifier: commentMutationNotifier,
             ),
           ),
         ),
@@ -215,6 +222,73 @@ void main() {
     likeCompleter.complete(const Right(null));
     await tester.pumpAndSettle();
     expect(find.text('1'), findsOneWidget);
+  });
+
+  testWidgets('zero like count opens a distinct likes list', (tester) async {
+    when(
+      () => repository.getPostDetail('post-1'),
+    ).thenAnswer((_) async => Right(_post()));
+    when(
+      () => repository.isPostLiked('post-1', 'viewer'),
+    ).thenAnswer((_) async => const Right(false));
+    when(
+      () => repository.isPostSaved('post-1', 'viewer'),
+    ).thenAnswer((_) async => const Right(false));
+    when(
+      () => repository.getPostLikesPage(
+        postId: 'post-1',
+        currentUserId: 'viewer',
+        cursor: null,
+        query: '',
+        limit: 20,
+      ),
+    ).thenAnswer(
+      (_) async => const Right(PostLikesPage(items: [], hasMore: false)),
+    );
+    final bloc = mockCommentBloc();
+
+    await pumpPage(tester, commentBloc: bloc);
+    await tester.tap(find.byKey(const Key('post_detail_likes_count')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('좋아요'), findsOneWidget);
+    expect(find.byKey(const Key('likes_empty')), findsOneWidget);
+  });
+
+  testWidgets('double tapping an already-liked image never unlikes it',
+      (tester) async {
+    when(
+      () => repository.getPostDetail('post-1'),
+    ).thenAnswer(
+      (_) async => Right(
+        _post(
+          likesCount: 1,
+          imageUrls: const ['https://example.com/pet.jpg'],
+        ),
+      ),
+    );
+    when(
+      () => repository.isPostLiked('post-1', 'viewer'),
+    ).thenAnswer((_) async => const Right(true));
+    when(
+      () => repository.isPostSaved('post-1', 'viewer'),
+    ).thenAnswer((_) async => const Right(false));
+    final bloc = mockCommentBloc();
+
+    await pumpPage(tester, commentBloc: bloc);
+    final media = find.byKey(const Key('post_detail_media_0'));
+    await tester.tap(media);
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(media);
+    await tester.pump();
+
+    verifyNever(() => repository.likePost(any(), any()));
+    verifyNever(() => repository.unlikePost(any(), any()));
+    expect(
+      find.byKey(const Key('post_detail_double_tap_heart')),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(milliseconds: 850));
   });
 
   testWidgets('comment create failure preserves text and hides raw error', (
@@ -374,5 +448,51 @@ void main() {
     );
     expect(find.textContaining('unsave-secret'), findsNothing);
     expect(notifier.revision, 0);
+  });
+
+  testWidgets('publishes successful comment count mutations to its owner', (
+    tester,
+  ) async {
+    when(
+      () => repository.getPostDetail('post-1'),
+    ).thenAnswer((_) async => Right(_post()));
+    when(
+      () => repository.isPostLiked('post-1', 'viewer'),
+    ).thenAnswer((_) async => const Right(false));
+    when(
+      () => repository.isPostSaved('post-1', 'viewer'),
+    ).thenAnswer((_) async => const Right(false));
+    final controller = StreamController<CommentState>.broadcast();
+    addTearDown(controller.close);
+    final bloc = _MockCommentBloc();
+    const initial = CommentLoaded(
+      comments: [],
+      totalCount: 0,
+      hasMore: false,
+    );
+    whenListen(bloc, controller.stream, initialState: initial);
+    final notifier = ValueNotifier<bool>(false);
+    addTearDown(notifier.dispose);
+
+    await pumpPage(
+      tester,
+      commentBloc: bloc,
+      commentMutationNotifier: notifier,
+    );
+    controller.add(
+      const CommentLoaded(
+        comments: [],
+        totalCount: 1,
+        hasMore: false,
+        actionOutcome: CommentActionOutcome(
+          id: 1,
+          kind: CommentActionKind.commentCreated,
+          succeeded: true,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(notifier.value, isTrue);
   });
 }

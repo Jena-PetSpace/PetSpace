@@ -155,10 +155,9 @@ extension _PostCardActions on _PostCardState {
   void _showSaveFailure(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(message),
-      ));
+      ..showSnackBar(
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
+      );
   }
 
   Widget _buildActions() {
@@ -172,42 +171,59 @@ extension _PostCardActions on _PostCardState {
               Semantics(
                 label: post.isLikedByCurrentUser ? '좋아요 취소' : '좋아요',
                 button: true,
-                child: InkWell(
-                  onTap: () {
-                    _likeDebounce?.cancel();
-                    _likeDebounce =
-                        Timer(const Duration(milliseconds: 300), () {
-                      if (mounted) widget.onLike();
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(20.r),
-                  child: Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-                    child: Icon(
-                      post.isLikedByCurrentUser
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: post.isLikedByCurrentUser
-                          ? AppTheme.errorColor
-                          : null,
-                      size: 20.w,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: InkWell(
+                    key: const Key('post_card_like_button'),
+                    onTap: () {
+                      _likeDebounce?.cancel();
+                      _likeDebounce = Timer(
+                        const Duration(milliseconds: 300),
+                        () {
+                          if (mounted) widget.onLike();
+                        },
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(22.r),
+                    child: Center(
+                      child: Icon(
+                        post.isLikedByCurrentUser
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: post.isLikedByCurrentUser
+                            ? AppTheme.errorColor
+                            : null,
+                        size: 20.w,
+                      ),
                     ),
                   ),
                 ),
               ),
-              GestureDetector(
-                onTap: post.likesCount > 0
-                    ? () => LikesBottomSheet.show(
-                          context,
-                          postId: post.id,
-                          currentUserId: currentUserId,
-                        )
-                    : null,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-                  child: Text('${post.likesCount}',
-                      style: TextStyle(fontSize: 12.sp)),
+              Semantics(
+                label: '좋아요 ${post.likesCount}명 보기',
+                button: true,
+                child: SizedBox(
+                  height: 44,
+                  child: InkWell(
+                    key: const Key('post_card_likes_count'),
+                    onTap: () => LikesBottomSheet.show(
+                      context,
+                      postId: post.id,
+                      currentUserId: currentUserId,
+                      repository: socialRepository,
+                    ),
+                    borderRadius: BorderRadius.circular(12.r),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w),
+                      child: Center(
+                        child: Text(
+                          '${post.likesCount}',
+                          style: TextStyle(fontSize: 12.sp),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -226,8 +242,10 @@ extension _PostCardActions on _PostCardState {
                   children: [
                     Icon(Icons.comment_outlined, size: 20.w),
                     SizedBox(width: 4.w),
-                    Text('${post.commentsCount}',
-                        style: TextStyle(fontSize: 12.sp)),
+                    Text(
+                      '${post.commentsCount}',
+                      style: TextStyle(fontSize: 12.sp),
+                    ),
                   ],
                 ),
               ),
@@ -280,11 +298,14 @@ extension _PostCardActions on _PostCardState {
           if (post.location != null)
             GestureDetector(
               onTap: (post.locationLat != null && post.locationLng != null)
-                  ? () => context.push('/location', extra: {
-                        'lat': post.locationLat,
-                        'lng': post.locationLng,
-                        'locationName': post.location,
-                      })
+                  ? () => context.push(
+                        '/location',
+                        extra: {
+                          'lat': post.locationLat,
+                          'lng': post.locationLng,
+                          'locationName': post.location,
+                        },
+                      )
                   : null,
               child: Row(
                 children: [

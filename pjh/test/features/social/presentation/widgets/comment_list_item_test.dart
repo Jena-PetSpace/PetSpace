@@ -142,7 +142,11 @@ void main() {
       ),
     ).called(1);
 
-    await tester.tap(find.byKey(const Key('comment_delete_reply-0')));
+    final deleteMenu = find.byKey(const Key('comment_delete_reply-0'));
+    expect(tester.getSize(deleteMenu).height, greaterThanOrEqualTo(44));
+    await tester.tap(deleteMenu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('삭제'));
     await tester.pumpAndSettle();
     expect(find.text('답글 삭제'), findsOneWidget);
     await tester.tap(find.text('삭제'));
@@ -150,5 +154,48 @@ void main() {
     verify(
       () => bloc.add(const DeleteCommentRequested(commentId: 'reply-0')),
     ).called(1);
+  });
+
+  testWidgets('owner top-level menu confirms before invoking delete', (
+    tester,
+  ) async {
+    var deleteCalls = 0;
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        builder: (_, __) => MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: BlocProvider<CommentBloc>.value(
+                value: bloc,
+                child: CommentListItem(
+                  comment: parent,
+                  currentUserId: 'viewer',
+                  onDelete: () => deleteCalls++,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final menu = find.byKey(const Key('comment_delete_parent'));
+    expect(tester.getSize(menu).height, greaterThanOrEqualTo(44));
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('삭제'));
+    await tester.pumpAndSettle();
+    expect(find.text('댓글 삭제'), findsOneWidget);
+    expect(deleteCalls, 0);
+
+    await tester.tap(find.text('삭제'));
+    await tester.pumpAndSettle();
+    expect(deleteCalls, 1);
   });
 }
