@@ -11,6 +11,7 @@ class ChatRoomsBloc extends Bloc<ChatRoomsEvent, ChatRoomsState> {
   final GetChatRooms getChatRooms;
   final CreateDirectChat createDirectChat;
   final CreateGroupChat createGroupChat;
+  bool _isCreating = false;
 
   ChatRoomsBloc({
     required this.getChatRooms,
@@ -39,9 +40,25 @@ class ChatRoomsBloc extends Bloc<ChatRoomsEvent, ChatRoomsState> {
     ChatRoomsRefreshRequested event,
     Emitter<ChatRoomsState> emit,
   ) async {
+    final currentState = state;
+    if (currentState is ChatRoomsLoaded) {
+      emit(currentState.copyWith(
+        isRefreshing: true,
+        clearRefreshError: true,
+      ));
+    }
     final result = await getChatRooms(GetChatRoomsParams(userId: event.userId));
     result.fold(
-      (failure) => emit(ChatRoomsError(message: failure.message)),
+      (failure) {
+        if (currentState is ChatRoomsLoaded) {
+          emit(currentState.copyWith(
+            isRefreshing: false,
+            refreshErrorMessage: failure.message,
+          ));
+        } else {
+          emit(ChatRoomsError(message: failure.message));
+        }
+      },
       (rooms) => emit(ChatRoomsLoaded(rooms: rooms)),
     );
   }
@@ -50,28 +67,36 @@ class ChatRoomsBloc extends Bloc<ChatRoomsEvent, ChatRoomsState> {
     ChatRoomsCreateDirectRequested event,
     Emitter<ChatRoomsState> emit,
   ) async {
+    if (_isCreating) return;
+    _isCreating = true;
+    emit(const ChatRoomCreating());
     final result = await createDirectChat(CreateDirectChatParams(
       currentUserId: event.currentUserId,
       otherUserId: event.otherUserId,
     ));
     result.fold(
-      (failure) => emit(ChatRoomsError(message: failure.message)),
+      (failure) => emit(ChatRoomCreateFailure(message: failure.message)),
       (room) => emit(ChatRoomCreated(room: room)),
     );
+    _isCreating = false;
   }
 
   Future<void> _onCreateGroupRequested(
     ChatRoomsCreateGroupRequested event,
     Emitter<ChatRoomsState> emit,
   ) async {
+    if (_isCreating) return;
+    _isCreating = true;
+    emit(const ChatRoomCreating());
     final result = await createGroupChat(CreateGroupChatParams(
       name: event.name,
       creatorId: event.creatorId,
       memberIds: event.memberIds,
     ));
     result.fold(
-      (failure) => emit(ChatRoomsError(message: failure.message)),
+      (failure) => emit(ChatRoomCreateFailure(message: failure.message)),
       (room) => emit(ChatRoomCreated(room: room)),
     );
+    _isCreating = false;
   }
 }

@@ -92,8 +92,10 @@ class _UserPostsListState extends State<UserPostsList> {
     if (!mounted || requestToken != _requestToken) return;
     result.fold(
       (failure) {
-        dev.log('UserPostsList load error: ${failure.message}',
-            name: 'UserPostsList');
+        dev.log(
+          'UserPostsList load error: ${failure.message}',
+          name: 'UserPostsList',
+        );
         setState(() {
           _loading = false;
           _firstLoadError = true;
@@ -130,8 +132,10 @@ class _UserPostsListState extends State<UserPostsList> {
     if (!mounted || requestToken != _requestToken) return;
     result.fold(
       (failure) {
-        dev.log('UserPostsList loadMore error: ${failure.message}',
-            name: 'UserPostsList');
+        dev.log(
+          'UserPostsList loadMore error: ${failure.message}',
+          name: 'UserPostsList',
+        );
         setState(() {
           _loadingMore = false;
           _loadMoreError = true;
@@ -222,16 +226,19 @@ class _UserPostsListState extends State<UserPostsList> {
                           bottom: 4,
                           child: Container(
                             padding: EdgeInsets.symmetric(
-                                horizontal: 5.w, vertical: 2.h),
+                              horizontal: 6.w,
+                              vertical: 3.h,
+                            ),
                             decoration: BoxDecoration(
-                              color:
-                                  AppTheme.primaryColor.withValues(alpha: 0.9),
+                              color: AppTheme.primaryColor.withValues(
+                                alpha: 0.9,
+                              ),
                               borderRadius: BorderRadius.circular(4.r),
                             ),
                             child: Text(
                               '감정분석',
                               style: TextStyle(
-                                fontSize: 9.sp,
+                                fontSize: 12.sp,
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -242,8 +249,11 @@ class _UserPostsListState extends State<UserPostsList> {
                         Positioned(
                           right: 4,
                           top: 4,
-                          child:
-                              Icon(Icons.copy, size: 14.w, color: Colors.white),
+                          child: Icon(
+                            Icons.copy,
+                            size: 14.w,
+                            color: Colors.white,
+                          ),
                         ),
                     ],
                   ),
@@ -275,8 +285,11 @@ class _UserPostsListState extends State<UserPostsList> {
       padding: EdgeInsets.all(12.w),
       child: Center(
         child: text.isEmpty
-            ? Icon(Icons.notes_rounded,
-                size: 26.w, color: AppTheme.lightTextColor)
+            ? Icon(
+                Icons.notes_rounded,
+                size: 26.w,
+                color: AppTheme.lightTextColor,
+              )
             : Text(
                 text,
                 maxLines: 4,
@@ -299,8 +312,11 @@ class _UserPostsListState extends State<UserPostsList> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_outlined,
-                size: 44.w, color: AppTheme.lightTextColor),
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 44.w,
+              color: AppTheme.lightTextColor,
+            ),
             SizedBox(height: 14.h),
             Text(
               '게시물을 불러오지 못했어요',
@@ -339,18 +355,20 @@ class _UserPostsListState extends State<UserPostsList> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.grid_on_outlined,
-                size: 48.w, color: AppTheme.lightTextColor),
+            Icon(
+              Icons.grid_on_outlined,
+              size: 48.w,
+              color: AppTheme.lightTextColor,
+            ),
             SizedBox(height: 16.h),
             Text(
-              widget.isMyProfile
-                  ? '아직 게시글이 없어요\n첫 이야기를 공유해보세요 📸'
-                  : '게시글이 없습니다',
+              widget.isMyProfile ? '아직 게시글이 없어요\n첫 이야기를 공유해보세요' : '게시글이 없습니다',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 13.sp,
-                  color: AppTheme.secondaryTextColor,
-                  height: 1.6),
+                fontSize: 13.sp,
+                color: AppTheme.secondaryTextColor,
+                height: 1.6,
+              ),
             ),
           ],
         ),

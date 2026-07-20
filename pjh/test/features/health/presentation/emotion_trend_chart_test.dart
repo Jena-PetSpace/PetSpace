@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:meong_nyang_diary/features/emotion/domain/entities/emotion_analysis.dart';
+import 'package:meong_nyang_diary/features/health/presentation/controllers/health_emotion_loader.dart';
 import 'package:meong_nyang_diary/features/health/presentation/widgets/emotion_trend_mini_chart.dart';
 
 EmotionScores _scores({
@@ -35,6 +38,48 @@ EmotionAnalysis _analysis(DateTime when, EmotionScores s) => EmotionAnalysis(
       analyzedAt: when,
       tags: const [],
     );
+
+class _QueueEmotionLoader implements HealthEmotionLoader {
+  final List<HealthEmotionHistoryResult> results;
+  int calls = 0;
+
+  _QueueEmotionLoader(this.results);
+
+  @override
+  Future<HealthEmotionHistoryResult> loadHistory({
+    required String userId,
+    required String petId,
+    int limit = 30,
+  }) async {
+    final index = calls < results.length ? calls : results.length - 1;
+    calls++;
+    return results[index];
+  }
+
+  @override
+  Future<EmotionAnalysis?> loadLatest({
+    required String userId,
+    required String petId,
+  }) async {
+    return null;
+  }
+}
+
+Widget _wrapChart(HealthEmotionLoader loader) {
+  return ScreenUtilInit(
+    designSize: const Size(390, 844),
+    minTextAdapt: true,
+    builder: (_, __) => MaterialApp(
+      home: Scaffold(
+        body: EmotionTrendMiniChart(
+          userId: 'user-1',
+          petId: 'pet-1',
+          loader: loader,
+        ),
+      ),
+    ),
+  );
+}
 
 void main() {
   // ── 긍정도 계산 ────────────────────────────────────────────────────────────
@@ -105,5 +150,25 @@ void main() {
       ]);
       expect(pts.first.positiveRatio, closeTo(0.75, 1e-9));
     });
+  });
+
+  testWidgets('failure and successful empty states stay distinct with retry',
+      (tester) async {
+    final loader = _QueueEmotionLoader([
+      const HealthEmotionHistoryResult.failure(),
+      const HealthEmotionHistoryResult.success([]),
+    ]);
+    await tester.pumpWidget(_wrapChart(loader));
+    await tester.pumpAndSettle();
+
+    expect(find.text('건강 변화를 불러오지 못했어요'), findsOneWidget);
+    expect(find.text('아직 분석 기록이 없어요'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('health_emotion_retry')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('건강 변화를 불러오지 못했어요'), findsNothing);
+    expect(find.text('아직 분석 기록이 없어요'), findsOneWidget);
+    expect(loader.calls, 2);
   });
 }

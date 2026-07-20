@@ -116,16 +116,11 @@ class NotificationCard extends StatelessWidget {
             children: [
               TextSpan(
                 text: notification.senderName,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
               ),
               TextSpan(
                 text: ' ${_getNotificationAction(notification.type)}',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                ),
+                style: TextStyle(fontSize: 14.sp),
               ),
             ],
           ),
@@ -156,12 +151,20 @@ class NotificationCard extends StatelessWidget {
         return Icons.person_add;
       case social_notification.NotificationType.mention:
         return Icons.alternate_email;
+      case social_notification.NotificationType.system:
+        return Icons.campaign_outlined;
+      case social_notification.NotificationType.adminNewPost:
+        return Icons.article_outlined;
       case social_notification.NotificationType.emotionAnalysis:
         return Icons.psychology;
+      case social_notification.NotificationType.healthAlert:
+        return Icons.health_and_safety_outlined;
       case social_notification.NotificationType.friendRequest:
         return Icons.person_add_alt_1;
       case social_notification.NotificationType.postShare:
         return Icons.share;
+      case social_notification.NotificationType.unknown:
+        return Icons.notifications_none;
     }
   }
 
@@ -175,12 +178,20 @@ class NotificationCard extends StatelessWidget {
         return Colors.green;
       case social_notification.NotificationType.mention:
         return Colors.orange;
+      case social_notification.NotificationType.system:
+        return AppTheme.primaryColor;
+      case social_notification.NotificationType.adminNewPost:
+        return AppTheme.primaryColor;
       case social_notification.NotificationType.emotionAnalysis:
         return Colors.purple;
+      case social_notification.NotificationType.healthAlert:
+        return Colors.teal;
       case social_notification.NotificationType.friendRequest:
         return Colors.teal;
       case social_notification.NotificationType.postShare:
         return Colors.indigo;
+      case social_notification.NotificationType.unknown:
+        return AppTheme.secondaryTextColor;
     }
   }
 
@@ -194,12 +205,20 @@ class NotificationCard extends StatelessWidget {
         return '님이 팔로우하기 시작했습니다';
       case social_notification.NotificationType.mention:
         return '님이 언급했습니다';
+      case social_notification.NotificationType.system:
+        return '에서 새 소식을 전했습니다';
+      case social_notification.NotificationType.adminNewPost:
+        return '에서 새 게시물을 알려드립니다';
       case social_notification.NotificationType.emotionAnalysis:
         return '님이 감정 분석을 공유했습니다';
+      case social_notification.NotificationType.healthAlert:
+        return '에서 건강 일정을 알려드립니다';
       case social_notification.NotificationType.friendRequest:
         return '님이 친구 요청을 보냈습니다';
       case social_notification.NotificationType.postShare:
         return '님이 게시물을 공유했습니다';
+      case social_notification.NotificationType.unknown:
+        return '에서 새 알림을 보냈습니다';
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -32,7 +34,7 @@ class ChatBubble extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
       child: Row(
         mainAxisAlignment:
             isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -42,12 +44,16 @@ class ChatBubble extends StatelessWidget {
             if (showSenderInfo)
               CircleAvatar(
                 radius: 16.r,
-                backgroundColor: Colors.grey[200],
+                backgroundColor: AppTheme.actionContainer,
                 backgroundImage: message.senderPhotoUrl != null
                     ? NetworkImage(message.senderPhotoUrl!)
                     : null,
                 child: message.senderPhotoUrl == null
-                    ? Icon(Icons.person, size: 16.w, color: Colors.grey[500])
+                    ? Icon(
+                        Icons.person,
+                        size: 16.w,
+                        color: AppTheme.actionBase,
+                      )
                     : null,
               )
             else
@@ -66,7 +72,7 @@ class ChatBubble extends StatelessWidget {
                       message.senderName ?? '',
                       style: TextStyle(
                         fontSize: 12.sp,
-                        color: Colors.grey[600],
+                        color: AppTheme.secondaryTextColor,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -89,7 +95,8 @@ class ChatBubble extends StatelessWidget {
                                   '$unreadCount',
                                   style: TextStyle(
                                     fontSize: 10.sp,
-                                    color: AppTheme.warningColor, // v2-review: FF6B00 근사
+                                    color: AppTheme
+                                        .warningColor, // v2-review: FF6B00 근사
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -124,7 +131,8 @@ class ChatBubble extends StatelessWidget {
                                   '$unreadCount',
                                   style: TextStyle(
                                     fontSize: 10.sp,
-                                    color: AppTheme.warningColor, // v2-review: FF6B00 근사
+                                    color: AppTheme
+                                        .warningColor, // v2-review: FF6B00 근사
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -132,7 +140,9 @@ class ChatBubble extends StatelessWidget {
                             Text(
                               _formatTime(message.createdAt),
                               style: TextStyle(
-                                  fontSize: 10.sp, color: Colors.grey),
+                                fontSize: AppTheme.fontMicro.sp,
+                                color: AppTheme.secondaryTextColor,
+                              ),
                             ),
                           ],
                         ),
@@ -164,14 +174,14 @@ class ChatBubble extends StatelessWidget {
       return Container(
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: Colors.grey[200],
+          color: AppTheme.actionContainer,
           borderRadius: BorderRadius.circular(16.r),
         ),
         child: Text(
           '삭제된 메시지입니다',
           style: TextStyle(
             fontSize: 14.sp,
-            color: Colors.grey,
+            color: AppTheme.secondaryTextColor,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -187,25 +197,33 @@ class ChatBubble extends StatelessWidget {
 
     // 단일 이미지 메시지
     if (message.type == ChatMessageType.image && message.imageUrl != null) {
+      final imageWidth = math.min(
+        200.w,
+        MediaQuery.sizeOf(context).width * 0.56,
+      );
       return GestureDetector(
         onTap: () => _openImageViewer(context, [message.imageUrl!], 0),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12.r),
           child: CachedNetworkImage(
             imageUrl: message.imageUrl!,
-            width: 200.w,
+            width: imageWidth,
             fit: BoxFit.cover,
             placeholder: (context, url) => Container(
-              width: 200.w,
-              height: 150.h,
-              color: Colors.grey[200],
+              width: imageWidth,
+              height: imageWidth * 0.75,
+              color: AppTheme.actionContainer,
               child: const Center(child: CircularProgressIndicator()),
             ),
             errorWidget: (context, url, error) => Container(
-              width: 200.w,
-              height: 150.h,
-              color: Colors.grey[200],
-              child: Icon(Icons.broken_image, size: 40.w, color: Colors.grey),
+              width: imageWidth,
+              height: imageWidth * 0.75,
+              color: AppTheme.actionContainer,
+              child: Icon(
+                Icons.broken_image,
+                size: 40.w,
+                color: AppTheme.secondaryTextColor,
+              ),
             ),
           ),
         ),
@@ -213,10 +231,13 @@ class ChatBubble extends StatelessWidget {
     }
 
     return Container(
+      key: Key(isMine ? 'chat_text_bubble_mine' : 'chat_text_bubble_other'),
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color:
-            isMine ? Theme.of(context).colorScheme.primary : Colors.grey[200],
+        color: isMine
+            ? AppTheme.actionBase
+            : Theme.of(context).colorScheme.surface,
+        border: isMine ? null : Border.all(color: AppTheme.border),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(16.r),
           topRight: Radius.circular(16.r),
@@ -228,7 +249,8 @@ class ChatBubble extends StatelessWidget {
         message.content ?? '',
         style: TextStyle(
           fontSize: 14.sp,
-          color: isMine ? Colors.white : Colors.black87,
+          color:
+              isMine ? Colors.white : Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
@@ -236,10 +258,14 @@ class ChatBubble extends StatelessWidget {
 
   /// 카카오톡 스타일 멀티 이미지 그리드
   Widget _buildMultiImageGrid(BuildContext context, List<String> urls) {
-    final gridWidth = 250.w;
+    final gridWidth = math.min(
+      250.w,
+      MediaQuery.sizeOf(context).width * 0.56,
+    );
     final spacing = 2.w;
 
     return ClipRRect(
+      key: const Key('chat_multi_image_grid'),
       borderRadius: BorderRadius.circular(12.r),
       child: SizedBox(
         width: gridWidth,
@@ -359,14 +385,14 @@ class ChatBubble extends StatelessWidget {
                         imageUrl: urls[3],
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          color: Colors.grey[200],
+                          color: AppTheme.actionContainer,
                           child: const Center(
                               child: CircularProgressIndicator(strokeWidth: 2)),
                         ),
                         errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[200],
+                          color: AppTheme.actionContainer,
                           child: Icon(Icons.broken_image,
-                              size: 24.w, color: Colors.grey),
+                              size: 24.w, color: AppTheme.secondaryTextColor),
                         ),
                       ),
                       Container(
@@ -409,13 +435,17 @@ class ChatBubble extends StatelessWidget {
           imageUrl: allUrls[index],
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
-            color: Colors.grey[200],
+            color: AppTheme.actionContainer,
             child:
                 const Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
           errorWidget: (context, url, error) => Container(
-            color: Colors.grey[200],
-            child: Icon(Icons.broken_image, size: 24.w, color: Colors.grey),
+            color: AppTheme.actionContainer,
+            child: Icon(
+              Icons.broken_image,
+              size: 24.w,
+              color: AppTheme.secondaryTextColor,
+            ),
           ),
         ),
       ),
@@ -437,17 +467,18 @@ class ChatBubble extends StatelessWidget {
   Widget _buildSystemMessage(BuildContext context) {
     return Center(
       child: Container(
+        key: const Key('chat_system_message'),
         margin: EdgeInsets.symmetric(vertical: 8.h),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: Colors.grey[300],
+          color: AppTheme.actionContainer,
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Text(
           message.content ?? '',
           style: TextStyle(
             fontSize: 12.sp,
-            color: Colors.grey[700],
+            color: AppTheme.secondaryTextColor,
           ),
         ),
       ),

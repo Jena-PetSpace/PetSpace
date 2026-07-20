@@ -1,0 +1,72 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:meong_nyang_diary/core/services/local_notification_service.dart';
+import 'package:meong_nyang_diary/features/health/presentation/pages/health_alert_settings_page.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockLocalNotificationService extends Mock
+    implements LocalNotificationService {}
+
+Widget _wrap(LocalNotificationService service) {
+  return ScreenUtilInit(
+    designSize: const Size(390, 844),
+    minTextAdapt: true,
+    builder: (_, __) => MaterialApp(
+      home: HealthAlertSettingsPage(notificationService: service),
+    ),
+  );
+}
+
+void _stub(
+  _MockLocalNotificationService service,
+  HealthAlertScheduleResult result,
+) {
+  when(
+    () => service.scheduleHealthAlert(
+      id: any(named: 'id'),
+      title: any(named: 'title'),
+      body: any(named: 'body'),
+      scheduledDate: any(named: 'scheduledDate'),
+    ),
+  ).thenAnswer((_) async => result);
+}
+
+void main() {
+  late _MockLocalNotificationService service;
+
+  setUp(() {
+    service = _MockLocalNotificationService();
+  });
+
+  testWidgets('automatic alert is honest and test action is at least 44dp',
+      (tester) async {
+    _stub(service, HealthAlertScheduleResult.scheduled);
+    await tester.pumpWidget(_wrap(service));
+
+    expect(find.text('자동 예정일 알림'), findsOneWidget);
+    expect(find.text('준비 중'), findsOneWidget);
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(Checkbox), findsNothing);
+    expect(
+      tester.getSize(find.byKey(const Key('health_alert_test_button'))).height,
+      greaterThanOrEqualTo(44),
+    );
+
+    await tester.tap(find.byKey(const Key('health_alert_test_button')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('테스트 알림을 예약했어요'), findsOneWidget);
+  });
+
+  testWidgets('permission denial never displays the success message',
+      (tester) async {
+    _stub(service, HealthAlertScheduleResult.permissionDenied);
+    await tester.pumpWidget(_wrap(service));
+
+    await tester.tap(find.byKey(const Key('health_alert_test_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('알림 권한을 허용'), findsOneWidget);
+    expect(find.textContaining('테스트 알림을 예약했어요'), findsNothing);
+  });
+}

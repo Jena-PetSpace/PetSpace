@@ -1,251 +1,294 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../core/services/local_notification_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 
 class HealthAlertSettingsPage extends StatefulWidget {
-  const HealthAlertSettingsPage({super.key});
+  final LocalNotificationService? notificationService;
+
+  const HealthAlertSettingsPage({
+    super.key,
+    this.notificationService,
+  });
 
   @override
-  State<HealthAlertSettingsPage> createState() => _HealthAlertSettingsPageState();
+  State<HealthAlertSettingsPage> createState() =>
+      _HealthAlertSettingsPageState();
 }
 
 class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
-  bool _alertEnabled = true;
-  bool _alertD7 = true, _alertD3 = true, _alertD1 = true;
-  String _alertTime = '09:00';
+  bool _isTesting = false;
+  String? _resultMessage;
+  bool _resultSucceeded = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
+  LocalNotificationService get _notificationService =>
+      widget.notificationService ?? sl<LocalNotificationService>();
 
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _alertEnabled = prefs.getBool('health_alert_enabled') ?? true;
-        _alertD7 = prefs.getBool('health_alert_d7') ?? true;
-        _alertD3 = prefs.getBool('health_alert_d3') ?? true;
-        _alertD1 = prefs.getBool('health_alert_d1') ?? true;
-        _alertTime = prefs.getString('health_alert_time') ?? '09:00';
-      });
-    }
-  }
-
-  Future<void> _saveSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('health_alert_enabled', _alertEnabled);
-    await prefs.setBool('health_alert_d7', _alertD7);
-    await prefs.setBool('health_alert_d3', _alertD3);
-    await prefs.setBool('health_alert_d1', _alertD1);
-    await prefs.setString('health_alert_time', _alertTime);
-
-    // 알림 비활성화 시 예약된 건강 알림 모두 취소
-    // 활성화 시에는 HealthBloc이 기록 추가/수정 시점에 재스케줄링 (LocalNotificationService.scheduleHealthAlert)
-    if (!_alertEnabled) {
-      try {
-        // NOTE: 현재는 건강 전용 cancelByChannel API가 없어서 전체 취소 대신
-        // SharedPreferences 플래그만 읽어서 HealthBloc이 스케줄을 안 하도록 유도
-        // 향후 개별 취소: sl<LocalNotificationService>().cancelNotification(recordId.hashCode)
-      } catch (_) {}
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('알림 설정이 저장되었습니다'), backgroundColor: AppTheme.primaryColor),
-      );
-    }
-  }
-
-  /// 알림 동작 확인용 — 5초 뒤 테스트 알림
   Future<void> _sendTestNotification() async {
-    try {
-      final notif = sl<LocalNotificationService>();
-      await notif.scheduleHealthAlert(
-        id: 999999,
-        title: '알림 테스트',
-        body: '건강 알림이 정상적으로 동작합니다.',
-        scheduledDate: DateTime.now().add(const Duration(seconds: 5)),
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('5초 뒤 테스트 알림이 도착합니다')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('테스트 알림 예약 실패. 알림 권한을 확인해주세요.')),
-        );
-      }
-    }
+    if (_isTesting) return;
+    setState(() {
+      _isTesting = true;
+      _resultMessage = null;
+    });
+
+    final result = await _notificationService.scheduleHealthAlert(
+      id: 999999,
+      title: '알림 테스트',
+      body: '건강 알림이 정상적으로 동작합니다.',
+      scheduledDate: DateTime.now().add(const Duration(seconds: 5)),
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _isTesting = false;
+      _resultSucceeded = result == HealthAlertScheduleResult.scheduled;
+      _resultMessage = switch (result) {
+        HealthAlertScheduleResult.scheduled => '테스트 알림을 예약했어요. 5초 뒤 확인해주세요.',
+        HealthAlertScheduleResult.permissionDenied =>
+          '기기 설정에서 알림 권한을 허용한 뒤 다시 시도해주세요.',
+        HealthAlertScheduleResult.unavailable =>
+          '알림 서비스를 준비하지 못했어요. 앱을 다시 시작한 뒤 시도해주세요.',
+        HealthAlertScheduleResult.invalidDate => '알림 시간을 확인하지 못했어요. 다시 시도해주세요.',
+        HealthAlertScheduleResult.failed =>
+          '테스트 알림을 예약하지 못했어요. 잠시 후 다시 시도해주세요.',
+      };
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('건강 알림 설정', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
-        centerTitle: true, backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryTextColor, elevation: 0.5,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_active_outlined),
-            tooltip: '알림 테스트',
-            onPressed: _sendTestNotification,
+        title: Text(
+          '건강 알림',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w700,
+            color: theme.textTheme.titleLarge?.color,
           ),
-          TextButton(
-            onPressed: _saveSettings,
-            child: Text('저장', style: TextStyle(color: AppTheme.primaryColor, fontSize: 14.sp, fontWeight: FontWeight.w700)),
+        ),
+        centerTitle: true,
+      ),
+      body: ListView(
+        padding: EdgeInsets.all(16.w),
+        children: [
+          _buildAutomaticAlertCard(theme),
+          SizedBox(height: 16.h),
+          _buildTestAlertCard(theme),
+          SizedBox(height: 16.h),
+          Container(
+            padding: EdgeInsets.all(14.w),
+            decoration: BoxDecoration(
+              color: AppTheme.actionContainer,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: AppTheme.actionBase,
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    '기기 알림 테스트는 현재 기기의 권한과 수신 여부만 확인합니다. '
+                    '건강 기록 예정일에 맞춘 자동 알림은 아직 제공되지 않습니다.',
+                    style: TextStyle(
+                      fontSize: AppTheme.fontCaption.sp,
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // 알림 온/오프
-          _buildSection(
-            title: '건강 기록 알림',
+    );
+  }
+
+  Widget _buildAutomaticAlertCard(ThemeData theme) {
+    return _card(
+      theme: theme,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _iconBox(Icons.event_available_outlined),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '자동 예정일 알림',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontBody.sp,
+                    fontWeight: FontWeight.w700,
+                    color: theme.textTheme.titleMedium?.color,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  '건강 기록 예정일에 맞춘 자동 알림은 운영 연결과 검증이 끝난 뒤 제공됩니다.',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontCaption.sp,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 5.h),
+            decoration: BoxDecoration(
+              color: AppTheme.actionContainer,
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
+            ),
+            child: Text(
+              '준비 중',
+              style: TextStyle(
+                fontSize: AppTheme.fontMicro.sp,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.brandDeep,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTestAlertCard(ThemeData theme) {
+    return _card(
+      theme: theme,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSwitchTile(
-                icon: Icons.notifications_outlined,
-                title: '예정일 알림 받기',
-                subtitle: '건강 기록 예정일이 다가오면 알려드려요',
-                value: _alertEnabled,
-                onChanged: (v) => setState(() => _alertEnabled = v),
+              _iconBox(Icons.notifications_active_outlined),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '기기 알림 테스트',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontBody.sp,
+                        fontWeight: FontWeight.w700,
+                        color: theme.textTheme.titleMedium?.color,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      '5초 뒤 알림을 예약해 현재 기기의 권한과 수신 여부를 확인합니다.',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontCaption.sp,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
           SizedBox(height: 16.h),
-
-          // D-day 옵션
-          AnimatedOpacity(
-            opacity: _alertEnabled ? 1.0 : 0.4,
-            duration: const Duration(milliseconds: 200),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _buildSection(
-                title: '알림 시점',
-                children: [
-                  _buildCheckTile('D-7', '7일 전에 알림', _alertD7, (v) => setState(() => _alertD7 = v)),
-                  _buildCheckTile('D-3', '3일 전에 알림', _alertD3, (v) => setState(() => _alertD3 = v)),
-                  _buildCheckTile('D-1', '하루 전에 알림', _alertD1, (v) => setState(() => _alertD1 = v)),
-                ],
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              key: const Key('health_alert_test_button'),
+              onPressed: _isTesting ? null : _sendTestNotification,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.actionBase,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+                ),
               ),
-              SizedBox(height: 16.h),
-
-              _buildSection(
-                title: '알림 시간',
-                children: [
-                  ListTile(
-                    leading: Icon(Icons.access_time, size: 22.w, color: AppTheme.primaryColor),
-                    title: Text('알림 받을 시간', style: TextStyle(fontSize: 14.sp)),
-                    trailing: GestureDetector(
-                      onTap: () async {
-                        if (!_alertEnabled) return;
-                        final parts = _alertTime.split(':');
-                        final picked = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay(
-                            hour: int.parse(parts[0]),
-                            minute: int.parse(parts[1]),
-                          ),
-                        );
-                        if (picked != null && mounted) {
-                          setState(() => _alertTime = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}');
-                        }
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                        child: Text(_alertTime, style: TextStyle(
-                          fontSize: 14.sp, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
+              child: _isTesting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ]),
-          ),
-          SizedBox(height: 24.h),
-
-          // 안내 박스
-          Container(
-            padding: EdgeInsets.all(14.w),
-            decoration: BoxDecoration(
-              color: AppTheme.accentColor.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(14.r),
-              border: Border.all(color: AppTheme.accentColor.withValues(alpha: 0.2)),
+                    )
+                  : const Text('5초 뒤 테스트 알림 보내기'),
             ),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.info_outline, size: 18.w, color: AppTheme.accentColor),
-              SizedBox(width: 10.w),
-              Expanded(child: Text(
-                '알림은 건강 기록에 등록된 다음 예정일(nextDate)을 기준으로 발송됩니다.\n'
-                '푸시 알림은 FCM 서비스를 통해 발송되며, 기기 알림 권한이 필요합니다.',
-                style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor, height: 1.5),
-              )),
-            ]),
           ),
-        ]),
+          if (_resultMessage != null) ...[
+            SizedBox(height: 12.h),
+            Semantics(
+              liveRegion: true,
+              child: Container(
+                key: const Key('health_alert_test_result'),
+                width: double.infinity,
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: _resultSucceeded
+                      ? AppTheme.actionContainer
+                      : AppTheme.errorColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
+                ),
+                child: Text(
+                  _resultMessage!,
+                  style: TextStyle(
+                    fontSize: AppTheme.fontCaption.sp,
+                    color: _resultSucceeded
+                        ? AppTheme.brandDeep
+                        : AppTheme.errorColor,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _buildSection({required String title, required List<Widget> children}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: EdgeInsets.only(left: 4.w, bottom: 8.h),
-        child: Text(title, style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700,
-          color: AppTheme.secondaryTextColor, letterSpacing: 0.3)),
-      ),
-      Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)]),
-        child: Column(children: children),
-      ),
-    ]);
-  }
-
-  Widget _buildSwitchTile({
-    required IconData icon, required String title, required String subtitle,
-    required bool value, required ValueChanged<bool> onChanged,
+  Widget _card({
+    required ThemeData theme,
+    required Widget child,
   }) {
-    return SwitchListTile(
-      secondary: Icon(icon, size: 22.w, color: AppTheme.primaryColor),
-      title: Text(title, style: TextStyle(fontSize: 14.sp)),
-      subtitle: Text(subtitle, style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor)),
-      value: value, onChanged: onChanged,
-      activeThumbColor: AppTheme.primaryColor,
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+        border: Border.all(color: AppTheme.border),
+        boxShadow:
+            theme.brightness == Brightness.dark ? null : AppTheme.cardShadow,
+      ),
+      child: child,
     );
   }
 
-  Widget _buildCheckTile(String tag, String label, bool value, ValueChanged<bool> onChanged) {
-    return CheckboxListTile(
-      title: Row(children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-          decoration: BoxDecoration(
-            color: AppTheme.highlightColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(6.r),
-          ),
-          child: Text(tag, style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w700, color: AppTheme.highlightColor)),
-        ),
-        SizedBox(width: 10.w),
-        Text(label, style: TextStyle(fontSize: 13.sp)),
-      ]),
-      value: value, onChanged: _alertEnabled ? (v) => onChanged(v ?? value) : null,
-      fillColor: WidgetStateProperty.resolveWith((states) =>
-          states.contains(WidgetState.selected) ? AppTheme.primaryColor : null),
-      controlAffinity: ListTileControlAffinity.trailing,
+  Widget _iconBox(IconData icon) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppTheme.actionContainer,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
+      ),
+      child: Icon(icon, color: AppTheme.actionBase, size: 22),
     );
   }
 }

@@ -13,10 +13,7 @@ import "../../../../shared/widgets/default_avatar.dart";
 class NotificationsPage extends StatelessWidget {
   final String userId;
 
-  const NotificationsPage({
-    super.key,
-    required this.userId,
-  });
+  const NotificationsPage({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -69,18 +66,24 @@ class NotificationsPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final notification = state.notifications[index];
                   return Card(
-                    margin:
-                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    margin: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 4.h,
+                    ),
                     child: ListTile(
                       leading: DefaultAvatar(
                         name: notification.senderName,
                         size: 40,
                         imageUrl: notification.senderProfileImage,
                       ),
-                      title: Text(notification.title,
-                          style: TextStyle(fontSize: 14.sp)),
-                      subtitle: Text(notification.body,
-                          style: TextStyle(fontSize: 12.sp)),
+                      title: Text(
+                        notification.title,
+                        style: TextStyle(fontSize: 14.sp),
+                      ),
+                      subtitle: Text(
+                        notification.body,
+                        style: TextStyle(fontSize: 12.sp),
+                      ),
                       trailing: notification.isRead
                           ? null
                           : Container(
@@ -107,8 +110,10 @@ class NotificationsPage extends StatelessWidget {
               );
             } else if (state is NotificationsError) {
               return Center(
-                child: Text("오류: ${state.message}",
-                    style: TextStyle(fontSize: 14.sp)),
+                child: Text(
+                  "오류: ${state.message}",
+                  style: TextStyle(fontSize: 14.sp),
+                ),
               );
             }
             return Center(
@@ -126,6 +131,7 @@ class NotificationsPage extends StatelessWidget {
       case app.NotificationType.comment:
       case app.NotificationType.mention:
       case app.NotificationType.postShare:
+      case app.NotificationType.adminNewPost:
         if (notification.postId != null) {
           context.push('/post/${notification.postId}');
         }
@@ -134,11 +140,18 @@ class NotificationsPage extends StatelessWidget {
       case app.NotificationType.friendRequest:
         if (notification.senderId.isNotEmpty) {
           context.push(
-              '/user-profile/${notification.senderId}?currentUserId=$userId');
+            '/user-profile/${notification.senderId}?currentUserId=$userId',
+          );
         }
         break;
       case app.NotificationType.emotionAnalysis:
         context.push('/ai-history-page');
+        break;
+      case app.NotificationType.healthAlert:
+        context.push('/health');
+        break;
+      case app.NotificationType.system:
+      case app.NotificationType.unknown:
         break;
     }
   }

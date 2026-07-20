@@ -2,12 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../config/app_config.dart';
+import '../../../../core/services/app_package_info.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../../../shared/widgets/petspace_settings_components.dart';
 
-class HelpPage extends StatelessWidget {
-  const HelpPage({super.key});
+Future<bool> _launchSupportEmail(Uri uri) async {
+  if (!await canLaunchUrl(uri)) return false;
+  return launchUrl(uri);
+}
+
+class HelpPage extends StatefulWidget {
+  final Future<AppPackageInfo> Function() packageInfoLoader;
+  final Future<bool> Function(Uri uri) emailLauncher;
+
+  const HelpPage({
+    super.key,
+    this.packageInfoLoader = AppPackageInfo.load,
+    this.emailLauncher = _launchSupportEmail,
+  });
+
+  @override
+  State<HelpPage> createState() => _HelpPageState();
+}
+
+class _HelpPageState extends State<HelpPage> {
+  late final Future<AppPackageInfo> _packageInfo;
 
   static const List<_FaqItem> _faqItems = [
     _FaqItem(
@@ -30,6 +51,12 @@ class HelpPage extends StatelessWidget {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _packageInfo = widget.packageInfoLoader();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return PetSpacePageScaffold(
       title: '도움말',
@@ -47,34 +74,42 @@ class HelpPage extends StatelessWidget {
             title: '문의하기',
             children: [
               PetSpaceSettingsTile(
+                key: const Key('help_support_email'),
                 icon: Icons.email_outlined,
                 title: '이메일 문의',
-                subtitle: 'support@petspace.app',
+                subtitle: AppConfig.supportEmail,
                 onTap: () async {
-                  final uri = Uri.parse('mailto:support@petspace.app');
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  } else {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('이메일 앱을 열 수 없습니다')),
-                      );
-                    }
+                  final uri = Uri(
+                    scheme: 'mailto',
+                    path: AppConfig.supportEmail,
+                  );
+                  if (!await widget.emailLauncher(uri) && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('이메일 앱을 열 수 없습니다')),
+                    );
                   }
                 },
               ),
             ],
           ),
           SizedBox(height: 24.h),
-          Text(
-            '앱 버전: 1.0.0',
-            style: TextStyle(
-              fontSize: AppTheme.fontCaption.sp,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).colorScheme.onSurfaceVariant
-                  : AppTheme.textMuted,
+          FutureBuilder<AppPackageInfo>(
+            future: _packageInfo,
+            builder: (context, snapshot) => Text(
+              key: const Key('help_app_version'),
+              snapshot.hasData
+                  ? '앱 버전: ${snapshot.data!.displayVersion}'
+                  : snapshot.hasError
+                      ? '앱 버전: 확인할 수 없음'
+                      : '앱 버전을 확인하고 있어요',
+              style: TextStyle(
+                fontSize: AppTheme.fontCaption.sp,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                    : AppTheme.textMuted,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
           SizedBox(height: 32.h),
         ],

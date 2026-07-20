@@ -1,6 +1,7 @@
 import 'dart:developer' as dev;
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show GlobalKey, NavigatorState;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
@@ -8,22 +9,62 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+enum HealthAlertScheduleResult {
+  scheduled,
+  permissionDenied,
+  unavailable,
+  invalidDate,
+  failed,
+}
+
+typedef HealthAlertScheduleDelegate = Future<void> Function({
+  required int id,
+  required String title,
+  required String body,
+  required tz.TZDateTime scheduledDate,
+  String? payload,
+});
+
+typedef NotificationPermissionDelegate = Future<bool> Function();
+
 /// 로컬 알림 서비스
 /// - FCM 포그라운드 메시지를 로컬 알림으로 표시
 /// - 건강 알림 D-day 스케줄링
 /// - 알림 탭 시 딥링크 라우팅
 class LocalNotificationService {
-  final FlutterLocalNotificationsPlugin _plugin =
-      FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin;
   final SupabaseClient _supabase;
+  final HealthAlertScheduleDelegate? _healthAlertScheduleDelegate;
+  final NotificationPermissionDelegate? _permissionDelegate;
 
   /// GoRouter navigatorKey — main.dart에서 주입
   GlobalKey<NavigatorState>? navigatorKey;
 
-  LocalNotificationService({required SupabaseClient supabase})
-      : _supabase = supabase;
+  LocalNotificationService({
+    required SupabaseClient supabase,
+    FlutterLocalNotificationsPlugin? plugin,
+  })  : _supabase = supabase,
+        _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
+        _healthAlertScheduleDelegate = null,
+        _permissionDelegate = null;
+
+  @visibleForTesting
+  LocalNotificationService.forTest({
+    required SupabaseClient supabase,
+    required HealthAlertScheduleDelegate healthAlertScheduleDelegate,
+    NotificationPermissionDelegate? permissionDelegate,
+    bool initialized = true,
+    bool permissionGranted = true,
+  })  : _supabase = supabase,
+        _plugin = FlutterLocalNotificationsPlugin(),
+        _healthAlertScheduleDelegate = healthAlertScheduleDelegate,
+        _permissionDelegate =
+            permissionDelegate ?? (() async => permissionGranted),
+        _initialized = initialized,
+        _permissionGranted = permissionGranted;
 
   bool _initialized = false;
+  bool _permissionGranted = false;
 
   /// 서비스 초기화 (main.dart에서 호출)
   Future<void> initialize() async {
@@ -58,7 +99,7 @@ class LocalNotificationService {
       await _createChannels();
 
       // 4. 권한 요청 (iOS + Android 13+)
-      await _requestPermissions();
+      _permissionGranted = await _requestPermissions();
 
       _initialized = true;
       dev.log('LocalNotificationService 초기화 완료',
@@ -110,18 +151,21 @@ class LocalNotificationService {
     );
   }
 
-  Future<void> _requestPermissions() async {
+  Future<bool> _requestPermissions() async {
     if (Platform.isIOS) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(alert: true, badge: true, sound: true);
+      return await _plugin
+              .resolvePlatformSpecificImplementation<
+                  IOSFlutterLocalNotificationsPlugin>()
+              ?.requestPermissions(alert: true, badge: true, sound: true) ??
+          false;
     } else if (Platform.isAndroid) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+      return await _plugin
+              .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>()
+              ?.requestNotificationsPermission() ??
+          true;
     }
+    return true;
   }
 
   /// 소셜 알림 즉시 표시 (FCM 포그라운드 수신 시 사용)
@@ -149,49 +193,77 @@ class LocalNotificationService {
   }
 
   /// 건강 알림 예약 스케줄링
-  Future<void> scheduleHealthAlert({
+  Future<HealthAlertScheduleResult> scheduleHealthAlert({
     required int id,
     required String title,
     required String body,
     required DateTime scheduledDate,
     String? payload,
   }) async {
+    if (!_initialized) return HealthAlertScheduleResult.unavailable;
+    if (!_permissionGranted) {
+      _permissionGranted = await (_permissionDelegate ?? _requestPermissions)();
+      if (!_permissionGranted) {
+        return HealthAlertScheduleResult.permissionDenied;
+      }
+    }
+
+    final scheduledTz = tz.TZDateTime.from(scheduledDate, tz.local);
+    if (!scheduledTz.isAfter(tz.TZDateTime.now(tz.local))) {
+      dev.log(
+        '과거 시간 건강 알림 예약 거부',
+        name: 'LocalNotificationService',
+      );
+      return HealthAlertScheduleResult.invalidDate;
+    }
+
     try {
-      // 이미 지난 시간이면 스케줄 안 함
-      final scheduledTz = tz.TZDateTime.from(scheduledDate, tz.local);
-      if (scheduledTz.isBefore(tz.TZDateTime.now(tz.local))) {
-        dev.log('과거 시간 스케줄 무시: $scheduledDate',
-            name: 'LocalNotificationService');
-        return;
+      final delegate = _healthAlertScheduleDelegate;
+      if (delegate != null) {
+        await delegate(
+          id: id,
+          title: title,
+          body: body,
+          scheduledDate: scheduledTz,
+          payload: payload,
+        );
+      } else {
+        await _plugin.zonedSchedule(
+          id,
+          title,
+          body,
+          scheduledTz,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'health',
+              '건강 알림',
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(
+              interruptionLevel: InterruptionLevel.active,
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: payload,
+        );
       }
 
-      await _plugin.zonedSchedule(
-        id,
-        title,
-        body,
-        scheduledTz,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'health',
-            '건강 알림',
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
-          iOS: DarwinNotificationDetails(
-            interruptionLevel: InterruptionLevel.active,
-          ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        payload: payload,
+      dev.log(
+        '건강 알림 예약 완료',
+        name: 'LocalNotificationService',
       );
-
-      dev.log('건강 알림 예약: $title @ $scheduledDate',
-          name: 'LocalNotificationService');
+      return HealthAlertScheduleResult.scheduled;
     } catch (e, st) {
-      dev.log('건강 알림 스케줄 실패: $e',
-          name: 'LocalNotificationService', error: e, stackTrace: st);
+      dev.log(
+        '건강 알림 예약 실패',
+        name: 'LocalNotificationService',
+        error: e,
+        stackTrace: st,
+      );
+      return HealthAlertScheduleResult.failed;
     }
   }
 
@@ -256,8 +328,7 @@ class LocalNotificationService {
   /// payload 생성 헬퍼
   static String buildPayload(Map<String, String> data) {
     return data.entries
-        .map(
-            (e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
         .join('&');
   }
 }

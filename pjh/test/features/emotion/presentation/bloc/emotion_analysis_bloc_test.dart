@@ -156,11 +156,12 @@ void main() {
     );
 
     blocTest<EmotionAnalysisBloc, EmotionAnalysisState>(
-      '저장할 분석 없으면 Error emit',
+      '저장할 분석이 없으면 상태와 저장소를 변경하지 않는다',
       build: () => bloc,
       seed: () => EmotionAnalysisInitial(),
       act: (b) => b.add(const SaveAnalysisRequested()),
-      expect: () => [isA<EmotionAnalysisError>()],
+      expect: () => <EmotionAnalysisState>[],
+      verify: (_) => verifyNever(() => mockSave(any())),
     );
 
     blocTest<EmotionAnalysisBloc, EmotionAnalysisState>(

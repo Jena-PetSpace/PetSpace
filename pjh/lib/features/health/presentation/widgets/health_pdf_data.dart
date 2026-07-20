@@ -1,4 +1,5 @@
 import '../../domain/entities/health_record.dart';
+import '../../../emotion/domain/entities/emotion_analysis.dart';
 import 'weight_trend.dart';
 
 /// PDF 건강 요약서의 섹션별 데이터(순수 변환, 테스트 대상).
@@ -32,6 +33,42 @@ class HealthPdfData {
       vaccinations.isNotEmpty ||
       medications.isNotEmpty ||
       exams.isNotEmpty;
+}
+
+class HealthPdfEmotionSummary {
+  final DateTime analyzedAt;
+  final String dominantEmotion;
+
+  const HealthPdfEmotionSummary({
+    required this.analyzedAt,
+    required this.dominantEmotion,
+  });
+}
+
+const _healthEmotionLabelsKo = <String, String>{
+  'happiness': '행복',
+  'calm': '편안',
+  'excitement': '신남',
+  'curiosity': '호기심',
+  'anxiety': '불안',
+  'fear': '두려움',
+  'sadness': '슬픔',
+  'discomfort': '불편',
+};
+
+String healthEmotionLabelKo(String value) =>
+    _healthEmotionLabelsKo[value] ?? '분석 결과';
+
+HealthPdfEmotionSummary? buildHealthPdfEmotionSummary(
+  EmotionAnalysis? analysis,
+) {
+  if (analysis == null) return null;
+  return HealthPdfEmotionSummary(
+    analyzedAt: analysis.analyzedAt,
+    dominantEmotion: healthEmotionLabelKo(
+      analysis.emotions.dominantEmotion,
+    ),
+  );
 }
 
 String _fmtDate(DateTime d) =>

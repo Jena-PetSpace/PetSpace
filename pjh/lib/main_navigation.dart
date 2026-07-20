@@ -17,10 +17,7 @@ import 'shared/themes/app_theme.dart';
 class MainNavigation extends StatefulWidget {
   final Widget child;
 
-  const MainNavigation({
-    super.key,
-    required this.child,
-  });
+  const MainNavigation({super.key, required this.child});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -44,12 +41,14 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _subscribeToRealtimeNotifications() {
-    _notificationSubscription =
-        RealtimeService().notificationStream.listen((_) {
-      if (mounted) {
-        context
-            .read<NotificationBadgeBloc>()
-            .add(const NotificationBadgeIncrementRequested());
+    _notificationSubscription = RealtimeService().notificationStream.listen((
+      _,
+    ) {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (mounted && userId != null) {
+        context.read<NotificationBadgeBloc>().add(
+          NotificationBadgeRefreshRequested(userId: userId),
+        );
       }
     });
   }
@@ -132,7 +131,9 @@ class _MainNavigationState extends State<MainNavigation> {
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.only(bottom: 70.h, left: 16.w, right: 16.w),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
         ),
       );
       return;
@@ -164,7 +165,9 @@ class _MainNavigationState extends State<MainNavigation> {
         children: [
           // ── 흰 바 (하단 고정) ──────────────────────────────
           Positioned(
-            left: 0, right: 0, bottom: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: Container(
               height: _barHeight + bottomPad,
               decoration: const BoxDecoration(
@@ -231,7 +234,9 @@ class _MainNavigationState extends State<MainNavigation> {
                         height: 39.w,
                         fit: BoxFit.contain,
                         colorFilter: const ColorFilter.mode(
-                            Colors.white, BlendMode.srcIn),
+                          Colors.white,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
@@ -301,7 +306,9 @@ class _MainNavigationState extends State<MainNavigation> {
                 style: TextStyle(
                   fontSize: 11.sp,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+                  color: isSelected
+                      ? AppTheme.primaryColor
+                      : AppTheme.secondaryTextColor,
                 ),
               ),
             ],
@@ -314,7 +321,9 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget _buildMyTabIcon(bool isSelected, NavigationItem item) {
     return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
       builder: (context, badgeState) {
-        final color = isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor;
+        final color = isSelected
+            ? AppTheme.primaryColor
+            : AppTheme.secondaryTextColor;
         final icon = SvgPicture.asset(
           'assets/svg/icon_my.svg',
           width: 24.w,
@@ -350,7 +359,9 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget _buildHomeBadgeIcon(bool isSelected, NavigationItem item) {
     return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
       builder: (context, badgeState) {
-        final color = isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor;
+        final color = isSelected
+            ? AppTheme.primaryColor
+            : AppTheme.secondaryTextColor;
         final icon = SvgPicture.asset(
           'assets/svg/icon_home.svg',
           width: 24.w,
@@ -374,10 +385,7 @@ class _MainNavigationState extends State<MainNavigation> {
                   color: AppTheme.highlightColor,
                   borderRadius: BorderRadius.circular(10.r),
                 ),
-                constraints: BoxConstraints(
-                  minWidth: 16.w,
-                  minHeight: 16.w,
-                ),
+                constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.w),
                 child: Center(
                   child: Text(
                     badgeState.count > 9 ? '9+' : '${badgeState.count}',
@@ -450,8 +458,8 @@ class _MainNavigationState extends State<MainNavigation> {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) {
       context.read<NotificationBadgeBloc>().add(
-            NotificationBadgeRefreshRequested(userId: userId),
-          );
+        NotificationBadgeRefreshRequested(userId: userId),
+      );
     }
   }
 }

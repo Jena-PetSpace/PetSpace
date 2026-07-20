@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:meong_nyang_diary/features/emotion/domain/entities/emotion_analysis.dart';
 import 'package:meong_nyang_diary/features/health/domain/entities/health_record.dart';
 import 'package:meong_nyang_diary/features/health/presentation/widgets/health_pdf_data.dart';
 
@@ -92,6 +93,37 @@ void main() {
             data: {'hospital': '최근'}),
       ]);
       expect(d.exams.first['hospital'], '최근');
+    });
+  });
+
+  group('buildHealthPdfEmotionSummary', () {
+    test('uses the approved Korean label without carrying a ratio', () {
+      final summary = buildHealthPdfEmotionSummary(
+        EmotionAnalysis(
+          id: 'a',
+          userId: 'u',
+          petId: 'p',
+          imageUrl: '',
+          localImagePath: '',
+          emotions: const EmotionScores(
+            happiness: 1,
+            sadness: 0,
+            anxiety: 0,
+            curiosity: 0,
+          ),
+          confidence: 0.91,
+          analyzedAt: DateTime(2026, 7, 19),
+          tags: const [],
+        ),
+      );
+
+      expect(summary, isNotNull);
+      expect(summary!.dominantEmotion, '행복');
+      expect(summary.analyzedAt, DateTime(2026, 7, 19));
+    });
+
+    test('unknown internal emotion key never leaks into the PDF', () {
+      expect(healthEmotionLabelKo('unknown_internal_key'), '분석 결과');
     });
   });
 }

@@ -1,3 +1,16 @@
+import '../../config/app_config.dart';
+
+/// 화면에 표시하는 커뮤니티 운영 정책의 한 섹션.
+class CommunityGuidelineSection {
+  final String title;
+  final List<String> items;
+
+  const CommunityGuidelineSection({
+    required this.title,
+    required this.items,
+  });
+}
+
 /// 법무 검토를 거친 약관 정본 (황정현 CTO 검토, 시행일 2026-06-30).
 ///
 /// ⚠️ 본 파일의 약관 본문은 법무 정본이다. 임의로 문구를 수정하지 말 것.
@@ -14,9 +27,96 @@ class LegalDocuments {
   static const String privacyPolicyVersion = 'privacy_policy_v6';
   static const String locationTermsVersion = 'location_terms_v5';
   static const String marketingConsentVersion = 'marketing_consent_v4';
+  static const String communityGuidelinesVersion = 'community_guidelines_v1';
 
   /// 공통 시행일
   static const String effectiveDate = '2026년 6월 30일';
+
+  /// 커뮤니티 가이드라인 운영 정본.
+  ///
+  /// 2026-07-19 사용자 결정에 따라 주식회사 제나 담당자가 승인한
+  /// 운영 안내입니다. 법률 자문이나 보장되지 않은 처리시간을 나타내지 않습니다.
+  static const String communityGuidelinesEffectiveDate = '2026년 7월 1일';
+  static const String communityGuidelinesApprover = '주식회사 제나 담당자';
+  static const String supportEmail = AppConfig.supportEmail;
+  static const List<CommunityGuidelineSection> communityGuidelineSections = [
+    CommunityGuidelineSection(
+      title: '1. 환영합니다',
+      items: [
+        '펫페이스는 반려동물과 함께하는 일상을 안전하고 따뜻하게 나눌 수 있는 공간입니다.',
+        '아래 가이드라인은 모두가 즐겁게 이용할 수 있도록 마련되었습니다.',
+      ],
+    ),
+    CommunityGuidelineSection(
+      title: '2. 금지되는 콘텐츠',
+      items: [
+        '동물 학대, 폭력, 잔혹성을 묘사하는 콘텐츠',
+        '음란물, 성적 콘텐츠, 노출이 과도한 이미지',
+        '혐오 표현, 차별, 괴롭힘, 인신공격',
+        '욕설, 비속어, 지나친 비방',
+        '스팸, 광고성 도배, 동일 콘텐츠 반복 게시',
+        '타인의 개인정보(연락처, 주소, 사진 등) 무단 게시',
+        '저작권 침해 콘텐츠',
+        '허위 정보, 가짜 의료·수의학적 진단',
+        '불법 거래(생체 매매, 마약, 무기 등) 또는 그 알선',
+        '자살·자해 조장 또는 미화',
+      ],
+    ),
+    CommunityGuidelineSection(
+      title: '3. 위반 시 조치',
+      items: [
+        '접수된 신고와 콘텐츠는 운영 정책에 따라 검토합니다.',
+        '검토 결과에 따라 콘텐츠 노출 제한, 기능 제한, 계정 이용 제한 또는 관계기관 협조가 이루어질 수 있습니다.',
+        '조치에 이의가 있는 경우 도움말의 지원 이메일로 문의할 수 있습니다.',
+      ],
+    ),
+    CommunityGuidelineSection(
+      title: '4. 신고하기',
+      items: [
+        '게시글·댓글의 메뉴에서 신고할 수 있습니다.',
+        '사용자 프로필의 메뉴에서 신고할 수 있습니다.',
+        '신고 사유는 스팸, 폭력, 허위, 혐오, 개인정보 노출, 기타 중 선택할 수 있습니다.',
+        '신고자 정보는 신고 대상 사용자의 화면에 표시되지 않습니다. 필요한 경우 운영 담당자와 관계기관이 관련 정보를 확인할 수 있습니다.',
+      ],
+    ),
+    CommunityGuidelineSection(
+      title: '5. 차단하기',
+      items: [
+        '게시글, 댓글 또는 프로필의 메뉴에서 사용자를 차단할 수 있습니다.',
+        '차단한 사용자와 회원님의 콘텐츠 및 프로필은 서로에게 표시되지 않습니다.',
+        '차단은 언제든 [MY → 설정 → 개인정보 보호 · 차단 관리]에서 해제할 수 있습니다.',
+      ],
+    ),
+    CommunityGuidelineSection(
+      title: '6. 신고 처리 및 이의 제기',
+      items: [
+        '신고는 앱에서 언제든 접수할 수 있으며 운영 정책에 따라 검토합니다.',
+        '검토 결과에 따른 조치와 안내는 사안별로 달라질 수 있습니다.',
+        '조치에 대한 문의나 이의 제기는 [MY → 설정 → 도움말]의 지원 이메일로 접수할 수 있습니다.',
+        '긴급한 안전 위협은 관계기관에 직접 신고해 주세요. 펫페이스는 필요한 경우 관계기관에 협조할 수 있습니다.',
+      ],
+    ),
+    CommunityGuidelineSection(
+      title: '7. 안전한 이용을 위한 권고',
+      items: [
+        '본인 또는 반려동물의 위치를 정확히 노출하지 마세요.',
+        '의료·수의학적 결정은 반드시 전문가와 상의하세요. 감정 분석 결과는 참고용입니다.',
+        '낯선 사용자와 거래할 때는 공공장소 이용 등 안전에 유의하세요.',
+        '불편을 겪었다면 신고와 차단 기능을 이용해 주세요.',
+      ],
+    ),
+    CommunityGuidelineSection(
+      title: '8. 본인의 데이터 관리',
+      items: [
+        '게시글과 댓글은 앱에서 직접 삭제할 수 있습니다.',
+        '계정 탈퇴는 [MY → 설정 → 계정 관리]에서 신청할 수 있습니다.',
+        '회원탈퇴 후 30일 동안 다시 로그인해 계정을 복구할 수 있습니다. 이후 데이터는 승인된 개인정보 처리방침과 관련 법령에 따라 처리됩니다.',
+        '법령에 따라 보관 의무가 있는 정보는 해당 기간 동안 분리 보관될 수 있습니다.',
+      ],
+    ),
+  ];
+  static const String communityGuidelinesContact =
+      '추가 문의와 조치에 대한 이의 제기는 아래 지원 이메일에서 접수합니다.';
 
   // ==========================================================================
   // 서비스 이용약관 (service_terms_v7)
@@ -314,10 +414,10 @@ class LegalDocuments {
   가. 성명: 황정현
   나. 직책: CTO
   다. 연락처: 02-2272-7811
-  라. 이메일: jena.k00001@gmail.com
+  라. 이메일: ${AppConfig.supportEmail}
  2. 개인정보 열람청구 및 민원 접수부서
   가. 부서명: 운영팀
-  나. 연락처: 02-2272-7811, jena.k00001@gmail.com
+  나. 연락처: 02-2272-7811, ${AppConfig.supportEmail}
 ② 이용자는 회사의 서비스를 이용하시면서 발생한 모든 개인정보 보호 관련 문의, 불만처리, 피해구제 등에 관한 사항을 개인정보 보호책임자 및 담당부서로 문의하실 수 있습니다. 회사는 이용자의 문의에 대해 지체 없이 답변 및 처리해드릴 것입니다.
 
 제14조 【권익침해 구제방법】
@@ -414,11 +514,11 @@ class LegalDocuments {
  1. 상호: 주식회사 제나
  2. 주소: 서울특별시 중구 마른내로 4길 11-6, 201호 (인현동 1가)
  3. 전화번호: 02-2272-7811
- 4. 이메일 주소: jena.k00001@gmail.com
+ 4. 이메일 주소: ${AppConfig.supportEmail}
 ② 회사는 다음과 같이 위치정보 관리책임자를 지정하여 이용자들이 서비스 이용과정에서 발생한 민원사항 처리를 비롯하여 개인위치정보주체의 권리 보호를 위해 힘쓰고 있습니다.
  1. 위치정보 관리책임자 : 황정현 CTO
  2. 전화번호: 02-2272-7811
- 3. 이메일 주소: jena.k00001@gmail.com
+ 3. 이메일 주소: ${AppConfig.supportEmail}
 
 [부칙]
 본 약관은 2026년 6월 30일부터 적용됩니다.''';

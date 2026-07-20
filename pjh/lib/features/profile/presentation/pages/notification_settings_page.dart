@@ -12,8 +12,20 @@ import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../../../shared/widgets/petspace_settings_components.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 
+typedef CurrentUserIdProvider = String? Function();
+typedef NotificationPermissionLoader = Future<bool> Function();
+
 class NotificationSettingsPage extends StatefulWidget {
-  const NotificationSettingsPage({super.key});
+  final SocialRepository? repository;
+  final CurrentUserIdProvider? currentUserIdProvider;
+  final NotificationPermissionLoader? notificationPermissionLoader;
+
+  const NotificationSettingsPage({
+    super.key,
+    this.repository,
+    this.currentUserIdProvider,
+    this.notificationPermissionLoader,
+  });
 
   @override
   State<NotificationSettingsPage> createState() =>
@@ -22,11 +34,12 @@ class NotificationSettingsPage extends StatefulWidget {
 
 class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     with WidgetsBindingObserver {
+  late final SocialRepository _repository =
+      widget.repository ?? sl<SocialRepository>();
   bool _pushEnabled = true;
   bool _likeNotification = true;
   bool _commentNotification = true;
   bool _followNotification = true;
-  bool _chatNotification = true;
   bool _mentionNotification = true;
   bool _systemNotification = true;
 
@@ -58,10 +71,15 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
   }
 
   Future<void> _checkSystemPermission() async {
-    final granted = await PermissionHelper.isNotificationGranted();
+    final granted = await (widget.notificationPermissionLoader?.call() ??
+        PermissionHelper.isNotificationGranted());
     if (!mounted) return;
     setState(() => _systemPermissionGranted = granted);
   }
+
+  String? get _currentUserId =>
+      widget.currentUserIdProvider?.call() ??
+      Supabase.instance.client.auth.currentUser?.id;
 
   /// 서버 우선 로드 — 서버 실패 시 SharedPreferences fallback
   Future<void> _loadSettings() async {
@@ -73,7 +91,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     bool cachedLike = prefs.getBool('notification_like') ?? true;
     bool cachedComment = prefs.getBool('notification_comment') ?? true;
     bool cachedFollow = prefs.getBool('notification_follow') ?? true;
-    bool cachedChat = prefs.getBool('notification_chat') ?? true;
     bool cachedMention = prefs.getBool('notification_mention') ?? true;
     bool cachedSystem = prefs.getBool('notification_system') ?? true;
 
@@ -83,20 +100,18 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
         _likeNotification = cachedLike;
         _commentNotification = cachedComment;
         _followNotification = cachedFollow;
-        _chatNotification = cachedChat;
         _mentionNotification = cachedMention;
         _systemNotification = cachedSystem;
       });
     }
 
     // 2. 서버 값으로 덮어쓰기 (단일 소스 원칙)
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId = _currentUserId;
     if (userId == null) {
       if (mounted) setState(() => _loading = false);
       return;
     }
-    final result =
-        await sl<SocialRepository>().getNotificationPreferences(userId);
+    final result = await _repository.getNotificationPreferences(userId);
     await result.fold(
       (failure) async {
         dev.log('서버 알림 설정 로드 실패(로컬 값 유지): ${failure.message}',
@@ -111,7 +126,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
           _followNotification = row['enabled_follow'] as bool? ?? true;
           _mentionNotification = row['enabled_mention'] as bool? ?? true;
           _systemNotification = row['enabled_system'] as bool? ?? true;
-          // chat은 서버 컬럼 없음 — 로컬 유지
         });
         // 서버 값 → SharedPreferences 캐시 갱신
         await prefs.setBool('notification_push_enabled', _pushEnabled);
@@ -133,10 +147,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
 
     if (serverColumn == null) return;
 
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId = _currentUserId;
     if (userId == null) return;
 
-    final result = await sl<SocialRepository>().upsertNotificationPreference(
+    final result = await _repository.upsertNotificationPreference(
       userId: userId,
       column: serverColumn,
       value: value,
@@ -260,17 +274,6 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
                             'notification_mention', 'enabled_mention', value,
                             onRollback: () =>
                                 setState(() => _mentionNotification = !value));
-                      }
-                    : null,
-              ),
-              _buildSwitchTile(
-                title: '채팅',
-                subtitle: '새 채팅 메시지가 오면 알림',
-                value: _chatNotification && _pushEnabled,
-                onChanged: _pushEnabled
-                    ? (value) {
-                        setState(() => _chatNotification = value);
-                        _saveSetting('notification_chat', null, value);
                       }
                     : null,
               ),
