@@ -9,7 +9,8 @@
 | 출시 직전 인증·민감 RPC·배포 | 기존 담당 유지 | Codex read-only |
 | 독립 신규 기능 | 작업지시서에서 지정 | 반대 에이전트 read-only |
 | 제품 요구사항·우선순위 | 웹 Claude 초안 | 필요 시 Codex 허점 검토 |
-| merge·push·운영 DB·배포 | 황정현 CTO | 에이전트 수행 금지 |
+| 플랫폼 release 브랜치 merge·push | 승인된 담당 에이전트 | 반대 에이전트 diff 리뷰 + 사람 실기기 확인 |
+| `main` 최종 반영·운영 DB·Edge·배포 | 황정현 CTO | 에이전트 자동 실행 금지 |
 
 ## 표준 사이클
 
@@ -19,7 +20,16 @@
 4. format check, analyze, 관련 테스트를 실행하고 완료 보고를 작성한다.
 5. 반대 에이전트가 기준 브랜치 대비 diff를 read-only로 리뷰한다.
 6. 의견 충돌은 자동 채택하지 않고 `docs/DECISION_LOG.md` 형식으로 사람에게 올린다.
-7. 사람의 실기기 검증 후 황정현 CTO가 merge·push·배포한다.
+7. 사람의 실기기 검증과 상시/현재 승인이 있으면 담당 에이전트가 해당 플랫폼 release 브랜치까지만 merge·push한다. `main`, 운영 DB, Edge, 스토어 배포는 황정현 CTO가 별도로 승인한다.
+
+## 플랫폼 통합 사이클
+
+1. Windows 작업은 `feature/*` → `win-android-release` → Android 검증 → push 순서로 진행한다.
+2. Mac mini는 `origin/mac-ios-release` 기반 integration worktree를 만들고 최신 `origin/win-android-release`를 merge한다.
+3. Mac에서 충돌 manifest를 먼저 확정하고 공용 Dart 계약을 보존하면서 iOS 설정·빌드 차이만 수정한다.
+4. `flutter analyze`, 전체 테스트, `flutter build ios --release --no-codesign`, 가능한 iOS 실기기 검증을 통과한 결과만 `mac-ios-release`에 반영한다.
+5. `mac-ios-release`가 최신 `win-android-release`를 포함하고 Android·iOS 검증이 모두 끝난 뒤에만 `main` 반영을 제안한다.
+6. 자세한 Mac 첫 실행·인계 기준은 `docs/MAC_MINI_HANDOFF.md`를 따른다.
 
 ## UI/UX 탭 단위 사이클
 

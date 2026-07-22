@@ -17,6 +17,7 @@
 | 문서 | 역할 |
 |---|---|
 | `AGENT_COLLABORATION.md` | Claude × Codex 역할·브랜치·worktree·리뷰·자동화 운영 |
+| `MAC_MINI_HANDOFF.md` | Mac mini Codex 첫 실행·Windows→iOS 통합·검증·인계 정본 |
 | `AUTO_ORCHESTRATOR.md` | 한 주제 입력부터 AI 토론·합의·승인·구현·교차 리뷰까지 자동화 |
 | `WORK_ORDER_TEMPLATE.md` | 공통 작업지시서 템플릿 |
 | `DECISION_LOG.md` | 에이전트 의견 충돌과 중요 결정 기록 |
