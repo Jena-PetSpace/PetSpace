@@ -26,28 +26,31 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
   final TextEditingController _contentController = TextEditingController();
   final List<File> _selectedImages = [];
   PostType _postType = PostType.text;
-  bool _isPublic = true;
   String? _location;
   EmotionAnalysis? _attachedEmotion;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: const Key('legacy_create_post_sheet'),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+      ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildHeader(),
-            const Divider(height: 1),
-            Flexible(
-              child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildHeader(),
+              const Divider(height: 1),
+              Padding(
                 padding: EdgeInsets.all(16.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,8 +67,8 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -76,9 +79,10 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
       padding: EdgeInsets.all(16.w),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Icon(Icons.close, size: 24.w),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            tooltip: '닫기',
+            icon: Icon(Icons.close, size: 24.w),
           ),
           Expanded(
             child: Center(
@@ -91,21 +95,20 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
               ),
             ),
           ),
-          GestureDetector(
-            onTap: _createPost,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor,
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: Text(
-                '게시',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
-                ),
+          TextButton(
+            onPressed: _createPost,
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: AppTheme.primaryColor,
+              minimumSize: const Size(44, 44),
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              shape: const StadiumBorder(),
+            ),
+            child: Text(
+              '게시',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14.sp,
               ),
             ),
           ),
@@ -115,6 +118,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
   }
 
   Widget _buildContentInput() {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: _contentController,
       maxLines: null,
@@ -123,7 +127,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
         border: InputBorder.none,
         hintStyle: TextStyle(
           fontSize: 16.sp,
-          color: AppTheme.neutral500,
+          color: colorScheme.onSurfaceVariant,
         ),
       ),
       style: TextStyle(fontSize: 16.sp),
@@ -178,21 +182,21 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
   }
 
   Widget _buildPostTypeSelector() {
-    return Row(
+    return Wrap(
+      spacing: 12.w,
+      runSpacing: 8.h,
       children: [
         _buildPostTypeOption(
           icon: Icons.text_fields,
           label: '텍스트',
           type: PostType.text,
         ),
-        SizedBox(width: 16.w),
         _buildPostTypeOption(
           icon: Icons.image,
           label: '이미지',
           type: PostType.image,
           onTap: _pickImages,
         ),
-        SizedBox(width: 16.w),
         _buildPostTypeOption(
           icon: Icons.psychology,
           label: '감정 분석',
@@ -210,6 +214,9 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
     VoidCallback? onTap,
   }) {
     final isSelected = _postType == type;
+    final colorScheme = Theme.of(context).colorScheme;
+    final foreground =
+        isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant;
     return GestureDetector(
       onTap: () {
         setState(() => _postType = type);
@@ -218,10 +225,10 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color:
-              isSelected ? AppTheme.primaryColor.withValues(alpha: 0.1) : null,
+          color: isSelected ? colorScheme.primaryContainer : null,
           border: Border.all(
-            color: isSelected ? AppTheme.primaryColor : AppTheme.neutral300,
+            color:
+                isSelected ? colorScheme.primary : colorScheme.outlineVariant,
           ),
           borderRadius: BorderRadius.circular(20.r),
         ),
@@ -231,14 +238,17 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
             Icon(
               icon,
               size: 16.w,
-              color: isSelected ? AppTheme.primaryColor : AppTheme.neutral500,
+              color: foreground,
             ),
             SizedBox(width: 4.w),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: isSelected ? AppTheme.primaryColor : AppTheme.neutral500,
+            Flexible(
+              child: Text(
+                label,
+                softWrap: true,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: foreground,
+                ),
               ),
             ),
           ],
@@ -251,11 +261,10 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SwitchListTile(
-          title: const Text('공개 게시물'),
-          subtitle: Text(_isPublic ? '모든 사용자가 볼 수 있습니다' : '팔로워만 볼 수 있습니다'),
-          value: _isPublic,
-          onChanged: (value) => setState(() => _isPublic = value),
+        const ListTile(
+          leading: Icon(Icons.public),
+          title: Text('전체 공개'),
+          subtitle: Text('이 작성 화면은 전체 공개 게시물만 지원합니다.'),
         ),
         ListTile(
           leading: const Icon(Icons.location_on),
@@ -289,11 +298,17 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
 
   Widget _buildAttachedEmotion() {
     final emotion = _attachedEmotion!;
+    final colorScheme = Theme.of(context).colorScheme;
     final dominant = emotion.emotions.dominantEmotion;
     final emotionNames = {
-      'happiness': '행복', 'calm': '평온', 'excitement': '흥분',
-      'curiosity': '호기심', 'anxiety': '불안', 'fear': '두려움',
-      'sadness': '슬픔', 'discomfort': '불편',
+      'happiness': '행복',
+      'calm': '평온',
+      'excitement': '흥분',
+      'curiosity': '호기심',
+      'anxiety': '불안',
+      'fear': '두려움',
+      'sadness': '슬픔',
+      'discomfort': '불편',
     };
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
@@ -322,7 +337,10 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
                 Text(
                   // 라벨만 — 퍼센트 수치 노출 금지 (P0 정책)
                   '${emotion.petName ?? '반려동물'} · ${emotionNames[dominant] ?? dominant}',
-                  style: TextStyle(fontSize: 11.sp, color: AppTheme.secondaryTextColor),
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -332,7 +350,11 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
               _attachedEmotion = null;
               _postType = PostType.text;
             }),
-            child: Icon(Icons.close, size: 18.w, color: AppTheme.neutral500),
+            child: Icon(
+              Icons.close,
+              size: 18.w,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -412,7 +434,9 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
   void _createPost() {
     final content = _contentController.text.trim();
 
-    if (content.isEmpty && _selectedImages.isEmpty && _attachedEmotion == null) {
+    if (content.isEmpty &&
+        _selectedImages.isEmpty &&
+        _attachedEmotion == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('내용을 입력하거나 이미지를 추가해주세요.')),
       );
@@ -428,7 +452,8 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
       imageUrls: const [],
       emotionAnalysis: _attachedEmotion,
       createdAt: DateTime.now(),
-      isPublic: _isPublic,
+      isPublic: true,
+      isPrivate: false,
       location: _location,
     );
 

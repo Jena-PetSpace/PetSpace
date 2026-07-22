@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:meong_nyang_diary/features/auth/domain/entities/user.dart';
@@ -105,6 +106,76 @@ void main() {
           userId: null,
           followingOnly: true,
         ),
+      ),
+    ).called(1);
+  });
+
+  testWidgets('빈 피드 CTA는 canonical 작성 화면으로 이동하고 복귀 후 새로고침한다', (
+    tester,
+  ) async {
+    final feedBloc = _MockFeedBloc();
+    final authBloc = _MockAuthBloc();
+    final controller = StreamController<FeedState>.broadcast();
+    addTearDown(controller.close);
+    const initial = FeedLoaded(posts: [], hasReachedMax: true);
+    when(() => feedBloc.state).thenReturn(initial);
+    whenListen(feedBloc, controller.stream, initialState: initial);
+    final authState = AuthAuthenticated(_user());
+    when(() => authBloc.state).thenReturn(authState);
+    whenListen(
+      authBloc,
+      const Stream<AuthState>.empty(),
+      initialState: authState,
+    );
+
+    final router = GoRouter(
+      initialLocation: '/feed-test',
+      routes: [
+        GoRoute(
+          path: '/feed-test',
+          builder: (_, __) => MultiBlocProvider(
+            providers: [
+              BlocProvider<FeedBloc>.value(value: feedBloc),
+              BlocProvider<AuthBloc>.value(value: authBloc),
+            ],
+            child: const Scaffold(body: FeedPage()),
+          ),
+        ),
+        GoRoute(
+          path: '/create-post',
+          builder: (context, _) => Scaffold(
+            body: Center(
+              child: TextButton(
+                key: const Key('canonical_composer_close'),
+                onPressed: context.pop,
+                child: const Text('canonical composer'),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        builder: (_, __) => MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+    clearInteractions(feedBloc);
+
+    await tester.tap(find.text('첫 게시물 작성'));
+    await tester.pumpAndSettle();
+    expect(find.text('canonical composer'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('canonical_composer_close')));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => feedBloc.add(
+        const RefreshFeedRequested(userId: 'viewer'),
       ),
     ).called(1);
   });

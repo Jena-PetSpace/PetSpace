@@ -16,7 +16,6 @@ import '../cubit/operational_cards_cubit.dart';
 import '../widgets/comments_bottom_sheet.dart';
 import '../widgets/operational_card_tile.dart';
 import '../widgets/post_card_connector.dart';
-import '../widgets/create_post_bottom_sheet.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../../shared/widgets/network_error_widget.dart';
@@ -394,7 +393,7 @@ class _FeedPageState extends State<FeedPage> {
       secondaryLabel: isFollowing ? '탐색하기' : null,
       onSecondary: isFollowing ? () => context.go('/search') : null,
       actionLabel: '첫 게시물 작성',
-      onAction: _showCreatePostBottomSheet,
+      onAction: _openCanonicalComposer,
     );
   }
 
@@ -446,18 +445,27 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
-  void _showCreatePostBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => CreatePostBottomSheet(
-        currentUserId: _effectiveUserId ?? '',
-        onPostCreated: (post) {
-          context.read<FeedBloc>().add(CreatePostRequested(post: post));
-        },
-      ),
-    );
+  Future<void> _openCanonicalComposer() async {
+    await context.push<void>('/create-post');
+    if (!mounted) return;
+
+    _clearLocalSurfaceOverrides();
+    if (widget.recommended) {
+      final userId = _effectiveUserId;
+      if (userId != null) {
+        context.read<FeedBloc>().add(
+              LoadRecommendedPostsRequested(userId: userId),
+            );
+      }
+      return;
+    }
+
+    context.read<FeedBloc>().add(
+          RefreshFeedRequested(
+            userId: _effectiveUserId,
+            followingOnly: widget.followingOnly,
+          ),
+        );
   }
 
   String _shareText(Post post) {

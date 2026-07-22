@@ -23,7 +23,6 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
   late TextEditingController _contentController;
   late TextEditingController _hashtagController;
   late List<String> _hashtags;
-  late bool _isPublic;
   bool _isSaving = false;
 
   @override
@@ -32,7 +31,6 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
     _contentController = TextEditingController(text: widget.post.content ?? '');
     _hashtagController = TextEditingController();
     _hashtags = List<String>.from(widget.post.tags);
-    _isPublic = widget.post.isPublic;
   }
 
   @override
@@ -45,8 +43,12 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: const Key('legacy_edit_post_sheet'),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+      ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       padding: EdgeInsets.only(
@@ -86,15 +88,18 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
   }
 
   Widget _buildHeader() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          '게시물 수정',
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryTextColor,
+        Expanded(
+          child: Text(
+            '게시물 수정',
+            maxLines: 2,
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
           ),
         ),
         IconButton(
@@ -106,6 +111,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
   }
 
   Widget _buildContentField() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -114,7 +120,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
-            color: AppTheme.primaryTextColor,
+            color: colorScheme.onSurface,
           ),
         ),
         SizedBox(height: 8.h),
@@ -125,10 +131,13 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
           style: TextStyle(fontSize: 14.sp),
           decoration: InputDecoration(
             hintText: '게시물 내용을 입력하세요...',
-            hintStyle: TextStyle(color: AppTheme.neutral400, fontSize: 14.sp),
+            hintStyle: TextStyle(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 14.sp,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
-              borderSide: const BorderSide(color: AppTheme.neutral300),
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
@@ -136,7 +145,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
                   const BorderSide(color: AppTheme.primaryColor, width: 2),
             ),
             filled: true,
-            fillColor: AppTheme.neutral50,
+            fillColor: colorScheme.surfaceContainerHighest,
             contentPadding: EdgeInsets.all(16.w),
           ),
         ),
@@ -145,6 +154,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
   }
 
   Widget _buildHashtagSection() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -153,7 +163,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
-            color: AppTheme.primaryTextColor,
+            color: colorScheme.onSurface,
           ),
         ),
         SizedBox(height: 8.h),
@@ -178,7 +188,7 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
             ActionChip(
               label: Text('+ 추가', style: TextStyle(fontSize: 12.sp)),
               onPressed: _showAddHashtagDialog,
-              backgroundColor: AppTheme.neutral100,
+              backgroundColor: colorScheme.surfaceContainerHighest,
             ),
           ],
         ),
@@ -187,17 +197,18 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
   }
 
   Widget _buildPrivacySection() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: AppTheme.neutral50,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppTheme.neutral200),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Row(
         children: [
           Icon(
-            _isPublic ? Icons.public : Icons.lock,
+            Icons.info_outline_rounded,
             color: AppTheme.primaryColor,
             size: 20.w,
           ),
@@ -207,31 +218,21 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isPublic ? '전체 공개' : '팔로워만',
+                  '공개 범위 유지',
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
-                  _isPublic ? '모든 사용자가 볼 수 있습니다' : '나를 팔로우하는 사용자만 볼 수 있습니다',
+                  '안전한 공개 범위 설정이 준비되기 전에는 현재 값을 변경하지 않습니다.',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: AppTheme.secondaryTextColor,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
-          ),
-          Switch(
-            value: _isPublic,
-            onChanged: (value) {
-              setState(() {
-                _isPublic = value;
-              });
-            },
-            activeTrackColor: AppTheme.primaryColor.withValues(alpha: 0.5),
-            activeThumbColor: AppTheme.primaryColor,
           ),
         ],
       ),
@@ -334,8 +335,6 @@ class _EditPostBottomSheetState extends State<EditPostBottomSheet> {
     final updatedPost = widget.post.copyWith(
       content: contentText.isEmpty ? null : contentText,
       tags: allHashtags,
-      isPublic: _isPublic,
-      isPrivate: !_isPublic,
       updatedAt: DateTime.now(),
     );
 
