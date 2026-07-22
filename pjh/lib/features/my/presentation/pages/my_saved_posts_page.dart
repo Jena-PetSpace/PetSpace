@@ -334,17 +334,13 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final countFailed = state.allCountStatus == BookmarkLoadStatus.failure ||
         state.unassignedCountStatus == BookmarkLoadStatus.failure;
-    final allLabel = state.allCountStatus == BookmarkLoadStatus.failure
-        ? '전체 저장 —'
-        : state.allCount == null
-            ? '전체 저장'
-            : '전체 저장 ${state.allCount}개';
-    final unassignedLabel =
+    final allCount = state.allCountStatus == BookmarkLoadStatus.failure
+        ? '—'
+        : state.allCount?.toString() ?? '—';
+    final unassignedCount =
         state.unassignedCountStatus == BookmarkLoadStatus.failure
-            ? '그중 컬렉션에 넣지 않은 글은 —'
-            : state.unassignedCount == null
-                ? '그중 컬렉션에 넣지 않은 글'
-                : '그중 컬렉션에 넣지 않은 글은 ${state.unassignedCount}개예요';
+            ? '—'
+            : state.unassignedCount?.toString() ?? '—';
     return Container(
       margin: EdgeInsets.all(16.w),
       padding: EdgeInsets.all(18.w),
@@ -352,34 +348,58 @@ class _SummaryCard extends StatelessWidget {
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(18.r),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.bookmarks_outlined, color: AppTheme.primaryColor),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              allLabel,
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700),
+          Row(
+            children: [
+              const Icon(
+                Icons.bookmarks_outlined,
+                color: AppTheme.primaryColor,
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  '저장한 게시물',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontBody.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (countFailed)
+                IconButton(
+                  key: const Key('retry_saved_counts'),
+                  tooltip: '저장 개수 다시 불러오기',
+                  onPressed: () {
+                    final auth = context.read<AuthBloc>().state;
+                    if (auth is AuthAuthenticated) {
+                      context.read<BookmarkBloc>().add(
+                            LoadBookmarkCollections(userId: auth.user.uid),
+                          );
+                    }
+                  },
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            allCount,
+            key: const Key('saved_posts_total_count'),
+            style: TextStyle(
+              fontSize: 30.sp,
+              height: 1.1,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.brandDeep,
             ),
           ),
-          if (countFailed)
-            IconButton(
-              key: const Key('retry_saved_counts'),
-              tooltip: '저장 개수 다시 불러오기',
-              onPressed: () {
-                final auth = context.read<AuthBloc>().state;
-                if (auth is AuthAuthenticated) {
-                  context.read<BookmarkBloc>().add(
-                        LoadBookmarkCollections(userId: auth.user.uid),
-                      );
-                }
-              },
-              icon: const Icon(Icons.refresh_rounded),
-            ),
+          SizedBox(height: 5.h),
           Text(
-            unassignedLabel,
+            '전체 저장 · 미분류 $unassignedCount개',
+            key: const Key('saved_posts_count_summary'),
             style: TextStyle(
-              fontSize: 13.sp,
+              fontSize: AppTheme.fontCaption.sp,
               color: AppTheme.secondaryTextColor,
             ),
           ),

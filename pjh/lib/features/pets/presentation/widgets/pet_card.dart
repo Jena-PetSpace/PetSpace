@@ -8,6 +8,7 @@ import '../../domain/entities/pet.dart';
 class PetCard extends StatelessWidget {
   final Pet pet;
   final bool isSelected;
+  final bool isSelectionPending;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -17,6 +18,7 @@ class PetCard extends StatelessWidget {
     super.key,
     required this.pet,
     this.isSelected = false,
+    this.isSelectionPending = false,
     this.onTap,
     this.onEdit,
     this.onDelete,
@@ -29,15 +31,12 @@ class PetCard extends StatelessWidget {
     // 라이트모드 시각값과 brand/action/error 의미 토큰은 유지한다.
     final ThemeData theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color cardSurface = isDark
-        ? theme.colorScheme.surface
-        : AppTheme.surfaceColor;
-    final Color edgeColor = isDark
-        ? theme.colorScheme.outlineVariant
-        : AppTheme.border;
-    final Color nameColor = isDark
-        ? theme.colorScheme.onSurface
-        : AppTheme.primaryTextColor;
+    final Color cardSurface =
+        isDark ? theme.colorScheme.surface : AppTheme.surfaceColor;
+    final Color edgeColor =
+        isDark ? theme.colorScheme.outlineVariant : AppTheme.border;
+    final Color nameColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
     final Color mutedColor = theme.colorScheme.onSurfaceVariant;
 
     return Container(
@@ -236,12 +235,32 @@ class PetCard extends StatelessWidget {
   Widget _buildActionButton(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color triggerIcon = isDark
-        ? theme.colorScheme.onSurfaceVariant
-        : AppTheme.textMuted;
-    final Color editIcon = isDark
-        ? theme.colorScheme.onSurface
-        : AppTheme.textBody;
+    final Color triggerIcon =
+        isDark ? theme.colorScheme.onSurfaceVariant : AppTheme.textMuted;
+    final Color editIcon =
+        isDark ? theme.colorScheme.onSurface : AppTheme.textBody;
+
+    if (isSelectionPending) {
+      return Semantics(
+        label: '${pet.name} 대표 반려동물 변경 중',
+        liveRegion: true,
+        child: Container(
+          key: Key('pet_card_selection_pending_${pet.id}'),
+          width: 44.w,
+          height: 44.w,
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: 20.w,
+            height: 20.w,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.w,
+              color: AppTheme.actionBase,
+            ),
+          ),
+        ),
+      );
+    }
 
     return PopupMenuButton<String>(
       key: Key('pet_card_menu_${pet.id}'),

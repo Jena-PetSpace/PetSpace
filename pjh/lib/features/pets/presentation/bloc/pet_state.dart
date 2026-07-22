@@ -8,6 +8,8 @@ abstract class PetState extends Equatable {
   List<Object?> get props => [];
 }
 
+enum PetSelectionStatus { idle, pending, success, failure }
+
 class PetInitial extends PetState {}
 
 class PetLoading extends PetState {}
@@ -15,22 +17,48 @@ class PetLoading extends PetState {}
 class PetLoaded extends PetState {
   final List<Pet> pets;
   final Pet? selectedPet;
+  final PetSelectionStatus selectionStatus;
+  final String? pendingSelectedPetId;
+  final String? selectionMessage;
 
   const PetLoaded({
     required this.pets,
     this.selectedPet,
+    this.selectionStatus = PetSelectionStatus.idle,
+    this.pendingSelectedPetId,
+    this.selectionMessage,
   });
 
   @override
-  List<Object?> get props => [pets, selectedPet];
+  List<Object?> get props => [
+        pets,
+        selectedPet,
+        selectionStatus,
+        pendingSelectedPetId,
+        selectionMessage,
+      ];
+
+  static const _notProvided = Object();
 
   PetLoaded copyWith({
     List<Pet>? pets,
-    Pet? selectedPet,
+    Object? selectedPet = _notProvided,
+    PetSelectionStatus? selectionStatus,
+    Object? pendingSelectedPetId = _notProvided,
+    Object? selectionMessage = _notProvided,
   }) {
     return PetLoaded(
       pets: pets ?? this.pets,
-      selectedPet: selectedPet ?? this.selectedPet,
+      selectedPet: identical(selectedPet, _notProvided)
+          ? this.selectedPet
+          : selectedPet as Pet?,
+      selectionStatus: selectionStatus ?? this.selectionStatus,
+      pendingSelectedPetId: identical(pendingSelectedPetId, _notProvided)
+          ? this.pendingSelectedPetId
+          : pendingSelectedPetId as String?,
+      selectionMessage: identical(selectionMessage, _notProvided)
+          ? this.selectionMessage
+          : selectionMessage as String?,
     );
   }
 }

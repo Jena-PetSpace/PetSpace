@@ -139,7 +139,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('대표 설정 안내는 중앙 내비게이션 버튼 위에 floating으로 표시된다', (tester) async {
+  testWidgets('대표 설정은 낙관적 성공 안내 없이 이벤트만 전달한다', (tester) async {
     final pet = buildPet(1);
     final bloc = await pumpPage(
       tester,
@@ -153,8 +153,50 @@ void main() {
     await tester.pump();
 
     verify(() => bloc.add(any(that: isA<SelectPet>()))).called(1);
-    expect(find.textContaining('대표 반려동물로 설정되었습니다'), findsOneWidget);
+    expect(find.byKey(const Key('pet_management_feedback_snackbar')),
+        findsNothing);
+  });
+
+  testWidgets('대표 설정 RPC 성공 뒤에만 floating 성공 안내를 표시한다', (tester) async {
+    final pet = buildPet(1);
+    await pumpPage(
+      tester,
+      state: PetLoaded(pets: [pet]),
+      emittedStates: [
+        PetLoaded(
+          pets: [pet],
+          selectedPet: pet,
+          selectionStatus: PetSelectionStatus.success,
+          selectionMessage: '대표 반려동물로 설정했어요: 반려동물1',
+        ),
+      ],
+    );
+    await tester.pump();
+
+    expect(find.textContaining('대표 반려동물로 설정했어요'), findsOneWidget);
     expectFloatingFeedback(tester);
+  });
+
+  testWidgets('대표 설정 pending은 대상 카드에만 표시한다', (tester) async {
+    final pets = [buildPet(1), buildPet(2)];
+    await pumpPage(
+      tester,
+      state: PetLoaded(
+        pets: pets,
+        selectedPet: pets.first,
+        selectionStatus: PetSelectionStatus.pending,
+        pendingSelectedPetId: pets.last.id,
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('pet_card_selection_pending_pet-2')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('pet_card_selection_pending_pet-1')),
+      findsNothing,
+    );
   });
 
   testWidgets('작업 성공 안내도 같은 floating 여백을 사용한다', (tester) async {
@@ -192,6 +234,26 @@ void main() {
     expect(find.text('반려동물 추가하기'), findsOneWidget);
     expect(find.byKey(const Key('pet_management_add_button')), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('삭제 확인은 실제 cascade와 연결 해제 영향을 구분한다', (tester) async {
+    final pet = buildPet(1);
+    await pumpPage(
+      tester,
+      state: PetLoaded(pets: [pet], selectedPet: pet),
+    );
+
+    final menu = tester.widget<PopupMenuButton<String>>(
+      find.byKey(const Key('pet_card_menu_pet-1')),
+    );
+    menu.onSelected!('delete');
+    await tester.pumpAndSettle();
+
+    expect(find.text('함께 삭제되는 정보'), findsOneWidget);
+    expect(find.textContaining('건강 기록'), findsOneWidget);
+    expect(find.text('기록은 유지되고 연결만 해제'), findsOneWidget);
+    expect(find.text('게시물과 산책 기록'), findsOneWidget);
+    expect(find.text('이 작업은 되돌릴 수 없습니다.'), findsOneWidget);
   });
 
   testWidgets('다크모드 CTA는 theme primary container 역할색을 사용한다', (tester) async {

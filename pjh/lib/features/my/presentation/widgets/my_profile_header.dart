@@ -12,12 +12,14 @@ class MyProfileHeader extends StatefulWidget {
   final User user;
   final VoidCallback? onPostsTapped;
   final int statsRefreshKey;
+  final Widget? beforeStats;
 
   const MyProfileHeader({
     super.key,
     required this.user,
     this.onPostsTapped,
     this.statsRefreshKey = 0,
+    this.beforeStats,
   });
 
   @override
@@ -82,7 +84,7 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
     return Container(
       key: const Key('my_profile_header'),
       color: surface,
-      padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 18.h),
+      padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 14.h),
       child: Column(
         children: [
           SizedBox(
@@ -141,16 +143,38 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              displayName,
-                              key: const Key('my_profile_name'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: AppTheme.fontHeading.sp,
-                                fontWeight: FontWeight.w700,
-                                color: textColor,
-                              ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    displayName,
+                                    key: const Key('my_profile_name'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: AppTheme.fontHeading.sp,
+                                      fontWeight: FontWeight.w700,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  key: const Key('my_profile_edit_button'),
+                                  onPressed: _openProfileEdit,
+                                  style: TextButton.styleFrom(
+                                    minimumSize: const Size(44, 44),
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 8.w),
+                                  ),
+                                  child: Text(
+                                    '프로필 편집',
+                                    style: TextStyle(
+                                      fontSize: AppTheme.fontCaption.sp,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             SizedBox(height: 6.h),
                             if (snapshot.connectionState ==
@@ -210,35 +234,15 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 14.h),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 44.h,
-                    child: OutlinedButton(
-                      key: const Key('my_profile_edit_button'),
-                      onPressed: _openProfileEdit,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.actionBase,
-                        side: const BorderSide(color: AppTheme.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.radiusMd.r),
-                        ),
-                      ),
-                      child: Text(
-                        '프로필 편집',
-                        style: TextStyle(
-                          fontSize: AppTheme.fontCaption.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               );
             },
           ),
-          SizedBox(height: 14.h),
+          if (widget.beforeStats != null) ...[
+            SizedBox(height: 12.h),
+            widget.beforeStats!,
+          ],
+          SizedBox(height: 10.h),
           FutureBuilder<Map<String, int>>(
             future: _statsFuture,
             builder: (context, snapshot) {
@@ -340,8 +344,8 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
   Widget _buildAvatar(String? photoUrl, String initial) {
     return Container(
       key: const Key('my_profile_avatar'),
-      width: 72.w,
-      height: 72.w,
+      width: 64.w,
+      height: 64.w,
       decoration: const BoxDecoration(
         color: AppTheme.actionContainer,
         shape: BoxShape.circle,

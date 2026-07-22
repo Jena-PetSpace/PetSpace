@@ -12,6 +12,9 @@ import 'package:meong_nyang_diary/core/services/profile_service.dart';
 import 'package:meong_nyang_diary/features/auth/domain/entities/user.dart';
 import 'package:meong_nyang_diary/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:meong_nyang_diary/features/my/presentation/pages/my_page.dart';
+import 'package:meong_nyang_diary/features/pets/presentation/bloc/pet_bloc.dart';
+import 'package:meong_nyang_diary/features/pets/presentation/bloc/pet_event.dart';
+import 'package:meong_nyang_diary/features/pets/presentation/bloc/pet_state.dart';
 import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 import 'package:meong_nyang_diary/core/error/failures.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/saved_posts_page.dart';
@@ -24,6 +27,8 @@ class _MockProfileService extends Mock implements ProfileService {}
 
 class _MockSocialRepository extends Mock implements SocialRepository {}
 
+class _MockPetBloc extends MockBloc<PetEvent, PetState> implements PetBloc {}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -34,6 +39,7 @@ void main() {
   late _MockAuthBloc authBloc;
   late _MockProfileService profileService;
   late _MockSocialRepository socialRepository;
+  late _MockPetBloc petBloc;
   late User user;
 
   setUp(() async {
@@ -80,16 +86,23 @@ void main() {
       ),
     );
     authBloc = _MockAuthBloc();
+    petBloc = _MockPetBloc();
     when(() => authBloc.state).thenReturn(AuthAuthenticated(user));
     whenListen(
       authBloc,
       const Stream<AuthState>.empty(),
       initialState: AuthAuthenticated(user),
     );
+    whenListen(
+      petBloc,
+      const Stream<PetState>.empty(),
+      initialState: const PetLoaded(pets: [], selectedPet: null),
+    );
   });
 
   tearDown(() async {
     await authBloc.close();
+    await petBloc.close();
     await sl.reset();
   });
 
@@ -111,8 +124,11 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder: (_, __) => BlocProvider<AuthBloc>.value(
-            value: authBloc,
+          builder: (_, __) => MultiBlocProvider(
+            providers: [
+              BlocProvider<AuthBloc>.value(value: authBloc),
+              BlocProvider<PetBloc>.value(value: petBloc),
+            ],
             child: MyPage(
               loadMyPostsInitial: myInitial,
               loadMyPostsMore: () async => <Map<String, dynamic>>[],
@@ -234,7 +250,7 @@ void main() {
       savedResult: const Left(ServerFailure(message: 'saved-secret')),
     );
 
-    await tester.tap(find.byIcon(Icons.bookmark_outline_rounded).first);
+    await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('saved_posts_error')), findsOneWidget);

@@ -88,8 +88,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('전체 저장 4개'), findsOneWidget);
-    expect(find.text('그중 컬렉션에 넣지 않은 글은 2개예요'), findsOneWidget);
+    expect(find.byKey(const Key('saved_posts_total_count')), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
+    expect(find.text('전체 저장 · 미분류 2개'), findsOneWidget);
     expect(find.byKey(const Key('unassigned_collection')), findsOneWidget);
     expect(find.text('산책 기록'), findsOneWidget);
   });

@@ -15,6 +15,8 @@ import 'package:meong_nyang_diary/features/pets/domain/entities/pet.dart';
 import 'package:meong_nyang_diary/features/pets/domain/usecases/add_pet.dart';
 import 'package:meong_nyang_diary/features/pets/domain/usecases/delete_pet.dart';
 import 'package:meong_nyang_diary/features/pets/domain/usecases/get_user_pets.dart';
+import 'package:meong_nyang_diary/features/pets/domain/usecases/get_selected_pet_id.dart';
+import 'package:meong_nyang_diary/features/pets/domain/usecases/set_selected_pet_id.dart';
 import 'package:meong_nyang_diary/features/pets/domain/usecases/update_pet.dart';
 import 'package:meong_nyang_diary/features/pets/presentation/bloc/pet_bloc.dart';
 import 'package:meong_nyang_diary/features/pets/presentation/bloc/pet_event.dart';
@@ -33,6 +35,10 @@ class _MockAddPet extends Mock implements AddPet {}
 class _MockUpdatePet extends Mock implements UpdatePet {}
 
 class _MockDeletePet extends Mock implements DeletePet {}
+
+class _MockGetSelectedPetId extends Mock implements GetSelectedPetId {}
+
+class _MockSetSelectedPetId extends Mock implements SetSelectedPetId {}
 
 class _MockImageUploadService extends Mock implements ImageUploadService {}
 
@@ -147,12 +153,18 @@ void main() {
     late _MockAddPet addPet;
     late _MockUpdatePet updatePet;
     late _MockDeletePet deletePet;
+    late _MockGetSelectedPetId getSelectedPetId;
+    late _MockSetSelectedPetId setSelectedPetId;
 
     setUp(() {
       getUserPets = _MockGetUserPets();
       addPet = _MockAddPet();
       updatePet = _MockUpdatePet();
       deletePet = _MockDeletePet();
+      getSelectedPetId = _MockGetSelectedPetId();
+      setSelectedPetId = _MockSetSelectedPetId();
+      when(() => setSelectedPetId(any())).thenAnswer((invocation) async =>
+          Right(invocation.positionalArguments.first as String?));
     });
 
     blocTest<PetBloc, PetState>(
@@ -167,6 +179,8 @@ void main() {
         addPet: addPet,
         updatePet: updatePet,
         deletePet: deletePet,
+        getSelectedPetId: getSelectedPetId,
+        setSelectedPetId: setSelectedPetId,
       ),
       seed: () => const PetLoaded(pets: []),
       act: (bloc) => bloc.add(AddPetEvent(buildPet())),

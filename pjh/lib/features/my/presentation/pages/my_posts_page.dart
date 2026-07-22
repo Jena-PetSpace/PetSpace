@@ -170,9 +170,11 @@ class _MyPostsPageState extends State<MyPostsPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, size: 48.w, color: AppTheme.lightTextColor),
+                Icon(Icons.error_outline,
+                    size: 48.w, color: AppTheme.lightTextColor),
                 SizedBox(height: 12.h),
-                Text(state.message,
+                Text('내 게시물을 불러오지 못했어요.',
+                    key: const Key('my_posts_feed_error'),
                     style: TextStyle(
                         fontSize: 14.sp, color: AppTheme.secondaryTextColor)),
                 SizedBox(height: 16.h),
@@ -234,7 +236,8 @@ class _MyPostsPageState extends State<MyPostsPage>
                       Icon(Icons.error_outline,
                           size: 48.w, color: AppTheme.lightTextColor),
                       SizedBox(height: 12.h),
-                      Text(state.message,
+                      Text('감정 분석 기록을 불러오지 못했어요.',
+                          key: const Key('my_posts_emotion_error'),
                           style: TextStyle(
                               fontSize: 14.sp,
                               color: AppTheme.secondaryTextColor)),
@@ -376,7 +379,7 @@ class _MyPostsPageState extends State<MyPostsPage>
       title: '작성한 커뮤니티 글이 없습니다',
       subtitle: '커뮤니티에서 다른 반려인들과\n소통해보세요!',
       buttonLabel: '커뮤니티 가기',
-      onPressed: () => context.go('/feed?tab=lounge'),
+      onPressed: () => context.go('/feed?tab=community'),
     );
   }
 
@@ -477,7 +480,8 @@ class _MyPostsPageState extends State<MyPostsPage>
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildMiniBar(analysis.emotions.happiness, AppTheme.happinessColor),
+                _buildMiniBar(
+                    analysis.emotions.happiness, AppTheme.happinessColor),
                 SizedBox(height: 2.h),
                 _buildMiniBar(analysis.emotions.calm, AppTheme.calmColor),
                 SizedBox(height: 2.h),

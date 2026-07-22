@@ -41,6 +41,7 @@ void main() {
     ThemeData? theme,
     Size surface = const Size(390, 844),
     double textScale = 1,
+    bool isSelectionPending = false,
     VoidCallback? onEdit,
     VoidCallback? onDelete,
     VoidCallback? onSetPrimary,
@@ -67,6 +68,7 @@ void main() {
             body: PetCard(
               pet: pet,
               isSelected: isSelected,
+              isSelectionPending: isSelectionPending,
               onEdit: onEdit,
               onDelete: onDelete,
               onSetPrimary: onSetPrimary,
@@ -148,6 +150,27 @@ void main() {
     expect(primaryCalls, 1);
     expect(editCalls, 1);
     expect(deleteCalls, 1);
+  });
+
+  testWidgets('대표 변경 중에는 진행 상태를 표시하고 중복 메뉴 동작을 막는다', (tester) async {
+    final semanticsHandle = tester.ensureSemantics();
+    final pet = buildPet();
+    await pumpCard(
+      tester,
+      pet: pet,
+      isSelectionPending: true,
+    );
+
+    expect(
+      find.byKey(const Key('pet_card_selection_pending_pet-1')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('pet_card_menu_pet-1')), findsNothing);
+    final semantics = tester.getSemantics(
+      find.byKey(const Key('pet_card_selection_pending_pet-1')),
+    );
+    expect(semantics.label, contains('hyun 대표 반려동물 변경 중'));
+    semanticsHandle.dispose();
   });
 
   testWidgets('긴 이름·150% 글자에서도 overflow 없고 사진 성공·오류 표현을 제공한다', (tester) async {

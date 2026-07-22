@@ -71,9 +71,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
   }
 
   Future<void> _checkSystemPermission() async {
-    final granted =
-        await (widget.notificationPermissionLoader?.call() ??
-            PermissionHelper.isNotificationGranted());
+    final granted = await (widget.notificationPermissionLoader?.call() ??
+        PermissionHelper.isNotificationGranted());
     if (!mounted) return;
     setState(() => _systemPermissionGranted = granted);
   }
@@ -114,9 +113,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     }
     final result = await _repository.getNotificationPreferences(userId);
     await result.fold(
-      (failure) async {
+      (_) async {
         dev.log(
-          '서버 알림 설정 로드 실패(로컬 값 유지): ${failure.message}',
+          '서버 알림 설정 로드 실패(로컬 값 유지)',
           name: 'NotificationSettings',
         );
       },
@@ -162,9 +161,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
       column: serverColumn,
       value: value,
     );
-    result.fold((failure) {
+    result.fold((_) {
       dev.log(
-        '서버 알림 설정 저장 실패: ${failure.message}',
+        '서버 알림 설정 저장 실패',
         name: 'NotificationSettings',
       );
       if (mounted) {
@@ -332,12 +331,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
     // 다크모드는 Theme의 text를 우선하고 라이트모드 시각값은 유지한다.
     final ThemeData theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color bodyColor = isDark
-        ? theme.colorScheme.onSurface
-        : AppTheme.primaryTextColor;
-    final Color mutedColor = isDark
-        ? theme.colorScheme.onSurfaceVariant
-        : AppTheme.textMuted;
+    final Color bodyColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
+    final Color mutedColor =
+        isDark ? theme.colorScheme.onSurfaceVariant : AppTheme.textMuted;
     final Color disabledColor = isDark
         ? theme.colorScheme.onSurface.withValues(alpha: 0.38)
         : AppTheme.disabledColor;
@@ -376,12 +373,10 @@ class _SystemPermissionWarning extends StatelessWidget {
     // 라이트모드 시각값과 warning 의미 토큰(icon·border·CTA)은 유지한다.
     final ThemeData theme = Theme.of(context);
     final bool isDark = theme.brightness == Brightness.dark;
-    final Color bannerSurface = isDark
-        ? theme.colorScheme.surface
-        : AppTheme.surfaceWarm;
-    final Color bodyColor = isDark
-        ? theme.colorScheme.onSurface
-        : AppTheme.textBody;
+    final Color bannerSurface =
+        isDark ? theme.colorScheme.surface : AppTheme.surfaceWarm;
+    final Color bodyColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.textBody;
 
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),

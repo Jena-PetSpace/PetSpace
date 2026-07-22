@@ -76,6 +76,8 @@ class _PetDetailPageState extends State<PetDetailPage> {
                 SizedBox(height: 18.h),
                 _buildDescriptionCard(),
               ],
+              SizedBox(height: 18.h),
+              _buildPassportCard(context),
               SizedBox(height: 24.h),
               _buildActionButtons(context),
             ],
@@ -130,12 +132,10 @@ class _PetDetailPageState extends State<PetDetailPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final surface = isDark ? theme.colorScheme.surface : AppTheme.surfaceColor;
-    final titleColor = isDark
-        ? theme.colorScheme.onSurface
-        : AppTheme.primaryTextColor;
-    final muted = isDark
-        ? theme.colorScheme.onSurfaceVariant
-        : AppTheme.textMuted;
+    final titleColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
+    final muted =
+        isDark ? theme.colorScheme.onSurfaceVariant : AppTheme.textMuted;
 
     return Container(
       key: const Key('pet_detail_identity'),
@@ -265,8 +265,8 @@ class _PetDetailPageState extends State<PetDetailPage> {
             icon: pet.gender == PetGender.male
                 ? Icons.male_rounded
                 : pet.gender == PetGender.female
-                ? Icons.female_rounded
-                : Icons.question_mark_rounded,
+                    ? Icons.female_rounded
+                    : Icons.question_mark_rounded,
             label: '성별',
             value: pet.genderDisplayName ?? '미상',
           ),
@@ -290,12 +290,10 @@ class _PetDetailPageState extends State<PetDetailPage> {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final text = isDark
-        ? theme.colorScheme.onSurface
-        : AppTheme.primaryTextColor;
-    final muted = isDark
-        ? theme.colorScheme.onSurfaceVariant
-        : AppTheme.textMuted;
+    final text =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
+    final muted =
+        isDark ? theme.colorScheme.onSurfaceVariant : AppTheme.textMuted;
     return ConstrainedBox(
       constraints: BoxConstraints(minHeight: 56.h),
       child: Row(
@@ -372,6 +370,59 @@ class _PetDetailPageState extends State<PetDetailPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPassportCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final hasPassport = pet.passportNo?.trim().isNotEmpty == true;
+    return Material(
+      key: const Key('pet_detail_passport_card'),
+      color: theme.brightness == Brightness.dark
+          ? theme.colorScheme.surfaceContainerHighest
+          : AppTheme.actionContainer,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
+      child: InkWell(
+        onTap: () => _openEditPage(context),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
+        child: Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.badge_outlined, color: AppTheme.actionBase),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasPassport ? '반려동물 여권 정보' : '반려동물 여권 만들기',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontBody.sp,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      hasPassport
+                          ? '등록된 여권 정보를 확인하거나 수정할 수 있어요.'
+                          : '여행과 추억을 위한 PetSpace 기록 카드예요. 공식 증명서는 아닙니다.',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontCaption.sp,
+                        height: 1.45,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -474,9 +525,42 @@ class _PetDetailPageState extends State<PetDetailPage> {
           borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
         ),
         title: const Text('반려동물 삭제'),
-        content: Text(
-          '${pet.name}을(를) 삭제하면 복구할 수 없습니다. 계속할까요?',
-          style: TextStyle(fontSize: AppTheme.fontBody.sp, height: 1.5),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${pet.name}의 정보를 삭제하면 복구할 수 없습니다.',
+              style: TextStyle(fontSize: AppTheme.fontBody.sp, height: 1.5),
+            ),
+            SizedBox(height: 14.h),
+            Text(
+              '함께 삭제',
+              style: TextStyle(
+                fontSize: AppTheme.fontCaption.sp,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.errorColor,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              '반려동물 프로필, 건강 기록, 감정 분석 기록, 성격 결과',
+              style: TextStyle(fontSize: AppTheme.fontCaption.sp, height: 1.45),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              '유지하지만 연결 해제',
+              style: TextStyle(
+                fontSize: AppTheme.fontCaption.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              '게시물과 산책 기록',
+              style: TextStyle(fontSize: AppTheme.fontCaption.sp, height: 1.45),
+            ),
+          ],
         ),
         actions: [
           TextButton(

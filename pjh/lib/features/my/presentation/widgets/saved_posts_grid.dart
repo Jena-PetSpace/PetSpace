@@ -161,7 +161,7 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
     final countResult = await countFuture;
     if (!mounted || generation != _generation) return;
     pageResult.fold(
-      (failure) => setState(() => _moreError = failure.message),
+      (_) => setState(() => _moreError = 'load-failed'),
       (page) => setState(() {
         _items
           ..clear()
@@ -202,9 +202,9 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
     );
     if (!mounted || generation != _generation) return;
     pageResult.fold(
-      (failure) => setState(() {
+      (_) => setState(() {
         _loading = false;
-        _error = failure.message;
+        _error = 'load-failed';
       }),
       (page) {
         setState(() {
@@ -239,9 +239,9 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
     );
     if (!mounted || generation != _generation) return;
     result.fold(
-      (failure) => setState(() {
+      (_) => setState(() {
         _loadingMore = false;
-        _moreError = failure.message;
+        _moreError = 'load-failed';
       }),
       (page) {
         final seen = _items.map((item) => item.savedPostId).toSet();

@@ -123,6 +123,11 @@ void main() {
     expect(find.text('2026.01.06'), findsOneWidget);
     expect(find.text('함께한 날'), findsNothing);
     expect(find.byKey(const Key('pet_detail_avatar')), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const Key('pet_detail_passport_card')),
+    );
+    expect(find.text('반려동물 여권 만들기'), findsOneWidget);
+    expect(find.textContaining('공식 증명서는 아닙니다'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -152,7 +157,7 @@ void main() {
     expect(find.text('CREATE_POST_PAGE'), findsOneWidget);
   });
 
-  testWidgets('삭제 확인은 검증되지 않은 cascade를 약속하지 않고 event를 보낸다', (tester) async {
+  testWidgets('삭제 확인은 cascade와 연결 해제를 구분하고 event를 보낸다', (tester) async {
     await pumpPage(tester);
 
     await tester.tap(find.byKey(const Key('pet_detail_overflow')));
@@ -161,7 +166,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('복구할 수 없습니다'), findsOneWidget);
-    expect(find.textContaining('관련된 모든 데이터'), findsNothing);
+    expect(find.text('함께 삭제'), findsOneWidget);
+    expect(find.textContaining('건강 기록'), findsOneWidget);
+    expect(find.text('유지하지만 연결 해제'), findsOneWidget);
+    expect(find.text('게시물과 산책 기록'), findsOneWidget);
     await tester.tap(find.byKey(const Key('pet_detail_delete_confirm')));
     await tester.pumpAndSettle();
 

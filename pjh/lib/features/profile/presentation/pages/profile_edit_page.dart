@@ -81,8 +81,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         _imageUploadFailed = false;
         _allowPop = false;
       });
-    } catch (e) {
-      developer.log('프로필 로드 오류: $e', name: 'ProfileEditPage', error: e);
+    } catch (_) {
+      developer.log('프로필 로드 오류', name: 'ProfileEditPage');
       if (!mounted) return;
       setState(() {
         _isInitialLoading = false;
@@ -105,9 +105,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       child: PetSpacePageScaffold(
         title: '프로필 편집',
         body: _buildBody(),
-        bottomNavigationBar: _isInitialLoading || _hasLoadError
-            ? null
-            : _buildSaveBar(),
+        bottomNavigationBar:
+            _isInitialLoading || _hasLoadError ? null : _buildSaveBar(),
       ),
     );
   }
@@ -154,9 +153,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               style: TextStyle(
                 fontSize: AppTheme.fontHeading.sp,
                 fontWeight: FontWeight.w700,
-                color: isDark
-                    ? theme.colorScheme.onSurface
-                    : AppTheme.brandDeep,
+                color:
+                    isDark ? theme.colorScheme.onSurface : AppTheme.brandDeep,
               ),
             ),
             SizedBox(height: 14.h),
@@ -215,9 +213,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               style: TextStyle(
                 fontSize: AppTheme.fontHeading.sp,
                 fontWeight: FontWeight.w700,
-                color: isDark
-                    ? theme.colorScheme.onSurface
-                    : AppTheme.brandDeep,
+                color:
+                    isDark ? theme.colorScheme.onSurface : AppTheme.brandDeep,
               ),
             ),
             SizedBox(height: 14.h),
@@ -227,16 +224,16 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               maxLength: 50,
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
-                labelText: '이름 *',
-                hintText: '이름을 입력하세요',
+                labelText: '닉네임 *',
+                hintText: '닉네임을 입력하세요',
                 prefixIcon: Icon(Icons.person_outline),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return '이름을 입력해주세요';
+                  return '닉네임을 입력해주세요';
                 }
                 if (value.trim().length < 2) {
-                  return '이름은 2자 이상이어야 합니다';
+                  return '닉네임은 2자 이상이어야 합니다';
                 }
                 return null;
               },
@@ -249,7 +246,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               maxLength: 150,
               textInputAction: TextInputAction.newline,
               decoration: const InputDecoration(
-                labelText: '소개',
+                labelText: '한 줄 소개',
                 hintText: '반려동물과 나를 소개해보세요',
                 prefixIcon: Icon(Icons.edit_note_outlined),
                 alignLabelWithHint: true,
@@ -417,7 +414,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       await _profileService.updateProfile(displayName: displayName, bio: bio);
       developer.log('프로필 텍스트 저장 완료', name: 'ProfileEditPage');
     } catch (e) {
-      developer.log('프로필 텍스트 저장 오류: $e', name: 'ProfileEditPage', error: e);
+      developer.log('프로필 텍스트 저장 오류', name: 'ProfileEditPage');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -436,8 +433,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       try {
         await _profileService.updateProfileImage(_selectedImage!);
         developer.log('프로필 이미지 업로드 완료', name: 'ProfileEditPage');
-      } catch (e) {
-        developer.log('프로필 이미지 업로드 실패: $e', name: 'ProfileEditPage', error: e);
+      } catch (_) {
+        developer.log('프로필 이미지 업로드 실패', name: 'ProfileEditPage');
         imageFailed = true;
       }
     }
@@ -499,7 +496,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       );
       Navigator.pop(context, true);
     } catch (e) {
-      developer.log('프로필 이미지 재업로드 실패: $e', name: 'ProfileEditPage', error: e);
+      developer.log('프로필 이미지 재업로드 실패', name: 'ProfileEditPage');
       if (!mounted) return;
       setState(() {
         _imageUploadFailed = true;
@@ -515,8 +512,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   }
 
   Future<bool> _confirmDiscardChanges() async {
-    final hasOnlyPendingImage =
-        _selectedImage != null &&
+    final hasOnlyPendingImage = _selectedImage != null &&
         _nameController.text.trim() == _initialName &&
         _bioController.text.trim() == _initialBio;
     return await showDialog<bool>(
@@ -553,8 +549,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   String _userFacingError(Object e, String operation) {
     final msg = e.toString().toLowerCase();
-    final isNetwork =
-        msg.contains('socketexception') ||
+    final isNetwork = msg.contains('socketexception') ||
         msg.contains('failed host lookup') ||
         msg.contains('clientexception') ||
         msg.contains('connection') ||

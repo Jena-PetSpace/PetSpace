@@ -6,6 +6,8 @@ import '../../domain/entities/pet.dart';
 import '../../domain/usecases/add_pet.dart';
 import '../../domain/usecases/delete_pet.dart';
 import '../../domain/usecases/get_user_pets.dart';
+import '../../domain/usecases/get_selected_pet_id.dart';
+import '../../domain/usecases/set_selected_pet_id.dart';
 import '../../domain/usecases/update_pet.dart';
 import 'pet_event.dart';
 import 'pet_state.dart';
@@ -15,13 +17,21 @@ class PetBloc extends Bloc<PetEvent, PetState> {
   final AddPet addPet;
   final UpdatePet updatePet;
   final DeletePet deletePet;
+  final GetSelectedPetId getSelectedPetId;
+  final SetSelectedPetId setSelectedPetId;
+  final String? Function() currentUserIdProvider;
 
   PetBloc({
     required this.getUserPets,
     required this.addPet,
     required this.updatePet,
     required this.deletePet,
-  }) : super(PetInitial()) {
+    required this.getSelectedPetId,
+    required this.setSelectedPetId,
+    String? Function()? currentUserIdProvider,
+  })  : currentUserIdProvider = currentUserIdProvider ??
+            (() => Supabase.instance.client.auth.currentUser?.id),
+        super(PetInitial()) {
     on<LoadUserPets>(_onLoadUserPets);
     on<AddPetEvent>(_onAddPet);
     on<UpdatePetEvent>(_onUpdatePet);
@@ -33,42 +43,52 @@ class PetBloc extends Bloc<PetEvent, PetState> {
     LoadUserPets event,
     Emitter<PetState> emit,
   ) async {
-    // 기존 선택된 반려동물 ID 보존
-    final previousSelectedPetId =
-        state is PetLoaded ? (state as PetLoaded).selectedPet?.id : null;
-
     emit(PetLoading());
 
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) {
+      final userId = currentUserIdProvider();
+      if (userId == null) {
         emit(const PetError('로그인이 필요합니다.'));
         return;
       }
 
-      final result = await getUserPets(user.id);
+      final result = await getUserPets(userId);
 
-      result.fold(
-        (failure) => emit(PetError(failure.message)),
-        (pets) {
-          // 기존 선택된 반려동물이 있으면 유지, 없으면 첫 번째로 설정
-          Pet? selectedPet;
-          if (previousSelectedPetId != null) {
-            selectedPet = pets.cast<Pet?>().firstWhere(
-                  (pet) => pet?.id == previousSelectedPetId,
-                  orElse: () => null,
-                );
-          }
-          selectedPet ??= pets.isNotEmpty ? pets.first : null;
-
-          emit(PetLoaded(
-            pets: pets,
-            selectedPet: selectedPet,
-          ));
+      await result.fold(
+        (failure) async => emit(PetError(failure.message)),
+        (pets) async {
+          final selectedResult = await getSelectedPetId();
+          selectedResult.fold(
+            (failure) => emit(
+              PetLoaded(
+                pets: pets,
+                selectionStatus: PetSelectionStatus.failure,
+                selectionMessage: failure.message,
+              ),
+            ),
+            (selectedPetId) {
+              Pet? selectedPet;
+              if (selectedPetId != null) {
+                selectedPet = _findPet(pets, selectedPetId);
+              }
+              emit(
+                PetLoaded(
+                  pets: pets,
+                  selectedPet: selectedPet,
+                  selectionStatus: selectedPetId != null && selectedPet == null
+                      ? PetSelectionStatus.failure
+                      : PetSelectionStatus.idle,
+                  selectionMessage: selectedPetId != null && selectedPet == null
+                      ? '대표 반려동물 정보를 다시 선택해주세요.'
+                      : null,
+                ),
+              );
+            },
+          );
         },
       );
-    } catch (e) {
-      emit(PetError('반려동물 목록을 불러오는데 실패했습니다: ${e.toString()}'));
+    } catch (_) {
+      emit(const PetError('반려동물 목록을 불러오지 못했어요.'));
     }
   }
 
@@ -76,31 +96,58 @@ class PetBloc extends Bloc<PetEvent, PetState> {
     AddPetEvent event,
     Emitter<PetState> emit,
   ) async {
-    if (state is! PetLoaded) return;
-
-    final currentState = state as PetLoaded;
+    final currentState =
+        state is PetLoaded ? state as PetLoaded : const PetLoaded(pets: []);
     emit(PetLoading());
 
     try {
       final result = await addPet(event.pet);
 
-      result.fold(
-        (failure) => emit(PetError(failure.message)),
-        (newPet) {
+      await result.fold(
+        (failure) async {
+          emit(PetError(failure.message));
+          emit(currentState);
+        },
+        (newPet) async {
           AnalyticsService.instance.logPetRegistered(petType: newPet.type.name);
           final updatedPets = [...currentState.pets, newPet];
+          var selectedPet = currentState.selectedPet;
+          var selectionStatus = currentState.selectionStatus;
+          String? selectionMessage;
+          if (selectedPet == null) {
+            final selectionResult = await setSelectedPetId(newPet.id);
+            selectionResult.fold(
+              (failure) {
+                selectionStatus = PetSelectionStatus.failure;
+                selectionMessage = failure.message;
+              },
+              (selectedPetId) {
+                if (selectedPetId == newPet.id) {
+                  selectedPet = newPet;
+                  selectionStatus = PetSelectionStatus.success;
+                  selectionMessage = '대표 반려동물로 설정했어요: ${newPet.name}';
+                } else {
+                  selectionStatus = PetSelectionStatus.failure;
+                  selectionMessage = '대표 반려동물을 변경하지 못했어요.';
+                }
+              },
+            );
+          }
           emit(PetOperationSuccess(
-            message: '반려동물이 성공적으로 등록되었습니다.',
+            message: '반려동물을 등록했어요.',
             pets: updatedPets,
           ));
           emit(PetLoaded(
             pets: updatedPets,
-            selectedPet: currentState.selectedPet ?? newPet,
+            selectedPet: selectedPet,
+            selectionStatus: selectionStatus,
+            selectionMessage: selectionMessage,
           ));
         },
       );
-    } catch (e) {
-      emit(PetError('반려동물 등록에 실패했습니다: ${e.toString()}'));
+    } catch (_) {
+      emit(const PetError('반려동물을 등록하지 못했어요. 입력 내용을 확인해주세요.'));
+      emit(currentState);
     }
   }
 
@@ -116,15 +163,18 @@ class PetBloc extends Bloc<PetEvent, PetState> {
     try {
       final result = await updatePet(event.pet);
 
-      result.fold(
-        (failure) => emit(PetError(failure.message)),
+      await result.fold(
+        (failure) async {
+          emit(PetError(failure.message));
+          emit(currentState);
+        },
         (updatedPet) {
           final updatedPets = currentState.pets
               .map((pet) => pet.id == updatedPet.id ? updatedPet : pet)
               .toList();
 
           emit(PetOperationSuccess(
-            message: '반려동물 정보가 성공적으로 업데이트되었습니다.',
+            message: '반려동물 정보를 저장했어요.',
             pets: updatedPets,
           ));
           emit(PetLoaded(
@@ -132,11 +182,14 @@ class PetBloc extends Bloc<PetEvent, PetState> {
             selectedPet: currentState.selectedPet?.id == updatedPet.id
                 ? updatedPet
                 : currentState.selectedPet,
+            selectionStatus: currentState.selectionStatus,
+            selectionMessage: currentState.selectionMessage,
           ));
         },
       );
-    } catch (e) {
-      emit(PetError('반려동물 정보 업데이트에 실패했습니다: ${e.toString()}'));
+    } catch (_) {
+      emit(const PetError('반려동물 정보를 저장하지 못했어요.'));
+      emit(currentState);
     }
   }
 
@@ -152,39 +205,127 @@ class PetBloc extends Bloc<PetEvent, PetState> {
     try {
       final result = await deletePet(event.petId);
 
-      result.fold(
-        (failure) => emit(PetError(failure.message)),
-        (_) {
+      await result.fold(
+        (failure) async {
+          emit(PetError(failure.message));
+          emit(currentState);
+        },
+        (_) async {
           final updatedPets =
               currentState.pets.where((pet) => pet.id != event.petId).toList();
 
           Pet? newSelectedPet = currentState.selectedPet;
+          var selectionStatus = currentState.selectionStatus;
+          String? selectionMessage;
           if (currentState.selectedPet?.id == event.petId) {
-            newSelectedPet = updatedPets.isNotEmpty ? updatedPets.first : null;
+            newSelectedPet = null;
+            if (updatedPets.isNotEmpty) {
+              final fallback = updatedPets.first;
+              final selectionResult = await setSelectedPetId(fallback.id);
+              selectionResult.fold(
+                (failure) {
+                  selectionStatus = PetSelectionStatus.failure;
+                  selectionMessage = failure.message;
+                },
+                (selectedPetId) {
+                  if (selectedPetId == fallback.id) {
+                    newSelectedPet = fallback;
+                    selectionStatus = PetSelectionStatus.success;
+                    selectionMessage = '대표 반려동물로 설정했어요: ${fallback.name}';
+                  } else {
+                    selectionStatus = PetSelectionStatus.failure;
+                    selectionMessage = '대표 반려동물을 변경하지 못했어요.';
+                  }
+                },
+              );
+            } else {
+              selectionStatus = PetSelectionStatus.idle;
+            }
           }
 
           emit(PetOperationSuccess(
-            message: '반려동물이 성공적으로 삭제되었습니다.',
+            message: '반려동물을 삭제했어요.',
             pets: updatedPets,
           ));
           emit(PetLoaded(
             pets: updatedPets,
             selectedPet: newSelectedPet,
+            selectionStatus: selectionStatus,
+            selectionMessage: selectionMessage,
           ));
         },
       );
-    } catch (e) {
-      emit(PetError('반려동물 삭제에 실패했습니다: ${e.toString()}'));
+    } catch (_) {
+      emit(const PetError('반려동물을 삭제하지 못했어요.'));
+      emit(currentState);
     }
   }
 
-  void _onSelectPet(
+  Future<void> _onSelectPet(
     SelectPet event,
     Emitter<PetState> emit,
-  ) {
-    if (state is PetLoaded) {
-      final currentState = state as PetLoaded;
-      emit(currentState.copyWith(selectedPet: event.pet));
+  ) async {
+    if (state is! PetLoaded) return;
+    final currentState = state as PetLoaded;
+    if (currentState.selectionStatus == PetSelectionStatus.pending ||
+        currentState.selectedPet?.id == event.pet.id) {
+      return;
     }
+
+    emit(
+      currentState.copyWith(
+        selectionStatus: PetSelectionStatus.pending,
+        pendingSelectedPetId: event.pet.id,
+        selectionMessage: null,
+      ),
+    );
+
+    try {
+      final result = await setSelectedPetId(event.pet.id);
+      result.fold(
+        (failure) => emit(
+          currentState.copyWith(
+            selectionStatus: PetSelectionStatus.failure,
+            pendingSelectedPetId: null,
+            selectionMessage: failure.message,
+          ),
+        ),
+        (selectedPetId) {
+          if (selectedPetId != event.pet.id) {
+            emit(
+              currentState.copyWith(
+                selectionStatus: PetSelectionStatus.failure,
+                pendingSelectedPetId: null,
+                selectionMessage: '대표 반려동물을 변경하지 못했어요.',
+              ),
+            );
+            return;
+          }
+          emit(
+            currentState.copyWith(
+              selectedPet: event.pet,
+              selectionStatus: PetSelectionStatus.success,
+              pendingSelectedPetId: null,
+              selectionMessage: '대표 반려동물로 설정했어요: ${event.pet.name}',
+            ),
+          );
+        },
+      );
+    } catch (_) {
+      emit(
+        currentState.copyWith(
+          selectionStatus: PetSelectionStatus.failure,
+          pendingSelectedPetId: null,
+          selectionMessage: '대표 반려동물을 변경하지 못했어요.',
+        ),
+      );
+    }
+  }
+
+  Pet? _findPet(List<Pet> pets, String petId) {
+    for (final pet in pets) {
+      if (pet.id == petId) return pet;
+    }
+    return null;
   }
 }

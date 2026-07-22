@@ -35,6 +35,47 @@ class PetRepositoryImpl implements PetRepository {
   /// 여권번호 UNIQUE 충돌 시 재생성 최대 횟수.
   static const int _passportRetryCount = 5;
 
+  @visibleForTesting
+  Future<dynamic> callRpc(
+    String functionName, {
+    Map<String, dynamic>? params,
+  }) {
+    return supabaseClient.rpc(functionName, params: params);
+  }
+
+  @override
+  Future<Either<Failure, String?>> getSelectedPetId() async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+    }
+    try {
+      final response = await callRpc('get_my_selected_pet_id');
+      return Right(response as String?);
+    } catch (_) {
+      return const Left(
+        DatabaseFailure(message: '대표 반려동물 정보를 불러오지 못했어요.'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, String?>> setSelectedPetId(String? petId) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+    }
+    try {
+      final response = await callRpc(
+        'set_my_selected_pet_id',
+        params: {'p_pet_id': petId},
+      );
+      return Right(response as String?);
+    } catch (_) {
+      return const Left(
+        DatabaseFailure(message: '대표 반려동물을 변경하지 못했어요.'),
+      );
+    }
+  }
+
   @override
   Future<Either<Failure, List<Pet>>> getUserPets(String userId) async {
     if (!await networkInfo.isConnected) {
@@ -55,11 +96,10 @@ class PetRepositoryImpl implements PetRepository {
           .toList();
 
       return Right(pets);
-    } on PostgrestException catch (e) {
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '반려동물 목록 조회 중 오류 발생: ${e.toString()}'));
+    } on PostgrestException {
+      return const Left(DatabaseFailure(message: '반려동물 목록을 불러오지 못했어요.'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '반려동물 목록을 불러오지 못했어요.'));
     }
   }
 
@@ -76,10 +116,10 @@ class PetRepositoryImpl implements PetRepository {
           .eq('id', petId)
           .maybeSingle();
       return Right(response);
-    } on PostgrestException catch (e) {
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(GeneralFailure(message: '반려동물 상세 조회 중 오류 발생: ${e.toString()}'));
+    } on PostgrestException {
+      return const Left(DatabaseFailure(message: '반려동물 프로필을 불러오지 못했어요.'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '반려동물 프로필을 불러오지 못했어요.'));
     }
   }
 
@@ -103,10 +143,10 @@ class PetRepositoryImpl implements PetRepository {
 
       final pet = PetModel.fromJson(response);
       return Right(pet);
-    } on PostgrestException catch (e) {
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(GeneralFailure(message: '반려동물 조회 중 오류 발생: ${e.toString()}'));
+    } on PostgrestException {
+      return const Left(DatabaseFailure(message: '반려동물 정보를 불러오지 못했어요.'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '반려동물 정보를 불러오지 못했어요.'));
     }
   }
 
@@ -124,8 +164,6 @@ class PetRepositoryImpl implements PetRepository {
       // 여권번호 UNIQUE 충돌(23505) 시 재생성 후 재시도(최대 N회).
       // 번호를 직접 부여하지 않은 경우엔 재시도 의미가 없으므로 1회만 수행.
       final maxAttempts = needsPassport ? _passportRetryCount : 1;
-      PostgrestException? lastUniqueError;
-
       for (var attempt = 0; attempt < maxAttempts; attempt++) {
         final petModel = needsPassport
             ? PetModel.fromEntity(
@@ -140,7 +178,6 @@ class PetRepositoryImpl implements PetRepository {
         } on PostgrestException catch (e) {
           if (e.code == '23505' && needsPassport) {
             // 여권번호 충돌 추정 → 번호 재생성 후 재시도.
-            lastUniqueError = e;
             continue;
           }
           rethrow;
@@ -148,8 +185,9 @@ class PetRepositoryImpl implements PetRepository {
       }
 
       // 재시도 소진(극히 드묾) → 마지막 충돌 보고.
-      return Left(DatabaseFailure(
-          message: '여권번호 생성에 실패했습니다. 다시 시도해주세요. (${lastUniqueError?.message ?? ''})'));
+      return const Left(
+        DatabaseFailure(message: '여권번호를 만들지 못했어요. 다시 시도해주세요.'),
+      );
     } on PostgrestException catch (e) {
       if (e.code == '23503') {
         // Foreign Key Violation
@@ -158,9 +196,9 @@ class PetRepositoryImpl implements PetRepository {
         // Unique Violation (여권번호 외 제약 — 예: 향후 추가 제약)
         return const Left(DatabaseFailure(message: '이미 존재하는 반려동물입니다.'));
       }
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(GeneralFailure(message: '반려동물 등록 중 오류 발생: ${e.toString()}'));
+      return const Left(DatabaseFailure(message: '반려동물을 등록하지 못했어요.'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '반려동물을 등록하지 못했어요.'));
     }
   }
 
@@ -203,10 +241,9 @@ class PetRepositoryImpl implements PetRepository {
       if (e.code == '404' || e.message.contains('No rows found')) {
         return const Left(DatabaseFailure(message: '해당 반려동물을 찾을 수 없습니다.'));
       }
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '반려동물 정보 수정 중 오류 발생: ${e.toString()}'));
+      return const Left(DatabaseFailure(message: '반려동물 정보를 수정하지 못했어요.'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '반려동물 정보를 수정하지 못했어요.'));
     }
   }
 
@@ -243,9 +280,9 @@ class PetRepositoryImpl implements PetRepository {
       if (e.code == '404' || e.message.contains('No rows found')) {
         return const Left(DatabaseFailure(message: '해당 반려동물을 찾을 수 없습니다.'));
       }
-      return Left(DatabaseFailure(message: 'DB 오류: ${e.message}'));
-    } catch (e) {
-      return Left(GeneralFailure(message: '반려동물 삭제 중 오류 발생: ${e.toString()}'));
+      return const Left(DatabaseFailure(message: '반려동물을 삭제하지 못했어요.'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '반려동물을 삭제하지 못했어요.'));
     }
   }
 
@@ -310,14 +347,17 @@ class PetRepositoryImpl implements PetRepository {
                 .update({'photo_url': photoUrl}).eq('id', petId);
 
             return Right(photoUrl);
-          } catch (e) {
-            return Left(
-                GeneralFailure(message: '이미지 업로드 중 오류 발생: ${e.toString()}'));
+          } catch (_) {
+            return const Left(
+              GeneralFailure(message: '프로필 사진을 업로드하지 못했어요.'),
+            );
           }
         },
       );
-    } catch (e) {
-      return Left(GeneralFailure(message: '이미지 업로드 중 오류 발생: ${e.toString()}'));
+    } catch (_) {
+      return const Left(
+        GeneralFailure(message: '프로필 사진을 업로드하지 못했어요.'),
+      );
     }
   }
 
@@ -338,9 +378,8 @@ class PetRepositoryImpl implements PetRepository {
       return Right(count);
     } on PostgrestException {
       return const Left(DatabaseFailure(message: 'DB 오류'));
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '반려동물 수 조회 중 오류 발생: ${e.toString()}'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '반려동물 수를 확인하지 못했어요.'));
     }
   }
 
@@ -469,9 +508,8 @@ class PetRepositoryImpl implements PetRepository {
           (response as List).map((item) => item['name_ko'] as String).toList();
 
       return Right(breeds);
-    } catch (e) {
-      return Left(
-          ServerFailure(message: '품종 목록 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(ServerFailure(message: '품종 목록을 불러오지 못했어요.'));
     }
   }
 }

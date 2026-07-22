@@ -68,6 +68,8 @@ import '../features/pets/domain/usecases/get_user_pets.dart';
 import '../features/pets/domain/usecases/add_pet.dart';
 import '../features/pets/domain/usecases/update_pet.dart';
 import '../features/pets/domain/usecases/delete_pet.dart';
+import '../features/pets/domain/usecases/get_selected_pet_id.dart';
+import '../features/pets/domain/usecases/set_selected_pet_id.dart';
 import '../features/pets/presentation/bloc/pet_bloc.dart';
 
 // Features - Health
@@ -335,6 +337,8 @@ Future<void> _initPets() async {
   sl.registerLazySingleton(() => AddPet(sl()));
   sl.registerLazySingleton(() => UpdatePet(sl()));
   sl.registerLazySingleton(() => DeletePet(sl()));
+  sl.registerLazySingleton(() => GetSelectedPetId(sl()));
+  sl.registerLazySingleton(() => SetSelectedPetId(sl()));
 
   // BLoC
   sl.registerFactory(
@@ -343,6 +347,8 @@ Future<void> _initPets() async {
       addPet: sl(),
       updatePet: sl(),
       deletePet: sl(),
+      getSelectedPetId: sl(),
+      setSelectedPetId: sl(),
     ),
   );
 }
