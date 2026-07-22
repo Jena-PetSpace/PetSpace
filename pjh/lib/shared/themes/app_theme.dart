@@ -8,9 +8,9 @@ class AppTheme {
   static const Color actionBase = Color(0xFF3A6EA8); // 버튼 채움·링크·활성 인디케이터·FAB·스위치 on
   static const Color actionPressed = Color(0xFF2E5786); // actionBase 눌림
   static const Color actionContainer = Color(0xFFE8F0F8); // 액션 연한 배경 (선택 배경·정보 칩 배경)
-  static const Color textBody = Color(0xFF3A4552); // 본문
-  static const Color textMuted = Color(0xFF8A94A3); // 보조·시간·카운트
-  static const Color border = Color(0xFFE8EBEF); // 카드 보더 0.5~1px
+  static const Color textBody = Color(0xFF283746); // 본문
+  static const Color textMuted = Color(0xFF687789); // 보조·시간·카운트
+  static const Color border = Color(0xFFDCE3E9); // 카드 보더 0.5~1px
   static const Color infoSky = Color(0xFF5BC0EB); // 정보성 상태 뱃지만 (도면적·버튼 금지)
 
   // 브랜드 컬러 (기존 토큰명 유지 — v2 값/alias)
@@ -25,7 +25,7 @@ class AppTheme {
   static const Color subColor = infoSky;
 
   // 배경 컬러
-  static const Color backgroundColor = Color(0xFFF7F8FA); // 화면 배경 (순백 금지)
+  static const Color backgroundColor = Color(0xFFFAF8F3); // warm off-white 화면 배경
   static const Color surfaceColor = Colors.white; // 카드·시트
   static const Color cardColor = Colors.white;
 

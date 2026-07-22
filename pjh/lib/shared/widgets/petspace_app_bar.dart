@@ -14,11 +14,8 @@ class PetSpaceHeaderTokens {
   static const FontWeight titleWeight = FontWeight.bold;
 
   /// 앱바(.page/.steps) 중앙 타이틀
-  static TextStyle appBarTitle() => TextStyle(
-        color: titleColor,
-        fontWeight: titleWeight,
-        fontSize: 18.sp,
-      );
+  static TextStyle appBarTitle({Color color = titleColor}) =>
+      TextStyle(color: color, fontWeight: titleWeight, fontSize: 18.sp);
 
   /// hero(로그인/가입) 대형 좌측 타이틀
   static TextStyle heroTitle() => TextStyle(
@@ -28,10 +25,8 @@ class PetSpaceHeaderTokens {
         height: 1.3,
       );
 
-  static TextStyle heroSubtitle() => TextStyle(
-        color: subtitleColor,
-        fontSize: 16.sp,
-      );
+  static TextStyle heroSubtitle() =>
+      TextStyle(color: subtitleColor, fontSize: 16.sp);
 }
 
 /// 앱 공용 상단 헤더.
@@ -83,6 +78,11 @@ class PetSpaceAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final contentColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
+
     return AppBar(
       backgroundColor: backgroundColor,
       elevation: 0,
@@ -90,12 +90,15 @@ class PetSpaceAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       leading: onBack != null
           ? IconButton(
-              icon: const Icon(Icons.arrow_back,
-                  color: AppTheme.primaryTextColor),
+              tooltip: '뒤로',
+              icon: Icon(Icons.arrow_back, color: contentColor),
               onPressed: onBack,
             )
           : null,
-      title: Text(title, style: PetSpaceHeaderTokens.appBarTitle()),
+      title: Text(
+        title,
+        style: PetSpaceHeaderTokens.appBarTitle(color: contentColor),
+      ),
       actions: [
         if (_isSteps)
           Padding(
@@ -112,9 +115,13 @@ class PetSpaceAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           )
         else if (trailing != null)
-          trailing!,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            child: Center(child: trailing),
+          ),
       ],
-      bottom: _isSteps ? _StepProgressBar(step: step!, total: totalSteps!) : null,
+      bottom:
+          _isSteps ? _StepProgressBar(step: step!, total: totalSteps!) : null,
     );
   }
 }

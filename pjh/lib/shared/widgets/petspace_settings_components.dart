@@ -72,11 +72,7 @@ class PetSpaceSettingsSection extends StatelessWidget {
               for (int i = 0; i < children.length; i++) ...[
                 children[i],
                 if (i < children.length - 1)
-                  Divider(
-                    height: 1,
-                    indent: 20.w,
-                    color: rowDivider,
-                  ),
+                  Divider(height: 1, indent: 20.w, color: rowDivider),
               ],
             ],
           ),
@@ -135,70 +131,80 @@ class PetSpaceSettingsTile extends StatelessWidget {
             ? Icon(Icons.chevron_right_rounded, color: chevronColor, size: 20.w)
             : null);
 
-    return MergeSemantics(
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 44),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            child: Row(
-              children: [
-                if (icon != null) ...[
-                  Container(
-                    width: 36.w,
-                    height: 36.w,
-                    decoration: BoxDecoration(
-                      color: !enabled
-                          ? disabledIconBg
-                          : destructive
-                              ? AppTheme.errorColor.withValues(alpha: 0.10)
-                              : AppTheme.actionContainer,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 18.w,
-                      color: !enabled
-                          ? disabledContent
-                          : destructive
-                              ? AppTheme.errorColor
-                              : AppTheme.actionBase,
-                    ),
-                  ),
-                  SizedBox(width: 14.w),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: AppTheme.fontBody.sp,
-                          fontWeight: FontWeight.w500,
-                          color: contentColor,
+    final semanticLabel = subtitle == null ? title : '$title, $subtitle';
+
+    return Semantics(
+      label: semanticLabel,
+      button: onTap != null,
+      enabled: onTap == null ? null : enabled,
+      onTap: enabled ? onTap : null,
+      child: ExcludeSemantics(
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              child: Row(
+                children: [
+                  if (icon != null) ...[
+                    Container(
+                      width: 36.w,
+                      height: 36.w,
+                      decoration: BoxDecoration(
+                        color: !enabled
+                            ? disabledIconBg
+                            : destructive
+                                ? AppTheme.errorColor.withValues(alpha: 0.10)
+                                : AppTheme.actionContainer,
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.radiusSm.r,
                         ),
                       ),
-                      if (subtitle != null) ...[
-                        SizedBox(height: 2.h),
+                      child: Icon(
+                        icon,
+                        size: 18.w,
+                        color: !enabled
+                            ? disabledContent
+                            : destructive
+                                ? AppTheme.errorColor
+                                : AppTheme.actionBase,
+                      ),
+                    ),
+                    SizedBox(width: 14.w),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          subtitle!,
+                          title,
                           style: TextStyle(
-                            fontSize: AppTheme.fontCaption.sp,
-                            color: !enabled ? disabledContent : mutedColor,
-                            height: 1.3,
+                            fontSize: AppTheme.fontBody.sp,
+                            fontWeight: FontWeight.w500,
+                            color: contentColor,
                           ),
                         ),
+                        if (subtitle != null) ...[
+                          SizedBox(height: 2.h),
+                          Text(
+                            subtitle!,
+                            style: TextStyle(
+                              fontSize: AppTheme.fontCaption.sp,
+                              color: !enabled ? disabledContent : mutedColor,
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                if (effectiveTrailing != null) ...[
-                  SizedBox(width: 8.w),
-                  effectiveTrailing,
+                  if (effectiveTrailing != null) ...[
+                    SizedBox(width: 8.w),
+                    effectiveTrailing,
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

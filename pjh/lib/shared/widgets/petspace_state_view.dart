@@ -55,89 +55,106 @@ class PetSpaceStateView extends StatelessWidget {
         isDark ? theme.colorScheme.onSurfaceVariant : AppTheme.textMuted;
 
     if (_kind == _PetSpaceStateKind.loading) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 24.h),
-          child: const CircularProgressIndicator(
-            strokeWidth: 2.5,
-            color: AppTheme.actionBase,
+      return Semantics(
+        label: '불러오는 중',
+        liveRegion: true,
+        child: ExcludeSemantics(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 24.h),
+              child: const SizedBox.square(
+                dimension: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppTheme.actionBase,
+                ),
+              ),
+            ),
           ),
         ),
       );
     }
 
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 24.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Container(
-                width: 88.w,
-                height: 88.w,
-                decoration: BoxDecoration(
-                  color: _isError
-                      ? AppTheme.errorColor.withValues(alpha: 0.08)
-                      : AppTheme.actionContainer,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  size: 40.w,
-                  color: _isError ? AppTheme.errorColor : AppTheme.actionBase,
-                ),
-              ),
-              SizedBox(height: 20.h),
-            ],
-            if (title != null) ...[
-              Text(
-                title!,
-                style: TextStyle(
-                  fontSize: AppTheme.fontHeading.sp,
-                  fontWeight: FontWeight.w700,
-                  color: titleColor,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 8.h),
-            ],
-            if (message != null)
-              Text(
-                message!,
-                style: TextStyle(
-                  fontSize: AppTheme.fontCaption.sp,
-                  color: messageColor,
-                  height: 1.6,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            if (actionLabel != null && onAction != null) ...[
-              SizedBox(height: 24.h),
-              ElevatedButton(
-                onPressed: onAction,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.actionBase,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  minimumSize: const Size(0, 44),
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                  shape: RoundedRectangleBorder(
+    return Semantics(
+      container: true,
+      liveRegion: _isError,
+      child: Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 24.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Container(
+                  width: 56.w,
+                  height: 56.w,
+                  decoration: BoxDecoration(
+                    color: _isError
+                        ? AppTheme.errorColor.withValues(alpha: 0.08)
+                        : (isDark
+                            ? theme.colorScheme.primaryContainer
+                            : AppTheme.actionContainer),
                     borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
                   ),
-                ),
-                child: Text(
-                  actionLabel!,
-                  style: TextStyle(
-                    fontSize: AppTheme.fontBody.sp,
-                    fontWeight: FontWeight.w700,
+                  child: Icon(
+                    icon,
+                    size: 26.w,
+                    color: _isError ? AppTheme.errorColor : AppTheme.actionBase,
                   ),
                 ),
-              ),
+                SizedBox(height: 16.h),
+              ],
+              if (title != null) ...[
+                Text(
+                  title!,
+                  style: TextStyle(
+                    fontSize: AppTheme.fontHeading.sp,
+                    fontWeight: FontWeight.w700,
+                    color: titleColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8.h),
+              ],
+              if (message != null)
+                Text(
+                  message!,
+                  style: TextStyle(
+                    fontSize: AppTheme.fontCaption.sp,
+                    color: messageColor,
+                    height: 1.55,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              if (actionLabel != null && onAction != null) ...[
+                SizedBox(height: 24.h),
+                ElevatedButton(
+                  onPressed: onAction,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.actionBase,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    minimumSize: const Size(0, 44),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 24.w,
+                      vertical: 12.h,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+                    ),
+                  ),
+                  child: Text(
+                    actionLabel!,
+                    style: TextStyle(
+                      fontSize: AppTheme.fontBody.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

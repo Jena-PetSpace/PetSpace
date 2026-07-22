@@ -18,33 +18,55 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.primaryTextColor,
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w700,
+                color: isDark
+                    ? theme.colorScheme.onSurface
+                    : AppTheme.primaryTextColor,
+              ),
             ),
           ),
           if (onMore != null)
-            GestureDetector(
-              onTap: onMore,
-              child: Padding(
-                padding: EdgeInsets.only(left: 8.w),
-                child: Text(
-                  '$moreLabel >',
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.accentColor,
+            TextButton(
+              onPressed: onMore,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                padding: EdgeInsets.only(left: 12.w),
+                tapTargetSize: MaterialTapTargetSize.padded,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    moreLabel,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.actionBase,
+                    ),
                   ),
-                ),
+                  SizedBox(width: 2.w),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16.w,
+                    color: AppTheme.actionBase,
+                  ),
+                ],
               ),
             ),
         ],

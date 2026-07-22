@@ -13,6 +13,7 @@ class PetSpacePageScaffold extends StatelessWidget {
   final Widget? bottomNavigationBar;
   final Widget? floatingActionButton;
   final bool? resizeToAvoidBottomInset;
+  final bool centerTitle;
 
   const PetSpacePageScaffold({
     super.key,
@@ -23,6 +24,7 @@ class PetSpacePageScaffold extends StatelessWidget {
     this.bottomNavigationBar,
     this.floatingActionButton,
     this.resizeToAvoidBottomInset,
+    this.centerTitle = true,
   });
 
   @override
@@ -46,11 +48,16 @@ class PetSpacePageScaffold extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: barSurface,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: centerTitle,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: barSurface,
+        shape: Border(bottom: BorderSide(color: theme.dividerColor)),
         leading: leading,
         iconTheme: IconThemeData(color: barContent),
         title: Text(
           title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: AppTheme.fontHeading.sp,
             fontWeight: FontWeight.w700,

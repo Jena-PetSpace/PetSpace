@@ -37,13 +37,25 @@ class InfoBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final accent = _accent;
+    final bodyColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
+    final background = isDark
+        ? Color.alphaBlend(
+            accent.withValues(alpha: 0.10),
+            theme.colorScheme.surface,
+          )
+        : accent.withValues(alpha: 0.07);
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(12.r),
+        color: background,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
         border: Border.all(color: accent.withValues(alpha: 0.2)),
       ),
       child: Column(
@@ -72,12 +84,15 @@ class InfoBox extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('•  ', style: TextStyle(color: accent, fontSize: 13.sp)),
+                  Text(
+                    '•  ',
+                    style: TextStyle(color: accent, fontSize: 13.sp),
+                  ),
                   Expanded(
                     child: Text(
                       t,
                       style: TextStyle(
-                        color: AppTheme.secondaryTextColor,
+                        color: bodyColor,
                         fontSize: 13.sp,
                         height: 1.4,
                       ),

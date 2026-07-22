@@ -47,49 +47,19 @@ class _MainNavigationState extends State<MainNavigation> {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (mounted && userId != null) {
         context.read<NotificationBadgeBloc>().add(
-          NotificationBadgeRefreshRequested(userId: userId),
-        );
+              NotificationBadgeRefreshRequested(userId: userId),
+            );
       }
     });
   }
 
-  final List<NavigationItem> _navigationItems = [
-    const NavigationItem(
-      icon: Icons.cottage_outlined,
-      selectedIcon: Icons.cottage,
-      label: '홈',
-      route: '/home',
-    ),
-    const NavigationItem(
-      icon: Icons.monitor_heart_outlined,
-      selectedIcon: Icons.monitor_heart,
-      label: '건강관리',
-      route: '/health',
-    ),
-    const NavigationItem(
-      icon: Icons.psychology_outlined,
-      selectedIcon: Icons.psychology,
-      label: 'AI분석',
-      route: '/emotion',
-    ),
-    const NavigationItem(
-      icon: Icons.photo_library_outlined,
-      selectedIcon: Icons.photo_library,
-      label: '피드',
-      route: '/feed',
-    ),
-    const NavigationItem(
-      icon: Icons.pets_outlined,
-      selectedIcon: Icons.pets,
-      label: 'MY',
-      route: '/my',
-    ),
-  ];
+  final List<NavigationItem> _navigationItems = rootNavigationItems;
 
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
     _updateCurrentIndex(location);
+    final showRootNavigation = shouldShowRootNavigation(location);
 
     return PopScope(
       canPop: false,
@@ -104,7 +74,7 @@ class _MainNavigationState extends State<MainNavigation> {
       },
       child: Scaffold(
         body: widget.child,
-        bottomNavigationBar: _buildCustomBottomNav(),
+        bottomNavigationBar: showRootNavigation ? _buildRootNavigation() : null,
       ),
     );
   }
@@ -146,172 +116,109 @@ class _MainNavigationState extends State<MainNavigation> {
     if (shouldExit) BackPressHandler.exitApp();
   }
 
-  // FAB 직경
-  static const double _fabSize = 70.0;
-  // FAB 중심이 바 상단 기준으로 위로 나오는 양 (양수=위, 음수=바 안으로)
-  static const double _fabProtrude = -14.0;
-  // 바 자체 높이
-  static const double _barHeight = 58.0;
+  static const double _barHeight = 64;
 
-  Widget _buildCustomBottomNav() {
+  Widget _buildRootNavigation() {
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    // FAB bottom: 바 하단(bottomPad)에서 바 높이 절반 + 돌출량
-    final fabBottom = bottomPad + _barHeight / 2 + _fabProtrude;
-
-    return SizedBox(
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
       height: _barHeight + bottomPad,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // ── 흰 바 (하단 고정) ──────────────────────────────
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: _barHeight + bottomPad,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: AppTheme.border, width: 1),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x0F000000), // v2: 그림자 alpha ≤6%
-                    blurRadius: 12,
-                    offset: Offset(0, -3),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: EdgeInsets.only(bottom: bottomPad),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [_buildNavItem(0), _buildNavItem(1)],
-                      ),
-                    ),
-                    const SizedBox(width: _fabSize + 16),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [_buildNavItem(3), _buildNavItem(4)],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+      decoration: BoxDecoration(
+        color: isDark ? theme.colorScheme.surface : AppTheme.surfaceColor,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
           ),
-
-          // ── 중앙 FAB (바 위로 돌출) ─────────────────────────
-          Positioned(
-            bottom: fabBottom,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Semantics(
-                label: 'AI 감정 분석',
-                button: true,
-                child: GestureDetector(
-                  onTap: () => _onTabTapped(2),
-                  // 배경은 에셋에 굽지 않고 코드 레이어에서 actionBase 단색 원으로
-                  // 처리한다 (2026-07-10 결정). 글리프는 흰색 발바닥만.
-                  child: Container(
-                    width: _fabSize.w,
-                    height: _fabSize.w,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.actionBase,
-                      border: Border.all(color: Colors.white, width: 1.5),
-                    ),
-                    child: Center(
-                      child: SvgPicture.asset(
-                        'assets/svg/icon_paw.svg',
-                        width: 39.w,
-                        height: 39.w,
-                        fit: BoxFit.contain,
-                        colorFilter: const ColorFilter.mode(
-                          Colors.white,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
+      padding: EdgeInsets.only(bottom: bottomPad),
+      child: Row(
+        children: List.generate(
+          _navigationItems.length,
+          (index) => Expanded(child: _buildNavItem(index)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavigationIcon(int index, bool isSelected, NavigationItem item) {
+    if (index == 0) return _buildHomeBadgeIcon(isSelected, item);
+    if (index == 4) return _buildMyTabIcon(isSelected, item);
+
+    final theme = Theme.of(context);
+    final color = isSelected
+        ? (theme.brightness == Brightness.dark
+            ? theme.colorScheme.primary
+            : AppTheme.brandDeep)
+        : (theme.brightness == Brightness.dark
+            ? theme.colorScheme.onSurfaceVariant
+            : AppTheme.secondaryTextColor);
+    final asset = switch (index) {
+      1 => 'assets/svg/icon_health.svg',
+      _ => null,
+    };
+
+    if (asset != null) {
+      return SvgPicture.asset(
+        asset,
+        width: 23.w,
+        height: 23.w,
+        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      );
+    }
+
+    return Icon(
+      isSelected ? item.selectedIcon : item.icon,
+      color: color,
+      size: 23.w,
     );
   }
 
   Widget _buildNavItem(int index) {
     final item = _navigationItems[index];
     final isSelected = _currentIndex == index;
-
-    Widget icon;
-    if (index == 0) {
-      icon = _buildHomeBadgeIcon(isSelected, item);
-    } else if (index == 1) {
-      icon = SvgPicture.asset(
-        'assets/svg/icon_health.svg',
-        width: 24.w,
-        height: 24.w,
-        colorFilter: ColorFilter.mode(
-          isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
-          BlendMode.srcIn,
-        ),
-      );
-    } else if (index == 3) {
-      icon = SvgPicture.asset(
-        'assets/svg/icon_feed.svg',
-        width: 24.w,
-        height: 24.w,
-        colorFilter: ColorFilter.mode(
-          isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
-          BlendMode.srcIn,
-        ),
-      );
-    } else if (index == 4) {
-      icon = _buildMyTabIcon(isSelected, item);
-    } else {
-      icon = Icon(
-        isSelected ? item.selectedIcon : item.icon,
-        color: isSelected ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
-        size: 24.w,
-      );
-    }
+    final icon = _buildNavigationIcon(index, isSelected, item);
+    final theme = Theme.of(context);
+    final selectedColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.primary
+        : AppTheme.brandDeep;
+    final unselectedColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
 
     return Semantics(
       label: item.label,
       button: true,
       selected: isSelected,
-      child: GestureDetector(
-        onTap: () => _onTabTapped(index),
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              icon,
-              SizedBox(height: 4.h),
-              Text(
-                item.label,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected
-                      ? AppTheme.primaryColor
-                      : AppTheme.secondaryTextColor,
-                ),
+      onTap: () => _onTabTapped(index),
+      child: ExcludeSemantics(
+        child: InkWell(
+          onTap: () => _onTabTapped(index),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 52),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 6.h),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(width: 24.w, height: 24.w, child: icon),
+                  SizedBox(height: 4.h),
+                  Text(
+                    item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected ? selectedColor : unselectedColor,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -321,9 +228,14 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget _buildMyTabIcon(bool isSelected, NavigationItem item) {
     return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
       builder: (context, badgeState) {
+        final theme = Theme.of(context);
         final color = isSelected
-            ? AppTheme.primaryColor
-            : AppTheme.secondaryTextColor;
+            ? (theme.brightness == Brightness.dark
+                ? theme.colorScheme.primary
+                : AppTheme.primaryColor)
+            : (theme.brightness == Brightness.dark
+                ? theme.colorScheme.onSurfaceVariant
+                : AppTheme.secondaryTextColor);
         final icon = SvgPicture.asset(
           'assets/svg/icon_my.svg',
           width: 24.w,
@@ -346,7 +258,10 @@ class _MainNavigationState extends State<MainNavigation> {
                 decoration: BoxDecoration(
                   color: AppTheme.highlightColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
+                  border: Border.all(
+                    color: theme.colorScheme.surface,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -359,9 +274,14 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget _buildHomeBadgeIcon(bool isSelected, NavigationItem item) {
     return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
       builder: (context, badgeState) {
+        final theme = Theme.of(context);
         final color = isSelected
-            ? AppTheme.primaryColor
-            : AppTheme.secondaryTextColor;
+            ? (theme.brightness == Brightness.dark
+                ? theme.colorScheme.primary
+                : AppTheme.primaryColor)
+            : (theme.brightness == Brightness.dark
+                ? theme.colorScheme.onSurfaceVariant
+                : AppTheme.secondaryTextColor);
         final icon = SvgPicture.asset(
           'assets/svg/icon_home.svg',
           width: 24.w,
@@ -405,19 +325,10 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _updateCurrentIndex(String location) {
-    int newIndex = _currentIndex;
-
-    if (location.startsWith('/home')) {
-      newIndex = 0;
-    } else if (location.startsWith('/health')) {
-      newIndex = 1;
-    } else if (location.startsWith('/emotion')) {
-      newIndex = 2;
-    } else if (location.startsWith('/feed')) {
-      newIndex = 3;
-    } else if (location.startsWith('/my')) {
-      newIndex = 4;
-    }
+    final newIndex = navigationIndexForLocation(
+      location,
+      fallback: _currentIndex,
+    );
 
     if (newIndex != _currentIndex) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -458,8 +369,8 @@ class _MainNavigationState extends State<MainNavigation> {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) {
       context.read<NotificationBadgeBloc>().add(
-        NotificationBadgeRefreshRequested(userId: userId),
-      );
+            NotificationBadgeRefreshRequested(userId: userId),
+          );
     }
   }
 }
