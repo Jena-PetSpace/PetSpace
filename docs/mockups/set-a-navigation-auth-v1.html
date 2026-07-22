@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PetSpace Set A — Navigation + Auth v1</title>
+  <style>
+    :root {
+      --navy: #1e3a5f;
+      --navy-2: #294e78;
+      --sky: #e9f2fa;
+      --sky-strong: #6c98bd;
+      --ink: #172434;
+      --muted: #687789;
+      --line: #dce3e9;
+      --canvas: #eef1f4;
+      --surface: #fffefa;
+      --white: #ffffff;
+      --danger: #b13c3c;
+      --danger-bg: #fff3f2;
+      --success: #2e7255;
+      --radius-card: 20px;
+      --radius-input: 14px;
+      --shadow: 0 22px 55px rgba(29, 50, 74, .14);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(108, 152, 189, .16), transparent 28%),
+        var(--canvas);
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      letter-spacing: -.02em;
+    }
+
+    .board-header {
+      max-width: 1420px;
+      margin: 0 auto;
+      padding: 56px 36px 28px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 32px;
+    }
+    .eyebrow { color: var(--navy-2); font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 8px 0 8px; color: var(--navy); font-size: 38px; line-height: 1.18; letter-spacing: -.05em; }
+    .board-header p { max-width: 760px; margin: 0; color: var(--muted); font-size: 16px; line-height: 1.55; }
+    .version { flex: none; padding: 10px 14px; border: 1px solid #cbd7e1; border-radius: 999px; background: rgba(255,255,255,.7); color: var(--navy); font-size: 13px; font-weight: 750; }
+
+    .grid {
+      max-width: 1420px;
+      margin: 0 auto;
+      padding: 0 36px 72px;
+      display: grid;
+      grid-template-columns: repeat(3, 390px);
+      gap: 42px 48px;
+      justify-content: center;
+      align-items: start;
+    }
+    .screen-card { width: 390px; }
+    .screen-meta { min-height: 82px; padding: 0 5px 14px; }
+    .screen-id { color: var(--sky-strong); font-size: 12px; font-weight: 850; letter-spacing: .11em; }
+    .screen-meta h2 { margin: 5px 0 4px; color: var(--navy); font-size: 20px; letter-spacing: -.04em; }
+    .screen-meta p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    .phone {
+      position: relative;
+      width: 390px;
+      height: 844px;
+      overflow: hidden;
+      border: 8px solid #17293d;
+      border-radius: 48px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .status {
+      height: 43px;
+      padding: 14px 24px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .status-icons { letter-spacing: .12em; font-size: 10px; }
+    .screen { height: calc(100% - 43px); display: flex; flex-direction: column; }
+    .content { flex: 1; overflow: hidden; padding: 0 20px 24px; }
+    .content.scroll { overflow: auto; scrollbar-width: none; }
+    .content.scroll::-webkit-scrollbar { display: none; }
+
+    .root-head, .task-head {
+      min-height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+    .wordmark { color: var(--navy); font-size: 22px; font-weight: 900; letter-spacing: -.05em; }
+    .head-actions { display: flex; gap: 9px; }
+    .icon-button {
+      width: 44px; height: 44px; display: grid; place-items: center;
+      border: 1px solid var(--line); border-radius: 50%; background: var(--white);
+      color: var(--navy); font-size: 16px; font-weight: 850;
+    }
+    .task-head { position: relative; min-height: 58px; border-bottom: 1px solid var(--line); }
+    .task-head strong { position: absolute; left: 50%; transform: translateX(-50%); color: var(--ink); font-size: 17px; }
+    .text-action { border: 0; background: transparent; color: var(--navy); font-size: 15px; font-weight: 800; }
+
+    .segmented { display: flex; gap: 22px; border-bottom: 1px solid var(--line); padding: 0 20px; }
+    .segment { position: relative; padding: 13px 2px 12px; color: #8190a1; font-size: 16px; font-weight: 760; }
+    .segment.active { color: var(--navy); }
+    .segment.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--navy); }
+
+    .feed-list { padding-top: 16px; }
+    .avatar { width: 52px; height: 52px; margin: 0 auto 6px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(145deg,#dceaf3,#f5e5dc); border: 2px solid var(--white); outline: 2px solid var(--sky-strong); color: var(--navy); font-size: 16px; font-weight: 900; }
+    .avatar.small { width: 38px; height: 38px; margin: 0; outline: none; border: 0; font-size: 12px; }
+
+    .feed-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--white); }
+    .feed-owner { display: flex; align-items: center; gap: 10px; padding: 13px 14px; }
+    .owner-copy { flex: 1; }
+    .owner-copy strong { display: block; font-size: 14px; }
+    .owner-copy span { color: var(--muted); font-size: 11px; }
+    .photo-placeholder { height: 252px; display: grid; place-items: center; background: linear-gradient(140deg,#d8e6ee 0%,#f2e5dc 52%,#c5d8c6 100%); }
+    .pet-shape { width: 132px; height: 132px; display: grid; place-items: center; border-radius: 48% 52% 45% 55%; background: rgba(255,255,255,.58); color: var(--navy); font-size: 46px; font-weight: 900; transform: rotate(-5deg); }
+    .feed-body { padding: 13px 14px 15px; }
+    .reaction-row { display: flex; gap: 18px; margin-bottom: 10px; color: var(--navy); font-weight: 800; }
+    .feed-body p { margin: 0; font-size: 14px; line-height: 1.48; }
+    .feed-body .caption-meta { margin-top: 7px; color: var(--muted); font-size: 12px; }
+
+    .bottom-nav { height: 78px; padding: 10px 7px 15px; display: grid; grid-template-columns: repeat(5,1fr); border-top: 1px solid var(--line); background: rgba(255,255,255,.97); }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; color: #8a96a4; font-size: 10px; font-weight: 700; }
+    .nav-glyph { height: 24px; display: grid; place-items: center; font-size: 20px; font-weight: 700; }
+    .nav-item.active { color: var(--navy); }
+
+    .form-intro { padding: 22px 0 17px; }
+    .form-intro h3 { margin: 0 0 7px; color: var(--navy); font-size: 25px; letter-spacing: -.05em; }
+    .form-intro p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .label-row { display: flex; justify-content: space-between; margin: 0 2px 7px; }
+    .label-row label { font-size: 13px; font-weight: 800; }
+    .optional { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .field { min-height: 52px; padding: 15px 15px; border: 1px solid #cfd8e0; border-radius: var(--radius-input); background: var(--white); color: #8b98a5; font-size: 14px; }
+    .field + .label-row, .field + .field, .helper + .label-row { margin-top: 18px; }
+    .field.tall { min-height: 126px; }
+    .field.filled { color: var(--ink); }
+    .helper { margin: 7px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .helper.ok { color: var(--success); font-weight: 700; }
+    .sticky-action { padding: 12px 20px 24px; border-top: 1px solid var(--line); background: var(--surface); }
+    .primary { width: 100%; height: 54px; border: 0; border-radius: 15px; background: var(--navy); color: white; font-size: 16px; font-weight: 850; }
+    .secondary { width: 100%; height: 52px; border: 1px solid #cad5de; border-radius: 15px; background: var(--white); color: var(--ink); font-size: 15px; font-weight: 760; }
+
+    .auth-hero { padding: 54px 3px 28px; }
+    .brand-mark { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 18px; background: var(--navy); color: white; font-size: 26px; font-weight: 900; }
+    .auth-hero h3 { margin: 22px 0 9px; color: var(--navy); font-size: 30px; line-height: 1.18; letter-spacing: -.06em; }
+    .auth-hero p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+    .auth-buttons { display: grid; gap: 11px; }
+    .auth-button { position: relative; width: 100%; height: 54px; border: 1px solid #cfd8e0; border-radius: 15px; background: white; color: var(--ink); font-size: 15px; font-weight: 760; }
+    .auth-button .provider { position: absolute; left: 18px; width: 23px; height: 23px; display: grid; place-items: center; border-radius: 50%; background: #f0f3f5; color: var(--navy); font-size: 12px; font-weight: 900; }
+    .auth-button.kakao { border-color: #f4df00; background: #fee500; }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 17px 0; color: #8c98a5; font-size: 11px; }
+    .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+    .legal-copy { margin-top: 18px; color: var(--muted); text-align: center; font-size: 11px; line-height: 1.5; }
+
+    .auth-tabs { margin: 4px 20px 0; display: grid; grid-template-columns: 1fr 1fr; background: #edf1f4; border-radius: 13px; padding: 4px; }
+    .auth-tab { padding: 10px; border-radius: 10px; color: var(--muted); text-align: center; font-size: 13px; font-weight: 750; }
+    .auth-tab.active { background: white; color: var(--navy); box-shadow: 0 2px 7px rgba(21,49,76,.08); }
+    .mini-link { margin-top: 13px; color: var(--navy-2); text-align: right; font-size: 12px; font-weight: 750; }
+
+    .progress { margin: 10px 20px 0; display: flex; gap: 6px; }
+    .progress span { flex: 1; height: 4px; border-radius: 4px; background: #dce3e9; }
+    .progress span.on { background: var(--navy); }
+    .step-copy { padding: 21px 0 13px; }
+    .step-copy .step { color: var(--sky-strong); font-size: 12px; font-weight: 850; letter-spacing: .08em; }
+    .step-copy h3 { margin: 6px 0 7px; color: var(--navy); font-size: 25px; letter-spacing: -.05em; }
+    .step-copy p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.48; }
+    .check-row { display: flex; align-items: flex-start; gap: 12px; padding: 15px 3px; border-bottom: 1px solid #e6ebef; }
+    .check { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 7px; background: var(--navy); color: white; font-size: 12px; font-weight: 900; }
+    .check-copy { flex: 1; }
+    .check-copy strong { display: block; font-size: 14px; }
+    .check-copy span { color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .disclosure { color: #8c98a5; font-size: 18px; }
+    .error-panel { margin-top: 18px; padding: 14px; border: 1px solid #f0c9c6; border-radius: 14px; background: var(--danger-bg); }
+    .error-panel strong { display: block; color: var(--danger); font-size: 13px; }
+    .error-panel p { margin: 4px 0 10px; color: #775c5c; font-size: 12px; line-height: 1.45; }
+    .retry { border: 0; padding: 0; background: transparent; color: var(--danger); font-size: 12px; font-weight: 850; }
+
+    .profile-photo { width: 92px; height: 92px; margin: 7px auto 23px; position: relative; display: grid; place-items: center; border-radius: 50%; background: var(--sky); color: var(--navy); font-size: 31px; font-weight: 900; }
+    .photo-add { position: absolute; right: -2px; bottom: 0; width: 31px; height: 31px; display: grid; place-items: center; border: 3px solid var(--surface); border-radius: 50%; background: var(--navy); color: white; font-size: 16px; }
+    .privacy-note { margin-top: 18px; padding: 13px 14px; display: flex; gap: 10px; border-radius: 14px; background: #edf4f8; color: #536c81; font-size: 11px; line-height: 1.45; }
+
+    .pet-photo { width: 118px; height: 118px; margin: 8px auto 25px; display: grid; place-items: center; border: 1px dashed var(--sky-strong); border-radius: 36px; background: var(--sky); color: var(--navy); font-size: 32px; font-weight: 900; }
+    .pet-photo span { display: block; margin-top: 5px; color: var(--navy-2); font-size: 11px; }
+    .species { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+    .species-card { padding: 15px; border: 1px solid #cfd8e0; border-radius: 15px; background: white; color: var(--ink); text-align: center; font-size: 13px; font-weight: 750; }
+    .species-card.active { border: 2px solid var(--navy); background: var(--sky); color: var(--navy); }
+    .species-card b { display: block; margin-bottom: 5px; font-size: 22px; }
+
+    @media (max-width: 1280px) {
+      .grid { grid-template-columns: repeat(2, 390px); }
+    }
+    @media (max-width: 880px) {
+      .board-header { align-items: flex-start; flex-direction: column; }
+      .grid { grid-template-columns: 390px; padding-left: 12px; padding-right: 12px; }
+    }
+
+    /* 브라우저 검수·문서 캡처 전용. 실제 390×844 화면 치수는 그대로 유지한다. */
+    body.preview .board-header { padding-top: 24px; padding-bottom: 16px; }
+    body.preview .board-header h1 { margin-top: 4px; font-size: 28px; }
+    body.preview .board-header p { font-size: 13px; }
+    body.preview .grid {
+      grid-template-columns: repeat(3, 230px);
+      gap: 28px 34px;
+      padding-bottom: 40px;
+    }
+    body.preview .screen-card { zoom: .59; }
+  </style>
+</head>
+<body>
+  <header class="board-header">
+    <div>
+      <div class="eyebrow">PetSpace UI/UX Redesign</div>
+      <h1>Set A · Navigation + Auth</h1>
+      <p>차분한 케어 에디토리얼 톤, 루트 전용 5탭, 하위 작업 화면의 집중형 내비게이션을 기준으로 만든 논의용 정본입니다. 실제 구현 전 문구·순서·상태를 화면별로 비준합니다.</p>
+    </div>
+    <div class="version">v2 · 2026-07-22</div>
+  </header>
+
+  <main class="grid">
+    <section class="screen-card" data-screen="A01" id="A01">
+      <div class="screen-meta"><div class="screen-id">A01 · ROOT SHELL</div><h2>피드 루트</h2><p>`피드 / 커뮤니티` 아래에서 게시물이 바로 시작된다. 스토리·중앙 돌출 FAB 없음.</p></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="status-icons">● ◔ ▰</span></div>
+        <div class="screen">
+          <div class="root-head"><div class="wordmark">PetSpace</div><div class="head-actions"><button class="icon-button" aria-label="검색">⌕</button><button class="icon-button" aria-label="알림">◌</button></div></div>
+          <div class="segmented"><div class="segment active">피드</div><div class="segment">커뮤니티</div></div>
+          <div class="content feed-list">
+            <article class="feed-card">
+              <div class="feed-owner"><div class="avatar small">보리</div><div class="owner-copy"><strong>보리네</strong><span>서울 · 12분 전</span></div><b>···</b></div>
+              <div class="photo-placeholder"><div class="pet-shape">P</div></div>
+              <div class="feed-body"><div class="reaction-row"><span>♡ 24</span><span>◯ 6</span><span>⌑</span></div><p><b>보리네</b> 산책길에 봄 냄새를 한참 맡았어요.</p><div class="caption-meta">#산책 · 함께한 반려동물 보리</div></div>
+            </article>
+          </div>
+          <nav class="bottom-nav"><div class="nav-item"><div class="nav-glyph">⌂</div>홈</div><div class="nav-item"><div class="nav-glyph">＋</div>건강</div><div class="nav-item"><div class="nav-glyph">✦</div>AI 분석</div><div class="nav-item active"><div class="nav-glyph">▤</div>피드</div><div class="nav-item"><div class="nav-glyph">◉</div>MY</div></nav>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen-card" data-screen="A02" id="A02">
+      <div class="screen-meta"><div class="screen-id">A02 · TASK SHELL</div><h2>게시글 작성</h2><p>하단 탭을 완전히 제거하고 닫기·제목·완료만 남기는 집중형 구조.</p></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="status-icons">● ◔ ▰</span></div>
+        <div class="screen">
+          <div class="task-head"><button class="text-action">닫기</button><strong>게시글 작성</strong><button class="text-action">게시</button></div>
+          <div class="content scroll">
+            <div class="form-intro"><h3>오늘의 순간을 남겨보세요</h3><p>사진과 짧은 이야기를 반려동물 친구들과 공유할 수 있어요.</p></div>
+            <div class="label-row"><label>함께한 반려동물</label><span class="optional">필수</span></div><div class="field filled">보리 ▾</div>
+            <div class="label-row"><label>사진</label><span class="optional">최대 10장</span></div><div class="field tall">＋ 사진 추가</div>
+            <div class="label-row"><label>내용</label><span class="optional">0 / 1,000</span></div><div class="field tall">보리와 어떤 하루를 보냈나요?</div>
+            <div class="label-row"><label>공개 범위</label></div><div class="field filled">전체 공개 ▾</div>
+            <p class="helper">게시 중에는 이 화면을 나가도 입력 내용이 임시 저장됩니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen-card" data-screen="A03" id="A03">
+      <div class="screen-meta"><div class="screen-id">A03 · AUTH ENTRY</div><h2>로그인 선택</h2><p>서비스 가치와 개인정보 신뢰를 먼저 설명하고 로그인 선택지는 단순화.</p></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="status-icons">● ◔ ▰</span></div>
+        <div class="screen">
+          <div class="content">
+            <div class="auth-hero"><div class="brand-mark">P</div><h3>함께한 하루가<br>더 오래 기억되도록</h3><p>반려동물의 일상과 건강을 한곳에서 기록하고, 믿을 수 있는 이웃과 나눠보세요.</p></div>
+            <div class="auth-buttons"><button class="auth-button"><span class="provider">A</span>Apple로 계속하기</button><button class="auth-button"><span class="provider">G</span>Google로 계속하기</button><button class="auth-button kakao"><span class="provider">K</span>카카오로 계속하기</button></div>
+            <div class="divider">또는</div><button class="secondary">이메일로 계속하기</button>
+            <p class="legal-copy">계속하면 PetSpace의 이용약관과 개인정보 처리방침에 동의하게 됩니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen-card" data-screen="A04" id="A04">
+      <div class="screen-meta"><div class="screen-id">A04 · EMAIL AUTH</div><h2>이메일 회원가입</h2><p>로그인·회원가입 전환은 한 화면, 검증 메시지는 필드 바로 아래에 표시.</p></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="status-icons">● ◔ ▰</span></div>
+        <div class="screen">
+          <div class="task-head"><button class="text-action" aria-label="뒤로가기">‹</button><strong>이메일로 계속하기</strong><span></span></div>
+          <div class="auth-tabs"><div class="auth-tab">로그인</div><div class="auth-tab active">회원가입</div></div>
+          <div class="content scroll">
+            <div class="form-intro"><h3>PetSpace를 시작해요</h3><p>자주 확인하는 이메일을 사용해주세요.</p></div>
+            <div class="label-row"><label>이메일</label></div><div class="field filled">jena@example.com</div><p class="helper ok">사용할 수 있는 이메일이에요.</p>
+            <div class="label-row"><label>비밀번호</label></div><div class="field filled">••••••••••••</div><p class="helper">영문, 숫자를 포함해 8자 이상 입력해주세요.</p>
+            <div class="label-row"><label>비밀번호 확인</label></div><div class="field filled">••••••••••••</div>
+            <div class="mini-link">비밀번호를 잊으셨나요?</div>
+          </div>
+          <div class="sticky-action"><button class="primary">다음</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen-card" data-screen="A05" id="A05">
+      <div class="screen-meta"><div class="screen-id">A05 · TERMS ERROR</div><h2>약관 동의 · 저장 실패</h2><p>선택 상태를 보존하고 오류 원인·재시도 행동을 화면 안에서 명확히 제공.</p></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="status-icons">● ◔ ▰</span></div>
+        <div class="screen">
+          <div class="task-head"><button class="text-action" aria-label="뒤로가기">‹</button><strong>약관 동의</strong><span></span></div>
+          <div class="progress"><span class="on"></span><span></span><span></span></div>
+          <div class="content scroll">
+            <div class="step-copy"><div class="step">1 / 3</div><h3>안심하고 사용할 수 있도록</h3><p>필수 약관과 선택 항목을 구분해 확인해주세요.</p></div>
+            <div class="check-row"><div class="check">✓</div><div class="check-copy"><strong>전체 동의</strong><span>필수와 선택 약관을 모두 선택합니다.</span></div></div>
+            <div class="check-row"><div class="check">✓</div><div class="check-copy"><strong>[필수] 서비스 이용약관</strong></div><div class="disclosure">›</div></div>
+            <div class="check-row"><div class="check">✓</div><div class="check-copy"><strong>[필수] 개인정보 처리방침</strong></div><div class="disclosure">›</div></div>
+            <div class="check-row"><div class="check">✓</div><div class="check-copy"><strong>[선택] 마케팅 정보 수신</strong><span>새 기능과 혜택을 알려드려요.</span></div><div class="disclosure">›</div></div>
+            <div class="error-panel"><strong>동의 내용을 저장하지 못했어요</strong><p>선택한 항목은 그대로 유지돼요. 네트워크 상태를 확인한 뒤 다시 시도해주세요.</p><button class="retry">다시 저장하기</button></div>
+          </div>
+          <div class="sticky-action"><button class="primary">동의하고 계속</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen-card" data-screen="A06" id="A06">
+      <div class="screen-meta"><div class="screen-id">A06 · PROFILE SETUP</div><h2>프로필 설정</h2><p>온보딩에서는 공개 닉네임과 사진만 요청하고 소개 입력은 MY 편집으로 이동.</p></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="status-icons">● ◔ ▰</span></div>
+        <div class="screen">
+          <div class="task-head"><button class="text-action" aria-label="뒤로가기">‹</button><strong>프로필 설정</strong><span></span></div>
+          <div class="progress"><span class="on"></span><span class="on"></span><span></span></div>
+          <div class="content scroll">
+            <div class="step-copy"><div class="step">2 / 3</div><h3>어떻게 불러드릴까요?</h3><p>커뮤니티에서 사용할 이름과 사진만 먼저 설정해주세요.</p></div>
+            <div class="profile-photo">J<div class="photo-add">＋</div></div>
+            <div class="label-row"><label>닉네임</label><span class="optional">필수</span></div><div class="field filled">제나</div><p class="helper ok">사용할 수 있는 닉네임이에요.</p>
+            <div class="privacy-note"><b>ⓘ</b><span>닉네임과 프로필 사진은 다른 사용자에게 공개됩니다. 이메일과 로그인 정보는 공개되지 않아요.</span></div>
+          </div>
+          <div class="sticky-action"><button class="primary">다음</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen-card" data-screen="A07" id="A07">
+      <div class="screen-meta"><div class="screen-id">A07 · FIRST PET</div><h2>첫 반려동물 등록</h2><p>앱의 주인공을 마지막 단계에서 바로 만들고, 최소 정보만 먼저 요청.</p></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="status-icons">● ◔ ▰</span></div>
+        <div class="screen">
+          <div class="task-head"><button class="text-action" aria-label="뒤로가기">‹</button><strong>반려동물 등록</strong><button class="text-action">나중에</button></div>
+          <div class="progress"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+          <div class="content scroll">
+            <div class="step-copy"><div class="step">3 / 3</div><h3>가장 먼저 누구를 기록할까요?</h3><p>이름과 종류만 등록해도 시작할 수 있어요. 자세한 정보는 나중에 추가할 수 있습니다.</p></div>
+            <div class="pet-photo">＋<span>사진 추가</span></div>
+            <div class="label-row"><label>이름</label><span class="optional">필수</span></div><div class="field filled">보리</div>
+            <div class="label-row"><label>종류</label><span class="optional">필수</span></div><div class="species"><div class="species-card active"><b>○</b>강아지</div><div class="species-card"><b>◇</b>고양이</div></div>
+            <div class="label-row"><label>생년월일</label><span class="optional">선택</span></div><div class="field">날짜 선택</div>
+          </div>
+          <div class="sticky-action"><button class="primary">PetSpace 시작하기</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    if (new URLSearchParams(window.location.search).has('preview')) {
+      document.body.classList.add('preview');
+    }
+  </script>
+</body>
+</html>

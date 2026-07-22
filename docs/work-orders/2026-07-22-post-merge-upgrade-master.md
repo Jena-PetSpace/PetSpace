@@ -1,5 +1,7 @@
 # PetSpace 통합 후 업그레이드 Master Work Order
 
+> **대체됨:** 이 승인 전 초안은 구현에 사용하지 않는다. 승인된 정본은 `docs/work-orders/2026-07-22-uiux-trust-redesign-master.md`다.
+
 > 기준 SHA: `c49a8c4`
 > 기획 리뷰: Codex 단독 3-pass 완료
 > 상태: 기획 완료, 구현 미승인
