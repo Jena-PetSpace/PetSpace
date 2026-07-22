@@ -28,8 +28,6 @@ import '../../features/feed_hub/presentation/pages/feed_hub_page.dart';
 import '../../features/my/presentation/pages/my_page.dart';
 import '../../features/my/presentation/pages/my_posts_page.dart';
 import '../../features/my/presentation/pages/my_saved_posts_page.dart';
-import '../../features/onboarding/presentation/pages/onboarding_page.dart';
-import '../../features/onboarding/presentation/pages/onboarding_slides_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_login_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_email_verification_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_profile_setup_page.dart';
@@ -213,12 +211,12 @@ class AppRouter {
         GoRoute(
           path: '/onboarding',
           name: 'onboarding',
-          builder: (context, state) => const OnboardingPage(),
+          redirect: (context, state) => '/onboarding/login',
         ),
         GoRoute(
           path: '/onboarding/slides',
           name: 'onboarding-slides',
-          builder: (context, state) => const OnboardingSlidesPage(),
+          redirect: (context, state) => '/onboarding/login',
         ),
         GoRoute(
           path: '/onboarding/login',
@@ -740,8 +738,6 @@ class AppRouter {
 
           log('User authenticated - isOnboardingCompleted: ${user.isOnboardingCompleted}',
               name: 'GoRouter');
-          log('User ID: ${user.uid}', name: 'GoRouter');
-
           // 온보딩이 완료되지 않은 경우 (신규 사용자)
           if (!user.isOnboardingCompleted) {
             log('User onboarding NOT completed', name: 'GoRouter');

@@ -128,16 +128,17 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
       child: Column(
         children: [
           Text(
-            '환영합니다! 🎉',
+            '준비가 완료됐어요',
             style: TextStyle(
-              fontSize: 32.sp,
-              fontWeight: FontWeight.bold,
+              fontSize: 28.sp,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.brandDeep,
             ),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 16.h),
           Text(
-            '펫페이스 설정이 완료되었습니다\n이제 반려동물과의 특별한 순간들을\n기록하고 공유해보세요',
+            '반려동물의 일상과 건강을 기록하고\n믿을 수 있는 이웃과 나눌 수 있어요.',
             style: TextStyle(
               fontSize: 16.sp,
               color: AppTheme.neutral600,
@@ -156,20 +157,14 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
       child: Container(
         padding: EdgeInsets.all(20.w),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.neutral500.withValues(alpha: 0.1),
-              blurRadius: 10.r,
-              spreadRadius: 2.r,
-            ),
-          ],
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+          border: Border.all(color: AppTheme.border),
         ),
         child: Column(
           children: [
             Text(
-              '이제 이런 것들을 할 수 있어요!',
+              '이제 이렇게 시작해보세요',
               style: TextStyle(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.w600,
@@ -180,21 +175,21 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
             _buildFeatureItem(
               Icons.camera_alt,
               '감정 분석',
-              '반려동물의 감정을 AI로 분석해보세요',
+              '사진으로 표정과 감정 신호를 살펴보세요',
               AppTheme.accentColor,
             ),
             SizedBox(height: 16.h),
             _buildFeatureItem(
               Icons.timeline,
               '건강 분석 및 기록',
-              '건강 상태를 분석하고 일상을 기록하세요',
+              '변화를 놓치지 않도록 건강 기록을 남겨보세요',
               AppTheme.subColor,
             ),
             SizedBox(height: 16.h),
             _buildFeatureItem(
               Icons.people,
               '커뮤니티 참여',
-              '다른 반려인들과 소통하고 공유하세요',
+              '피드와 커뮤니티에서 경험을 나눠보세요',
               AppTheme.highlightColor,
             ),
           ],
@@ -249,50 +244,40 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
   Widget _buildActionButtons() {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: SizedBox(
-              height: 48.h,
-              child: ElevatedButton(
-                onPressed: _startUsingApp,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.actionBase,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
+          SizedBox(
+            width: double.infinity,
+            height: 52.h,
+            child: ElevatedButton(
+              onPressed: _startUsingApp,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.actionBase,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
                 ),
-                child: Text(
-                  '홈으로 이동',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+              ),
+              child: Text(
+                'PetSpace 시작하기',
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
           ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: SizedBox(
-              height: 48.h,
-              child: OutlinedButton(
-                onPressed: _tryFirstAnalysis,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.primaryColor,
-                  side: const BorderSide(color: AppTheme.primaryColor),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                child: Text(
-                  '감정 분석',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
+          SizedBox(height: 8.h),
+          SizedBox(
+            height: 44.h,
+            child: TextButton(
+              onPressed: _tryFirstAnalysis,
+              child: Text(
+                '첫 감정 분석부터 해보기',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -308,15 +293,6 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
     final authState = authBloc.state;
 
     if (authState is AuthAuthenticated) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('온보딩 완료! 펫페이스에 오신 것을 환영합니다 🎉'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-
       // 온보딩 완료 이벤트 발생
       authBloc.add(AuthOnboardingCompleted(
         displayName: authState.user.displayName,
@@ -347,12 +323,6 @@ class _OnboardingCompletePageState extends State<OnboardingCompletePage>
     final authState = authBloc.state;
 
     if (authState is AuthAuthenticated) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('첫 번째 감정 분석을 시작해보세요!')),
-        );
-      }
-
       // 온보딩 완료 이벤트 발생
       authBloc.add(AuthOnboardingCompleted(
         displayName: authState.user.displayName,

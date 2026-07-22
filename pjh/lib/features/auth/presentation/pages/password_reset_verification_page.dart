@@ -157,16 +157,10 @@ class _PasswordResetVerificationPageState
           _isVerifying = false;
           _errorMessage = e.message == 'Token has expired or is invalid'
               ? '인증 코드가 만료되었거나 올바르지 않습니다'
-              : '인증 실패: ${e.message}';
+              : '인증을 완료하지 못했어요. 코드를 확인하고 다시 시도해주세요.';
         });
-
-        // 입력 필드 초기화
-        for (var controller in _controllers) {
-          controller.clear();
-        }
-        _focusNodes[0].requestFocus();
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
           _isVerifying = false;
@@ -202,8 +196,8 @@ class _PasswordResetVerificationPageState
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: PetSpaceAppBar.page(
-        // 본문에 대형 '인증 코드 확인' 제목이 있어 앱바 타이틀은 비움(STEP 1-C에서 본문 정리)
-        title: '',
+        title: '인증 코드 확인',
+        backgroundColor: AppTheme.surfaceColor,
         onBack: () async {
           // 로그아웃 후 비밀번호 찾기 페이지로 이동
           await Supabase.instance.client.auth.signOut();
@@ -213,45 +207,43 @@ class _PasswordResetVerificationPageState
         },
       ),
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 20),
-
-              // 이메일 아이콘 (인증·보안 맥락 → feature 톤)
-              const Center(
+              const Align(
+                alignment: Alignment.centerLeft,
                 child: IconBadgeCircle(
                   icon: Icons.mark_email_read_outlined,
-                  size: 100,
+                  size: 56,
                   tone: BadgeTone.feature,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               // 제목
               const Text(
                 '인증 코드 확인',
                 style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+                  fontSize: AppTheme.fontTitle,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.brandDeep,
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
 
               // 설명
               Text(
                 '${widget.email}로\n발송된 6자리 인증 코드를 입력해주세요',
                 style: const TextStyle(
                   fontSize: 16,
-                  color: AppTheme.neutral600,
+                  color: AppTheme.textMuted,
                   height: 1.5,
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
               // 6자리 OTP 입력 필드
               Row(
@@ -318,7 +310,8 @@ class _PasswordResetVerificationPageState
                   decoration: BoxDecoration(
                     color: AppTheme.tilePastelRose,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.35)),
+                    border: Border.all(
+                        color: AppTheme.errorColor.withValues(alpha: 0.35)),
                   ),
                   child: Row(
                     children: [
@@ -342,7 +335,7 @@ class _PasswordResetVerificationPageState
               // 인증 버튼
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 52,
                 child: ElevatedButton(
                   onPressed: _isVerifying ? null : _verifyOtp,
                   style: ElevatedButton.styleFrom(

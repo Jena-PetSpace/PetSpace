@@ -87,10 +87,12 @@ class _PasswordResetNewPasswordPageState
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     // 로그아웃 후 로그인 페이지로 이동
-                    Supabase.instance.client.auth.signOut();
-                    context.go('/onboarding/login');
+                    await Supabase.instance.client.auth.signOut();
+                    if (context.mounted) {
+                      context.go('/onboarding/login');
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.actionBase,
@@ -116,7 +118,7 @@ class _PasswordResetNewPasswordPageState
           _errorMessage = _getErrorMessage(e.message);
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -128,7 +130,7 @@ class _PasswordResetNewPasswordPageState
 
   String _getErrorMessage(String error) {
     if (error.contains('Password should be at least')) {
-      return '비밀번호는 최소 6자 이상이어야 합니다';
+      return '비밀번호는 영문과 숫자를 포함해 8자 이상이어야 합니다';
     }
     if (error.contains('New password should be different')) {
       return '이전 비밀번호와 다른 비밀번호를 입력해주세요';
@@ -140,8 +142,10 @@ class _PasswordResetNewPasswordPageState
     if (value == null || value.isEmpty) {
       return '비밀번호를 입력해주세요';
     }
-    if (value.length < 6) {
-      return '비밀번호는 최소 6자 이상이어야 합니다';
+    if (value.length < 8 ||
+        !RegExp(r'[A-Za-z]').hasMatch(value) ||
+        !RegExp(r'\d').hasMatch(value)) {
+      return '비밀번호는 영문과 숫자를 포함해 8자 이상이어야 합니다';
     }
     if (value.length > 72) {
       return '비밀번호는 최대 72자까지 가능합니다';
@@ -164,8 +168,8 @@ class _PasswordResetNewPasswordPageState
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: PetSpaceAppBar.page(
-        // 본문에 대형 '새 비밀번호 설정' 제목이 있어 앱바 타이틀은 비움(STEP 1-C에서 본문 정리)
-        title: '',
+        title: '새 비밀번호 설정',
+        backgroundColor: AppTheme.surfaceColor,
         onBack: () async {
           // 로그아웃 후 로그인 페이지로 이동
           await Supabase.instance.client.auth.signOut();
@@ -175,47 +179,46 @@ class _PasswordResetNewPasswordPageState
         },
       ),
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 20),
-
-                // 아이콘 (인증·보안 맥락 → feature 톤)
-                const Center(
+                const Align(
+                  alignment: Alignment.centerLeft,
                   child: IconBadgeCircle(
                     icon: Icons.lock_outline,
-                    size: 100,
+                    size: 56,
                     tone: BadgeTone.feature,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
                 // 제목
                 const Text(
-                  '새 비밀번호를 입력해주세요',
+                  '새 비밀번호를\n설정해주세요',
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontSize: AppTheme.fontTitle,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.brandDeep,
+                    height: 1.35,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
 
                 // 설명
                 const Text(
-                  '안전한 비밀번호를 설정하여\n계정을 보호하세요',
+                  '영문과 숫자를 포함해 8자 이상 입력해주세요.',
                   style: TextStyle(
                     fontSize: 16,
-                    color: AppTheme.neutral600,
+                    color: AppTheme.textMuted,
                     height: 1.5,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
 
                 // 새 비밀번호 입력
                 TextFormField(
@@ -223,7 +226,7 @@ class _PasswordResetNewPasswordPageState
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: '새 비밀번호',
-                    hintText: '최소 6자 이상',
+                    hintText: '영문·숫자 포함 8자 이상',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -282,7 +285,8 @@ class _PasswordResetNewPasswordPageState
                     decoration: BoxDecoration(
                       color: AppTheme.tilePastelRose,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.35)),
+                      border: Border.all(
+                          color: AppTheme.errorColor.withValues(alpha: 0.35)),
                     ),
                     child: Row(
                       children: [
@@ -306,7 +310,7 @@ class _PasswordResetNewPasswordPageState
                 // 비밀번호 변경 버튼
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 52,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _resetPassword,
                     style: ElevatedButton.styleFrom(
@@ -341,8 +345,8 @@ class _PasswordResetNewPasswordPageState
                 const InfoBox(
                   title: '비밀번호 안내',
                   items: [
-                    '최소 6자 이상 입력해주세요',
-                    '영문, 숫자, 특수문자를 조합하면 더 안전합니다',
+                    '영문과 숫자를 포함해 8자 이상 입력해주세요',
+                    '특수문자를 함께 사용하면 더 안전합니다',
                     '이전에 사용한 비밀번호와 다르게 설정해주세요',
                   ],
                 ),

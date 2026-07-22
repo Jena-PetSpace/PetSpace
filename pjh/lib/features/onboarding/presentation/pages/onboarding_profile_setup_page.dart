@@ -20,7 +20,6 @@ class _OnboardingProfileSetupPageState
     extends State<OnboardingProfileSetupPage> {
   final _formKey = GlobalKey<FormState>();
   final _displayNameController = TextEditingController();
-  final _bioController = TextEditingController();
   final _profileService = di.sl<ProfileService>();
 
   String? _avatarUrl;
@@ -30,7 +29,6 @@ class _OnboardingProfileSetupPageState
   @override
   void dispose() {
     _displayNameController.dispose();
-    _bioController.dispose();
     super.dispose();
   }
 
@@ -82,7 +80,7 @@ class _OnboardingProfileSetupPageState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '프로필을 설정해주세요',
+          '어떻게 불러드릴까요?',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -90,7 +88,7 @@ class _OnboardingProfileSetupPageState
         ),
         SizedBox(height: 8),
         Text(
-          '다른 사용자들에게 보여질 정보입니다',
+          '커뮤니티에서 사용할 이름과 사진만 먼저 설정해주세요.',
           style: TextStyle(
             fontSize: 16,
             color: AppTheme.neutral600,
@@ -102,65 +100,66 @@ class _OnboardingProfileSetupPageState
 
   Widget _buildAvatarSection() {
     return Center(
-      child: GestureDetector(
-        onTap: _pickProfileImage,
-        child: Stack(
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                border: Border.all(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                  width: 3,
-                ),
-              ),
-              child: _selectedImageFile != null
-                  ? ClipOval(
-                      child: Image.file(
-                        _selectedImageFile!,
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : _avatarUrl != null
-                      ? ClipOval(
-                          child: Image.network(
-                            _avatarUrl!,
-                            width: 120,
-                            height: 120,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return _buildAvatarPlaceholder();
-                            },
-                          ),
-                        )
-                      : _buildAvatarPlaceholder(),
-            ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
+      child: Semantics(
+        label: '프로필 사진 선택',
+        button: true,
+        child: GestureDetector(
+          onTap: _pickProfileImage,
+          child: Stack(
+            children: [
+              Container(
+                width: 96,
+                height: 96,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
                   shape: BoxShape.circle,
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   border: Border.all(
-                    color: Colors.white,
-                    width: 3,
+                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                    width: 1,
                   ),
                 ),
-                padding: const EdgeInsets.all(8),
-                child: const Icon(
-                  Icons.camera_alt,
-                  size: 20,
-                  color: Colors.white,
+                child: _selectedImageFile != null
+                    ? ClipOval(
+                        child: Image.file(
+                          _selectedImageFile!,
+                          width: 96,
+                          height: 96,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : _avatarUrl != null
+                        ? ClipOval(
+                            child: Image.network(
+                              _avatarUrl!,
+                              width: 96,
+                              height: 96,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return _buildAvatarPlaceholder();
+                              },
+                            ),
+                          )
+                        : _buildAvatarPlaceholder(),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  padding: const EdgeInsets.all(7),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    size: 18,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -203,25 +202,12 @@ class _OnboardingProfileSetupPageState
           },
         ),
         const SizedBox(height: 16),
-        TextFormField(
-          controller: _bioController,
-          maxLines: 3,
-          maxLength: 150,
-          decoration: const InputDecoration(
-            labelText: '자기소개 (선택)',
-            hintText: '간단한 자기소개를 작성해보세요',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.edit, color: AppTheme.secondaryTextColor),
-            alignLabelWithHint: true,
-          ),
-        ),
-        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.subColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppTheme.subColor.withValues(alpha: 0.3)),
+            color: AppTheme.actionContainer,
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            border: Border.all(color: AppTheme.border),
           ),
           child: const Row(
             children: [
@@ -229,7 +215,7 @@ class _OnboardingProfileSetupPageState
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  '프로필 정보는 나중에 언제든지 수정할 수 있습니다',
+                  '닉네임과 프로필 사진은 다른 사용자에게 공개됩니다. 이메일과 로그인 정보는 공개되지 않아요.',
                   style: TextStyle(
                     color: AppTheme.secondaryColor,
                     fontSize: 14,
@@ -245,7 +231,7 @@ class _OnboardingProfileSetupPageState
 
   Widget _buildContinueButton() {
     return SizedBox(
-      height: 50,
+      height: 52,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _continue,
         child: _isLoading
@@ -258,7 +244,7 @@ class _OnboardingProfileSetupPageState
                 ),
               )
             : const Text(
-                '계속하기',
+                '다음',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -278,10 +264,10 @@ class _OnboardingProfileSetupPageState
           _avatarUrl = null; // 기존 URL 제거
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이미지 선택 오류: $e')),
+          const SnackBar(content: Text('이미지를 선택하지 못했어요. 다시 시도해주세요.')),
         );
       }
     }
@@ -307,31 +293,21 @@ class _OnboardingProfileSetupPageState
 
       // 프로필 정보 저장
       final displayName = _displayNameController.text.trim();
-      final bio = _bioController.text.trim();
-
       // 사진이 없으면 빈 문자열로 기존 카카오/구글 사진 제거
       final finalPhotoUrl = uploadedImageUrl ?? _avatarUrl ?? '';
       await _profileService.updateProfile(
         displayName: displayName,
-        bio: bio,
         photoUrl: finalPhotoUrl,
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('프로필이 저장되었습니다'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
         context.go('/onboarding/pet-registration');
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('프로필 저장 실패: ${e.toString()}'),
+          const SnackBar(
+            content: Text('프로필을 저장하지 못했어요. 입력 내용은 유지되니 다시 시도해주세요.'),
             backgroundColor: AppTheme.errorColor,
           ),
         );

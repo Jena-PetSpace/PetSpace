@@ -115,10 +115,10 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
         currentStepIndex: OnboardingStep.values.length - 1,
         isLoading: false,
       ));
-    } catch (e) {
+    } catch (_) {
       emit(state.copyWith(
         isLoading: false,
-        error: '온보딩 완료 중 오류가 발생했습니다: ${e.toString()}',
+        error: '온보딩을 완료하지 못했어요. 입력 내용은 유지되니 다시 시도해주세요.',
       ));
     }
   }

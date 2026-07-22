@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_app_bar.dart';
 import 'package:go_router/go_router.dart';
 
 /// 카카오 브랜드 공식 컬러 — 디자인 토큰 아님 (브랜드 가이드 고정값)
@@ -29,33 +30,17 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
   }
 
   void _updateAllAgreedState() {
-    setState(() {
-      _allAgreed = _profileAgreed && _emailAgreed;
-    });
+    _allAgreed = _profileAgreed && _emailAgreed;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black),
-          onPressed: () {
-            // 로그아웃 처리하고 로그인 페이지로
-            context.go('/onboarding/login');
-          },
-        ),
-        title: const Text(
-          '동의 화면 미리보기',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: PetSpaceAppBar.page(
+        title: '카카오로 계속하기',
+        backgroundColor: AppTheme.surfaceColor,
+        onBack: () => context.go('/onboarding/login'),
       ),
       body: SafeArea(
         child: Column(
@@ -63,7 +48,7 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
             // 상단 카카오 브랜딩
             Container(
               padding: const EdgeInsets.symmetric(vertical: 20),
-              color: AppTheme.neutral50,
+              color: AppTheme.surfaceColor,
               child: Center(
                 child: Column(
                   children: [
@@ -162,7 +147,9 @@ class _KakaoConsentPageState extends State<KakaoConsentPage> {
                               _allAgreed
                                   ? Icons.check_circle
                                   : Icons.circle_outlined,
-                              color: _allAgreed ? Colors.orange : AppTheme.neutral500,
+                              color: _allAgreed
+                                  ? Colors.orange
+                                  : AppTheme.neutral500,
                               size: 24,
                             ),
                             const SizedBox(width: 12),

@@ -33,6 +33,17 @@ class AuthError extends AuthState {
   List<Object?> get props => [message, retryAfter];
 }
 
+/// 외부 인증 창에서 사용자가 직접 닫거나 뒤로 간 경우.
+/// 실패와 구분해 재시도 압박이나 오류 색상을 노출하지 않는다.
+class AuthCancelled extends AuthState {
+  final String provider;
+
+  const AuthCancelled(this.provider);
+
+  @override
+  List<Object?> get props => [provider];
+}
+
 class AuthEmailVerificationRequired extends AuthState {
   final User user;
 

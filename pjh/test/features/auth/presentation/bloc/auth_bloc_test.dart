@@ -155,7 +155,8 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       '성공 → AuthAuthenticated',
       build: () {
-        when(() => mockGoogle()).thenAnswer((_) async => Right(_tConfirmedUser));
+        when(() => mockGoogle())
+            .thenAnswer((_) async => Right(_tConfirmedUser));
         return bloc;
       },
       act: (b) => b.add(AuthSignInWithGoogleRequested()),
@@ -177,6 +178,21 @@ void main() {
       expect: () => [
         isA<AuthLoading>(),
         isA<AuthError>().having((s) => s.message, 'message', '구글 로그인 실패'),
+      ],
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      '사용자 취소 → provider가 명시된 AuthCancelled',
+      build: () {
+        when(() => mockGoogle()).thenAnswer(
+          (_) async => const Left(AuthFailure(message: '사용자가 취소했습니다')),
+        );
+        return bloc;
+      },
+      act: (b) => b.add(AuthSignInWithGoogleRequested()),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthCancelled>().having((s) => s.provider, 'provider', 'Google'),
       ],
     );
   });
@@ -260,8 +276,8 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       'deletedAt 있는 유저가 AuthUserChanged로 들어오면 AuthAccountDeleted',
       build: () => bloc,
-      act: (bloc) => bloc.add(AuthUserChanged(
-          _tUser.copyWith(deletedAt: DateTime(2026, 6, 1)))),
+      act: (bloc) => bloc.add(
+          AuthUserChanged(_tUser.copyWith(deletedAt: DateTime(2026, 6, 1)))),
       expect: () => [isA<AuthAccountDeleted>()],
     );
 

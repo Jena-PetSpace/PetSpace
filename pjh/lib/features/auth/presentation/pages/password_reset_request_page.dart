@@ -3,8 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
-import '../../../../shared/widgets/icon_badge_circle.dart';
-import '../../../../shared/widgets/info_box.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 
 class PasswordResetRequestPage extends StatefulWidget {
@@ -28,9 +26,7 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
   }
 
   Future<void> _sendResetCode() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
@@ -40,45 +36,41 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
     try {
       final email = _emailController.text.trim();
 
-      // Supabase OTP 발송 (비밀번호 재설정용)
-      // Note: Supabase는 등록되지 않은 이메일에도 에러를 반환하지 않아
-      // 보안상 이메일 존재 여부를 노출하지 않습니다.
+      // Supabase는 등록되지 않은 이메일에도 동일하게 응답한다. 계정 존재 여부를
+      // 화면 문구나 분기에서 추측할 수 없도록 성공·일반 실패 안내도 중립적으로 유지한다.
       await Supabase.instance.client.auth.signInWithOtp(
         email: email,
         emailRedirectTo: null,
       );
 
       if (mounted) {
-        // OTP 인증 페이지로 이동
         context.go(
           '/auth/password-reset/verify?email=${Uri.encodeComponent(email)}',
         );
       }
-    } on AuthException catch (e) {
+    } on AuthException catch (error) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = _getErrorMessage(e.message);
+          _errorMessage = _getErrorMessage(error.message);
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = '오류가 발생했습니다. 다시 시도해주세요.';
+          _errorMessage = '안내를 보내지 못했어요. 잠시 후 다시 시도해주세요.';
         });
       }
     }
   }
 
   String _getErrorMessage(String error) {
-    if (error.contains('rate limit') || error.contains('too many')) {
-      return '너무 많은 요청을 보냈습니다.\n잠시 후 다시 시도해주세요.';
+    if (error.toLowerCase().contains('rate limit') ||
+        error.toLowerCase().contains('too many')) {
+      return '요청이 많아 잠시 쉬어가야 해요. 잠시 후 다시 시도해주세요.';
     }
-    if (error.contains('not found') || error.contains('invalid')) {
-      return '등록되지 않은 이메일입니다.';
-    }
-    return '요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+    return '입력한 주소로 안내를 보내지 못했어요. 잠시 후 다시 시도해주세요.';
   }
 
   @override
@@ -87,150 +79,162 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: PetSpaceAppBar.page(
         title: '비밀번호 찾기',
+        backgroundColor: AppTheme.surfaceColor,
         onBack: () => context.go('/onboarding/login'),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 20),
-
-                // 아이콘 (인증·보안 맥락 → feature 톤)
-                const Center(
-                  child: IconBadgeCircle(
-                    icon: Icons.lock_reset,
-                    size: 100,
-                    tone: BadgeTone.feature,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // 제목
-                const Text(
-                  '비밀번호를 재설정하시겠어요?',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-
-                // 설명
-                const Text(
-                  '가입하신 이메일 주소를 입력하시면\n인증 코드를 발송해드립니다',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppTheme.neutral600,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
-
-                // 이메일 입력
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: '이메일',
-                    hintText: 'example@email.com',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    prefixIcon: const Icon(Icons.email,
-                        color: AppTheme.secondaryTextColor),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return '이메일을 입력해주세요';
-                    }
-                    if (!value.contains('@')) {
-                      return '올바른 이메일 형식이 아닙니다';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // 에러 메시지
-                if (_errorMessage != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.tilePastelRose,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.errorColor.withValues(alpha: 0.35)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: AppTheme.errorColor, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: AppTheme.errorColor,
-                              fontSize: 14,
+        top: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppTheme.actionContainer,
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.radiusMd),
+                          ),
+                          child: const Icon(
+                            Icons.lock_reset_rounded,
+                            color: AppTheme.brandDeep,
+                            size: 26,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        '비밀번호 재설정 안내를\n보내드릴게요',
+                        style: TextStyle(
+                          color: AppTheme.brandDeep,
+                          fontSize: AppTheme.fontTitle,
+                          fontWeight: FontWeight.w700,
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        '계정에 사용한 이메일을 입력해주세요. 확인할 수 있는 경우 6자리 인증 코드를 보내드려요.',
+                        style: TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: AppTheme.fontBody,
+                          height: 1.55,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      TextFormField(
+                        key: const ValueKey('password-reset-email'),
+                        controller: _emailController,
+                        enabled: !_isLoading,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        decoration: const InputDecoration(
+                          labelText: '이메일',
+                          hintText: 'jena@example.com',
+                        ),
+                        validator: (value) {
+                          final email = value?.trim() ?? '';
+                          if (email.isEmpty) return '이메일을 입력해주세요.';
+                          if (!RegExp(
+                            r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(email)) {
+                            return '올바른 이메일 형식으로 입력해주세요.';
+                          }
+                          return null;
+                        },
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 16),
+                        Semantics(
+                          liveRegion: true,
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.errorColor.withValues(alpha: .08),
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusSm),
+                              border: Border.all(
+                                color:
+                                    AppTheme.errorColor.withValues(alpha: .24),
+                              ),
+                            ),
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: AppTheme.errorColor,
+                                fontSize: AppTheme.fontCaption,
+                                height: 1.45,
+                              ),
                             ),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                if (_errorMessage != null) const SizedBox(height: 24),
-
-                // 인증 코드 발송 버튼
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _sendResetCode,
-                    style: ElevatedButton.styleFrom(
-                      // 버튼 주색은 테마 기본(navy/primary) 상속 — accent는 강조/링크용 (STEP 2-0)
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            '인증 코드 발송',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                      const SizedBox(height: 20),
+                      const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.shield_outlined,
+                            size: 18,
+                            color: AppTheme.textMuted,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              '보안을 위해 해당 이메일의 가입 여부는 화면에 표시하지 않아요.',
+                              style: TextStyle(
+                                color: AppTheme.textMuted,
+                                fontSize: AppTheme.fontCaption,
+                                height: 1.5,
+                              ),
                             ),
                           ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // 안내 사항
-                const InfoBox(
-                  title: '안내',
-                  items: [
-                    '인증 코드는 10분간 유효합니다',
-                    '이메일이 오지 않으면 스팸함을 확인해주세요',
-                    '가입하지 않은 이메일은 코드를 받을 수 없습니다',
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
+            Container(
+              padding: EdgeInsets.fromLTRB(
+                24,
+                12,
+                24,
+                12 + MediaQuery.paddingOf(context).bottom,
+              ),
+              decoration: const BoxDecoration(
+                color: AppTheme.surfaceColor,
+                border: Border(top: BorderSide(color: AppTheme.border)),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  key: const ValueKey('password-reset-submit'),
+                  onPressed: _isLoading ? null : _sendResetCode,
+                  child: _isLoading
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('인증 코드 받기'),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -92,6 +92,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     return AuthAuthenticated(user);
   }
 
+  AuthState _providerFailureState(Failure failure, String provider) {
+    final message = failure.message.trim();
+    if (message.isEmpty || message.contains('취소')) {
+      return AuthCancelled(provider);
+    }
+    return AuthError(message);
+  }
+
   Future<void> _onAuthUserChanged(
     AuthUserChanged event,
     Emitter<AuthState> emit,
@@ -113,7 +121,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await _signInWithGoogle();
-    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+    result.fold((failure) => emit(_providerFailureState(failure, 'Google')),
+        (user) {
       if (!user.isDeleted) {
         AnalyticsService.instance.logLogin(method: 'google');
       }
@@ -128,7 +137,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await _signInWithKakao();
-    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+    result.fold((failure) => emit(_providerFailureState(failure, 'Kakao')),
+        (user) {
       if (!user.isDeleted) {
         AnalyticsService.instance.logLogin(method: 'kakao');
       }
@@ -143,7 +153,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await _signInWithApple();
-    result.fold((failure) => emit(AuthError(failure.message)), (user) {
+    result.fold((failure) => emit(_providerFailureState(failure, 'Apple')),
+        (user) {
       if (!user.isDeleted) {
         AnalyticsService.instance.logLogin(method: 'apple');
       }

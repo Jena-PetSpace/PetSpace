@@ -105,12 +105,27 @@ class ErrorMessages {
   static const String unknownError = '알 수 없는 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
   static const String operationFailed = '작업에 실패했습니다.\n다시 시도해주세요.';
   static const String rateLimitExceeded = '너무 많은 요청을 시도했습니다.\n잠시 후 다시 시도해주세요.';
+  static const String authOperationFailed = '로그인을 완료하지 못했어요. 잠시 후 다시 시도해주세요.';
 
   // 액션 메시지 (에러 해결 제안)
   static const String retryAction = '다시 시도하기';
   static const String loginAction = '로그인하기';
   static const String goBackAction = '돌아가기';
   static const String contactSupportAction = '문의하기';
+}
+
+/// 인증 provider나 백엔드의 내부 상세를 사용자 문구로 내보내지 않는다.
+String publicAuthErrorMessage(String message) {
+  final normalized = message.trim();
+  if (normalized.isEmpty) return ErrorMessages.authOperationFailed;
+
+  final unsafe = RegExp(
+    r'(exception|stack|token|oauth|authorization|supabase|postgrest|sql|uid|storage|https?://|[A-Za-z]:\\|/Users/)',
+    caseSensitive: false,
+  );
+  return unsafe.hasMatch(normalized)
+      ? ErrorMessages.authOperationFailed
+      : normalized;
 }
 
 /// 컨텍스트별 에러 메시지 생성 헬퍼

@@ -175,9 +175,9 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                         controller: _lottieController,
                         onLoaded: _onLottieLoaded,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, error, ___) {
+                        errorBuilder: (_, __, ___) {
                           // Lottie 실패 시 splash_char.png fallback
-                          log('Lottie 로드 실패: $error', name: 'SplashPage');
+                          log('Lottie asset load failed', name: 'SplashPage');
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             if (!mounted) return;
                             setState(() {
@@ -246,7 +246,8 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
                               'AI 감정 분석 · 건강관리 · 커뮤니티',
                               style: TextStyle(
                                 fontSize: 10.sp,
-                                color: AppTheme.highlightColor, // v2-review: FF9B8F 근사
+                                color: AppTheme
+                                    .highlightColor, // v2-review: FF9B8F 근사
                                 letterSpacing: 0.5,
                                 fontWeight: FontWeight.w500,
                               ),
