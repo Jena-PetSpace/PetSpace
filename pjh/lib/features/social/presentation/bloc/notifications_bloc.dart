@@ -35,7 +35,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     );
 
     result.fold(
-      (failure) => emit(NotificationsError(failure.message)),
+      (_) => emit(const NotificationsError('알림을 불러오지 못했어요.')),
       (notifications) => emit(NotificationsLoaded(
         notifications: notifications,
         hasReachedMax: notifications.length < event.limit,
@@ -53,7 +53,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     );
 
     result.fold(
-      (failure) => emit(NotificationsError(failure.message)),
+      (_) => emit(const NotificationsError('알림을 새로고침하지 못했어요.')),
       (notifications) => emit(NotificationsLoaded(
         notifications: notifications,
         hasReachedMax: notifications.length < 20,
@@ -80,15 +80,15 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
       );
 
       result.fold(
-        (failure) => emit(currentState.copyWith(
+        (_) => emit(currentState.copyWith(
           isLoadingMore: false,
-          error: failure.message,
+          error: '알림을 더 불러오지 못했어요.',
         )),
         (newNotifications) => emit(currentState.copyWith(
           notifications: [...currentState.notifications, ...newNotifications],
           hasReachedMax: newNotifications.length < 20,
           isLoadingMore: false,
-          error: null,
+          clearError: true,
         )),
       );
     }
@@ -98,51 +98,78 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
     MarkNotificationAsReadRequested event,
     Emitter<NotificationsState> emit,
   ) async {
-    await socialRepository.markNotificationAsRead(event.notificationId);
-
-    // Optimistically update the notification in current state
-    if (state is NotificationsLoaded) {
-      final currentState = state as NotificationsLoaded;
-      final updatedNotifications =
-          currentState.notifications.map((notification) {
-        if (notification.id == event.notificationId) {
-          return notification.copyWith(isRead: true);
-        }
-        return notification;
-      }).toList();
-
-      emit(currentState.copyWith(notifications: updatedNotifications));
+    final current = state;
+    if (current is! NotificationsLoaded ||
+        current.pendingReadIds.contains(event.notificationId)) {
+      return;
     }
+    emit(
+      current.copyWith(
+        pendingReadIds: {...current.pendingReadIds, event.notificationId},
+        clearActionError: true,
+      ),
+    );
+    final result =
+        await socialRepository.markNotificationAsRead(event.notificationId);
+    final latest = state;
+    if (latest is! NotificationsLoaded) return;
+    final pending = {...latest.pendingReadIds}..remove(event.notificationId);
+    result.fold(
+      (_) => emit(
+        latest.copyWith(
+          pendingReadIds: pending,
+          actionError: '알림을 읽음으로 처리하지 못했어요.',
+        ),
+      ),
+      (_) => emit(
+        latest.copyWith(
+          notifications: latest.notifications
+              .map(
+                (notification) => notification.id == event.notificationId
+                    ? notification.copyWith(isRead: true)
+                    : notification,
+              )
+              .toList(),
+          pendingReadIds: pending,
+          clearActionError: true,
+        ),
+      ),
+    );
   }
 
   Future<void> _onMarkAllNotificationsAsReadRequested(
     MarkAllNotificationsAsReadRequested event,
     Emitter<NotificationsState> emit,
   ) async {
-    if (state is NotificationsLoaded) {
-      final currentState = state as NotificationsLoaded;
-
-      // Mark all notifications as read optimistically
-      final updatedNotifications =
-          currentState.notifications.map((notification) {
-        return notification.copyWith(isRead: true);
-      }).toList();
-
-      emit(currentState.copyWith(notifications: updatedNotifications));
-
-      // Call repository to mark all notifications as read
-      final result =
-          await socialRepository.markAllNotificationsAsRead(event.userId);
-
-      result.fold(
-        (failure) {
-          // Revert optimistic update on failure
-          emit(currentState.copyWith(error: failure.message));
-        },
-        (_) {
-          // Update was successful, keep the optimistic state
-        },
-      );
-    }
+    final current = state;
+    if (current is! NotificationsLoaded || current.isMarkingAllRead) return;
+    emit(
+      current.copyWith(
+        isMarkingAllRead: true,
+        clearActionError: true,
+      ),
+    );
+    final result =
+        await socialRepository.markAllNotificationsAsRead(event.userId);
+    final latest = state;
+    if (latest is! NotificationsLoaded) return;
+    result.fold(
+      (_) => emit(
+        latest.copyWith(
+          isMarkingAllRead: false,
+          actionError: '모든 알림을 읽음으로 처리하지 못했어요.',
+        ),
+      ),
+      (_) => emit(
+        latest.copyWith(
+          notifications: latest.notifications
+              .map((notification) => notification.copyWith(isRead: true))
+              .toList(),
+          isMarkingAllRead: false,
+          allReadSuccessCount: latest.allReadSuccessCount + 1,
+          clearActionError: true,
+        ),
+      ),
+    );
   }
 }

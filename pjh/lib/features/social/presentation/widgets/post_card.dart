@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -57,9 +56,6 @@ class PostCard extends StatefulWidget {
   @override
   State<PostCard> createState() => _PostCardState();
 }
-
-// 앱 세션 내 스트릭 캐시 (N+1 쿼리 방지)
-final Map<String, int> _streakCache = {};
 
 class _PostCardState extends State<PostCard> {
   static const int _contentTruncateThreshold = 150;
@@ -127,22 +123,34 @@ class _PostCardState extends State<PostCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context),
-          // 캡션 탭 → 게시글 상세
-          if (visibleContent.isNotEmpty)
-            InkWell(
-              key: const Key('post_card_open_detail'),
-              onTap: _openDetail,
-              child: _buildContent(),
-            ),
-          // 이미지: 기존 탭/더블탭 동작 유지
-          if (post.imageUrls.isNotEmpty) _buildImages(),
-          // 감정분석 카드 탭 → 게시글 상세
-          if (post.emotionAnalysis != null)
-            InkWell(
-              onTap: _openDetail,
-              child: _buildEmotionAnalysis(),
-            ),
-          _buildActions(),
+          if (post.imageUrls.isNotEmpty) ...[
+            _buildImages(),
+            _buildActions(),
+            if (visibleContent.isNotEmpty)
+              InkWell(
+                key: const Key('post_card_open_detail'),
+                onTap: _openDetail,
+                child: _buildContent(),
+              ),
+            if (post.emotionAnalysis != null)
+              InkWell(
+                onTap: _openDetail,
+                child: _buildEmotionAnalysis(),
+              ),
+          ] else ...[
+            if (visibleContent.isNotEmpty)
+              InkWell(
+                key: const Key('post_card_open_detail'),
+                onTap: _openDetail,
+                child: _buildContent(),
+              ),
+            if (post.emotionAnalysis != null)
+              InkWell(
+                onTap: _openDetail,
+                child: _buildEmotionAnalysis(),
+              ),
+            _buildActions(),
+          ],
         ],
       ),
     );
@@ -156,7 +164,7 @@ class _PostCardState extends State<PostCard> {
         : content;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -210,8 +218,6 @@ class _PostCardState extends State<PostCard> {
                 onTap: () {
                   if (widget.onHashtagTap != null) {
                     widget.onHashtagTap!(hashtag);
-                  } else {
-                    dev.log('Hashtag tapped: #$hashtag', name: 'PostCard');
                   }
                 },
                 child: Text(
@@ -238,8 +244,6 @@ class _PostCardState extends State<PostCard> {
       onTap: () {
         if (widget.onHashtagTap != null) {
           widget.onHashtagTap!(tag);
-        } else {
-          dev.log('Hashtag tapped: #$tag', name: 'PostCard');
         }
       },
       child: Container(

@@ -22,7 +22,9 @@ extension _PostCardHeader on _PostCardState {
                           : null,
                       child: post.authorProfileImage == null
                           ? Text(
-                              post.authorName.isNotEmpty ? post.authorName[0] : '?',
+                              post.authorName.isNotEmpty
+                                  ? post.authorName[0]
+                                  : '?',
                               style: TextStyle(fontSize: 14.sp))
                           : null,
                     ),
@@ -46,12 +48,16 @@ extension _PostCardHeader on _PostCardState {
                             ),
                           ),
                           SizedBox(width: 4.w),
-                          _buildStreakBadge(post.authorId),
-                          SizedBox(width: 4.w),
                           _buildTypeBadge(),
                         ]),
                         Text(
-                          _formatDateTime(post.createdAt),
+                          [
+                            if (post.location?.trim().isNotEmpty == true &&
+                                (post.locationLat == null ||
+                                    post.locationLng == null))
+                              post.location!.trim(),
+                            _formatDateTime(post.createdAt),
+                          ].join(' · '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -76,49 +82,6 @@ extension _PostCardHeader on _PostCardState {
     );
   }
 
-  Widget _buildStreakBadge(String authorId) {
-    return FutureBuilder<int>(
-      future: _fetchStreak(authorId),
-      builder: (ctx, snap) {
-        final streak = snap.data ?? 0;
-        if (streak < 3) return const SizedBox.shrink();
-
-        final String emoji;
-        final Color color;
-        if (streak >= 30) {
-          emoji = '⭐';
-          color = Colors.amber;
-        } else if (streak >= 7) {
-          emoji = '🔥';
-          color = Colors.orange;
-        } else {
-          emoji = '🔥';
-          color = Colors.deepOrange;
-        }
-
-        return Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(emoji, style: TextStyle(fontSize: 11.sp)),
-          Text(
-            '$streak',
-            style: TextStyle(
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ]);
-      },
-    );
-  }
-
-  Future<int> _fetchStreak(String authorId) async {
-    if (_streakCache.containsKey(authorId)) return _streakCache[authorId]!;
-    final result = await sl<SocialRepository>().getUserStreak(authorId);
-    final streak = result.fold((_) => 0, (v) => v);
-    _streakCache[authorId] = streak;
-    return streak;
-  }
-
   Widget _buildTypeBadge() {
     switch (post.type) {
       case PostType.emotionAnalysis:
@@ -128,25 +91,16 @@ extension _PostCardHeader on _PostCardState {
             color: AppTheme.primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(4.r),
           ),
-          child: Text('감정분석',
+          child: Text('AI 분석 공유',
               style: TextStyle(
                   fontSize: 10.sp,
                   color: AppTheme.primaryColor,
                   fontWeight: FontWeight.w600)),
         );
       case PostType.text:
-        return Container(
-          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-          decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(4.r),
-          ),
-          child: Text('커뮤니티',
-              style: TextStyle(
-                  fontSize: 10.sp,
-                  color: Colors.orange[700],
-                  fontWeight: FontWeight.w600)),
-        );
+        // 커뮤니티는 별도 탭·카드 문법으로 구분한다. 피드에 남아 있는 구형
+        // text post에는 중복 배지를 붙이지 않아 탭 역할과 색 의미를 흐리지 않는다.
+        return const SizedBox.shrink();
       case PostType.image:
       case PostType.video:
         return const SizedBox.shrink();

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -109,37 +110,49 @@ class MultiImagePicker extends StatelessWidget {
   Widget build(BuildContext context) {
     if (images.isEmpty) {
       return Semantics(
-        label: '사진 추가하기',
+        label: '사진 추가하기, 최대 $maxImages장',
         button: true,
-        child: GestureDetector(
-          onTap: () => _pickImages(context),
-          child: Container(
-            height: 220.h,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppTheme.neutral100,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: AppTheme.neutral300),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_photo_alternate,
-                    size: 52.w, color: AppTheme.neutral400),
-                SizedBox(height: 10.h),
-                Text(
-                  '사진 추가하기',
-                  style: TextStyle(
-                      color: AppTheme.neutral600,
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w500),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  '최대 $maxImages장 선택 가능',
-                  style: TextStyle(color: AppTheme.neutral400, fontSize: 12.sp),
-                ),
-              ],
+        child: Material(
+          key: const Key('multi_image_picker_empty'),
+          color: AppTheme.actionContainer,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
+          child: InkWell(
+            onTap: () => _pickImages(context),
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
+            child: Container(
+              height: math.max(132, 148.h).toDouble(),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: 36,
+                    color: AppTheme.actionBase,
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    '사진 추가',
+                    style: TextStyle(
+                      color: AppTheme.brandDeep,
+                      fontSize: AppTheme.fontBody.sp,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(height: 3.h),
+                  Text(
+                    '최대 $maxImages장 · 사진만 지원',
+                    style: TextStyle(
+                      color: AppTheme.secondaryTextColor,
+                      fontSize: AppTheme.fontCaption.sp,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -147,7 +160,7 @@ class MultiImagePicker extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 220.h,
+      height: math.max(152, 188.h).toDouble(),
       child: ReorderableListView.builder(
         scrollDirection: Axis.horizontal,
         buildDefaultDragHandles: false,
@@ -224,16 +237,22 @@ class _ImageTile extends StatelessWidget {
           Positioned(
             right: 4.w,
             top: 4.h,
-            child: GestureDetector(
-              onTap: onRemove,
-              child: Container(
-                width: 24.w,
-                height: 24.w,
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
-                  shape: BoxShape.circle,
+            child: Semantics(
+              label: '${index + 1}번째 사진 삭제',
+              button: true,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: IconButton.filled(
+                  onPressed: onRemove,
+                  tooltip: '사진 삭제',
+                  padding: EdgeInsets.zero,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black54,
+                    minimumSize: const Size(36, 36),
+                  ),
+                  icon: const Icon(Icons.close, size: 18, color: Colors.white),
                 ),
-                child: Icon(Icons.close, size: 14.w, color: Colors.white),
               ),
             ),
           ),
@@ -271,26 +290,42 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 80.w,
-        margin: EdgeInsets.only(right: 4.w),
-        decoration: BoxDecoration(
-          color: AppTheme.neutral100,
+    return Semantics(
+      label: '사진 더 추가',
+      button: true,
+      child: Material(
+        color: AppTheme.actionContainer,
+        borderRadius: BorderRadius.circular(10.r),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: AppTheme.neutral300),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_photo_alternate, size: 28.w, color: AppTheme.neutral500),
-            SizedBox(height: 6.h),
-            Text(
-              '추가',
-              style: TextStyle(fontSize: 12.sp, color: AppTheme.neutral600),
+          child: Container(
+            width: 88.w,
+            margin: EdgeInsets.only(right: 4.w),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10.r),
+              border: Border.all(color: AppTheme.border),
             ),
-          ],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.add_photo_alternate_outlined,
+                  size: 28,
+                  color: AppTheme.actionBase,
+                ),
+                SizedBox(height: 6.h),
+                Text(
+                  '사진 추가',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontCaption.sp,
+                    color: AppTheme.brandDeep,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

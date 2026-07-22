@@ -94,8 +94,8 @@ class _HashtagPageState extends State<HashtagPage> {
     );
     if (!mounted || generation != _loadGeneration) return;
     result.fold(
-      (failure) {
-        dev.log('HashtagPage load failed', name: 'HashtagPage', error: failure);
+      (_) {
+        dev.log('HashtagPage load failed', name: 'HashtagPage');
         setState(() {
           _loading = false;
           _loadingMore = false;

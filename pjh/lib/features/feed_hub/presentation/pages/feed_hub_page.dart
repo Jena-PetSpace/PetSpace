@@ -16,36 +16,52 @@ import '../../../social/presentation/pages/feed_page.dart';
 import '../../domain/entities/community_post.dart';
 import '../cubit/community_cubit.dart';
 import '../widgets/community_post_card.dart';
-import '../widgets/magazine_section.dart';
 import 'create_community_post_page.dart';
 
-/// 피드 허브 — 발견(사진 피드) | 라운지(커뮤니티) 2탭.
+/// 피드 허브 — 피드(사진 중심 근황) | 커뮤니티(주제 중심 대화) 2탭.
 ///
-/// 2026-07 재편: pill 토글(사진/Q&A)·팔로잉 하위탭을 제거하고
-/// 발견 = 추천 사진 피드, 라운지 = 답변 의무 없는 가벼운 커뮤니티로 단순화.
+/// 스토리형 원형 행 없이 게시물부터 시작하고 두 탭의 언어를 분리한다.
 class FeedHubPage extends StatelessWidget {
-  /// 0=발견, 1=라운지 (라우터가 신구 딥링크를 이 체계로 정규화).
+  /// 0=피드, 1=커뮤니티 (라우터가 구 딥링크도 이 체계로 정규화).
   final int initialTab;
   final String? initialCategory;
-  const FeedHubPage({super.key, this.initialTab = 0, this.initialCategory});
+  final CommunityCubit? communityCubit;
+
+  /// 테스트·시각 검토에서 서버/전역 BLoC 없이 피드 표면만 주입하는 seam.
+  /// 제품 경로에서는 null이며 기존 [FeedPage]와 운영 카드를 그대로 사용한다.
+  final Widget? feedContent;
+
+  const FeedHubPage({
+    super.key,
+    this.initialTab = 0,
+    this.initialCategory,
+    this.communityCubit,
+    this.feedContent,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider<CommunityCubit>(
-          create: (_) => CommunityCubit(repository: sl<SocialRepository>()),
-        ),
-        // 발견 탭 운영 카드 — 탭 전환에도 커서·큐 보존을 위해 페이지 위에 산다.
-        BlocProvider<OperationalCardsCubit>(
-          create: (_) =>
-              OperationalCardsCubit(repository: sl<SocialRepository>())..load(),
-        ),
-      ],
-      child: _FeedHubView(
-        initialTab: initialTab,
-        initialCategory: initialCategory,
-      ),
+    final view = _FeedHubView(
+      initialTab: initialTab,
+      initialCategory: initialCategory,
+      feedContent: feedContent,
+    );
+    final withCommunity = communityCubit == null
+        ? BlocProvider<CommunityCubit>(
+            create: (_) => CommunityCubit(repository: sl<SocialRepository>()),
+            child: view,
+          )
+        : BlocProvider<CommunityCubit>.value(
+            value: communityCubit!,
+            child: view,
+          );
+
+    if (feedContent != null) return withCommunity;
+    return BlocProvider<OperationalCardsCubit>(
+      // 피드 탭 운영 카드 — 탭 전환에도 커서·큐 보존을 위해 페이지 위에 산다.
+      create: (_) =>
+          OperationalCardsCubit(repository: sl<SocialRepository>())..load(),
+      child: withCommunity,
     );
   }
 }
@@ -53,7 +69,12 @@ class FeedHubPage extends StatelessWidget {
 class _FeedHubView extends StatefulWidget {
   final int initialTab;
   final String? initialCategory;
-  const _FeedHubView({required this.initialTab, this.initialCategory});
+  final Widget? feedContent;
+  const _FeedHubView({
+    required this.initialTab,
+    this.initialCategory,
+    this.feedContent,
+  });
 
   @override
   State<_FeedHubView> createState() => _FeedHubViewState();
@@ -64,7 +85,7 @@ class _FeedHubViewState extends State<_FeedHubView>
   late TabController _tabController;
   final ScrollController _loungeScrollController = ScrollController();
 
-  /// 라운지 필터 선택: 0=전체, 1..=CommunityCategories.lounge[i-1].
+  /// 커뮤니티 필터 선택: 0=전체, 1..=CommunityCategories.lounge[i-1].
   int _selectedLoungeCategory = 0;
 
   CommunityCubit get _cubit => context.read<CommunityCubit>();
@@ -81,7 +102,7 @@ class _FeedHubViewState extends State<_FeedHubView>
       vsync: this,
       initialIndex: widget.initialTab.clamp(0, 1),
     );
-    // 라운지 최초 진입 로드.
+    // 커뮤니티 최초 진입 로드.
     _tabController.addListener(_onTabChanged);
 
     if (widget.initialTab >= 1) {
@@ -136,7 +157,11 @@ class _FeedHubViewState extends State<_FeedHubView>
             child: TabBarView(
               controller: _tabController,
               children: [
-                const FeedPage(recommended: true, interleaveOperational: true),
+                widget.feedContent ??
+                    const FeedPage(
+                      recommended: true,
+                      interleaveOperational: true,
+                    ),
                 _buildLoungeBody(),
               ],
             ),
@@ -147,39 +172,38 @@ class _FeedHubViewState extends State<_FeedHubView>
   }
 
   AppBar _buildAppBar() {
-    // 헤더 2층(앱바+탭바) 재압축 — 콘텐츠 첫 노출이 상단 ~20% 이내에서
-    // 시작하도록 toolbarHeight 축소.
     return AppBar(
       backgroundColor: AppTheme.surfaceColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       toolbarHeight: 48.h,
       title: Text(
-        '피드',
+        'PetSpace',
         style: TextStyle(
-          fontSize: 17.sp,
-          fontWeight: FontWeight.w600,
-          color: AppTheme.brandDeep, // v2: 헤딩은 brandDeep
+          fontSize: 20.sp,
+          fontWeight: FontWeight.w800,
+          color: AppTheme.brandDeep,
         ),
       ),
-      centerTitle: true,
+      centerTitle: false,
+      titleSpacing: 20.w,
       actions: [
-        // 글쓰기 — 우하단 FAB 제거 후 앱바로 이동(검색 왼쪽). 탭 컨텍스트에
-        // 따라 작성 화면 분기(발견=사진 게시물, 라운지=커뮤니티 글).
+        // 현재 탭 문법에 맞는 작성 화면으로 이동한다.
         IconButton(
           icon: Icon(Icons.edit_outlined,
               size: 22.w, color: AppTheme.primaryTextColor),
           onPressed: _onWritePressed,
           tooltip: '글쓰기',
         ),
-        // 채널 구독 진입점 비노출 (P0-1) — ChannelSubscriptionPage·/channels
-        // 라우트는 보존, P2 구독 재도입 시 재연결.
         IconButton(
           icon: SvgPicture.asset(
             'assets/svg/icon_search.svg',
             width: 22,
             height: 22,
-            colorFilter: const ColorFilter.mode(AppTheme.primaryTextColor, BlendMode.srcIn),
+            colorFilter: const ColorFilter.mode(
+              AppTheme.primaryTextColor,
+              BlendMode.srcIn,
+            ),
           ),
           onPressed: () => context.push('/search'),
           tooltip: '검색',
@@ -202,20 +226,17 @@ class _FeedHubViewState extends State<_FeedHubView>
         indicatorColor: AppTheme.primaryColor,
         indicatorWeight: 2.5,
         indicatorSize: TabBarIndicatorSize.label,
-        // 인디케이터·구분선을 TabBar 한 레이어에서 같은 밑선에 그린다
-        // (별도 Divider 위젯과 분리 렌더되던 결함 수정).
         dividerColor: AppTheme.dividerColor,
         dividerHeight: 1,
-        // 라벨-인디케이터 간격 압축 (기본 46 → 40).
         tabs: const [
-          Tab(text: '발견', height: 40),
-          Tab(text: '라운지', height: 40),
+          Tab(text: '피드', height: 40),
+          Tab(text: '커뮤니티', height: 40),
         ],
       ),
     );
   }
 
-  // ── 라운지 ──────────────────────────────────────────────────────
+  // ── 커뮤니티 ────────────────────────────────────────────────────
 
   Widget _buildLoungeBody() {
     return Column(
@@ -253,17 +274,25 @@ class _FeedHubViewState extends State<_FeedHubView>
             state.status == CommunityStatus.initial) {
           return const Center(child: CircularProgressIndicator());
         }
-        // 매거진 섹션은 '전체'에서만 상단 노출.
-        final showMagazine = _selectedLoungeCategory == 0;
+
+        if (state.status == CommunityStatus.error && state.posts.isEmpty) {
+          return EmptyStateWidget(
+            key: const Key('community_initial_error'),
+            icon: Icons.cloud_off_outlined,
+            title: '커뮤니티 글을 불러오지 못했어요',
+            subtitle: '연결 상태를 확인하고 다시 시도해주세요.',
+            actionLabel: '다시 시도',
+            onAction: () => _cubit.loadCategory(_selectedCategoryValue),
+          );
+        }
 
         if (state.posts.isEmpty) {
-          // 빈 상태에서도 매거진은 보여준다.
           return RefreshIndicator(
             onRefresh: () => _cubit.refresh(),
             child: ListView(
               controller: _loungeScrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                if (showMagazine) const MagazineSection(),
                 SizedBox(height: 60.h),
                 _buildEmpty(),
               ],
@@ -271,42 +300,45 @@ class _FeedHubViewState extends State<_FeedHubView>
           );
         }
 
-        final headerCount = showMagazine ? 1 : 0;
         return RefreshIndicator(
           onRefresh: () => _cubit.refresh(),
           child: ListView.builder(
             controller: _loungeScrollController,
-            padding: EdgeInsets.only(bottom: 8.h),
-            itemCount: headerCount +
-                state.posts.length +
-                (state.isLoadingMore ? 1 : 0),
+            padding: EdgeInsets.only(top: 12.h, bottom: 12.h),
+            itemCount: state.posts.length +
+                (state.isLoadingMore || state.errorMessage != null ? 1 : 0),
             itemBuilder: (context, index) {
-              if (showMagazine && index == 0) {
-                return const MagazineSection();
-              }
-              final postIndex = index - headerCount;
-              if (postIndex >= state.posts.length) {
+              if (index >= state.posts.length) {
+                if (state.errorMessage != null) {
+                  return Padding(
+                    key: const Key('community_load_more_error'),
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    child: Center(
+                      child: TextButton.icon(
+                        onPressed: _cubit.loadMore,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('글을 더 불러오지 못했어요 · 다시 시도'),
+                      ),
+                    ),
+                  );
+                }
                 return Padding(
                   padding: EdgeInsets.symmetric(vertical: 16.h),
                   child: const Center(child: CircularProgressIndicator()),
                 );
               }
-              final CommunityPost post = state.posts[postIndex];
-              return Padding(
-                padding: EdgeInsets.only(top: postIndex == 0 ? 8.h : 0),
-                child: GestureDetector(
-                  onTap: () => context.push('/post/${post.id}'),
-                  child: CommunityPostCard(
-                    authorName: post.authorName,
-                    category: post.categoryLabel,
-                    title: '',
-                    content: post.content,
-                    likes: post.likes,
-                    comments: post.comments,
-                    timeAgo: _timeAgo(post.createdAt),
-                    isAdmin: post.isAdmin,
-                  ),
-                ),
+              final CommunityPost post = state.posts[index];
+              return CommunityPostCard(
+                authorName: post.authorName,
+                authorPhotoUrl: post.authorPhotoUrl,
+                category: post.categoryLabel,
+                title: post.title,
+                content: post.body,
+                likes: post.likes,
+                comments: post.comments,
+                timeAgo: _timeAgo(post.createdAt),
+                isAdmin: post.isAdmin,
+                onTap: () => context.push('/post/${post.id}'),
               );
             },
           ),
@@ -341,7 +373,7 @@ class _FeedHubViewState extends State<_FeedHubView>
     }
   }
 
-  /// 라운지 글쓰기 화면 진입 — 작성 성공 시 현재 카테고리 새로고침.
+  /// 커뮤니티 글쓰기 화면 진입 — 작성 성공 시 현재 카테고리 새로고침.
   Future<void> _openCreateCommunityPost() async {
     final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => const CreateCommunityPostPage()),

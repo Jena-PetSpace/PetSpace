@@ -147,8 +147,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
           _likesCount = (res['likes_count'] as num?)?.toInt() ?? 0;
         });
       }
-    } catch (e) {
-      dev.log('게시글 로드 실패: $e', name: 'PostDetailPage');
+    } catch (_) {
+      dev.log('게시글 로드 실패', name: 'PostDetailPage');
       if (mounted) setState(() => _postStatus = _PostLoadStatus.error);
     }
   }
@@ -192,8 +192,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
         (detail) => (detail?['likes_count'] as num?)?.toInt(),
       );
       serverLiked = likedResult.fold<bool?>((_) => null, (liked) => liked);
-    } catch (error) {
-      dev.log('좋아요 상태 재조정 실패: $error', name: 'PostDetailPage');
+    } catch (_) {
+      dev.log('좋아요 상태 재조정 실패', name: 'PostDetailPage');
     }
     if (!mounted) return;
     setState(() {

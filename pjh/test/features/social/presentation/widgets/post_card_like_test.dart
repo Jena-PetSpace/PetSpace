@@ -167,6 +167,10 @@ void main() {
       tester.getSize(find.byKey(const Key('post_card_location_button'))).height,
       44,
     );
+    expect(
+      find.text('아주 긴 공개 장소 이름 서울숲 반려동물 산책길'),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

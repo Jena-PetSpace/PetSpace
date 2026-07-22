@@ -8,25 +8,28 @@ import '../../domain/entities/notification.dart' as social_notification;
 class NotificationCard extends StatelessWidget {
   final social_notification.Notification notification;
   final VoidCallback onTap;
-  final VoidCallback onMarkAsRead;
+  final bool isReadPending;
+  final DateTime? now;
 
   const NotificationCard({
     super.key,
     required this.notification,
     required this.onTap,
-    required this.onMarkAsRead,
+    this.isReadPending = false,
+    this.now,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      key: Key('notification_${notification.id}'),
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: notification.isRead
               ? Colors.transparent
-              : Colors.blue.withValues(alpha: 0.05),
+              : AppTheme.actionContainer.withValues(alpha: 0.55),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,13 +52,19 @@ class NotificationCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (!notification.isRead) ...[
+            if (isReadPending) ...[
+              SizedBox(width: 8.w),
+              const SizedBox.square(
+                dimension: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ] else if (!notification.isRead) ...[
               SizedBox(width: 8.w),
               Container(
                 width: 8.w,
                 height: 8.w,
                 decoration: const BoxDecoration(
-                  color: Colors.blue,
+                  color: AppTheme.actionBase,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -119,7 +128,7 @@ class NotificationCard extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
               ),
               TextSpan(
-                text: ' ${_getNotificationAction(notification.type)}',
+                text: _getNotificationAction(notification.type),
                 style: TextStyle(fontSize: 14.sp),
               ),
             ],
@@ -198,33 +207,33 @@ class NotificationCard extends StatelessWidget {
   String _getNotificationAction(social_notification.NotificationType type) {
     switch (type) {
       case social_notification.NotificationType.like:
-        return '님이 게시물에 좋아요를 눌렀습니다';
+        return '님이 게시물에 좋아요를 눌렀어요.';
       case social_notification.NotificationType.comment:
-        return '님이 댓글을 남겼습니다';
+        return '님이 댓글을 남겼어요.';
       case social_notification.NotificationType.follow:
-        return '님이 팔로우하기 시작했습니다';
+        return '님이 팔로우하기 시작했어요.';
       case social_notification.NotificationType.mention:
-        return '님이 언급했습니다';
+        return '님이 회원님을 언급했어요.';
       case social_notification.NotificationType.system:
-        return '에서 새 소식을 전했습니다';
+        return '에서 새 소식을 전했어요.';
       case social_notification.NotificationType.adminNewPost:
-        return '에서 새 게시물을 알려드립니다';
+        return '에서 새 게시물을 알려드려요.';
       case social_notification.NotificationType.emotionAnalysis:
-        return '님이 감정 분석을 공유했습니다';
+        return '님이 AI 분석을 공유했어요.';
       case social_notification.NotificationType.healthAlert:
-        return '에서 건강 일정을 알려드립니다';
+        return '에서 건강 일정을 알려드려요.';
       case social_notification.NotificationType.friendRequest:
-        return '님이 친구 요청을 보냈습니다';
+        return '님이 친구 요청을 보냈어요.';
       case social_notification.NotificationType.postShare:
-        return '님이 게시물을 공유했습니다';
+        return '님이 게시물을 공유했어요.';
       case social_notification.NotificationType.unknown:
-        return '에서 새 알림을 보냈습니다';
+        return '에서 새 알림을 보냈어요.';
     }
   }
 
   String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
+    final current = now ?? DateTime.now();
+    final difference = current.difference(dateTime);
 
     if (difference.inMinutes < 1) {
       return '방금 전';

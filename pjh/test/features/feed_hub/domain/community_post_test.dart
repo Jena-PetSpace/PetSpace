@@ -147,4 +147,34 @@ void main() {
       expect(build('알수없음').categoryLabel, '');
     });
   });
+
+  group('CommunityPost 제목·본문 호환 파싱', () {
+    CommunityPost build(String caption) => CommunityPost.fromJson({
+          'id': 'legacy',
+          'author_id': 'u',
+          'caption': caption,
+          'created_at': '2026-06-10T09:00:00.000Z',
+        });
+
+    test('신규 제목과 본문을 빈 줄 기준으로 분리하고 CRLF도 정규화한다', () {
+      final post = build('산책 친구를 찾습니다\r\n\r\n주말 오전에 함께 걸어요.\r\n한강에서 만나요.');
+
+      expect(post.title, '산책 친구를 찾습니다');
+      expect(post.body, '주말 오전에 함께 걸어요.\n한강에서 만나요.');
+    });
+
+    test('구형 단일 caption은 제목으로 보존한다', () {
+      final post = build('예전 형식으로 작성한 글');
+
+      expect(post.title, '예전 형식으로 작성한 글');
+      expect(post.body, isEmpty);
+    });
+
+    test('제목이 비어 있는 legacy caption도 본문을 잃지 않는다', () {
+      final post = build('\n\n본문만 남아 있는 글');
+
+      expect(post.title, isEmpty);
+      expect(post.body, '본문만 남아 있는 글');
+    });
+  });
 }

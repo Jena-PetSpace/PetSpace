@@ -15,9 +15,9 @@ class PostDraftStorage {
 
   static Future<({String content, List<String> hashtags})?> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final content = prefs.getString(_keyContent);
-    if (content == null || content.isEmpty) return null;
+    final content = prefs.getString(_keyContent) ?? '';
     final hashtags = prefs.getStringList(_keyHashtags) ?? [];
+    if (content.isEmpty && hashtags.isEmpty) return null;
     return (content: content, hashtags: hashtags);
   }
 

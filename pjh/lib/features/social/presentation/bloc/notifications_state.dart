@@ -16,12 +16,20 @@ class NotificationsLoaded extends NotificationsState {
   final bool hasReachedMax;
   final bool isLoadingMore;
   final String? error;
+  final Set<String> pendingReadIds;
+  final bool isMarkingAllRead;
+  final int allReadSuccessCount;
+  final String? actionError;
 
   const NotificationsLoaded({
     required this.notifications,
     required this.hasReachedMax,
     this.isLoadingMore = false,
     this.error,
+    this.pendingReadIds = const <String>{},
+    this.isMarkingAllRead = false,
+    this.allReadSuccessCount = 0,
+    this.actionError,
   });
 
   NotificationsLoaded copyWith({
@@ -29,18 +37,38 @@ class NotificationsLoaded extends NotificationsState {
     bool? hasReachedMax,
     bool? isLoadingMore,
     String? error,
+    bool clearError = false,
+    Set<String>? pendingReadIds,
+    bool? isMarkingAllRead,
+    int? allReadSuccessCount,
+    String? actionError,
+    bool clearActionError = false,
   }) {
     return NotificationsLoaded(
       notifications: notifications ?? this.notifications,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
+      pendingReadIds: Set<String>.unmodifiable(
+        pendingReadIds ?? this.pendingReadIds,
+      ),
+      isMarkingAllRead: isMarkingAllRead ?? this.isMarkingAllRead,
+      allReadSuccessCount: allReadSuccessCount ?? this.allReadSuccessCount,
+      actionError: clearActionError ? null : (actionError ?? this.actionError),
     );
   }
 
   @override
-  List<Object?> get props =>
-      [notifications, hasReachedMax, isLoadingMore, error];
+  List<Object?> get props => [
+        notifications,
+        hasReachedMax,
+        isLoadingMore,
+        error,
+        pendingReadIds,
+        isMarkingAllRead,
+        allReadSuccessCount,
+        actionError,
+      ];
 }
 
 class NotificationsError extends NotificationsState {

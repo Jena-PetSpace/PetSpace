@@ -323,9 +323,7 @@ class _SearchPageState extends State<SearchPage>
           ),
         if (state.users.isNotEmpty) ...[
           _sectionTitle('사용자'),
-          ...state.users
-              .take(3)
-              .map(
+          ...state.users.take(3).map(
                 (user) => _userTile(user, state.followingIds.contains(user.id)),
               ),
         ],
@@ -382,7 +380,7 @@ class _SearchPageState extends State<SearchPage>
         children: [
           Expanded(
             child: Text(
-              '$label · $message',
+              '$label 결과를 불러오지 못했어요.',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -524,9 +522,8 @@ class _SearchPageState extends State<SearchPage>
           : SizedBox(
               height: 44,
               child: OutlinedButton(
-                onPressed: pending
-                    ? null
-                    : () => _toggleFollow(user, isFollowing),
+                onPressed:
+                    pending ? null : () => _toggleFollow(user, isFollowing),
                 child: pending
                     ? const SizedBox.square(
                         dimension: 16,
@@ -555,7 +552,7 @@ class _SearchPageState extends State<SearchPage>
         padding: EdgeInsets.all(16.w),
         child: Column(
           children: [
-            Text(error, textAlign: TextAlign.center),
+            const Text('결과를 더 불러오지 못했어요.', textAlign: TextAlign.center),
             TextButton(onPressed: retry, child: const Text('다시 시도')),
           ],
         ),
@@ -595,7 +592,10 @@ class _SearchPageState extends State<SearchPage>
           children: [
             Icon(Icons.error_outline, size: 48.w, color: AppTheme.errorColor),
             SizedBox(height: 12.h),
-            Text(message, textAlign: TextAlign.center),
+            const Text(
+              '검색 결과를 불러오지 못했어요. 연결 상태를 확인해주세요.',
+              textAlign: TextAlign.center,
+            ),
             SizedBox(height: 12.h),
             FilledButton(onPressed: retry, child: const Text('다시 시도')),
           ],

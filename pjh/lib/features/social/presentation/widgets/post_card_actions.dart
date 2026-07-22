@@ -309,35 +309,34 @@ extension _PostCardActions on _PostCardState {
               ),
             ],
           ),
-          if (post.location != null) ...[
+          // 좌표가 있을 때만 위치 탐색 액션을 제공한다. 좌표가 없는 장소명은
+          // 헤더 메타데이터에 이미 표시되므로 동일 문구를 두 번 노출하지 않는다.
+          if (post.location?.trim().isNotEmpty == true &&
+              post.locationLat != null &&
+              post.locationLng != null) ...[
             SizedBox(height: 4.h),
             Semantics(
               label: '위치 ${post.location} 게시물 보기',
-              button: post.locationLat != null && post.locationLng != null,
+              button: true,
               child: SizedBox(
                 height: 44,
                 child: InkWell(
                   key: const Key('post_card_location_button'),
-                  onTap: (post.locationLat != null && post.locationLng != null)
-                      ? () => context.push(
-                          '/location',
-                          extra: {
-                            'lat': post.locationLat,
-                            'lng': post.locationLng,
-                            'locationName': post.location,
-                          },
-                        )
-                      : null,
+                  onTap: () => context.push(
+                    '/location',
+                    extra: {
+                      'lat': post.locationLat,
+                      'lng': post.locationLng,
+                      'locationName': post.location,
+                    },
+                  ),
                   borderRadius: BorderRadius.circular(12.r),
                   child: Row(
                     children: [
                       Icon(
                         Icons.location_on,
                         size: 18.w,
-                        color:
-                            post.locationLat != null && post.locationLng != null
-                            ? AppTheme.primaryColor
-                            : AppTheme.secondaryTextColor,
+                        color: AppTheme.primaryColor,
                       ),
                       SizedBox(width: 6.w),
                       Expanded(
@@ -347,11 +346,7 @@ extension _PostCardActions on _PostCardState {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12.sp,
-                            color:
-                                post.locationLat != null &&
-                                    post.locationLng != null
-                                ? AppTheme.primaryColor
-                                : AppTheme.secondaryTextColor,
+                            color: AppTheme.primaryColor,
                           ),
                         ),
                       ),

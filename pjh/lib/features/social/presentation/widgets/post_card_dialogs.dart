@@ -76,10 +76,37 @@ extension _PostCardDialogs on _PostCardState {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('사용자 차단'),
-        content: Text(
-          '${post.authorName}님을 차단하시겠습니까?\n\n차단하면 해당 사용자의 게시물과 댓글이 보이지 않습니다.',
-          style: TextStyle(fontSize: 14.sp),
+        title: Text('${post.authorName}님을 차단할까요?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('서로의 콘텐츠와 활동이 제한됩니다.'),
+            SizedBox(height: 12.h),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: AppTheme.subtleBackground,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+              ),
+              child: Text(
+                '서로의 게시물·댓글·프로필이 노출되지 않습니다.\n'
+                '팔로우·좋아요·답글·신규 채팅 등 상호작용이 제한됩니다.\n'
+                '기존 직접 채팅도 더 이상 사용할 수 없습니다.',
+                style:
+                    TextStyle(fontSize: AppTheme.fontCaption.sp, height: 1.5),
+              ),
+            ),
+            SizedBox(height: 10.h),
+            Text(
+              '개인정보 보호 설정에서 언제든 해제할 수 있어요.',
+              style: TextStyle(
+                fontSize: AppTheme.fontCaption.sp,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(

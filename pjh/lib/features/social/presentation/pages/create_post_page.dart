@@ -26,6 +26,8 @@ class CreatePostPage extends StatefulWidget {
   final String? petId;
   final String? petName;
   final Post? editPost;
+  final String? currentUserId;
+  final String? currentUserName;
 
   const CreatePostPage({
     super.key,
@@ -34,13 +36,16 @@ class CreatePostPage extends StatefulWidget {
     this.petId,
     this.petName,
     this.editPost,
+    this.currentUserId,
+    this.currentUserName,
   });
 
   @override
   State<CreatePostPage> createState() => _CreatePostPageState();
 }
 
-class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObserver {
+class _CreatePostPageState extends State<CreatePostPage>
+    with WidgetsBindingObserver {
   final _contentController = TextEditingController();
   final _hashtagController = TextEditingController();
 
@@ -48,8 +53,9 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
   bool get _isEditMode => widget.editPost != null;
   String? _imageUrl;
   final List<String> _hashtags = [];
-  bool _isPublic = true;
   bool _showEmotionAnalysis = true;
+  bool _isSubmitting = false;
+  String? _submissionError;
   Timer? _autosaveTimer;
   LocationResult? _location;
 
@@ -131,13 +137,15 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
   }
 
   Future<void> _handleBackPress() async {
-    final hasContent =
-        _contentController.text.isNotEmpty || _selectedImages.isNotEmpty;
+    final hasContent = _contentController.text.isNotEmpty ||
+        _selectedImages.isNotEmpty ||
+        _hashtags.isNotEmpty ||
+        _location != null;
     if (hasContent) {
       final shouldDiscard = await BackPressHandler.showDiscardDialog(
         context,
         title: '게시글 작성 취소',
-        content: '작성 중인 내용이 임시저장됩니다.\n계속하시겠습니까?',
+        content: '본문과 태그를 임시 저장하고 작성 화면을 닫을까요?\n사진과 위치는 저장되지 않습니다.',
       );
       if (shouldDiscard) {
         await _saveDraft();
@@ -161,31 +169,41 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
           if (state is FeedPostCreated) {
             PostDraftStorage.clear();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('게시글이 작성되었습니다!')),
+              const SnackBar(content: Text('게시글을 등록했어요.')),
+            );
+            if (context.canPop()) context.pop();
+          } else if (state is FeedPostUpdated && _isEditMode) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('게시글을 수정했어요.')),
             );
             if (context.canPop()) context.pop();
           } else if (state is FeedError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('오류: ${state.message}')),
-            );
+            setState(() {
+              _isSubmitting = false;
+              _submissionError = _isEditMode
+                  ? '게시글을 수정하지 못했어요. 입력 내용은 그대로 유지됩니다.'
+                  : '게시글을 등록하지 못했어요. 입력 내용과 사진은 그대로 유지됩니다.';
+            });
           }
         },
         child: Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
+            leadingWidth: 68.w,
+            leading: TextButton(
+              key: const Key('create_post_close_button'),
+              onPressed: _isSubmitting ? null : _handleBackPress,
+              child: const Text('닫기'),
+            ),
             title: Text(_isEditMode ? '게시글 수정' : '게시글 작성'),
             centerTitle: true,
             actions: [
               TextButton(
-                onPressed: _isEditMode ? _updatePost : _submit,
-                child: Text(
-                  _isEditMode ? '수정완료' : '게시',
-                  style: const TextStyle(
-                    color: AppTheme.primaryColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+                key: const Key('create_post_submit_top'),
+                onPressed: _isSubmitting
+                    ? null
+                    : (_isEditMode ? _updatePost : _submit),
+                child: Text(_isEditMode ? '수정' : '게시'),
               ),
             ],
           ),
@@ -194,31 +212,165 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
             behavior: HitTestBehavior.opaque,
             onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
             child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  MultiImagePicker(
-                    images: _selectedImages,
-                    onChanged: (imgs) => setState(() => _selectedImages = imgs),
-                  ),
-                  SizedBox(height: 16.h),
-                  if (widget.emotionAnalysis != null) _buildEmotionSection(),
-                  SizedBox(height: 16.h),
-                  _buildContentSection(),
-                  SizedBox(height: 16.h),
-                  _buildHashtagSection(),
-                  SizedBox(height: 16.h),
-                  _buildPrivacySection(),
-                  SizedBox(height: 16.h),
-                  _buildLocationSection(),
-                ],
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 36.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isEditMode ? '게시물을 다듬어보세요' : '오늘의 순간을 남겨보세요',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontHeading.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 5.h),
+                    Text(
+                      _isEditMode
+                          ? '수정 실패 시 기존 게시물과 입력 내용을 유지합니다.'
+                          : '본문과 태그는 기기에 주기적으로 임시 저장됩니다.',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontCaption.sp,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (widget.petName?.trim().isNotEmpty == true) ...[
+                      SizedBox(height: 20.h),
+                      _buildPetSection(),
+                    ],
+                    SizedBox(height: 20.h),
+                    _buildSectionLabel('사진', '최대 10장'),
+                    SizedBox(height: 8.h),
+                    MultiImagePicker(
+                      key: const Key('create_post_image_picker'),
+                      images: _selectedImages,
+                      maxImages: 10,
+                      onChanged: (imgs) => setState(() {
+                        _selectedImages = imgs;
+                        _submissionError = null;
+                      }),
+                    ),
+                    SizedBox(height: 16.h),
+                    if (widget.emotionAnalysis != null) _buildEmotionSection(),
+                    SizedBox(height: 16.h),
+                    _buildContentSection(),
+                    SizedBox(height: 16.h),
+                    _buildHashtagSection(),
+                    SizedBox(height: 16.h),
+                    _buildPrivacySection(),
+                    SizedBox(height: 16.h),
+                    _buildLocationSection(),
+                    if (_submissionError != null) ...[
+                      SizedBox(height: 16.h),
+                      Container(
+                        key: const Key('create_post_submit_error'),
+                        width: double.infinity,
+                        padding: EdgeInsets.all(14.w),
+                        decoration: BoxDecoration(
+                          color: AppTheme.errorColor.withValues(alpha: 0.08),
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusMd.r),
+                        ),
+                        child: Text(
+                          _submissionError!,
+                          style: TextStyle(
+                            fontSize: AppTheme.fontCaption.sp,
+                            color: AppTheme.errorColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 20.h),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: FilledButton(
+                        key: const Key('create_post_submit_button'),
+                        onPressed: _isSubmitting
+                            ? null
+                            : (_isEditMode ? _updatePost : _submit),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.actionBase,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox.square(
+                                dimension: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(_isEditMode ? '수정하기' : '게시하기'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-          ), // GestureDetector
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String title, String trailing) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: AppTheme.fontBody.sp,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          trailing,
+          style: TextStyle(
+            fontSize: AppTheme.fontMicro.sp,
+            color: AppTheme.secondaryTextColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPetSection() {
+    return Container(
+      key: const Key('create_post_pet'),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.pets_outlined, color: AppTheme.actionBase),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '함께한 반려동물',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontMicro.sp,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(
+                  widget.petName!,
+                  style: TextStyle(
+                    fontSize: AppTheme.fontBody.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -244,8 +396,8 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
                   SizedBox(width: 8.w),
                   Text(
                     'AI 감정 분석 결과',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16.sp),
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp),
                   ),
                 ],
               ),
@@ -295,17 +447,21 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('내용',
-            style:
-                TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+        _buildSectionLabel('내용', '최대 1,000자'),
         SizedBox(height: 8.h),
         TextField(
+          key: const Key('create_post_content_field'),
           controller: _contentController,
+          enabled: !_isSubmitting,
+          onChanged: (_) {
+            if (_submissionError != null) {
+              setState(() => _submissionError = null);
+            }
+          },
           style: TextStyle(fontSize: 14.sp),
           decoration: InputDecoration(
             hintText: '반려동물과의 특별한 순간을 공유해보세요...',
-            hintStyle:
-                TextStyle(color: AppTheme.neutral400, fontSize: 14.sp),
+            hintStyle: TextStyle(color: AppTheme.neutral400, fontSize: 14.sp),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: const BorderSide(color: AppTheme.neutral300),
@@ -330,9 +486,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('해시태그',
-            style:
-                TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+        _buildSectionLabel('태그', '선택'),
         SizedBox(height: 8.h),
         Wrap(
           spacing: 8.w,
@@ -342,14 +496,14 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
               (tag) => Chip(
                 label: Text('#$tag', style: TextStyle(fontSize: 12.sp)),
                 onDeleted: () => setState(() => _hashtags.remove(tag)),
-                backgroundColor:
-                    AppTheme.primaryColor.withValues(alpha: 0.1),
-                labelStyle: TextStyle(
-                    color: AppTheme.primaryColor, fontSize: 12.sp),
+                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                labelStyle:
+                    TextStyle(color: AppTheme.primaryColor, fontSize: 12.sp),
                 deleteIconColor: AppTheme.primaryColor,
               ),
             ),
             ActionChip(
+              key: const Key('create_post_add_hashtag'),
               label: Text('+ 추가', style: TextStyle(fontSize: 12.sp)),
               onPressed: _showAddHashtagDialog,
               backgroundColor: AppTheme.neutral100,
@@ -371,34 +525,50 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('공개 설정',
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
-          SizedBox(height: 12.h),
-          RadioGroup<bool>(
-            groupValue: _isPublic,
-            onChanged: (v) => setState(() => _isPublic = v ?? true),
-            child: Column(
-              children: [
-                RadioListTile<bool>(
-                  value: true,
-                  title: Text('전체 공개', style: TextStyle(fontSize: 14.sp)),
-                  subtitle: Text('모든 사용자가 볼 수 있습니다',
-                      style: TextStyle(fontSize: 12.sp)),
-                  activeColor: AppTheme.primaryColor,
-                  contentPadding: EdgeInsets.zero,
+          Text('공개 범위',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+          SizedBox(height: 8.h),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.public_rounded, color: AppTheme.actionBase),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isEditMode ? '기존 공개 범위 유지' : '전체 공개',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontBody.sp,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(
+                      _isEditMode
+                          ? '수정 화면에서는 공개 범위를 변경하지 않아요.'
+                          : '로그인한 모든 사용자가 볼 수 있어요.',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontCaption.sp,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                RadioListTile<bool>(
-                  value: false,
-                  title: Text('팔로워만', style: TextStyle(fontSize: 14.sp)),
-                  subtitle: Text('나를 팔로우하는 사용자만 볼 수 있습니다',
-                      style: TextStyle(fontSize: 12.sp)),
-                  activeColor: AppTheme.primaryColor,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+          if (!_isEditMode) ...[
+            SizedBox(height: 10.h),
+            Text(
+              '제한 공개는 데이터 정책 검증이 끝난 뒤 제공할 예정입니다.',
+              style: TextStyle(
+                fontSize: AppTheme.fontMicro.sp,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -422,9 +592,13 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
         child: Row(
           children: [
             Icon(
-              _location != null ? Icons.location_on : Icons.add_location_alt_outlined,
+              _location != null
+                  ? Icons.location_on
+                  : Icons.add_location_alt_outlined,
               size: 20.w,
-              color: _location != null ? AppTheme.primaryColor : AppTheme.secondaryTextColor,
+              color: _location != null
+                  ? AppTheme.primaryColor
+                  : AppTheme.secondaryTextColor,
             ),
             SizedBox(width: 10.w),
             Expanded(
@@ -441,7 +615,8 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
             if (_location != null)
               GestureDetector(
                 onTap: () => setState(() => _location = null),
-                child: Icon(Icons.close, size: 18.w, color: AppTheme.neutral400),
+                child:
+                    Icon(Icons.close, size: 18.w, color: AppTheme.neutral400),
               ),
           ],
         ),
@@ -455,6 +630,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       builder: (ctx) => AlertDialog(
         title: const Text('해시태그 추가'),
         content: TextField(
+          key: const Key('create_post_hashtag_field'),
           controller: _hashtagController,
           decoration: const InputDecoration(
             hintText: '해시태그 입력 (# 제외)',
@@ -472,6 +648,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
             child: const Text('취소'),
           ),
           TextButton(
+            key: const Key('create_post_hashtag_add_button'),
             onPressed: () {
               _addHashtag(_hashtagController.text);
               Navigator.pop(ctx);
@@ -492,6 +669,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
   }
 
   void _submit() {
+    if (_isSubmitting) return;
     final contentText = _contentController.text.trim();
     if (contentText.isEmpty && _selectedImages.isEmpty && _imageUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -512,8 +690,11 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
       return;
     }
 
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
+    final user = widget.currentUserId == null
+        ? Supabase.instance.client.auth.currentUser
+        : null;
+    final userId = widget.currentUserId ?? user?.id;
+    if (userId == null || userId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('로그인이 필요합니다')),
       );
@@ -528,26 +709,30 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
 
     final post = Post(
       id: postId,
-      authorId: user.id,
-      authorName: user.userMetadata?['display_name'] as String? ??
-          user.email ??
+      authorId: userId,
+      authorName: widget.currentUserName ??
+          user?.userMetadata?['display_name'] as String? ??
+          user?.email ??
           '사용자',
       type: widget.emotionAnalysis != null
           ? PostType.emotionAnalysis
           : PostType.image,
       content: contentText,
       imageUrls: existingUrls,
-      emotionAnalysis:
-          _showEmotionAnalysis ? widget.emotionAnalysis : null,
+      emotionAnalysis: _showEmotionAnalysis ? widget.emotionAnalysis : null,
       tags: allHashtags,
       createdAt: DateTime.now(),
-      isPublic: _isPublic,
-      isPrivate: !_isPublic,
+      isPublic: true,
+      isPrivate: false,
       location: _location?.name,
       locationLat: _location?.lat,
       locationLng: _location?.lng,
     );
 
+    setState(() {
+      _isSubmitting = true;
+      _submissionError = null;
+    });
     context.read<FeedBloc>().add(CreatePostRequested(
           post: post,
           images: _selectedImages,
@@ -555,6 +740,7 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
   }
 
   Future<void> _updatePost() async {
+    if (_isSubmitting) return;
     final trimmed = _contentController.text.trim();
     if (trimmed.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -582,11 +768,10 @@ class _CreatePostPageState extends State<CreatePostPage> with WidgetsBindingObse
     );
 
     if (!mounted) return;
+    setState(() {
+      _isSubmitting = true;
+      _submissionError = null;
+    });
     context.read<FeedBloc>().add(UpdatePostRequested(post: updatedPost));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('게시글이 수정되었습니다!')),
-    );
-    if (!mounted) return;
-    context.pop();
   }
 }

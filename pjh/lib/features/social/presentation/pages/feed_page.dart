@@ -21,7 +21,6 @@ import '../widgets/edit_post_bottom_sheet.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../../shared/widgets/network_error_widget.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
-import '../widgets/trending_hashtags_section.dart';
 import '../../../../shared/themes/app_theme.dart';
 
 class FeedPage extends StatefulWidget {
@@ -281,17 +280,15 @@ class _FeedPageState extends State<FeedPage> {
     return ListView.builder(
       controller: _scrollController,
       padding: EdgeInsets.symmetric(vertical: 8.h),
-      itemCount: items.length + (state.isLoadingMore ? 1 : 0) + 1,
+      itemCount: items.length + (state.isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == 0) return const TrendingHashtagsSection();
-        final itemIndex = index - 1;
-        if (itemIndex >= items.length) {
+        if (index >= items.length) {
           return Padding(
             padding: EdgeInsets.symmetric(vertical: 16.h),
             child: const Center(child: CircularProgressIndicator()),
           );
         }
-        final item = items[itemIndex];
+        final item = items[index];
         if (item is OperationalCard) {
           return OperationalCardTile(card: item);
         }

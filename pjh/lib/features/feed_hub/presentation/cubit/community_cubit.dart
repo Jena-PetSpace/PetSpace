@@ -6,7 +6,7 @@ import '../../domain/entities/community_post.dart';
 
 part 'community_state.dart';
 
-/// 커뮤니티(Q&A) 탭 상태 관리.
+/// 커뮤니티 탭 상태 관리.
 ///
 /// 사진 피드의 [FeedBloc]를 흡수하지 않고 별도 Cubit으로 분리 — Q&A는
 /// 좋아요/실시간/낙관적 업데이트가 없는 단순 목록이므로 결합도를 낮춘다.
@@ -38,9 +38,9 @@ class CommunityCubit extends Cubit<CommunityState> {
     );
 
     result.fold(
-      (failure) => emit(state.copyWith(
+      (_) => emit(state.copyWith(
         status: CommunityStatus.error,
-        errorMessage: failure.message,
+        errorMessage: '커뮤니티 글을 불러오지 못했어요.',
       )),
       (rows) {
         final posts = rows.map(CommunityPost.fromJson).toList();
@@ -67,9 +67,9 @@ class CommunityCubit extends Cubit<CommunityState> {
     );
 
     result.fold(
-      (failure) => emit(state.copyWith(
+      (_) => emit(state.copyWith(
         isLoadingMore: false,
-        errorMessage: failure.message,
+        errorMessage: '글을 더 불러오지 못했어요.',
       )),
       (rows) {
         final more = rows.map(CommunityPost.fromJson).toList();

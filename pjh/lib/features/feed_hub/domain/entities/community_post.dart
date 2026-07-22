@@ -68,6 +68,22 @@ class CommunityPost extends Equatable {
   /// 매핑은 shared 단일 소스([CommunityCategories.label])에 위임한다.
   String get categoryLabel => CommunityCategories.label(category);
 
+  /// 신규 글은 `제목\n\n본문`으로 저장한다. 구형 단일 caption과 제목이 비어
+  /// 있는 legacy caption도 예외 없이 표시할 수 있도록 읽기 시점에만 분리한다.
+  String get title {
+    final normalized = content.replaceAll('\r\n', '\n');
+    final separator = RegExp(r'\n\s*\n').firstMatch(normalized);
+    if (separator == null) return normalized.trim();
+    return normalized.substring(0, separator.start).trim();
+  }
+
+  String get body {
+    final normalized = content.replaceAll('\r\n', '\n');
+    final separator = RegExp(r'\n\s*\n').firstMatch(normalized);
+    if (separator == null) return '';
+    return normalized.substring(separator.end).trim();
+  }
+
   @override
   List<Object?> get props => [
         id,

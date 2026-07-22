@@ -102,11 +102,10 @@ class _LocationPostsPageState extends State<LocationPostsPage> {
     );
     if (!mounted || generation != _loadGeneration) return;
     result.fold(
-      (failure) {
+      (_) {
         dev.log(
           'LocationPostsPage load failed',
           name: 'LocationPostsPage',
-          error: failure,
         );
         setState(() {
           _loading = false;
