@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/chat_room.dart';
 
-class ChatRoomTile extends StatefulWidget {
+class ChatRoomTile extends StatelessWidget {
   final ChatRoom room;
   final String currentUserId;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final VoidCallback? onMorePressed;
 
   const ChatRoomTile({
     super.key,
@@ -16,162 +16,174 @@ class ChatRoomTile extends StatefulWidget {
     required this.currentUserId,
     required this.onTap,
     this.onLongPress,
+    this.onMorePressed,
   });
 
   @override
-  State<ChatRoomTile> createState() => _ChatRoomTileState();
-}
-
-class _ChatRoomTileState extends State<ChatRoomTile> {
-  bool _isNotificationOff = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNotificationSetting();
-  }
-
-  Future<void> _loadNotificationSetting() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _isNotificationOff =
-            !(prefs.getBool('chat_notification_${widget.room.id}') ?? true);
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final displayName = widget.room.displayName(widget.currentUserId);
-    final avatarUrl = widget.room.displayAvatarUrl(widget.currentUserId);
-    final memberCount = widget.room.participants.length;
+    final displayName = room.displayName(currentUserId);
+    final avatarUrl = room.displayAvatarUrl(currentUserId);
+    final memberCount = room.participants.length;
 
-    return InkWell(
-      onTap: widget.onTap,
-      onLongPress: widget.onLongPress,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-        child: Row(
-          children: [
-            _buildAvatar(avatarUrl),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                displayName,
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (memberCount > 2)
-                              Padding(
-                                padding: EdgeInsets.only(left: 4.w),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = isDark ? theme.colorScheme.surface : AppTheme.surfaceColor;
+    final border = isDark ? theme.colorScheme.outlineVariant : AppTheme.border;
+    final body = isDark
+        ? theme.colorScheme.onSurface
+        : AppTheme.primaryTextColor;
+    final muted = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
+
+    return Material(
+      color: surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+        side: BorderSide(color: border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(12.w, 12.h, 4.w, 12.h),
+          child: Row(
+            children: [
+              _buildAvatar(context, avatarUrl),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Flexible(
                                 child: Text(
-                                  '$memberCount',
+                                  displayName,
                                   style: TextStyle(
-                                    fontSize: 13.sp,
-                                    color: AppTheme.neutral500,
+                                    fontSize: AppTheme.fontBody.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: body,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (memberCount > 2)
+                                Padding(
+                                  padding: EdgeInsets.only(left: 4.w),
+                                  child: Text(
+                                    '$memberCount',
+                                    style: TextStyle(
+                                      fontSize: AppTheme.fontCaption.sp,
+                                      color: muted,
+                                    ),
                                   ),
                                 ),
+                            ],
+                          ),
+                        ),
+                        if (room.lastMessageAt != null)
+                          Padding(
+                            padding: EdgeInsets.only(left: 8.w),
+                            child: Text(
+                              _formatTime(room.lastMessageAt!),
+                              style: TextStyle(
+                                fontSize: AppTheme.fontMicro.sp,
+                                color: muted,
                               ),
-                            if (_isNotificationOff)
-                              Padding(
-                                padding: EdgeInsets.only(left: 4.w),
-                                child: Icon(
-                                  Icons.notifications_off_outlined,
-                                  size: 14.w,
-                                  color: AppTheme.neutral500,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (widget.room.lastMessageAt != null)
-                        Text(
-                          _formatTime(widget.room.lastMessageAt!),
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: AppTheme.neutral500,
-                          ),
-                        ),
-                    ],
-                  ),
-                  SizedBox(height: 4.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.room.lastMessage ?? '',
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color: AppTheme.neutral600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (widget.room.unreadCount > 0)
-                        Container(
-                          margin: EdgeInsets.only(left: 8.w),
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 6.w, vertical: 2.h),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Text(
-                            widget.room.unreadCount > 99
-                                ? '99+'
-                                : '${widget.room.unreadCount}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
+                      ],
+                    ),
+                    SizedBox(height: 5.h),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            room.lastMessage?.isNotEmpty == true
+                                ? room.lastMessage!
+                                : '아직 메시지가 없습니다',
+                            style: TextStyle(
+                              fontSize: AppTheme.fontCaption.sp,
+                              color: muted,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                    ],
-                  ),
-                ],
+                        if (room.unreadCount > 0)
+                          Container(
+                            margin: EdgeInsets.only(left: 8.w),
+                            constraints: const BoxConstraints(minWidth: 22),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6.w,
+                              vertical: 3.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(11.r),
+                            ),
+                            child: Text(
+                              room.unreadCount > 99
+                                  ? '99+'
+                                  : '${room.unreadCount}',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: theme.colorScheme.onPrimary,
+                                fontSize: AppTheme.fontMicro.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              if (onMorePressed != null)
+                IconButton(
+                  key: Key('chat_room_more_${room.id}'),
+                  onPressed: onMorePressed,
+                  tooltip: '$displayName 채팅방 메뉴',
+                  constraints: const BoxConstraints(
+                    minWidth: 44,
+                    minHeight: 44,
+                  ),
+                  icon: Icon(Icons.more_horiz_rounded, color: muted),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildAvatar(String? avatarUrl) {
-    if (widget.room.type == ChatRoomType.group) {
+  Widget _buildAvatar(BuildContext context, String? avatarUrl) {
+    final theme = Theme.of(context);
+    if (room.type == ChatRoomType.group) {
       return CircleAvatar(
         radius: 24.r,
-        backgroundColor: Colors.blue[100],
+        backgroundColor: AppTheme.actionContainer,
         backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
         child: avatarUrl == null
-            ? Icon(Icons.group, size: 24.w, color: Colors.blue[700])
+            ? Icon(Icons.group, size: 24.w, color: AppTheme.actionBase)
             : null,
       );
     }
 
     return CircleAvatar(
       radius: 24.r,
-      backgroundColor: AppTheme.neutral200,
+      backgroundColor: theme.brightness == Brightness.dark
+          ? theme.colorScheme.surfaceContainerHighest
+          : AppTheme.actionContainer,
       backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
       child: avatarUrl == null
-          ? Icon(Icons.person, size: 24.w, color: AppTheme.neutral500)
+          ? Icon(Icons.person, size: 24.w, color: AppTheme.actionBase)
           : null,
     );
   }

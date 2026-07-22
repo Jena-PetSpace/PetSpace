@@ -5,25 +5,30 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/utils/share_origin.dart';
-import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/haptic_refresh_indicator.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/post.dart';
+import '../../../../config/injection_container.dart' as di;
+import '../../domain/repositories/social_repository.dart';
 import '../bloc/feed_bloc.dart';
 import '../cubit/operational_cards_cubit.dart';
+import '../widgets/comments_bottom_sheet.dart';
 import '../widgets/operational_card_tile.dart';
-import '../widgets/post_card.dart';
+import '../widgets/post_card_connector.dart';
 import '../widgets/create_post_bottom_sheet.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../../shared/widgets/network_error_widget.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../widgets/trending_hashtags_section.dart';
+import '../../../../shared/themes/app_theme.dart';
 
 class FeedPage extends StatefulWidget {
   final String? userId;
   final bool followingOnly;
   final bool recommended;
+  final SocialRepository? repository;
+  final CommentBlocFactory? commentsBlocFactory;
 
   /// 발견 탭 운영(이슈) 카드 인터리브. true면 상위에서
   /// [OperationalCardsCubit] provider가 공급되어야 한다.
@@ -35,6 +40,8 @@ class FeedPage extends StatefulWidget {
     this.followingOnly = false,
     this.recommended = false,
     this.interleaveOperational = false,
+    this.repository,
+    this.commentsBlocFactory,
   });
 
   @override
@@ -43,6 +50,9 @@ class FeedPage extends StatefulWidget {
 
 class _FeedPageState extends State<FeedPage> {
   final ScrollController _scrollController = ScrollController();
+  final Map<String, Post> _authoritativeOverrides = <String, Post>{};
+  final Map<String, int> _overrideSourceCommentCounts = <String, int>{};
+  final Set<String> _hiddenPostIds = <String>{};
 
   String? get _effectiveUserId {
     if (widget.userId != null && widget.userId!.isNotEmpty) {
@@ -61,11 +71,16 @@ class _FeedPageState extends State<FeedPage> {
       final uid = _effectiveUserId;
       if (uid != null) {
         context.read<FeedBloc>().add(
-            LoadRecommendedPostsRequested(userId: uid));
+          LoadRecommendedPostsRequested(userId: uid),
+        );
       }
     } else {
-      context.read<FeedBloc>().add(LoadFeedRequested(
-          userId: _effectiveUserId, followingOnly: widget.followingOnly));
+      context.read<FeedBloc>().add(
+        LoadFeedRequested(
+          userId: _effectiveUserId,
+          followingOnly: widget.followingOnly,
+        ),
+      );
     }
   }
 
@@ -85,17 +100,51 @@ class _FeedPageState extends State<FeedPage> {
       // 추천 피드 offset 커서 페이지네이션 (재진입 가드는 bloc 측).
       final uid = _effectiveUserId;
       if (uid != null) {
-        context.read<FeedBloc>().add(LoadRecommendedPostsRequested(
-            userId: uid, offset: state.posts.length));
+        context.read<FeedBloc>().add(
+          LoadRecommendedPostsRequested(
+            userId: uid,
+            offset: state.posts.length,
+          ),
+        );
       }
     } else {
-      context.read<FeedBloc>().add(LoadMorePostsRequested(
-          userId: widget.userId, followingOnly: widget.followingOnly));
+      context.read<FeedBloc>().add(
+        LoadMorePostsRequested(
+          userId: widget.userId,
+          followingOnly: widget.followingOnly,
+        ),
+      );
     }
     if (widget.interleaveOperational) {
       // 운영 카드 선로딩 — cubit 자체 가드(hasReachedMax/isLoadingMore)로 안전.
       context.read<OperationalCardsCubit>().loadMore();
     }
+  }
+
+  void _dropSupersededCommentOverrides(FeedLoaded state) {
+    for (final post in state.posts) {
+      final sourceCount = _overrideSourceCommentCounts[post.id];
+      if (sourceCount != null && sourceCount != post.commentsCount) {
+        _authoritativeOverrides.remove(post.id);
+        _overrideSourceCommentCounts.remove(post.id);
+      }
+    }
+  }
+
+  void _clearCommentOverrides() {
+    _authoritativeOverrides.clear();
+    _overrideSourceCommentCounts.clear();
+  }
+
+  void _clearLocalSurfaceOverrides() {
+    _clearCommentOverrides();
+    _hiddenPostIds.clear();
+  }
+
+  String _safeFeedError({bool isNetworkError = false}) {
+    return isNetworkError
+        ? '네트워크 연결을 확인하고 다시 시도해주세요.'
+        : '피드를 불러오지 못했어요. 잠시 후 다시 시도해주세요.';
   }
 
   @override
@@ -105,31 +154,39 @@ class _FeedPageState extends State<FeedPage> {
         if (state is FeedError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message),
+              content: Text(
+                _safeFeedError(isNetworkError: state.isNetworkError),
+              ),
               backgroundColor: AppTheme.errorColor,
             ),
           );
         } else if (state is FeedLoaded && state.error != null) {
+          _dropSupersededCommentOverrides(state);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.error!),
-              backgroundColor: Colors.orange,
+              content: Text(_safeFeedError()),
+              backgroundColor: AppTheme.warningColor,
               action: SnackBarAction(
                 label: '재시도',
                 textColor: Colors.white,
                 onPressed: () {
-                  context
-                      .read<FeedBloc>()
-                      .add(LoadMorePostsRequested(userId: widget.userId));
+                  context.read<FeedBloc>().add(
+                    LoadMorePostsRequested(
+                      userId: widget.userId,
+                      followingOnly: widget.followingOnly,
+                    ),
+                  );
                 },
               ),
             ),
           );
+        } else if (state is FeedLoaded) {
+          _dropSupersededCommentOverrides(state);
         } else if (state is FeedPostCreated) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('게시물이 성공적으로 작성되었습니다!'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppTheme.successColor,
             ),
           );
         }
@@ -140,10 +197,12 @@ class _FeedPageState extends State<FeedPage> {
         } else if (state is FeedRecommendedLoaded) {
           return HapticRefreshIndicator(
             onRefresh: () async {
+              _clearLocalSurfaceOverrides();
               final uid = _effectiveUserId;
               if (uid != null) {
                 context.read<FeedBloc>().add(
-                    LoadRecommendedPostsRequested(userId: uid));
+                  LoadRecommendedPostsRequested(userId: uid),
+                );
               }
             },
             child: _buildRecommendedList(state),
@@ -151,8 +210,13 @@ class _FeedPageState extends State<FeedPage> {
         } else if (state is FeedLoaded) {
           return HapticRefreshIndicator(
             onRefresh: () async {
-              context.read<FeedBloc>().add(RefreshFeedRequested(
-                  userId: widget.userId, followingOnly: widget.followingOnly));
+              _clearLocalSurfaceOverrides();
+              context.read<FeedBloc>().add(
+                RefreshFeedRequested(
+                  userId: widget.userId,
+                  followingOnly: widget.followingOnly,
+                ),
+              );
             },
             child: _buildFeedList(state),
           );
@@ -160,7 +224,9 @@ class _FeedPageState extends State<FeedPage> {
           if (state.isNetworkError) {
             return _buildNetworkErrorState();
           }
-          return _buildErrorState(state.message);
+          return _buildErrorState(
+            _safeFeedError(isNetworkError: state.isNetworkError),
+          );
         }
 
         return const SizedBox.shrink();
@@ -190,7 +256,9 @@ class _FeedPageState extends State<FeedPage> {
   /// 업데이트가 post 리스트를 id로 매핑하므로 오염 금지. 운영 카드가
   /// 모자라면 있는 만큼만 끼워 넣는다(비율 자동 하향).
   List<Object> _interleaveOperationalCards(
-      List<Post> posts, List<OperationalCard> cards) {
+    List<Post> posts,
+    List<OperationalCard> cards,
+  ) {
     if (cards.isEmpty) return List<Object>.from(posts);
     final items = <Object>[];
     var cardIndex = 0;
@@ -205,7 +273,9 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Widget _buildRecommendedContent(
-      FeedRecommendedLoaded state, List<OperationalCard> cards) {
+    FeedRecommendedLoaded state,
+    List<OperationalCard> cards,
+  ) {
     final items = _interleaveOperationalCards(state.posts, cards);
     return ListView.builder(
       controller: _scrollController,
@@ -252,27 +322,47 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
-  Widget _buildPostCard(post) {
+  Widget _buildPostCard(Post post) {
+    if (_hiddenPostIds.contains(post.id)) return const SizedBox.shrink();
+    final override = _authoritativeOverrides[post.id];
+    final visiblePost = override == null
+        ? post
+        : post.copyWith(commentsCount: override.commentsCount);
     final uid = _effectiveUserId ?? '';
-    return PostCard(
-      post: post,
+    return PostCardConnector(
+      post: visiblePost,
       currentUserId: uid,
-      onLike: () {
+      repository: widget.repository ?? di.sl<SocialRepository>(),
+      commentBlocFactory: widget.commentsBlocFactory,
+      onPostChanged: (updated) {
+        setState(() {
+          if (updated.commentsCount == post.commentsCount) {
+            _authoritativeOverrides.remove(updated.id);
+            _overrideSourceCommentCounts.remove(updated.id);
+          } else {
+            _authoritativeOverrides[updated.id] = updated;
+            _overrideSourceCommentCounts[updated.id] = post.commentsCount;
+          }
+        });
+      },
+      onPostRemoved: (postId) {
+        setState(() => _hiddenPostIds.add(postId));
+      },
+      onLikeRequested: () {
         if (uid.isEmpty) return;
-        if (post.isLikedByCurrentUser) {
-          context.read<FeedBloc>().add(UnlikePostRequested(
-                postId: post.id,
-                userId: uid,
-              ));
+        if (visiblePost.isLikedByCurrentUser) {
+          context.read<FeedBloc>().add(
+            UnlikePostRequested(postId: post.id, userId: uid),
+          );
         } else {
-          context.read<FeedBloc>().add(LikePostRequested(
-                postId: post.id,
-                userId: uid,
-              ));
+          context.read<FeedBloc>().add(
+            LikePostRequested(postId: post.id, userId: uid),
+          );
         }
       },
-      onComment: () => context.push('/post/${post.id}'),
-      onShare: () => _sharePost(post),
+      shareText: _shareText(visiblePost),
+      shareHandler: (text) =>
+          Share.share(text, sharePositionOrigin: shareOrigin(context)),
       onEdit: () {
         showModalBottomSheet(
           context: context,
@@ -282,13 +372,13 @@ class _FeedPageState extends State<FeedPage> {
             post: post,
             onSave: (updatedPost) {
               context.read<FeedBloc>().add(
-                    UpdatePostRequested(post: updatedPost),
-                  );
+                UpdatePostRequested(post: updatedPost),
+              );
             },
           ),
         );
       },
-      onDelete: () {
+      onDeleteRequested: () {
         context.read<FeedBloc>().add(DeletePostRequested(postId: post.id));
       },
       onHashtagTap: (hashtag) => context.push('/hashtag/$hashtag'),
@@ -304,7 +394,7 @@ class _FeedPageState extends State<FeedPage> {
           ? '친구를 팔로우하고\n반려동물 일상을 함께해보세요!'
           : '반려동물의 일상을 공유하고\n친구들과 소통해보세요!',
       secondaryLabel: isFollowing ? '탐색하기' : null,
-      onSecondary: isFollowing ? () => context.go('/explore') : null,
+      onSecondary: isFollowing ? () => context.go('/search') : null,
       actionLabel: '첫 게시물 작성',
       onAction: _showCreatePostBottomSheet,
     );
@@ -313,9 +403,11 @@ class _FeedPageState extends State<FeedPage> {
   Widget _buildNetworkErrorState() {
     return NetworkErrorScreen(
       onRetry: () => context.read<FeedBloc>().add(
-            LoadFeedRequested(
-                userId: widget.userId, followingOnly: widget.followingOnly),
-          ),
+        LoadFeedRequested(
+          userId: widget.userId,
+          followingOnly: widget.followingOnly,
+        ),
+      ),
     );
   }
 
@@ -324,11 +416,7 @@ class _FeedPageState extends State<FeedPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64.w,
-            color: AppTheme.errorColor,
-          ),
+          Icon(Icons.error_outline, size: 64.w, color: AppTheme.errorColor),
           SizedBox(height: 16.h),
           Text(
             '오류가 발생했습니다',
@@ -340,17 +428,18 @@ class _FeedPageState extends State<FeedPage> {
           SizedBox(height: 8.h),
           Text(
             message,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: AppTheme.neutral600,
-            ),
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 16.h),
           ElevatedButton(
             onPressed: () {
-              context.read<FeedBloc>().add(LoadFeedRequested(
-                  userId: widget.userId, followingOnly: widget.followingOnly));
+              context.read<FeedBloc>().add(
+                LoadFeedRequested(
+                  userId: widget.userId,
+                  followingOnly: widget.followingOnly,
+                ),
+              );
             },
             child: Text('다시 시도', style: TextStyle(fontSize: 14.sp)),
           ),
@@ -373,13 +462,13 @@ class _FeedPageState extends State<FeedPage> {
     );
   }
 
-  void _sharePost(post) {
-    final caption = post.caption ?? '';
-    final preview =
-        caption.length > 100 ? '${caption.substring(0, 100)}...' : caption;
-    Share.share(
-      '$preview\n\nPetSpace에서 확인하세요!',
-      sharePositionOrigin: shareOrigin(context),
-    );
+  String _shareText(Post post) {
+    final content = post.content ?? '';
+    final preview = content.length > 100
+        ? '${content.substring(0, 100)}...'
+        : content;
+    return preview.isEmpty
+        ? 'PetSpace에서 게시물을 확인해보세요.'
+        : '$preview\n\nPetSpace에서 게시물을 확인해보세요.';
   }
 }

@@ -83,9 +83,8 @@ extension _SocialDsSearch on SocialRemoteDataSourceImpl {
       if (response == null) {
         return await _hashtagClientFallback(limit: limit);
       }
-      final hashtags = (response as List)
-          .map((item) => item['hashtag'].toString())
-          .toList();
+      final hashtags =
+          (response as List).map((item) => item['hashtag'].toString()).toList();
       _logger.debug('Found ${hashtags.length} popular hashtags',
           tag: 'SocialDataSource');
       return hashtags;
@@ -99,8 +98,7 @@ extension _SocialDsSearch on SocialRemoteDataSourceImpl {
   Future<List<String>> _getTrendingHashtags(
       {int limit = 10, int days = 7}) async {
     try {
-      _logger.debug(
-          'Fetching trending hashtags, limit: $limit, days: $days',
+      _logger.debug('Fetching trending hashtags, limit: $limit, days: $days',
           tag: 'SocialDataSource');
       final cutoffDate = DateTime.now().subtract(Duration(days: days));
       try {
@@ -235,7 +233,7 @@ extension _SocialDsSearch on SocialRemoteDataSourceImpl {
     try {
       final response = await supabaseClient
           .from('bookmark_collections')
-          .select('*, saved_posts(count)')
+          .select('id, user_id, name, emoji, created_at, updated_at')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
       return (response as List)
@@ -246,10 +244,6 @@ extension _SocialDsSearch on SocialRemoteDataSourceImpl {
                 emoji: json['emoji'] as String? ?? '📁',
                 createdAt: DateTime.parse(json['created_at'] as String),
                 updatedAt: DateTime.parse(json['updated_at'] as String),
-                postCount:
-                    (json['saved_posts'] as List?)?.isNotEmpty == true
-                        ? (json['saved_posts'][0]['count'] as int? ?? 0)
-                        : 0,
               ))
           .toList();
     } catch (e, st) {
@@ -285,12 +279,20 @@ extension _SocialDsSearch on SocialRemoteDataSourceImpl {
     }
   }
 
-  Future<void> _deleteBookmarkCollection(String collectionId) async {
+  Future<void> _deleteBookmarkCollection({
+    required String collectionId,
+    required String userId,
+  }) async {
     try {
-      await supabaseClient
+      final response = await supabaseClient
           .from('bookmark_collections')
           .delete()
-          .eq('id', collectionId);
+          .eq('id', collectionId)
+          .eq('user_id', userId)
+          .select('id');
+      if ((response as List).isEmpty) {
+        throw StateError('collection-not-found');
+      }
     } catch (e, st) {
       _logger.error('deleteBookmarkCollection 실패',
           error: e, stackTrace: st, tag: 'SocialDataSource');
@@ -304,11 +306,24 @@ extension _SocialDsSearch on SocialRemoteDataSourceImpl {
     String? collectionId,
   }) async {
     try {
-      await supabaseClient
+      if (collectionId != null) {
+        final owned = await supabaseClient
+            .from('bookmark_collections')
+            .select('id')
+            .eq('id', collectionId)
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (owned == null) throw StateError('collection-not-owned');
+      }
+      final response = await supabaseClient
           .from('saved_posts')
           .update({'collection_id': collectionId})
           .eq('post_id', postId)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .select('id');
+      if ((response as List).isEmpty) {
+        throw StateError('saved-post-not-found');
+      }
     } catch (e, st) {
       _logger.error('updateSavedPostCollection 실패',
           error: e, stackTrace: st, tag: 'SocialDataSource');

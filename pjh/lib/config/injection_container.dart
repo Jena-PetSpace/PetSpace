@@ -59,6 +59,7 @@ import '../features/social/presentation/bloc/feed_bloc.dart';
 import '../features/social/presentation/bloc/search_bloc.dart';
 import '../features/social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
 import '../features/social/presentation/bloc/bookmark_bloc.dart';
+import '../features/social/presentation/controllers/post_interaction_coordinator.dart';
 
 // Features - Pets
 import '../features/pets/data/repositories/pet_repository_impl.dart';
@@ -77,6 +78,7 @@ import '../features/health/domain/usecases/add_health_record.dart';
 import '../features/health/domain/usecases/update_health_record.dart';
 import '../features/health/domain/usecases/delete_health_record.dart';
 import '../features/health/domain/usecases/get_upcoming_records.dart';
+import '../features/health/presentation/controllers/health_emotion_loader.dart';
 import '../features/health/presentation/bloc/health_bloc.dart';
 
 // Features - Chat
@@ -87,6 +89,7 @@ import '../features/chat/domain/usecases/get_chat_rooms.dart';
 import '../features/chat/domain/usecases/get_chat_messages.dart';
 import '../features/chat/domain/usecases/send_message.dart';
 import '../features/chat/domain/usecases/send_image_message.dart';
+import '../features/chat/domain/usecases/send_multi_image_message.dart';
 import '../features/chat/domain/usecases/create_chat_room.dart';
 import '../features/chat/domain/usecases/update_last_read.dart';
 import '../features/chat/domain/usecases/get_unread_count.dart';
@@ -130,7 +133,6 @@ import '../features/news/presentation/bloc/news_bloc.dart';
 // Core Services
 import '../core/services/image_upload_service.dart';
 import '../core/services/notification_service.dart';
-import '../core/services/push_notification_service.dart';
 import '../core/services/realtime_service.dart';
 import '../core/services/profile_service.dart';
 import '../core/services/block_service.dart';
@@ -191,13 +193,9 @@ Future<void> _initEmotion() async {
   // Emotion feature dependencies
 
   // Services - 인터페이스로 등록
-  sl.registerLazySingleton<EmotionAIService>(
-    () => EmotionAIServiceImpl(),
-  );
+  sl.registerLazySingleton<EmotionAIService>(() => EmotionAIServiceImpl());
 
-  sl.registerLazySingleton<ImageService>(
-    () => ImageServiceImpl(),
-  );
+  sl.registerLazySingleton<ImageService>(() => ImageServiceImpl());
 
   // Repository
   sl.registerLazySingleton<EmotionRepository>(
@@ -234,9 +232,7 @@ Future<void> _initSocial() async {
 
   // Data Sources
   sl.registerLazySingleton<SocialRemoteDataSource>(
-    () => SocialRemoteDataSourceImpl(
-      supabaseClient: sl<SupabaseClient>(),
-    ),
+    () => SocialRemoteDataSourceImpl(supabaseClient: sl<SupabaseClient>()),
   );
 
   // Repository
@@ -245,6 +241,12 @@ Future<void> _initSocial() async {
       remoteDataSource: sl<SocialRemoteDataSource>(),
       networkInfo: sl<NetworkInfo>(),
     ),
+  );
+  sl.registerLazySingleton<PostInteractionCoordinator>(
+    () => PostInteractionCoordinator(repository: sl<SocialRepository>()),
+  );
+  sl.registerLazySingleton<CurrentUserIdProvider>(
+    () => () => sl<SupabaseClient>().auth.currentUser?.id,
   );
 
   // Use Cases
@@ -267,9 +269,7 @@ Future<void> _initSocial() async {
 
   // BLoCs
   sl.registerFactory(
-    () => SocialBloc(
-      socialRepository: sl<SocialRepository>(),
-    ),
+    () => SocialBloc(socialRepository: sl<SocialRepository>()),
   );
 
   sl.registerFactory(
@@ -284,19 +284,14 @@ Future<void> _initSocial() async {
       unsavePost: sl<UnsavePost>(),
       getSavedPosts: sl<GetSavedPosts>(),
       socialRepository: sl<SocialRepository>(),
+      interactionCoordinator: sl<PostInteractionCoordinator>(),
     ),
   );
 
-  sl.registerFactory(
-    () => BookmarkBloc(
-      repository: sl<SocialRepository>(),
-    ),
-  );
+  sl.registerFactory(() => BookmarkBloc(repository: sl<SocialRepository>()));
 
   sl.registerFactory(
-    () => NotificationsBloc(
-      socialRepository: sl<SocialRepository>(),
-    ),
+    () => NotificationsBloc(socialRepository: sl<SocialRepository>()),
   );
 
   sl.registerFactory(
@@ -311,13 +306,12 @@ Future<void> _initSocial() async {
   sl.registerFactory(
     () => SearchBloc(
       repository: sl<SocialRepository>(),
+      currentUserIdProvider: sl<CurrentUserIdProvider>(),
     ),
   );
 
   sl.registerFactory(
-    () => NotificationBadgeBloc(
-      socialRepository: sl<SocialRepository>(),
-    ),
+    () => NotificationBadgeBloc(socialRepository: sl<SocialRepository>()),
   );
 
   // Note: CommentBloc requires currentUserId parameter, so it will be created
@@ -354,12 +348,13 @@ Future<void> _initPets() async {
 }
 
 Future<void> _initHealth() async {
+  sl.registerLazySingleton<HealthEmotionLoader>(
+    () => RepositoryHealthEmotionLoader(repository: sl()),
+  );
+
   // Repository
   sl.registerLazySingleton<HealthRepository>(
-    () => HealthRepositoryImpl(
-      supabaseClient: sl(),
-      networkInfo: sl(),
-    ),
+    () => HealthRepositoryImpl(supabaseClient: sl(), networkInfo: sl()),
   );
 
   // Use Cases
@@ -387,9 +382,7 @@ Future<void> _initChat() async {
 
   // Data Sources
   sl.registerLazySingleton<ChatRemoteDataSource>(
-    () => ChatRemoteDataSourceImpl(
-      supabaseClient: sl<SupabaseClient>(),
-    ),
+    () => ChatRemoteDataSourceImpl(supabaseClient: sl<SupabaseClient>()),
   );
 
   // Repository
@@ -406,6 +399,7 @@ Future<void> _initChat() async {
   sl.registerLazySingleton(() => GetChatMessages(sl<ChatRepository>()));
   sl.registerLazySingleton(() => SendMessage(sl<ChatRepository>()));
   sl.registerLazySingleton(() => SendImageMessage(sl<ChatRepository>()));
+  sl.registerLazySingleton(() => SendMultiImageMessage(sl<ChatRepository>()));
   sl.registerLazySingleton(() => CreateDirectChat(sl<ChatRepository>()));
   sl.registerLazySingleton(() => CreateGroupChat(sl<ChatRepository>()));
   sl.registerLazySingleton(() => UpdateLastRead(sl<ChatRepository>()));
@@ -416,11 +410,7 @@ Future<void> _initChat() async {
   sl.registerLazySingleton(() => ReportChatTarget(sl<ChatRepository>()));
 
   // BLoCs
-  sl.registerFactory(
-    () => ChatBadgeBloc(
-      getUnreadCount: sl<GetUnreadCount>(),
-    ),
-  );
+  sl.registerFactory(() => ChatBadgeBloc(getUnreadCount: sl<GetUnreadCount>()));
 
   sl.registerFactory(
     () => ChatRoomsBloc(
@@ -435,6 +425,7 @@ Future<void> _initChat() async {
       getChatMessages: sl<GetChatMessages>(),
       sendMessage: sl<SendMessage>(),
       sendImageMessage: sl<SendImageMessage>(),
+      sendMultiImageMessage: sl<SendMultiImageMessage>(),
       updateLastRead: sl<UpdateLastRead>(),
     ),
   );
@@ -458,10 +449,7 @@ Future<void> _initMbti() async {
 
   // Repository
   sl.registerLazySingleton<MbtiRepository>(
-    () => MbtiRepositoryImpl(
-      supabaseClient: sl(),
-      networkInfo: sl(),
-    ),
+    () => MbtiRepositoryImpl(supabaseClient: sl(), networkInfo: sl()),
   );
 
   // Use Cases
@@ -514,10 +502,7 @@ Future<void> _initQuiz() async {
 
   // Domain Service (출제 코디네이터 — 외부 의존 없음)
   sl.registerLazySingleton(
-    () => QuizSessionBuilder(
-      contentDataSource: sl(),
-      localDataSource: sl(),
-    ),
+    () => QuizSessionBuilder(contentDataSource: sl(), localDataSource: sl()),
   );
 
   // 보상 연계 훅 (1차 no-op — 리워드스토어 구현 시 교체)
@@ -534,10 +519,7 @@ Future<void> _initNews() async {
 
   // Repository
   sl.registerLazySingleton<NewsRepository>(
-    () => NewsRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => NewsRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Use Cases
@@ -553,37 +535,22 @@ Future<void> _initCore() async {
 
   // Core Services
   sl.registerLazySingleton<ImageUploadService>(
-    () => ImageUploadService(
-      storage: sl(),
-    ),
+    () => ImageUploadService(storage: sl()),
   );
 
-  sl.registerLazySingleton<NotificationService>(
-    () => NotificationService(),
-  );
+  sl.registerLazySingleton<NotificationService>(() => NotificationService());
 
-  sl.registerLazySingleton<PushNotificationService>(
-    () => PushNotificationService(),
-  );
-
-  sl.registerLazySingleton<RealtimeService>(
-    () => RealtimeService(),
-  );
+  sl.registerLazySingleton<RealtimeService>(() => RealtimeService());
 
   sl.registerLazySingleton<ProfileService>(
-    () => ProfileService(
-      supabase: sl(),
-      imageUploadService: sl(),
-    ),
+    () => ProfileService(supabase: sl(), imageUploadService: sl()),
   );
 
   sl.registerLazySingleton<LocalNotificationService>(
     () => LocalNotificationService(supabase: sl()),
   );
 
-  sl.registerLazySingleton<BlockService>(
-    () => BlockService(supabase: sl()),
-  );
+  sl.registerLazySingleton<BlockService>(() => BlockService(supabase: sl()));
 
   try {
     sl.registerLazySingleton<FCMService>(
@@ -606,13 +573,12 @@ Future<void> _initExternal() async {
   sl.registerLazySingleton(() => Supabase.instance.client);
 
   // Google Sign In
-  sl.registerLazySingleton(() => GoogleSignIn(
-        clientId: Platform.isIOS ? Secrets.googleIosClientId : null,
-        serverClientId:
-            ApiConfig.isGoogleLoginConfigured ? Secrets.googleClientId : null,
-        scopes: [
-          'email',
-          'profile',
-        ],
-      ));
+  sl.registerLazySingleton(
+    () => GoogleSignIn(
+      clientId: Platform.isIOS ? Secrets.googleIosClientId : null,
+      serverClientId:
+          ApiConfig.isGoogleLoginConfigured ? Secrets.googleClientId : null,
+      scopes: ['email', 'profile'],
+    ),
+  );
 }

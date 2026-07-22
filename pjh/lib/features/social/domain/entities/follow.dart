@@ -8,6 +8,8 @@ class Follow extends Equatable {
   final String followingId;
   final String followerName;
   final String followingName;
+  final String? followerUsername;
+  final String? followingUsername;
   final String? followerProfileImage;
   final String? followingProfileImage;
   final FollowStatus status;
@@ -20,6 +22,8 @@ class Follow extends Equatable {
     required this.followingId,
     required this.followerName,
     required this.followingName,
+    this.followerUsername,
+    this.followingUsername,
     this.followerProfileImage,
     this.followingProfileImage,
     required this.status,
@@ -45,6 +49,8 @@ class Follow extends Equatable {
       followingId: followingId ?? this.followingId,
       followerName: followerName ?? this.followerName,
       followingName: followingName ?? this.followingName,
+      followerUsername: followerUsername,
+      followingUsername: followingUsername,
       followerProfileImage: followerProfileImage ?? this.followerProfileImage,
       followingProfileImage:
           followingProfileImage ?? this.followingProfileImage,
@@ -61,6 +67,8 @@ class Follow extends Equatable {
         followingId,
         followerName,
         followingName,
+        followerUsername,
+        followingUsername,
         followerProfileImage,
         followingProfileImage,
         status,

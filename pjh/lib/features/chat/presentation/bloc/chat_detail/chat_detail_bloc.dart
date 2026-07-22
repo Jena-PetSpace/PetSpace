@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import '../../../../../core/error/failures.dart';
 import '../../../domain/entities/chat_message.dart';
 import '../../../domain/usecases/get_chat_messages.dart';
 import '../../../domain/usecases/send_message.dart';
 import '../../../domain/usecases/send_image_message.dart';
+import '../../../domain/usecases/send_multi_image_message.dart';
 import '../../../domain/usecases/update_last_read.dart';
 
 part 'chat_detail_event.dart';
@@ -15,18 +18,26 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
   final GetChatMessages getChatMessages;
   final SendMessage sendMessage;
   final SendImageMessage sendImageMessage;
+  final SendMultiImageMessage sendMultiImageMessage;
   final UpdateLastRead updateLastRead;
+  bool _sendInFlight = false;
+  int _nextSendRequestId = 0;
 
   ChatDetailBloc({
     required this.getChatMessages,
     required this.sendMessage,
     required this.sendImageMessage,
+    required this.sendMultiImageMessage,
     required this.updateLastRead,
   }) : super(ChatDetailInitial()) {
     on<ChatDetailLoadRequested>(_onLoadRequested);
     on<ChatDetailLoadMoreRequested>(_onLoadMoreRequested);
     on<ChatDetailSendTextRequested>(_onSendTextRequested);
     on<ChatDetailSendImageRequested>(_onSendImageRequested);
+    on<ChatDetailSendMultipleImagesRequested>(
+      _onSendMultipleImagesRequested,
+    );
+    on<ChatDetailRetryLastSendRequested>(_onRetryLastSendRequested);
     on<ChatDetailMarkAsReadRequested>(_onMarkAsReadRequested);
     on<ChatDetailNewMessageReceived>(_onNewMessageReceived);
     on<ChatDetailBlockApplied>(_onBlockApplied);
@@ -59,7 +70,10 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       return;
     }
 
-    emit(currentState.copyWith(isLoadingMore: true));
+    emit(currentState.copyWith(
+      isLoadingMore: true,
+      clearLoadMoreError: true,
+    ));
 
     final lastMessageId =
         currentState.messages.isNotEmpty ? currentState.messages.last.id : null;
@@ -69,12 +83,29 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     ));
 
     result.fold(
-      (failure) => emit(currentState.copyWith(isLoadingMore: false)),
-      (newMessages) => emit(currentState.copyWith(
-        messages: [...currentState.messages, ...newMessages],
-        hasReachedMax: newMessages.length < 30,
-        isLoadingMore: false,
-      )),
+      (failure) {
+        final latestState = state;
+        if (latestState is! ChatDetailLoaded) return;
+        emit(latestState.copyWith(
+          isLoadingMore: false,
+          loadMoreError: failure.message,
+        ));
+      },
+      (newMessages) {
+        final latestState = state;
+        if (latestState is! ChatDetailLoaded) return;
+        final existingIds =
+            latestState.messages.map((message) => message.id).toSet();
+        final uniqueMessages = newMessages
+            .where((message) => existingIds.add(message.id))
+            .toList(growable: false);
+        emit(latestState.copyWith(
+          messages: [...latestState.messages, ...uniqueMessages],
+          hasReachedMax: newMessages.length < 30,
+          isLoadingMore: false,
+          clearLoadMoreError: true,
+        ));
+      },
     );
   }
 
@@ -82,31 +113,12 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     ChatDetailSendTextRequested event,
     Emitter<ChatDetailState> emit,
   ) async {
-    final currentState = state;
-    if (currentState is! ChatDetailLoaded) return;
-
-    emit(currentState.copyWith(isSending: true));
-
-    final result = await sendMessage(SendMessageParams(
+    await _performSend(
+      emit: emit,
+      kind: ChatSendKind.text,
       roomId: event.roomId,
       senderId: event.senderId,
-      content: event.content,
-    ));
-
-    result.fold(
-      (failure) => emit(currentState.copyWith(isSending: false)),
-      (message) {
-        // 중복 방지
-        final exists = currentState.messages.any((m) => m.id == message.id);
-        if (!exists) {
-          emit(currentState.copyWith(
-            messages: [message, ...currentState.messages],
-            isSending: false,
-          ));
-        } else {
-          emit(currentState.copyWith(isSending: false));
-        }
-      },
+      text: event.content,
     );
   }
 
@@ -114,31 +126,122 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     ChatDetailSendImageRequested event,
     Emitter<ChatDetailState> emit,
   ) async {
-    final currentState = state;
-    if (currentState is! ChatDetailLoaded) return;
-
-    emit(currentState.copyWith(isSending: true));
-
-    final result = await sendImageMessage(SendImageMessageParams(
+    await _performSend(
+      emit: emit,
+      kind: ChatSendKind.image,
       roomId: event.roomId,
       senderId: event.senderId,
-      imageFile: event.imageFile,
-    ));
-
-    result.fold(
-      (failure) => emit(currentState.copyWith(isSending: false)),
-      (message) {
-        final exists = currentState.messages.any((m) => m.id == message.id);
-        if (!exists) {
-          emit(currentState.copyWith(
-            messages: [message, ...currentState.messages],
-            isSending: false,
-          ));
-        } else {
-          emit(currentState.copyWith(isSending: false));
-        }
-      },
+      images: [event.imageFile],
     );
+  }
+
+  Future<void> _onSendMultipleImagesRequested(
+    ChatDetailSendMultipleImagesRequested event,
+    Emitter<ChatDetailState> emit,
+  ) async {
+    await _performSend(
+      emit: emit,
+      kind: ChatSendKind.multiImage,
+      roomId: event.roomId,
+      senderId: event.senderId,
+      images: event.images,
+    );
+  }
+
+  Future<void> _onRetryLastSendRequested(
+    ChatDetailRetryLastSendRequested event,
+    Emitter<ChatDetailState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! ChatDetailLoaded) return;
+    final outcome = currentState.sendOutcome;
+    if (outcome == null || outcome.status != ChatSendStatus.failure) return;
+
+    await _performSend(
+      emit: emit,
+      kind: outcome.kind,
+      roomId: outcome.roomId,
+      senderId: outcome.senderId,
+      text: outcome.text,
+      images: outcome.images,
+    );
+  }
+
+  Future<void> _performSend({
+    required Emitter<ChatDetailState> emit,
+    required ChatSendKind kind,
+    required String roomId,
+    required String senderId,
+    String? text,
+    List<File> images = const [],
+  }) async {
+    final currentState = state;
+    if (currentState is! ChatDetailLoaded || _sendInFlight) return;
+    if (kind == ChatSendKind.text && (text == null || text.trim().isEmpty)) {
+      return;
+    }
+    if (kind != ChatSendKind.text && images.isEmpty) return;
+
+    _sendInFlight = true;
+    final pending = ChatSendOutcome(
+      requestId: ++_nextSendRequestId,
+      kind: kind,
+      status: ChatSendStatus.sending,
+      roomId: roomId,
+      senderId: senderId,
+      text: text,
+      images: List<File>.unmodifiable(images),
+    );
+    emit(currentState.copyWith(sendOutcome: pending));
+
+    try {
+      late final Either<Failure, ChatMessage> result;
+      if (kind == ChatSendKind.text) {
+        result = await sendMessage(SendMessageParams(
+          roomId: roomId,
+          senderId: senderId,
+          content: text!.trim(),
+        ));
+      } else if (kind == ChatSendKind.image) {
+        result = await sendImageMessage(SendImageMessageParams(
+          roomId: roomId,
+          senderId: senderId,
+          imageFile: images.first,
+        ));
+      } else {
+        result = await sendMultiImageMessage(SendMultiImageMessageParams(
+          roomId: roomId,
+          senderId: senderId,
+          images: images,
+        ));
+      }
+
+      result.fold(
+        (failure) {
+          final latest = state is ChatDetailLoaded
+              ? state as ChatDetailLoaded
+              : currentState;
+          emit(latest.copyWith(
+            sendOutcome: pending.copyWith(
+              status: ChatSendStatus.failure,
+              errorMessage: failure.message,
+            ),
+          ));
+        },
+        (message) {
+          final latest = state is ChatDetailLoaded
+              ? state as ChatDetailLoaded
+              : currentState;
+          final exists = latest.messages.any((item) => item.id == message.id);
+          emit(latest.copyWith(
+            messages: exists ? latest.messages : [message, ...latest.messages],
+            sendOutcome: pending.copyWith(status: ChatSendStatus.success),
+          ));
+        },
+      );
+    } finally {
+      _sendInFlight = false;
+    }
   }
 
   Future<void> _onMarkAsReadRequested(

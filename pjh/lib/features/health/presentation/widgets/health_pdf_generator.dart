@@ -22,6 +22,7 @@ class HealthPdfGenerator {
     DateTime? now,
   }) async {
     final data = buildHealthPdfData(records);
+    final emotionSummary = buildHealthPdfEmotionSummary(latestAnalysis);
     final regular = pw.Font.ttf(
         await rootBundle.load('assets/fonts/Pretendard-Regular.ttf'));
     final bold =
@@ -54,13 +55,12 @@ class HealthPdfGenerator {
             _examSection(data),
             pw.SizedBox(height: 14),
           ],
-          if (latestAnalysis != null) ...[
-            _analysisSection(latestAnalysis),
+          if (emotionSummary != null) ...[
+            _analysisSection(emotionSummary),
             pw.SizedBox(height: 14),
           ],
           if (!data.hasAny)
-            pw.Text('아직 건강 기록이 없습니다.',
-                style: const pw.TextStyle(fontSize: 12)),
+            pw.Text('아직 건강 기록이 없습니다.', style: const pw.TextStyle(fontSize: 12)),
         ],
       ),
     );
@@ -76,9 +76,8 @@ class HealthPdfGenerator {
 
   static pw.Widget _header(Pet pet, String owner, DateTime created) {
     final typeKo = pet.type == PetType.dog ? '강아지' : '고양이';
-    final genderKo = pet.gender == null
-        ? '-'
-        : (pet.gender == PetGender.male ? '수컷' : '암컷');
+    final genderKo =
+        pet.gender == null ? '-' : (pet.gender == PetGender.male ? '수컷' : '암컷');
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -124,7 +123,8 @@ class HealthPdfGenerator {
                     p.bcs?.toString() ?? '-',
                   ])
               .toList(),
-          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+          headerStyle:
+              pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
           cellStyle: const pw.TextStyle(fontSize: 10),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -143,7 +143,8 @@ class HealthPdfGenerator {
           data: d.vaccinations
               .map((v) => [v['vaccine_type']!, v['date']!, v['next']!])
               .toList(),
-          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+          headerStyle:
+              pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
           cellStyle: const pw.TextStyle(fontSize: 10),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -167,7 +168,8 @@ class HealthPdfGenerator {
                     m['period']!,
                   ])
               .toList(),
-          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+          headerStyle:
+              pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
           cellStyle: const pw.TextStyle(fontSize: 10),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -191,7 +193,8 @@ class HealthPdfGenerator {
                     e['detail']!,
                   ])
               .toList(),
-          headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+          headerStyle:
+              pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
           cellStyle: const pw.TextStyle(fontSize: 10),
           cellAlignment: pw.Alignment.centerLeft,
         ),
@@ -199,15 +202,14 @@ class HealthPdfGenerator {
     );
   }
 
-  static pw.Widget _analysisSection(EmotionAnalysis a) {
-    final positive = (a.emotions.positiveRatio * 100).round();
+  static pw.Widget _analysisSection(HealthPdfEmotionSummary summary) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         _sectionTitle('최근 AI 감정 분석'),
         pw.SizedBox(height: 4),
-        pw.Text('분석일: ${_fmtDate(a.analyzedAt)}'),
-        pw.Text('대표 감정: ${a.emotions.dominantEmotion} · 긍정도 $positive%'),
+        pw.Text('분석일: ${_fmtDate(summary.analyzedAt)}'),
+        pw.Text('대표 감정: ${summary.dominantEmotion}'),
       ],
     );
   }

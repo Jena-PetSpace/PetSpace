@@ -28,6 +28,10 @@ final _tRecord = HealthRecord(
 void main() {
   late MockHealthRepository repo;
 
+  setUpAll(() {
+    registerFallbackValue(_tRecord);
+  });
+
   setUp(() => repo = MockHealthRepository());
 
   // ── GetHealthRecords ───────────────────────────────────────────────────────
@@ -40,7 +44,13 @@ void main() {
       final uc = GetHealthRecords(repo);
       final result = await uc(const GetHealthRecordsParams(petId: 'pet-001'));
 
-      expect(result, Right([_tRecord]));
+      result.fold(
+        (failure) => fail('Should not fail: $failure'),
+        (records) {
+          expect(records, hasLength(1));
+          expect(records.single, _tRecord);
+        },
+      );
       verify(() => repo.getHealthRecords(petId: 'pet-001', limit: 50))
           .called(1);
     });
@@ -88,7 +98,11 @@ void main() {
       final uc = AddHealthRecord(repo);
       final result = await uc(AddHealthRecordParams(record: _tRecord));
 
-      expect(result, Right(_tRecord));
+      result.fold(
+        (failure) => fail('Should not fail: $failure'),
+        (record) => expect(record, _tRecord),
+      );
+      verify(() => repo.addHealthRecord(_tRecord)).called(1);
     });
 
     test('실패 → Left(DatabaseFailure)', () async {
@@ -99,6 +113,7 @@ void main() {
       final result = await uc(AddHealthRecordParams(record: _tRecord));
 
       expect(result.isLeft(), true);
+      verify(() => repo.addHealthRecord(_tRecord)).called(1);
     });
   });
 
@@ -116,6 +131,7 @@ void main() {
         (f) => fail('Should not fail'),
         (r) => expect(r.title, '종합백신 6차'),
       );
+      verify(() => repo.updateHealthRecord(updated)).called(1);
     });
   });
 
@@ -150,27 +166,36 @@ void main() {
     test('성공 → Right(List) 30일 이내 예정', () async {
       when(() => repo.getUpcomingRecords(
             userId: any(named: 'userId'),
+            petId: any(named: 'petId'),
             daysAhead: any(named: 'daysAhead'),
           )).thenAnswer((_) async => Right([_tRecord]));
 
       final uc = GetUpcomingRecords(repo);
-      final result =
-          await uc(const GetUpcomingRecordsParams(userId: 'user-001'));
+      final result = await uc(const GetUpcomingRecordsParams(
+        userId: 'user-001',
+        petId: 'pet-001',
+      ));
 
       expect(result.isRight(), true);
-      verify(() => repo.getUpcomingRecords(userId: 'user-001', daysAhead: 30))
-          .called(1);
+      verify(() => repo.getUpcomingRecords(
+            userId: 'user-001',
+            petId: 'pet-001',
+            daysAhead: 30,
+          )).called(1);
     });
 
     test('빈 결과 → Right([])', () async {
       when(() => repo.getUpcomingRecords(
             userId: any(named: 'userId'),
+            petId: any(named: 'petId'),
             daysAhead: any(named: 'daysAhead'),
           )).thenAnswer((_) async => const Right([]));
 
       final uc = GetUpcomingRecords(repo);
-      final result =
-          await uc(const GetUpcomingRecordsParams(userId: 'user-001'));
+      final result = await uc(const GetUpcomingRecordsParams(
+        userId: 'user-001',
+        petId: 'pet-001',
+      ));
 
       result.fold((f) => fail('fail'), (list) => expect(list, isEmpty));
     });

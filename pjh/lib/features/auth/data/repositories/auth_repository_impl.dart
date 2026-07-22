@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:kakao_flutter_sdk/kakao_flutter_sdk.dart' as kakao;
@@ -30,17 +31,47 @@ class AuthRepositoryImpl implements AuthRepository {
     required this.networkInfo,
   });
 
-  /// H2: 소셜 로그인 직후 서버의 email_confirmed_at 을 확인 처리한다.
-  /// Supabase 자동 계정 연동(identity linking)은 기존 계정 이메일이
-  /// '확인됨' 상태일 때만 동작하므로, 이 계정에 향후 다른 소셜 로그인이
-  /// 연동될 수 있도록 보장한다. 실패해도 로그인 흐름에는 영향 없음.
-  Future<void> _confirmEmailOnServerIfNeeded(User supabaseUser) async {
-    if (supabaseUser.emailConfirmedAt != null) return;
+  /// H2: social identities can link only after the auth email is confirmed.
+  /// A failure here must not block the provider login itself.
+  Future<void> _confirmEmailOnServerIfNeeded(User user) async {
+    if (user.emailConfirmedAt != null) return;
     try {
       await supabaseClient.rpc('confirm_my_email');
-    } catch (e) {
-      log('confirm_my_email RPC 실패(무시): $e');
+    } catch (error) {
+      log('confirm_my_email RPC 실패(무시): $error');
     }
+  }
+
+  Future<Map<String, dynamic>?> _getMyUserProfile() async {
+    final response = await supabaseClient.rpc('get_my_user_profile');
+    if (response is List) {
+      return response.isEmpty
+          ? null
+          : Map<String, dynamic>.from(response.first as Map);
+    }
+    return response == null ? null : Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<Map<String, dynamic>> _ensureMyUserProfile({
+    required String displayName,
+    String? photoUrl,
+    required String provider,
+  }) async {
+    final response = await supabaseClient.rpc(
+      'ensure_my_user_profile',
+      params: {
+        'p_display_name': displayName,
+        'p_photo_url': photoUrl,
+        'p_provider': provider,
+      },
+    );
+    final profile = response is List
+        ? (response.isEmpty ? null : response.first)
+        : response;
+    if (profile is! Map) {
+      throw const FormatException('Profile creation returned no user');
+    }
+    return Map<String, dynamic>.from(profile);
   }
 
   @override
@@ -50,11 +81,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (supabaseUser == null) return null;
 
       try {
-        final response = await supabaseClient
-            .from('users')
-            .select()
-            .eq('id', supabaseUser.id)
-            .maybeSingle();
+        final response = await _getMyUserProfile();
 
         if (response != null) {
           // Supabase auth.users의 email_confirmed_at을 UserModel에 포함
@@ -97,17 +124,12 @@ class AuthRepositoryImpl implements AuthRepository {
       if (supabaseUser == null) {
         return const Left(AuthFailure(message: '구글 로그인에 실패했습니다.'));
       }
-
       await _confirmEmailOnServerIfNeeded(supabaseUser);
 
       // handle_new_user 트리거가 프로필을 생성할 시간 대기
       await Future.delayed(const Duration(milliseconds: 500));
 
-      var userResponse = await supabaseClient
-          .from('users')
-          .select()
-          .eq('id', supabaseUser.id)
-          .maybeSingle();
+      var userResponse = await _getMyUserProfile();
 
       UserModel user;
       if (userResponse != null) {
@@ -116,10 +138,12 @@ class AuthRepositoryImpl implements AuthRepository {
         user = UserModel(
           uid: supabaseUser.id,
           email: supabaseUser.email!,
-          displayName: supabaseUser.userMetadata?['display_name'] ??
+          displayName:
+              supabaseUser.userMetadata?['display_name'] ??
               supabaseUser.userMetadata?['full_name'] ??
               '사용자',
-          photoURL: supabaseUser.userMetadata?['photo_url'] ??
+          photoURL:
+              supabaseUser.userMetadata?['photo_url'] ??
               supabaseUser.userMetadata?['avatar_url'],
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -133,32 +157,37 @@ class AuthRepositoryImpl implements AuthRepository {
           ),
         );
 
-        await supabaseClient
-            .from('users')
-            .upsert(user.toMap(), onConflict: 'id');
+        user = UserModel.fromJson(
+          await _ensureMyUserProfile(
+            displayName: user.displayName,
+            photoUrl: user.photoURL,
+            provider: 'google',
+          ),
+        );
       }
 
-      // 구글 로그인 사용자는 이미 구글에서 신원이 검증되었으므로 이메일 인증 완료로 처리.
-      final authenticatedUser = user.copyWith(
-        emailConfirmedAt: supabaseUser.emailConfirmedAt != null
-            ? DateTime.parse(supabaseUser.emailConfirmedAt!)
-            : DateTime.now(),
+      return Right(
+        user.copyWith(
+          emailConfirmedAt: supabaseUser.emailConfirmedAt != null
+              ? DateTime.parse(supabaseUser.emailConfirmedAt!)
+              : DateTime.now(),
+        ),
       );
-
-      return Right(authenticatedUser);
     } on AuthException catch (e) {
       return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
-    } on PostgrestException catch (e) {
-      // 같은 이메일이 이미 다른 방식으로 가입된 계정에 존재 → 자동 연동 미적용 케이스.
-      if (e.code == '23505') {
-        return const Left(AuthFailure(
-            message: '이미 다른 방식으로 가입된 이메일입니다. 기존 로그인 방식(이메일·애플·카카오)으로 로그인해 주세요.'));
+    } on PostgrestException catch (error) {
+      if (error.code == '23505') {
+        return const Left(
+          AuthFailure(
+            message: '이미 다른 방식으로 가입된 이메일입니다. 기존 로그인 방식(이메일·애플·카카오)으로 로그인해 주세요.',
+          ),
+        );
       }
       return Left(
-          GeneralFailure(message: '구글 로그인 중 오류가 발생했습니다: ${e.message}'));
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '구글 로그인 중 오류가 발생했습니다: ${e.toString()}'));
+        GeneralFailure(message: '구글 로그인 중 오류가 발생했습니다: ${error.message}'),
+      );
+    } catch (error) {
+      return Left(GeneralFailure(message: '구글 로그인 중 오류가 발생했습니다: $error'));
     }
   }
 
@@ -193,7 +222,8 @@ class AuthRepositoryImpl implements AuthRepository {
       final idToken = credential.identityToken;
       if (idToken == null || idToken.isEmpty) {
         return const Left(
-            AuthFailure(message: 'Apple 로그인 토큰을 가져오지 못했습니다. 다시 시도해주세요.'));
+          AuthFailure(message: 'Apple 로그인 토큰을 가져오지 못했습니다. 다시 시도해주세요.'),
+        );
       }
 
       final response = await supabaseClient.auth.signInWithIdToken(
@@ -206,17 +236,12 @@ class AuthRepositoryImpl implements AuthRepository {
       if (supabaseUser == null) {
         return const Left(AuthFailure(message: 'Apple 로그인에 실패했습니다.'));
       }
-
       await _confirmEmailOnServerIfNeeded(supabaseUser);
 
       // handle_new_user 트리거가 프로필을 생성할 시간 대기
       await Future.delayed(const Duration(milliseconds: 500));
 
-      final userResponse = await supabaseClient
-          .from('users')
-          .select()
-          .eq('id', supabaseUser.id)
-          .maybeSingle();
+      final userResponse = await _getMyUserProfile();
 
       UserModel user;
       if (userResponse != null) {
@@ -232,10 +257,11 @@ class AuthRepositoryImpl implements AuthRepository {
         final displayName = fullName.isNotEmpty
             ? fullName
             : (supabaseUser.userMetadata?['full_name'] as String?) ??
-                (supabaseUser.userMetadata?['name'] as String?) ??
-                '사용자';
+                  (supabaseUser.userMetadata?['name'] as String?) ??
+                  '사용자';
 
-        final email = supabaseUser.email ??
+        final email =
+            supabaseUser.email ??
             credential.email ??
             'apple_${supabaseUser.id}@apple.user';
 
@@ -256,20 +282,22 @@ class AuthRepositoryImpl implements AuthRepository {
           ),
         );
 
-        await supabaseClient
-            .from('users')
-            .upsert(user.toMap(), onConflict: 'id');
+        user = UserModel.fromJson(
+          await _ensureMyUserProfile(
+            displayName: user.displayName,
+            photoUrl: user.photoURL,
+            provider: 'apple',
+          ),
+        );
       }
 
-      // Apple 로그인 사용자는 이미 Apple 에서 신원이 검증되었으므로 이메일 인증 완료로 처리.
-      // (Apple Hide My Email 의 privaterelay 주소로는 OTP 수신 불가 → 인증 단계 자체가 부적합)
-      final authenticatedUser = user.copyWith(
-        emailConfirmedAt: supabaseUser.emailConfirmedAt != null
-            ? DateTime.parse(supabaseUser.emailConfirmedAt!)
-            : DateTime.now(),
+      return Right(
+        user.copyWith(
+          emailConfirmedAt: supabaseUser.emailConfirmedAt != null
+              ? DateTime.parse(supabaseUser.emailConfirmedAt!)
+              : DateTime.now(),
+        ),
       );
-
-      return Right(authenticatedUser);
     } on SignInWithAppleAuthorizationException catch (e) {
       // 사용자 취소 / 권한 거부 등 — 빈 메시지로 SnackBar 노출 억제
       if (e.code == AuthorizationErrorCode.canceled) {
@@ -278,18 +306,19 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(AuthFailure(message: 'Apple 로그인 실패: ${e.message}'));
     } on AuthException catch (e) {
       return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
-    } on PostgrestException catch (e) {
-      // 같은 이메일이 이미 다른 방식으로 가입된 계정에 존재 → 자동 연동 미적용 케이스.
-      // (H2 마이그레이션 적용 후에는 GoTrue 가 기존 계정에 연동하므로 정상적으로는 도달하지 않음)
-      if (e.code == '23505') {
-        return const Left(AuthFailure(
-            message: '이미 다른 방식으로 가입된 이메일입니다. 기존 로그인 방식(이메일·구글·카카오)으로 로그인해 주세요.'));
+    } on PostgrestException catch (error) {
+      if (error.code == '23505') {
+        return const Left(
+          AuthFailure(
+            message: '이미 다른 방식으로 가입된 이메일입니다. 기존 로그인 방식(이메일·구글·카카오)으로 로그인해 주세요.',
+          ),
+        );
       }
       return Left(
-          GeneralFailure(message: 'Apple 로그인 중 오류가 발생했습니다: ${e.message}'));
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: 'Apple 로그인 중 오류가 발생했습니다: ${e.toString()}'));
+        GeneralFailure(message: 'Apple 로그인 중 오류가 발생했습니다: ${error.message}'),
+      );
+    } catch (error) {
+      return Left(GeneralFailure(message: 'Apple 로그인 중 오류가 발생했습니다: $error'));
     }
   }
 
@@ -302,6 +331,7 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
     }
 
+    var stage = 'kakao_sdk_login';
     try {
       // 1. 카카오 로그인 수행 - 카카오톡 앱이 있으면 앱으로, 없으면 브라우저로
       bool isKakaoTalkAvailable = await kakao.isKakaoTalkInstalled();
@@ -324,6 +354,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       // 2. 카카오 사용자 정보 가져오기
+      stage = 'kakao_profile';
       final kakaoUser = await kakao.UserApi.instance.me();
 
       // 3. Supabase에 카카오 계정으로 로그인 (카카오 ID를 이메일 형식으로 변환)
@@ -331,8 +362,7 @@ class AuthRepositoryImpl implements AuthRepository {
           kakaoUser.kakaoAccount?.email ?? 'kakao_${kakaoUser.id}@kakao.user';
       final kakaoId = kakaoUser.id.toString();
 
-      log('🔵 [Kakao Login] 카카오 사용자 정보 - email: $kakaoEmail, id: $kakaoId, nickname: ${kakaoUser.kakaoAccount?.profile?.nickname}',
-          name: 'AuthRepository');
+      log('🔵 [Kakao Login] 카카오 사용자 정보 확인 완료', name: 'AuthRepository');
 
       // 카카오 ID + 시크릿 솔트로 SHA-256 해싱 비밀번호 생성 (소스코드만으로 유추 불가)
       final saltedInput =
@@ -347,6 +377,7 @@ class AuthRepositoryImpl implements AuthRepository {
       String debugLog = '';
 
       // Step 1: 새 비밀번호로 로그인 시도
+      stage = 'supabase_new_password';
       try {
         debugLog += '1.signIn(new)→';
         final authResult = await supabaseClient.auth.signInWithPassword(
@@ -355,16 +386,15 @@ class AuthRepositoryImpl implements AuthRepository {
         );
         supabaseUser = authResult.user;
         debugLog += '성공!';
-        log('✅ [Kakao Login] 새 비밀번호로 로그인 성공: ${supabaseUser?.id}',
-            name: 'AuthRepository');
-      } on AuthException catch (e) {
+        log('✅ [Kakao Login] 새 비밀번호로 로그인 성공', name: 'AuthRepository');
+      } on AuthException {
         debugLog += '실패→';
-        log('⚠️ [Kakao Login] 새 비밀번호 signIn 실패: ${e.message}',
-            name: 'AuthRepository');
+        log('⚠️ [Kakao Login] 새 비밀번호 signIn 실패', name: 'AuthRepository');
       }
 
       // Step 1-b: 새 비밀번호 실패 시 기존 비밀번호로 시도 (마이그레이션)
       if (supabaseUser == null) {
+        stage = 'supabase_legacy_password';
         try {
           debugLog += '1b.signIn(legacy)→';
           final authResult = await supabaseClient.auth.signInWithPassword(
@@ -373,8 +403,10 @@ class AuthRepositoryImpl implements AuthRepository {
           );
           supabaseUser = authResult.user;
           debugLog += '성공→';
-          log('✅ [Kakao Login] 기존 비밀번호로 로그인 성공 (마이그레이션 필요): ${supabaseUser?.id}',
-              name: 'AuthRepository');
+          log(
+            '✅ [Kakao Login] 기존 비밀번호로 로그인 성공 (마이그레이션 필요)',
+            name: 'AuthRepository',
+          );
 
           // 기존 비밀번호로 로그인 성공 → 새 비밀번호로 업데이트
           try {
@@ -383,20 +415,22 @@ class AuthRepositoryImpl implements AuthRepository {
             );
             log('✅ [Kakao Login] 비밀번호 마이그레이션 완료', name: 'AuthRepository');
             debugLog += '비밀번호갱신성공→';
-          } catch (updateError) {
-            log('⚠️ [Kakao Login] 비밀번호 갱신 실패 (다음 로그인 시 재시도): $updateError',
-                name: 'AuthRepository');
+          } catch (_) {
+            log(
+              '⚠️ [Kakao Login] 비밀번호 갱신 실패 (다음 로그인 시 재시도)',
+              name: 'AuthRepository',
+            );
             debugLog += '비밀번호갱신실패→';
           }
-        } on AuthException catch (e) {
-          debugLog += '실패(${e.message})→';
-          log('⚠️ [Kakao Login] 기존 비밀번호 signIn도 실패: ${e.message}',
-              name: 'AuthRepository');
+        } on AuthException {
+          debugLog += '실패→';
+          log('⚠️ [Kakao Login] 기존 비밀번호 signIn도 실패', name: 'AuthRepository');
         }
       }
 
       // Step 2: 로그인 실패 시 회원가입 시도
       if (supabaseUser == null) {
+        stage = 'supabase_signup';
         try {
           debugLog += '2.signUp시도→';
           final signUpResult = await supabaseClient.auth.signUp(
@@ -411,43 +445,32 @@ class AuthRepositoryImpl implements AuthRepository {
             },
           );
           supabaseUser = signUpResult.user;
-          debugLog += '성공(id:${supabaseUser?.id})→';
-          log('✅ [Kakao Login] 회원가입 성공: ${supabaseUser?.id}',
-              name: 'AuthRepository');
-        } on AuthException catch (signUpError) {
-          debugLog += 'signUp에러(${signUpError.message})→';
-          log('⚠️ [Kakao Login] signUp 에러: ${signUpError.message}',
-              name: 'AuthRepository');
-        } catch (e) {
-          debugLog += 'signUp예외($e)→';
-          log('❌ [Kakao Login] signUp 예외: $e', name: 'AuthRepository');
+          debugLog += '성공→';
+          log('✅ [Kakao Login] 회원가입 성공', name: 'AuthRepository');
+        } on AuthException {
+          debugLog += 'signUp에러→';
+          log('⚠️ [Kakao Login] signUp 에러', name: 'AuthRepository');
+        } catch (_) {
+          debugLog += 'signUp예외→';
+          log('❌ [Kakao Login] signUp 예외', name: 'AuthRepository');
         }
 
         // Step 3: RPC로 email_confirmed_at 설정 (signUp은 유저를 생성했지만 인증 이메일 발송 실패한 경우)
-        // [세션1 1-A 검증] Step 3 시점 세션 유무 진단 — confirm RPC를 authenticated로 잠가도
-        //   카카오 플로우가 깨지지 않는지 판단 근거. 검증 후 제거 예정.
-        final s3Session = supabaseClient.auth.currentSession;
-        // print()는 logcat 'flutter :' 태그로 확실히 출력됨(log()는 VM Service로만 가 logcat 미표시).
-        // 검증 후 제거 예정.
-        // ignore: avoid_print
-        print('KAKAO_1A_VERIFY Step3 currentSession='
-            '${s3Session == null ? 'NULL_세션없음' : 'NONNULL_uid_${s3Session.user.id}'}');
-        log('🔍 [Kakao 1-A검증] Step3 시점 currentSession='
-            '${s3Session == null ? 'NULL(세션없음)' : 'non-null(uid:${s3Session.user.id})'}',
-            name: 'AuthRepository');
-        debugLog += '[S3세션:${s3Session == null ? 'NULL' : 'OK'}]→';
+        stage = 'supabase_confirm_kakao';
         debugLog += '3.RPC-confirm→';
         try {
-          await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
-            'p_email': kakaoEmail,
-          });
+          await supabaseClient.rpc(
+            'confirm_kakao_user_by_email',
+            params: {'p_email': kakaoEmail},
+          );
           debugLog += 'RPC성공→';
-        } catch (e) {
+        } catch (_) {
           debugLog += 'RPC실패→';
-          log('⚠️ [Kakao Login] confirm RPC: $e', name: 'AuthRepository');
+          log('⚠️ [Kakao Login] confirm RPC 실패', name: 'AuthRepository');
         }
 
         // Step 4: RPC 후 로그인 재시도
+        stage = 'supabase_retry';
         debugLog += '재로그인→';
         await Future.delayed(const Duration(milliseconds: 1000));
         try {
@@ -457,80 +480,60 @@ class AuthRepositoryImpl implements AuthRepository {
           );
           supabaseUser = retryResult.user;
           debugLog += '성공!';
-          log('✅ [Kakao Login] 재로그인 성공: ${supabaseUser?.id}',
-              name: 'AuthRepository');
-        } on AuthException catch (e) {
-          debugLog += '실패(${e.message})';
-          log('❌ [Kakao Login] 재로그인 실패: ${e.message}', name: 'AuthRepository');
+          log('✅ [Kakao Login] 재로그인 성공', name: 'AuthRepository');
+        } on AuthException {
+          debugLog += '실패';
+          log('❌ [Kakao Login] 재로그인 실패', name: 'AuthRepository');
         }
       } else {
         // 이미 로그인 성공한 경우에도 RPC 실행 (email_confirmed_at 보장)
-        // [세션1 1-A 검증] else 분기(기존 계정 로그인)에서도 세션 상태 진단. 검증 후 제거 예정.
-        final elseSession = supabaseClient.auth.currentSession;
-        // ignore: avoid_print
-        print('KAKAO_1A_VERIFY ElseBranch currentSession='
-            '${elseSession == null ? 'NULL_세션없음' : 'NONNULL_uid_${elseSession.user.id}'}');
+        stage = 'supabase_confirm_existing_kakao';
         try {
-          await supabaseClient.rpc('confirm_kakao_user_by_email', params: {
-            'p_email': kakaoEmail,
-          });
-        } catch (e) {
-          log('⚠️ [Kakao Login] confirm RPC 실패: $e', name: 'AuthRepository');
+          await supabaseClient.rpc(
+            'confirm_kakao_user_by_email',
+            params: {'p_email': kakaoEmail},
+          );
+        } catch (_) {
+          log('⚠️ [Kakao Login] confirm RPC 실패', name: 'AuthRepository');
         }
       }
 
       // 최종 실패 시 디버그 로그와 함께 반환
       if (supabaseUser == null) {
-        log('❌ [Kakao Login] 최종 실패 - debugLog: $debugLog',
-            name: 'AuthRepository');
-        return Left(AuthFailure(message: '[디버그] $debugLog'));
+        log(
+          '❌ [Kakao Login] 최종 실패 - debugLog: $debugLog',
+          name: 'AuthRepository',
+        );
+        return const Left(AuthFailure(message: '카카오 로그인에 실패했습니다.'));
       }
 
       // 5. users 테이블에서 사용자 정보 가져오기
       // 트리거가 email_confirmed_at 체크로 프로필을 생성하지 않을 수 있으므로 직접 생성
+      stage = 'profile_lookup';
       UserModel? user;
-      final userResponse = await supabaseClient
-          .from('users')
-          .select()
-          .eq('id', supabaseUser.id)
-          .maybeSingle();
+      final userResponse = await _getMyUserProfile();
 
       if (userResponse != null) {
         user = UserModel.fromJson(userResponse);
       } else {
         // 트리거가 프로필을 생성하지 않은 경우 직접 생성
+        stage = 'profile_ensure';
         log('🔵 [Kakao Login] 프로필 직접 생성 시도', name: 'AuthRepository');
         try {
-          await supabaseClient.from('users').upsert({
-            'id': supabaseUser.id,
-            'email': kakaoEmail,
-            'display_name':
-                kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
-            'photo_url': kakaoUser.kakaoAccount?.profile?.profileImageUrl,
-            'provider': 'kakao',
-            'is_onboarding_completed': false,
-          }, onConflict: 'id');
-
-          final newUserResponse = await supabaseClient
-              .from('users')
-              .select()
-              .eq('id', supabaseUser.id)
-              .maybeSingle();
-
-          if (newUserResponse != null) {
-            user = UserModel.fromJson(newUserResponse);
-            log('✅ [Kakao Login] 프로필 직접 생성 성공', name: 'AuthRepository');
-          }
-        } catch (profileError) {
-          log('⚠️ [Kakao Login] 프로필 직접 생성 실패: $profileError',
-              name: 'AuthRepository');
+          user = UserModel.fromJson(
+            await _ensureMyUserProfile(
+              displayName:
+                  kakaoUser.kakaoAccount?.profile?.nickname ?? '카카오 사용자',
+              photoUrl: kakaoUser.kakaoAccount?.profile?.profileImageUrl,
+              provider: 'kakao',
+            ),
+          );
+          log('✅ [Kakao Login] 프로필 직접 생성 성공', name: 'AuthRepository');
+        } catch (_) {
+          log('⚠️ [Kakao Login] 프로필 직접 생성 실패', name: 'AuthRepository');
           // 동시성 문제로 이미 생성되었을 수 있으므로 다시 조회
           await Future.delayed(const Duration(milliseconds: 500));
-          final retryResponse = await supabaseClient
-              .from('users')
-              .select()
-              .eq('id', supabaseUser.id)
-              .maybeSingle();
+          final retryResponse = await _getMyUserProfile();
           if (retryResponse != null) {
             user = UserModel.fromJson(retryResponse);
           }
@@ -542,35 +545,41 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       // 카카오 로그인 사용자는 이미 카카오에서 인증되었으므로 이메일 인증 완료로 처리
-      final authenticatedUser = user.copyWith(
-        emailConfirmedAt: DateTime.now(),
-      );
+      stage = 'profile_complete';
+      final authenticatedUser = user.copyWith(emailConfirmedAt: DateTime.now());
 
       return Right(authenticatedUser);
-    } on kakao.KakaoException catch (e) {
-      log('❌ [Kakao Login] KakaoException: ${e.message}',
-          name: 'AuthRepository');
-      return Left(AuthFailure(message: '[카카오SDK] ${e.message}'));
+    } on kakao.KakaoException {
+      log('❌ [Kakao Login] KakaoException', name: 'AuthRepository');
+      return const Left(AuthFailure(message: '카카오 로그인에 실패했습니다.'));
     } on AuthException catch (e) {
-      log('❌ [Kakao Login] AuthException: ${e.message} (statusCode: ${e.statusCode})',
-          name: 'AuthRepository');
-      return Left(AuthFailure(message: '[Supabase] ${e.message}'));
-    } catch (e, stackTrace) {
+      log('❌ [Kakao Login] AuthException', name: 'AuthRepository');
+      return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
+    } catch (e) {
       // 사용자가 취소한 경우 조용히 처리
       final errorMsg = e.toString().toLowerCase();
       if (errorMsg.contains('cancel') || errorMsg.contains('user_canceled')) {
         log('ℹ️ [Kakao Login] 사용자 취소', name: 'AuthRepository');
         return const Left(AuthFailure(message: ''));
       }
-      log('❌ [Kakao Login] Unknown Exception: ${e.toString()}',
-          name: 'AuthRepository', stackTrace: stackTrace);
+      if (kDebugMode) {
+        debugPrint(
+          '[Kakao Login] unexpected failure at $stage (${e.runtimeType})',
+        );
+      }
+      log(
+        '❌ [Kakao Login] Unknown Exception at $stage (${e.runtimeType})',
+        name: 'AuthRepository',
+      );
       return const Left(AuthFailure(message: '카카오 로그인 중 오류가 발생했습니다.'));
     }
   }
 
   @override
   Future<Either<Failure, user_entity.User>> signInWithEmail(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
     }
@@ -589,38 +598,38 @@ class AuthRepositoryImpl implements AuthRepository {
       // 이메일 인증 여부 확인
       if (supabaseUser.emailConfirmedAt == null) {
         await supabaseClient.auth.signOut();
-        return const Left(AuthFailure(
-          message: '이메일 인증이 필요합니다.\n가입 시 받은 인증 코드를 입력해주세요.',
-        ));
+        return const Left(
+          AuthFailure(message: '이메일 인증이 필요합니다.\n가입 시 받은 인증 코드를 입력해주세요.'),
+        );
       }
 
-      final userResponse = await supabaseClient
-          .from('users')
-          .select()
-          .eq('id', supabaseUser.id)
-          .maybeSingle();
+      final userResponse = await _getMyUserProfile();
 
       if (userResponse != null) {
         final user = UserModel.fromJson(userResponse);
-        return Right(user.copyWith(
-          emailConfirmedAt: supabaseUser.emailConfirmedAt != null
-              ? DateTime.parse(supabaseUser.emailConfirmedAt!)
-              : null,
-        ));
+        return Right(
+          user.copyWith(
+            emailConfirmedAt: supabaseUser.emailConfirmedAt != null
+                ? DateTime.parse(supabaseUser.emailConfirmedAt!)
+                : null,
+          ),
+        );
       } else {
         return const Left(AuthFailure(message: '사용자 정보를 찾을 수 없습니다.'));
       }
     } on AuthException catch (e) {
       return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
-    } catch (e) {
-      return Left(GeneralFailure(message: '로그인 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '로그인 중 오류가 발생했습니다.'));
     }
   }
 
   @override
   Future<Either<Failure, user_entity.User>> signUpWithEmail(
-      String email, String password,
-      {String? displayName}) async {
+    String email,
+    String password, {
+    String? displayName,
+  }) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
     }
@@ -634,9 +643,7 @@ class AuthRepositoryImpl implements AuthRepository {
         email: email,
         password: password,
         emailRedirectTo: null, // 앱 내에서 처리
-        data: {
-          'display_name': displayName ?? '사용자',
-        },
+        data: {'display_name': displayName ?? '사용자'},
       );
 
       final supabaseUser = response.user;
@@ -644,11 +651,9 @@ class AuthRepositoryImpl implements AuthRepository {
         return const Left(AuthFailure(message: '회원가입에 실패했습니다.'));
       }
 
-      log('✅ [SignUp] 2단계: 회원가입 완료 (User ID: ${supabaseUser.id})',
-          name: 'AuthRepository');
+      log('✅ [SignUp] 2단계: 회원가입 완료', name: 'AuthRepository');
       log('   - Supabase가 자동으로 확인 이메일 발송 (6자리 OTP 포함)', name: 'AuthRepository');
-      log('   - 이메일 인증 상태: ${supabaseUser.emailConfirmedAt}',
-          name: 'AuthRepository');
+      log('   - 이메일 인증 상태 확인 완료', name: 'AuthRepository');
 
       // signOut()을 제거하여 세션 유지 (verifyOtp를 위해 필요)
       // 대신 BLoC에서 email_confirmed_at 체크하여 AuthEmailVerificationRequired 상태로 처리
@@ -674,34 +679,35 @@ class AuthRepositoryImpl implements AuthRepository {
         emailConfirmedAt: null,
       );
 
-      log('✅ [SignUp] 완료: 사용자 모델 반환 (Email: $email)', name: 'AuthRepository');
+      log('✅ [SignUp] 완료: 사용자 모델 반환', name: 'AuthRepository');
       return Right(user);
     } on AuthException catch (e) {
-      log('❌ [SignUp] 실패: ${e.message}', name: 'AuthRepository');
+      log('❌ [SignUp] 실패', name: 'AuthRepository');
 
       // Rate limit 에러 체크
       if (e.message.toLowerCase().contains('rate limit') ||
           e.message.toLowerCase().contains('email rate limit exceeded')) {
-        return const Left(AuthFailure(
-          message: '인증 이메일 전송 제한에 도달했습니다.\n3분 후 다시 시도해주세요.',
-          retryAfter: Duration(minutes: 3),
-        ));
+        return const Left(
+          AuthFailure(
+            message: '인증 이메일 전송 제한에 도달했습니다.\n3분 후 다시 시도해주세요.',
+            retryAfter: Duration(minutes: 3),
+          ),
+        );
       }
 
       // 사용자가 이미 존재하는 경우
       if (e.message.toLowerCase().contains('user already registered') ||
           e.message.toLowerCase().contains('email already registered') ||
           e.message.toLowerCase().contains('already been registered')) {
-        return const Left(AuthFailure(
-          message: '이미 가입된 이메일입니다.\n로그인 페이지에서 로그인해주세요.',
-        ));
+        return const Left(
+          AuthFailure(message: '이미 가입된 이메일입니다.\n로그인 페이지에서 로그인해주세요.'),
+        );
       }
 
       return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
-    } catch (e) {
-      log('❌ [SignUp] Unknown error: ${e.toString()}', name: 'AuthRepository');
-      return Left(
-          GeneralFailure(message: '회원가입 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      log('❌ [SignUp] Unknown error', name: 'AuthRepository');
+      return const Left(GeneralFailure(message: '회원가입 중 오류가 발생했습니다.'));
     }
   }
 
@@ -713,8 +719,8 @@ class AuthRepositoryImpl implements AuthRepository {
         googleSignIn.signOut(),
       ]);
       return const Right(null);
-    } catch (e) {
-      return Left(AuthFailure(message: '로그아웃 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(AuthFailure(message: '로그아웃 중 오류가 발생했습니다.'));
     }
   }
 
@@ -746,9 +752,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Right(null);
     } on AuthException catch (e) {
       return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '계정 삭제 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '계정 삭제 중 오류가 발생했습니다.'));
     }
   }
 
@@ -761,9 +766,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await supabaseClient.rpc('restore_my_account');
       return const Right(null);
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '계정 복구 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '계정 복구 중 오류가 발생했습니다.'));
     }
   }
 
@@ -773,11 +777,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final supabaseUser = supabaseClient.auth.currentUser;
       if (supabaseUser == null) return const Right(null);
 
-      final response = await supabaseClient
-          .from('users')
-          .select()
-          .eq('id', supabaseUser.id)
-          .maybeSingle();
+      final response = await _getMyUserProfile();
 
       if (response != null) {
         final user = UserModel.fromJson(response);
@@ -785,32 +785,32 @@ class AuthRepositoryImpl implements AuthRepository {
       } else {
         return const Right(null);
       }
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '사용자 정보 조회 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '사용자 정보 조회 중 오류가 발생했습니다.'));
     }
   }
 
   @override
   Future<Either<Failure, user_entity.User>> updateUserProfile(
-      user_entity.User user) async {
+    user_entity.User user,
+  ) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
     }
 
     try {
-      final updatedUser =
-          UserModel.fromEntity(user).copyWith(updatedAt: DateTime.now());
+      final updatedUser = UserModel.fromEntity(
+        user,
+      ).copyWith(updatedAt: DateTime.now());
 
       final updateData = updatedUser.toMap();
 
       await supabaseClient.from('users').update(updateData).eq('id', user.uid);
 
       return Right(updatedUser);
-    } catch (e) {
-      log('Profile update error: $e', name: 'AuthRepository');
-      return Left(
-          GeneralFailure(message: '프로필 업데이트 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      log('Profile update failed', name: 'AuthRepository');
+      return const Left(GeneralFailure(message: '프로필 업데이트 중 오류가 발생했습니다.'));
     }
   }
 
@@ -833,13 +833,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
       await supabaseClient.storage.from('images').upload(fileName, file);
 
-      final publicUrl =
-          supabaseClient.storage.from('images').getPublicUrl(fileName);
+      final publicUrl = supabaseClient.storage
+          .from('images')
+          .getPublicUrl(fileName);
 
       return Right(publicUrl);
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '이미지 업로드 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '이미지 업로드 중 오류가 발생했습니다.'));
     }
   }
 
@@ -854,9 +854,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Right(null);
     } on AuthException catch (e) {
       return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '비밀번호 재설정 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '비밀번호 재설정 중 오류가 발생했습니다.'));
     }
   }
 
@@ -865,13 +864,14 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final user = supabaseClient.auth.currentUser;
       if (user != null && user.emailConfirmedAt == null) {
-        await supabaseClient.auth
-            .resend(type: OtpType.signup, email: user.email);
+        await supabaseClient.auth.resend(
+          type: OtpType.signup,
+          email: user.email,
+        );
       }
       return const Right(null);
-    } catch (e) {
-      return Left(
-          GeneralFailure(message: '이메일 인증 발송 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '이메일 인증 발송 중 오류가 발생했습니다.'));
     }
   }
 
@@ -883,9 +883,8 @@ class AuthRepositoryImpl implements AuthRepository {
         return Right(user.emailConfirmedAt != null);
       }
       return const Right(false);
-    } catch (e) {
-      return Left(GeneralFailure(
-          message: '이메일 인증 상태 확인 중 오류가 발생했습니다: ${e.toString()}'));
+    } catch (_) {
+      return const Left(GeneralFailure(message: '이메일 인증 상태 확인 중 오류가 발생했습니다.'));
     }
   }
 
@@ -905,6 +904,6 @@ class AuthRepositoryImpl implements AuthRepository {
     if (errorMessage.contains('User already registered')) {
       return '이미 등록된 사용자입니다.';
     }
-    return '인증 오류: $errorMessage';
+    return '인증 처리 중 오류가 발생했습니다.';
   }
 }

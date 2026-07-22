@@ -19,6 +19,7 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
   final UpdateHealthRecord updateHealthRecord;
   final DeleteHealthRecord deleteHealthRecord;
   final GetUpcomingRecords getUpcomingRecords;
+  int _loadGeneration = 0;
 
   HealthBloc({
     required this.healthRepository,
@@ -38,24 +39,40 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     LoadHealthRecords event,
     Emitter<HealthState> emit,
   ) async {
-    emit(HealthLoading());
+    final generation = ++_loadGeneration;
+    emit(HealthLoading(petId: event.petId));
 
     final result = await getHealthRecords(GetHealthRecordsParams(
       petId: event.petId,
       type: event.type,
     ));
+    if (generation != _loadGeneration) return;
 
     await result.fold(
-      (failure) async => emit(HealthError(failure.message)),
+      (failure) async => emit(HealthError(failure.message, petId: event.petId)),
       (records) async {
         List<HealthRecord> upcoming = [];
+        String? upcomingError;
         if (event.userId != null) {
           final upcomingResult = await getUpcomingRecords(
-            GetUpcomingRecordsParams(userId: event.userId!),
+            GetUpcomingRecordsParams(
+              userId: event.userId!,
+              petId: event.petId,
+            ),
           );
-          upcomingResult.fold((_) {}, (list) => upcoming = list);
+          if (generation != _loadGeneration) return;
+          upcomingResult.fold(
+            (failure) => upcomingError = failure.message,
+            (list) => upcoming = list,
+          );
         }
-        emit(HealthLoaded(records: records, upcomingAlerts: upcoming));
+        emit(HealthLoaded(
+          petId: event.petId,
+          userId: event.userId,
+          records: records,
+          upcomingAlerts: upcoming,
+          error: upcomingError,
+        ));
       },
     );
   }
@@ -65,24 +82,50 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     Emitter<HealthState> emit,
   ) async {
     final currentState = state;
+    final loadGeneration = _loadGeneration;
+    if (currentState is! HealthLoaded ||
+        currentState.petId != event.record.petId ||
+        currentState.mutation.phase == HealthMutationPhase.pending) {
+      return;
+    }
+    emit(currentState.copyWith(
+      clearError: true,
+      mutation: HealthMutationState(
+        operationId: event.operationId,
+        type: HealthMutationType.add,
+        phase: HealthMutationPhase.pending,
+      ),
+    ));
+
     final result =
         await addHealthRecord(AddHealthRecordParams(record: event.record));
 
-    result.fold(
-      (failure) {
-        if (currentState is HealthLoaded) {
-          emit(currentState.copyWith(error: failure.message));
-        } else {
-          emit(HealthError(failure.message));
-        }
+    await result.fold(
+      (failure) async {
+        if (!_isCurrentScope(currentState, loadGeneration)) return;
+        emit(currentState.copyWith(
+          error: failure.message,
+          mutation: HealthMutationState(
+            operationId: event.operationId,
+            type: HealthMutationType.add,
+            phase: HealthMutationPhase.failed,
+            message: failure.message,
+          ),
+        ));
       },
-      (newRecord) {
-        if (currentState is HealthLoaded) {
-          emit(currentState.copyWith(
-            records: [newRecord, ...currentState.records],
-            error: null,
-          ));
-        }
+      (newRecord) async {
+        if (!_isCurrentScope(currentState, loadGeneration)) return;
+        final next = currentState.copyWith(
+          records: [newRecord, ...currentState.records],
+          clearError: true,
+        );
+        final refreshed = await _withRefreshedUpcoming(
+          next,
+          operationId: event.operationId,
+          type: HealthMutationType.add,
+        );
+        if (!_isCurrentScope(currentState, loadGeneration)) return;
+        emit(refreshed);
       },
     );
   }
@@ -92,24 +135,54 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     Emitter<HealthState> emit,
   ) async {
     final currentState = state;
+    final loadGeneration = _loadGeneration;
+    if (currentState is! HealthLoaded ||
+        currentState.petId != event.record.petId ||
+        currentState.mutation.phase == HealthMutationPhase.pending) {
+      return;
+    }
+    emit(currentState.copyWith(
+      clearError: true,
+      mutation: HealthMutationState(
+        operationId: event.operationId,
+        type: HealthMutationType.update,
+        phase: HealthMutationPhase.pending,
+      ),
+    ));
+
     final result = await updateHealthRecord(
         UpdateHealthRecordParams(record: event.record));
 
-    result.fold(
-      (failure) {
-        if (currentState is HealthLoaded) {
-          emit(currentState.copyWith(error: failure.message));
-        } else {
-          emit(HealthError(failure.message));
-        }
+    await result.fold(
+      (failure) async {
+        if (!_isCurrentScope(currentState, loadGeneration)) return;
+        emit(currentState.copyWith(
+          error: failure.message,
+          mutation: HealthMutationState(
+            operationId: event.operationId,
+            type: HealthMutationType.update,
+            phase: HealthMutationPhase.failed,
+            message: failure.message,
+          ),
+        ));
       },
-      (updatedRecord) {
-        if (currentState is HealthLoaded) {
-          final updatedRecords = currentState.records
-              .map((r) => r.id == updatedRecord.id ? updatedRecord : r)
-              .toList();
-          emit(currentState.copyWith(records: updatedRecords, error: null));
-        }
+      (updatedRecord) async {
+        if (!_isCurrentScope(currentState, loadGeneration)) return;
+        final updatedRecords = currentState.records
+            .map((record) =>
+                record.id == updatedRecord.id ? updatedRecord : record)
+            .toList();
+        final next = currentState.copyWith(
+          records: updatedRecords,
+          clearError: true,
+        );
+        final refreshed = await _withRefreshedUpcoming(
+          next,
+          operationId: event.operationId,
+          type: HealthMutationType.update,
+        );
+        if (!_isCurrentScope(currentState, loadGeneration)) return;
+        emit(refreshed);
       },
     );
   }
@@ -119,20 +192,89 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     Emitter<HealthState> emit,
   ) async {
     final currentState = state;
-    if (currentState is! HealthLoaded) return;
-
-    // 낙관적 삭제 → 실패 시 원복
-    final optimistic =
-        currentState.records.where((r) => r.id != event.recordId).toList();
-    emit(currentState.copyWith(records: optimistic));
+    final loadGeneration = _loadGeneration;
+    if (currentState is! HealthLoaded ||
+        currentState.mutation.phase == HealthMutationPhase.pending) {
+      return;
+    }
+    emit(currentState.copyWith(
+      clearError: true,
+      mutation: HealthMutationState(
+        operationId: event.operationId,
+        type: HealthMutationType.delete,
+        phase: HealthMutationPhase.pending,
+      ),
+    ));
 
     final result = await deleteHealthRecord(
       DeleteHealthRecordParams(recordId: event.recordId),
     );
 
-    result.fold(
-      (failure) => emit(currentState.copyWith(error: failure.message)),
-      (_) {},
+    await result.fold(
+      (failure) async {
+        if (!_isCurrentScope(currentState, loadGeneration)) return;
+        emit(currentState.copyWith(
+          error: failure.message,
+          mutation: HealthMutationState(
+            operationId: event.operationId,
+            type: HealthMutationType.delete,
+            phase: HealthMutationPhase.failed,
+            message: failure.message,
+          ),
+        ));
+      },
+      (_) async {
+        if (!_isCurrentScope(currentState, loadGeneration)) return;
+        final next = currentState.copyWith(
+          records: currentState.records
+              .where((record) => record.id != event.recordId)
+              .toList(),
+          clearError: true,
+        );
+        final refreshed = await _withRefreshedUpcoming(
+          next,
+          operationId: event.operationId,
+          type: HealthMutationType.delete,
+        );
+        if (!_isCurrentScope(currentState, loadGeneration)) return;
+        emit(refreshed);
+      },
+    );
+  }
+
+  bool _isCurrentScope(HealthLoaded started, int loadGeneration) {
+    final current = state;
+    return loadGeneration == _loadGeneration &&
+        current is HealthLoaded &&
+        current.petId == started.petId;
+  }
+
+  Future<HealthLoaded> _withRefreshedUpcoming(
+    HealthLoaded next, {
+    required String operationId,
+    required HealthMutationType type,
+  }) async {
+    var upcoming = next.upcomingAlerts;
+    String? refreshError;
+    final userId = next.userId;
+    if (userId != null) {
+      final result = await getUpcomingRecords(
+        GetUpcomingRecordsParams(userId: userId, petId: next.petId),
+      );
+      result.fold(
+        (failure) => refreshError = failure.message,
+        (records) => upcoming = records,
+      );
+    }
+    return next.copyWith(
+      upcomingAlerts: upcoming,
+      error: refreshError,
+      clearError: refreshError == null,
+      mutation: HealthMutationState(
+        operationId: operationId,
+        type: type,
+        phase: HealthMutationPhase.succeeded,
+      ),
     );
   }
 }

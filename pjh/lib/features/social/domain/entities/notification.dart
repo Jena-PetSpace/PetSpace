@@ -5,9 +5,69 @@ enum NotificationType {
   comment,
   follow,
   mention,
+  system,
+  adminNewPost,
   emotionAnalysis,
+  healthAlert,
   friendRequest,
   postShare,
+  unknown,
+}
+
+extension NotificationTypeContract on NotificationType {
+  static NotificationType fromWireName(String? value) {
+    switch (value) {
+      case 'like':
+        return NotificationType.like;
+      case 'comment':
+        return NotificationType.comment;
+      case 'follow':
+        return NotificationType.follow;
+      case 'mention':
+        return NotificationType.mention;
+      case 'system':
+        return NotificationType.system;
+      case 'admin_new_post':
+        return NotificationType.adminNewPost;
+      case 'emotion_analysis':
+        return NotificationType.emotionAnalysis;
+      case 'health_alert':
+        return NotificationType.healthAlert;
+      case 'friend_request':
+        return NotificationType.friendRequest;
+      case 'post_share':
+        return NotificationType.postShare;
+      default:
+        return NotificationType.unknown;
+    }
+  }
+
+  String get wireName {
+    switch (this) {
+      case NotificationType.like:
+        return 'like';
+      case NotificationType.comment:
+        return 'comment';
+      case NotificationType.follow:
+        return 'follow';
+      case NotificationType.mention:
+        return 'mention';
+      case NotificationType.system:
+        return 'system';
+      case NotificationType.adminNewPost:
+        return 'admin_new_post';
+      case NotificationType.emotionAnalysis:
+        return 'emotion_analysis';
+      case NotificationType.healthAlert:
+        return 'health_alert';
+      case NotificationType.friendRequest:
+        return 'friend_request';
+      case NotificationType.postShare:
+        return 'post_share';
+      case NotificationType.unknown:
+        return 'unknown';
+    }
+  }
 }
 
 class Notification extends Equatable {

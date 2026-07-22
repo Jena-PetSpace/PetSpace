@@ -28,6 +28,7 @@ extension _PostCardMedia on _PostCardState {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 8.h),
         child: GestureDetector(
+          key: const Key('post_card_media_0'),
           onTap: () => _openViewer(context, 0),
           onDoubleTap: _onDoubleTapImage,
           child: Stack(
@@ -40,20 +41,24 @@ extension _PostCardMedia on _PostCardState {
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   height: 300.h,
-                  color: AppTheme.neutral200,
+                  color: Colors.grey[200],
                   child: const Center(child: CircularProgressIndicator()),
                 ),
                 errorWidget: (context, url, error) => Container(
                   height: 300.h,
-                  color: AppTheme.neutral200,
+                  color: Colors.grey[200],
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.error, color: AppTheme.errorColor, size: 24.w),
                       SizedBox(height: 8.h),
-                      Text('이미지 로드 실패',
-                          style: TextStyle(
-                              color: AppTheme.neutral600, fontSize: 14.sp)),
+                      Text(
+                        '이미지 로드 실패',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14.sp,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -81,6 +86,7 @@ extension _PostCardMedia on _PostCardState {
                   },
                   itemBuilder: (context, index) {
                     return GestureDetector(
+                      key: Key('post_card_media_$index'),
                       onTap: () => _openViewer(context, index),
                       onDoubleTap: _onDoubleTapImage,
                       child: CachedNetworkImage(
@@ -90,13 +96,19 @@ extension _PostCardMedia on _PostCardState {
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
                           height: 300.h,
-                          color: AppTheme.neutral200,
-                          child: const Center(child: CircularProgressIndicator()),
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
                         ),
                         errorWidget: (context, url, error) => Container(
                           height: 300.h,
-                          color: AppTheme.neutral200,
-                          child: Icon(Icons.error, color: AppTheme.errorColor, size: 24.w),
+                          color: Colors.grey[200],
+                          child: Icon(
+                            Icons.error,
+                            color: AppTheme.errorColor,
+                            size: 24.w,
+                          ),
                         ),
                       ),
                     );
@@ -118,7 +130,7 @@ extension _PostCardMedia on _PostCardState {
                   shape: BoxShape.circle,
                   color: _currentImageIndex == index
                       ? AppTheme.primaryColor
-                      : AppTheme.neutral300,
+                      : Colors.grey[300],
                 ),
               );
             }),

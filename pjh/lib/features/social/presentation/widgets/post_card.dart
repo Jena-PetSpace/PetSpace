@@ -11,9 +11,12 @@ import '../../../../core/utils/relative_time.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_viewer_page.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/entities/saved_posts_page.dart';
 import '../../domain/repositories/social_repository.dart';
+import '../utils/saved_posts_change_notifier.dart';
 import 'collection_picker_sheet.dart';
 import 'likes_bottom_sheet.dart';
+import 'social_content_report_sheet.dart';
 
 part 'post_card_header.dart';
 part 'post_card_media.dart';
@@ -26,9 +29,13 @@ class PostCard extends StatefulWidget {
   final VoidCallback onLike;
   final VoidCallback onComment;
   final VoidCallback onShare;
+  final VoidCallback? onOpenDetail;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
+  final VoidCallback? onBlocked;
   final void Function(String hashtag)? onHashtagTap;
+  final SocialRepository? repository;
+  final SavedPostsChangeNotifier? savedPostsNotifier;
 
   const PostCard({
     super.key,
@@ -37,9 +44,13 @@ class PostCard extends StatefulWidget {
     required this.onLike,
     required this.onComment,
     required this.onShare,
+    this.onOpenDetail,
     this.onDelete,
     this.onEdit,
+    this.onBlocked,
     this.onHashtagTap,
+    this.repository,
+    this.savedPostsNotifier,
   });
 
   @override
@@ -54,12 +65,16 @@ class _PostCardState extends State<PostCard> {
 
   int _currentImageIndex = 0;
   Timer? _likeDebounce;
-  Timer? _commentDebounce;
   bool _isSaved = false;
+  bool _isSavePending = false;
   bool _showHeart = false;
   bool _isContentExpanded = false;
 
   Post get post => widget.post;
+  SocialRepository get socialRepository =>
+      widget.repository ?? sl<SocialRepository>();
+  SavedPostsChangeNotifier get savedPostsNotifier =>
+      widget.savedPostsNotifier ?? SavedPostsChangeNotifier.instance;
 
   @override
   void initState() {
@@ -70,18 +85,36 @@ class _PostCardState extends State<PostCard> {
   @override
   void didUpdateWidget(PostCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.post.isSavedByCurrentUser != widget.post.isSavedByCurrentUser) {
-      setState(() => _isSaved = widget.post.isSavedByCurrentUser);
+    if (oldWidget.post.id != widget.post.id) {
+      setState(() {
+        _isSaved = widget.post.isSavedByCurrentUser;
+        _isSavePending = false;
+      });
+    } else if (oldWidget.post.isSavedByCurrentUser !=
+        widget.post.isSavedByCurrentUser) {
+      setState(() {
+        _isSaved = widget.post.isSavedByCurrentUser;
+        if (!_isSaved) _isSavePending = false;
+      });
     }
   }
 
   @override
   void dispose() {
     _likeDebounce?.cancel();
-    _commentDebounce?.cancel();
     super.dispose();
   }
+
   String get currentUserId => widget.currentUserId;
+
+  void _openDetail() {
+    final callback = widget.onOpenDetail;
+    if (callback != null) {
+      callback();
+      return;
+    }
+    context.push('/post/${post.id}');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +128,8 @@ class _PostCardState extends State<PostCard> {
           // 캡션 탭 → 게시글 상세
           if (post.content != null && post.content!.isNotEmpty)
             InkWell(
-              onTap: () => context.push('/post/${post.id}'),
+              key: const Key('post_card_open_detail'),
+              onTap: _openDetail,
               child: _buildContent(),
             ),
           // 이미지: 기존 탭/더블탭 동작 유지
@@ -103,7 +137,7 @@ class _PostCardState extends State<PostCard> {
           // 감정분석 카드 탭 → 게시글 상세
           if (post.emotionAnalysis != null)
             InkWell(
-              onTap: () => context.push('/post/${post.id}'),
+              onTap: _openDetail,
               child: _buildEmotionAnalysis(),
             ),
           _buildActions(),
@@ -273,16 +307,26 @@ class _PostCardState extends State<PostCard> {
 
   IconData _getEmotionIcon(String emotion) {
     switch (emotion) {
-      case 'happiness':  return Icons.mood;
-      case 'calm':       return Icons.self_improvement;
-      case 'excitement': return Icons.celebration;
-      case 'curiosity':  return Icons.psychology;
-      case 'anxiety':    return Icons.warning;
-      case 'fear':       return Icons.warning_amber_outlined;
-      case 'sadness':    return Icons.mood_bad;
-      case 'discomfort': return Icons.sick_outlined;
-      case 'sleepiness': return Icons.bedtime; // 하위 호환
-      default:           return Icons.help_outline;
+      case 'happiness':
+        return Icons.mood;
+      case 'calm':
+        return Icons.self_improvement;
+      case 'excitement':
+        return Icons.celebration;
+      case 'curiosity':
+        return Icons.psychology;
+      case 'anxiety':
+        return Icons.warning;
+      case 'fear':
+        return Icons.warning_amber_outlined;
+      case 'sadness':
+        return Icons.mood_bad;
+      case 'discomfort':
+        return Icons.sick_outlined;
+      case 'sleepiness':
+        return Icons.bedtime; // 하위 호환
+      default:
+        return Icons.help_outline;
     }
   }
 }

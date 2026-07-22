@@ -1,21 +1,19 @@
-import 'dart:developer';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../chat/domain/repositories/chat_repository.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../pets/domain/repositories/pet_repository.dart';
-import '../../domain/entities/follow.dart';
 import '../../domain/entities/social_user.dart';
 import '../../domain/repositories/social_repository.dart';
 import '../bloc/profile_bloc.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../widgets/profile_cover.dart';
 import '../widgets/profile_stats_card.dart';
 import '../widgets/user_posts_list.dart';
@@ -23,71 +21,68 @@ import '../widgets/user_posts_list.dart';
 class ProfilePage extends StatefulWidget {
   final String userId;
   final String? currentUserId;
-
-  /// true면 상단에 설정 버튼 표시 (내 프로필 진입 시)
   final bool isMyProfile;
+  final PetRepository? petRepository;
+  final ChatRepository? chatRepository;
+  final SocialRepository? socialRepository;
 
   const ProfilePage({
     super.key,
     required this.userId,
     this.currentUserId,
     this.isMyProfile = false,
+    this.petRepository,
+    this.chatRepository,
+    this.socialRepository,
   });
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _ProfilePageState extends State<ProfilePage> {
   bool _isSendingMessage = false;
+  bool _isFollowPending = false;
   String? _selectedPetId;
   List<Pet> _pets = [];
+
+  bool get _isOwnProfile =>
+      widget.isMyProfile ||
+      (widget.currentUserId != null && widget.currentUserId == widget.userId);
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    context.read<ProfileBloc>().add(LoadUserProfileRequested(
-          userId: widget.userId,
-          currentUserId: widget.currentUserId,
-        ));
-    _loadPets();
+    context.read<ProfileBloc>().add(
+      LoadUserProfileRequested(
+        userId: widget.userId,
+        currentUserId: widget.currentUserId,
+      ),
+    );
+    if (_isOwnProfile) {
+      _loadPets();
+    }
   }
 
   Future<void> _loadPets() async {
-    final result = await sl<PetRepository>().getUserPets(widget.userId);
-    result.fold(
-      (_) {},
-      (pets) {
-        if (mounted) setState(() => _pets = pets);
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+    final repository = widget.petRepository ?? sl<PetRepository>();
+    final result = await repository.getUserPets(widget.userId);
+    result.fold((_) {}, (pets) {
+      if (mounted) setState(() => _pets = pets);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: Text(
-          '프로필',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('프로필'),
         centerTitle: true,
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: AppTheme.primaryTextColor,
         elevation: 0,
-        actions: widget.isMyProfile
+        actions: _isOwnProfile
             ? [
                 IconButton(
                   icon: const Icon(Icons.settings_outlined),
@@ -99,24 +94,27 @@ class _ProfilePageState extends State<ProfilePage>
       ),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
-          if (state is ProfileLoaded && state.error != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.error!),
-                backgroundColor: AppTheme.errorColor,
-              ),
-            );
+          if (state is ProfileLoaded) {
+            if (_isFollowPending) {
+              setState(() => _isFollowPending = false);
+            }
+            if (state.error != null) {
+              _showSafeMessage('요청을 완료하지 못했어요. 잠시 후 다시 시도해주세요.');
+            }
+          } else if (state is ProfileError && _isFollowPending) {
+            setState(() => _isFollowPending = false);
           }
         },
         builder: (context, state) {
           if (state is ProfileLoading) {
             return const Center(child: CircularProgressIndicator());
-          } else if (state is ProfileLoaded) {
-            return _buildProfileContent(state);
-          } else if (state is ProfileError) {
-            return _buildErrorState(state.message);
           }
-
+          if (state is ProfileLoaded) {
+            return _buildProfileContent(state);
+          }
+          if (state is ProfileError) {
+            return _buildErrorState();
+          }
           return const SizedBox.shrink();
         },
       ),
@@ -125,38 +123,236 @@ class _ProfilePageState extends State<ProfilePage>
 
   Widget _buildProfileContent(ProfileLoaded state) {
     final user = state.user;
-    final isOwnProfile = widget.currentUserId == user.id;
-
+    final isOwn = _isOwnProfile || widget.currentUserId == user.id;
     return Column(
       children: [
-        // 프로필 헤더
-        _buildProfileHeader(user, state.isFollowing, isOwnProfile),
-        // 펫 스위처 칩 행
-        if (_pets.isNotEmpty) _buildPetSwitcher(),
-        // 탭바
-        TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.primaryColor,
-          unselectedLabelColor: AppTheme.lightTextColor,
-          indicatorColor: AppTheme.primaryColor,
-          tabs: const [
-            Tab(text: '게시물', icon: Icon(Icons.grid_on, size: 20)),
-            Tab(text: '팔로워', icon: Icon(Icons.people, size: 20)),
-            Tab(text: '팔로잉', icon: Icon(Icons.person_add, size: 20)),
-          ],
-        ),
-        // 탭 내용
+        _buildProfileHeader(user, state.isFollowing, isOwn),
+        if (isOwn && _pets.isNotEmpty) _buildPetSwitcher(),
         Expanded(
-          child: TabBarView(
-            controller: _tabController,
+          child: Container(
+            color: Colors.white,
+            child: UserPostsList(
+              userId: user.id,
+              isMyProfile: isOwn,
+              petId: isOwn ? _selectedPetId : null,
+              repository: widget.socialRepository,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileHeader(
+    SocialUser user,
+    bool isFollowing,
+    bool isOwnProfile,
+  ) {
+    final profileImage = user.profileImageUrl?.trim();
+    final hasProfileImage = profileImage != null && profileImage.isNotEmpty;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isOwnProfile)
+          ProfileCover(
+            coverImageUrl: user.coverImageUrl,
+            canEdit: true,
+            onImagePicked: (file) {
+              final userId =
+                  widget.currentUserId ??
+                  Supabase.instance.client.auth.currentUser?.id;
+              if (userId == null) return;
+              context.read<ProfileBloc>().add(
+                UpdateCoverImageRequested(userId: userId, file: file),
+              );
+            },
+          ),
+        Container(
+          width: double.infinity,
+          color: Colors.white,
+          padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 16.h),
+          child: Column(
             children: [
-              UserPostsList(
-                  userId: user.id,
-                  isMyProfile: isOwnProfile,
-                  petId: _selectedPetId),
-              _buildFollowersList(),
-              _buildFollowingList(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Semantics(
+                    image: true,
+                    label: '${user.displayName} 프로필 사진',
+                    child: CircleAvatar(
+                      radius: 36.r,
+                      backgroundColor: AppTheme.subtleBackground,
+                      backgroundImage: hasProfileImage
+                          ? CachedNetworkImageProvider(profileImage)
+                          : null,
+                      child: hasProfileImage
+                          ? null
+                          : Text(
+                              user.displayName.trim().isEmpty
+                                  ? '?'
+                                  : user.displayName.trim().substring(0, 1),
+                              style: TextStyle(
+                                fontSize: 24.sp,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.primaryTextColor,
+                          ),
+                        ),
+                        if (user.username?.trim().isNotEmpty == true) ...[
+                          SizedBox(height: 3.h),
+                          Text(
+                            '@${user.username!.trim()}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ],
+                        if (user.bio?.trim().isNotEmpty == true) ...[
+                          SizedBox(height: 8.h),
+                          Text(
+                            user.bio!.trim(),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              height: 1.45,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16.h),
+              ProfileStatsCard(
+                postsCount: user.postsCount,
+                followersCount: user.followersCount,
+                followingCount: user.followingCount,
+                onFollowersTap: () => _openFollowList(user, initialTab: 0),
+                onFollowingTap: () => _openFollowList(user, initialTab: 1),
+              ),
+              SizedBox(height: 12.h),
+              _buildActionButtons(user, isFollowing, isOwnProfile),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _openFollowList(SocialUser user, {required int initialTab}) {
+    final route = initialTab == 0 ? '/followers/' : '/following/';
+    context.push(
+      '$route${user.id}?name=${Uri.encodeComponent(user.displayName)}',
+    );
+  }
+
+  Widget _buildActionButtons(
+    SocialUser user,
+    bool isFollowing,
+    bool isOwnProfile,
+  ) {
+    if (isOwnProfile) {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _editProfile,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('프로필 편집'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: Size.fromHeight(48.h),
+              ),
+            ),
+          ),
+          SizedBox(width: 10.w),
+          SizedBox(
+            width: 52.w,
+            height: 48.h,
+            child: OutlinedButton(
+              onPressed: _showSettings,
+              style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+              child: const Icon(Icons.settings_outlined),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            key: const Key('profile_follow_button'),
+            onPressed: _isFollowPending
+                ? null
+                : () => _toggleFollow(user.id, isFollowing),
+            icon: _isFollowPending
+                ? SizedBox(
+                    width: 18.w,
+                    height: 18.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Icon(
+                    isFollowing ? Icons.check : Icons.person_add_alt_1,
+                    size: 19.w,
+                  ),
+            label: Text(isFollowing ? '팔로우 중' : '팔로우'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: Size.fromHeight(48.h),
+              elevation: 0,
+              backgroundColor: isFollowing
+                  ? AppTheme.subtleBackground
+                  : AppTheme.primaryColor,
+              foregroundColor: isFollowing
+                  ? AppTheme.primaryColor
+                  : Colors.white,
+              disabledBackgroundColor: AppTheme.primaryColor.withValues(
+                alpha: 0.7,
+              ),
+              disabledForegroundColor: Colors.white,
+            ),
+          ),
+        ),
+        SizedBox(width: 10.w),
+        SizedBox(
+          width: 52.w,
+          height: 48.h,
+          child: OutlinedButton(
+            key: const Key('profile_message_button'),
+            onPressed: _isSendingMessage ? null : () => _sendMessage(user),
+            style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+            child: _isSendingMessage
+                ? SizedBox(
+                    width: 18.w,
+                    height: 18.w,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.chat_bubble_outline),
           ),
         ),
       ],
@@ -166,12 +362,12 @@ class _ProfilePageState extends State<ProfilePage>
   Widget _buildPetSwitcher() {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.symmetric(vertical: 8.h),
+      padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
         children: [
           Expanded(
             child: SizedBox(
-              height: 36.h,
+              height: 38.h,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -183,62 +379,69 @@ class _ProfilePageState extends State<ProfilePage>
                   final selected = isAll
                       ? _selectedPetId == null
                       : pet!.id == _selectedPetId;
-
-                  final label = isAll ? '전체' : (pet!.name);
-                  final imageUrl = isAll ? null : pet!.avatarUrl;
-                  final petId = isAll ? null : pet!.id;
-                  final petName = isAll ? null : pet!.name;
-
-                  return GestureDetector(
-                    onTap: () => setState(() {
-                      _selectedPetId = isAll ? null : petId;
-                    }),
-                    onLongPress: isAll || petId == null ? null : () {
-                      context.push('/emotion-timeline', extra: {
-                        'petId': petId,
-                        'petName': petName ?? label,
-                        'petAvatarUrl': imageUrl,
-                      });
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: EdgeInsets.symmetric(horizontal: 12.w),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppTheme.primaryColor
-                            : AppTheme.subtleBackground,
-                        borderRadius: BorderRadius.circular(18.r),
-                        border: Border.all(
+                  final imageUrl = pet?.avatarUrl?.trim();
+                  final hasImage = imageUrl != null && imageUrl.isNotEmpty;
+                  return Semantics(
+                    button: true,
+                    selected: selected,
+                    label: isAll ? '전체 반려동물' : pet!.name,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(19.r),
+                      onTap: () => setState(
+                        () => _selectedPetId = isAll ? null : pet!.id,
+                      ),
+                      onLongPress: isAll
+                          ? null
+                          : () => _openEmotionTimeline(pet!),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: EdgeInsets.symmetric(horizontal: 12.w),
+                        decoration: BoxDecoration(
                           color: selected
                               ? AppTheme.primaryColor
-                              : AppTheme.dividerColor,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (!isAll && imageUrl != null) ...[
-                            CircleAvatar(
-                              radius: 10.r,
-                              backgroundImage: CachedNetworkImageProvider(imageUrl),
-                            ),
-                            SizedBox(width: 6.w),
-                          ] else if (!isAll) ...[
-                            Text(
-                              pet!.type == PetType.cat ? '🐱' : '🐶',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            SizedBox(width: 4.w),
-                          ],
-                          Text(
-                            label,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                              color: selected ? Colors.white : AppTheme.secondaryTextColor,
-                            ),
+                              : AppTheme.subtleBackground,
+                          borderRadius: BorderRadius.circular(19.r),
+                          border: Border.all(
+                            color: selected
+                                ? AppTheme.primaryColor
+                                : AppTheme.dividerColor,
                           ),
-                        ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!isAll)
+                              CircleAvatar(
+                                radius: 10.r,
+                                backgroundColor: selected
+                                    ? Colors.white.withValues(alpha: 0.2)
+                                    : Colors.white,
+                                backgroundImage: hasImage
+                                    ? CachedNetworkImageProvider(imageUrl)
+                                    : null,
+                                child: hasImage
+                                    ? null
+                                    : Icon(
+                                        Icons.pets,
+                                        size: 12.w,
+                                        color: selected
+                                            ? Colors.white
+                                            : AppTheme.primaryColor,
+                                      ),
+                              ),
+                            if (!isAll) SizedBox(width: 6.w),
+                            Text(
+                              isAll ? '전체' : pet!.name,
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w600,
+                                color: selected
+                                    ? Colors.white
+                                    : AppTheme.secondaryTextColor,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -246,383 +449,147 @@ class _ProfilePageState extends State<ProfilePage>
               ),
             ),
           ),
-          // 선택된 펫의 AI 타임라인 바로가기
           if (_selectedPetId != null)
-            Padding(
-              padding: EdgeInsets.only(right: 8.w),
-              child: GestureDetector(
-                onTap: () {
-                  final matched =
-                      _pets.where((p) => p.id == _selectedPetId).toList();
-                  if (matched.isEmpty) return;
-                  final pet = matched.first;
-                  context.push('/emotion-timeline', extra: {
-                    'petId': _selectedPetId!,
-                    'petName': pet.name,
-                    'petAvatarUrl': pet.avatarUrl,
-                  });
-                },
-                child: Container(
-                  width: 32.w,
-                  height: 32.w,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.analytics_outlined,
-                      size: 18.w, color: AppTheme.primaryColor),
-                ),
-              ),
+            IconButton(
+              tooltip: '선택한 반려동물 감정 타임라인',
+              onPressed: () {
+                final matches = _pets
+                    .where((pet) => pet.id == _selectedPetId)
+                    .toList();
+                if (matches.isNotEmpty) _openEmotionTimeline(matches.first);
+              },
+              icon: const Icon(Icons.analytics_outlined),
+              color: AppTheme.primaryColor,
             ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileHeader(
-      SocialUser user, bool isFollowing, bool isOwnProfile) {
-    // 상대방 프로필 + 커버 이미지 없음 → 빈 공간 숨김
-    final hasCover =
-        user.coverImageUrl != null && user.coverImageUrl!.isNotEmpty;
-    final showCover = isOwnProfile || hasCover;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (showCover)
-          ProfileCover(
-            coverImageUrl: user.coverImageUrl,
-            canEdit: isOwnProfile,
-            onImagePicked: (file) {
-              final userId = widget.currentUserId ??
-                  Supabase.instance.client.auth.currentUser?.id;
-              if (userId == null) return;
-              context.read<ProfileBloc>().add(UpdateCoverImageRequested(
-                    userId: userId,
-                    file: file,
-                  ));
-            },
-          ),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppTheme.primaryColor,
-                AppTheme.primaryColor.withValues(alpha: 0.85),
-              ],
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 40.r,
-                backgroundImage: user.profileImageUrl != null
-                    ? CachedNetworkImageProvider(user.profileImageUrl!)
-                    : null,
-                child: user.profileImageUrl == null
-                    ? Text(
-                        user.displayName.isNotEmpty ? user.displayName[0] : '?',
-                        style: TextStyle(fontSize: 28.sp, color: Colors.white),
-                      )
-                    : null,
-              ),
-              SizedBox(height: 10.h),
-              Text(
-                user.displayName,
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              if (user.username != null && user.username!.isNotEmpty) ...[
-                SizedBox(height: 2.h),
-                Text(
-                  '@${user.username}',
-                  style: TextStyle(fontSize: 12.sp, color: Colors.white70),
-                ),
-              ],
-              if (user.bio != null && user.bio!.isNotEmpty) ...[
-                SizedBox(height: 6.h),
-                Text(
-                  user.bio!,
-                  style: TextStyle(fontSize: 12.sp, color: Colors.white70),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-              SizedBox(height: 12.h),
-              ProfileStatsCard(
-                postsCount: user.postsCount,
-                followersCount: user.followersCount,
-                followingCount: user.followingCount,
-              ),
-              SizedBox(height: 12.h),
-              _buildActionButtons(user, isFollowing, isOwnProfile),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons(
-      SocialUser user, bool isFollowing, bool isOwnProfile) {
-    if (isOwnProfile) {
-      return Row(
-        children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _editProfile(),
-              icon: const Icon(Icons.edit),
-              label: Text('프로필 편집', style: TextStyle(fontSize: 14.sp)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppTheme.primaryColor,
-              ),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          ElevatedButton(
-            onPressed: () => _showSettings(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
-              foregroundColor: AppTheme.primaryTextColor,
-            ),
-            child: Icon(Icons.settings, size: 24.w),
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () => _toggleFollow(user.id, isFollowing),
-            icon: Icon(isFollowing ? Icons.check : Icons.person_add,
-                size: 20.w),
-            label: Text(isFollowing ? '팔로우 중' : '팔로우',
-                style: TextStyle(fontSize: 14.sp)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isFollowing ? AppTheme.neutral500 : Colors.white,
-              foregroundColor:
-                  isFollowing ? Colors.white : AppTheme.primaryColor,
-            ),
-          ),
-        ),
-        SizedBox(width: 12.w),
-        ElevatedButton(
-          onPressed: _isSendingMessage ? null : () => _sendMessage(user),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white.withValues(alpha: 0.2),
-            foregroundColor: AppTheme.primaryTextColor,
-          ),
-          child: _isSendingMessage
-              ? SizedBox(
-                  width: 20.w,
-                  height: 20.w,
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Icon(Icons.message, size: 24.w),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFollowersList() {
-    return _buildFollowList(isFollowers: true);
-  }
-
-  Widget _buildFollowingList() {
-    return _buildFollowList(isFollowers: false);
-  }
-
-  Widget _buildFollowList({required bool isFollowers}) {
-    return FutureBuilder<List<Follow>>(
-      future: _loadFollowData(isFollowers),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.people_outline, size: 48.w, color: AppTheme.neutral300),
-                SizedBox(height: 12.h),
-                Text(
-                  isFollowers ? '아직 팔로워가 없습니다' : '아직 팔로잉이 없습니다',
-                  style: TextStyle(
-                      fontSize: 14.sp, color: AppTheme.secondaryTextColor),
-                ),
-              ],
-            ),
-          );
-        }
-        final list = snapshot.data!;
-        return ListView.builder(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-          itemCount: list.length,
-          itemBuilder: (context, index) {
-            final follow = list[index];
-            final uid =
-                isFollowers ? follow.followerId : follow.followingId;
-            final displayName = isFollowers
-                ? follow.followerName
-                : follow.followingName;
-            final photoUrl = isFollowers
-                ? follow.followerProfileImage
-                : follow.followingProfileImage;
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                backgroundImage:
-                    photoUrl != null && photoUrl.isNotEmpty
-                        ? CachedNetworkImageProvider(photoUrl)
-                        : null,
-                child: photoUrl == null || photoUrl.isEmpty
-                    ? Icon(Icons.person,
-                        color: AppTheme.primaryColor, size: 20.w)
-                    : null,
-              ),
-              title: Text(
-                displayName.isEmpty ? '사용자' : displayName,
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
-              ),
-              onTap: () => context.push('/user-profile/$uid'),
-            );
-          },
-        );
+  void _openEmotionTimeline(Pet pet) {
+    context.push(
+      '/emotion-timeline',
+      extra: {
+        'petId': pet.id,
+        'petName': pet.name,
+        'petAvatarUrl': pet.avatarUrl,
       },
     );
   }
 
-  Future<List<Follow>> _loadFollowData(bool isFollowers) async {
-    final repo = sl<SocialRepository>();
-    final result = isFollowers
-        ? await repo.getFollowers(widget.userId)
-        : await repo.getFollowing(widget.userId);
-    return result.fold((failure) {
-      log('팔로우 데이터 로드 실패: ${failure.message}', name: 'ProfilePage');
-      return <Follow>[];
-    }, (list) => list);
-  }
-
-  Widget _buildErrorState(String message) {
+  Widget _buildErrorState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 64.w,
-            color: AppTheme.errorColor,
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            '오류가 발생했습니다',
-            style: TextStyle(
-              fontSize: 18.sp,
-              color: AppTheme.neutral800,
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 48.w,
+              color: AppTheme.lightTextColor,
             ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: AppTheme.neutral600,
+            SizedBox(height: 14.h),
+            Text(
+              '프로필을 불러오지 못했어요',
+              style: TextStyle(
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.primaryTextColor,
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: () {
-              context.read<ProfileBloc>().add(
-                    LoadUserProfileRequested(
-                      userId: widget.userId,
-                      currentUserId: widget.currentUserId,
-                    ),
-                  );
-            },
-            child: Text('다시 시도', style: TextStyle(fontSize: 14.sp)),
-          ),
-        ],
+            SizedBox(height: 6.h),
+            Text(
+              '연결 상태를 확인하고 다시 시도해주세요.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: AppTheme.secondaryTextColor,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            OutlinedButton.icon(
+              key: const Key('profile_retry_button'),
+              onPressed: () {
+                context.read<ProfileBloc>().add(
+                  LoadUserProfileRequested(
+                    userId: widget.userId,
+                    currentUserId: widget.currentUserId,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('다시 시도'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   void _toggleFollow(String userId, bool isCurrentlyFollowing) {
-    // currentUserId가 없으면 Supabase에서 직접 가져옴
-    final currentUserId = widget.currentUserId ??
-        Supabase.instance.client.auth.currentUser?.id;
-    if (currentUserId == null) return;
+    final currentUserId =
+        widget.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null || _isFollowPending) return;
+    setState(() => _isFollowPending = true);
 
     if (isCurrentlyFollowing) {
-      context.read<ProfileBloc>().add(UnfollowUserRequested(
-            followerId: currentUserId,
-            followingId: userId,
-          ));
+      context.read<ProfileBloc>().add(
+        UnfollowUserRequested(followerId: currentUserId, followingId: userId),
+      );
     } else {
       final authState = context.read<AuthBloc>().state;
-      final myName =
-          authState is AuthAuthenticated ? authState.user.displayName : '사용자';
-      context.read<ProfileBloc>().add(FollowUserRequested(
-            followerId: currentUserId,
-            followingId: userId,
-            followerName: myName,
-          ));
+      final myName = authState is AuthAuthenticated
+          ? authState.user.displayName
+          : '사용자';
+      context.read<ProfileBloc>().add(
+        FollowUserRequested(
+          followerId: currentUserId,
+          followingId: userId,
+          followerName: myName,
+        ),
+      );
     }
   }
 
-  void _editProfile() async {
+  Future<void> _editProfile() async {
     final updated = await context.push<bool>('/my/edit-profile');
     if (updated == true && mounted) {
-      // 프로필 정보 갱신
-      context.read<ProfileBloc>().add(LoadUserProfileRequested(
-            userId: widget.userId,
-            currentUserId: widget.currentUserId,
-          ));
+      context.read<ProfileBloc>().add(
+        LoadUserProfileRequested(
+          userId: widget.userId,
+          currentUserId: widget.currentUserId,
+        ),
+      );
     }
   }
 
-  void _showSettings() {
-    context.push('/settings/my');
-  }
+  void _showSettings() => context.push('/settings/my');
 
-  void _sendMessage(SocialUser user) async {
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-    if (currentUserId == null) return;
-
+  Future<void> _sendMessage(SocialUser user) async {
+    final currentUserId =
+        widget.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null || _isSendingMessage) return;
     setState(() => _isSendingMessage = true);
 
-    final result = await sl<ChatRepository>().createDirectChat(
+    final repository = widget.chatRepository ?? sl<ChatRepository>();
+    final result = await repository.createDirectChat(
       currentUserId: currentUserId,
       otherUserId: user.id,
     );
-
     if (!mounted) return;
     setState(() => _isSendingMessage = false);
-
     result.fold(
-      (failure) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('채팅방 생성에 실패했습니다.')),
-        );
-      },
-      (room) {
-        context.push(
-            '/chat/${room.id}?name=${Uri.encodeComponent(user.displayName)}');
-      },
+      (_) => _showSafeMessage('채팅방을 열지 못했어요. 잠시 후 다시 시도해주세요.'),
+      (room) => context.push(
+        '/chat/${room.id}?name=${Uri.encodeComponent(user.displayName)}',
+      ),
+    );
+  }
+
+  void _showSafeMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
     );
   }
 }

@@ -24,12 +24,16 @@ class ProfileService {
   /// 프로필 정보 조회
   Future<Map<String, dynamic>?> getProfile() async {
     try {
-      final userId = _currentUserId;
-
-      final response =
-          await _supabase.from('users').select().eq('id', userId).maybeSingle();
-
-      return response;
+      _currentUserId;
+      final response = await _supabase.rpc('get_my_user_profile');
+      if (response is List) {
+        return response.isEmpty
+            ? null
+            : Map<String, dynamic>.from(response.first as Map);
+      }
+      return response == null
+          ? null
+          : Map<String, dynamic>.from(response as Map);
     } catch (e) {
       log('프로필 조회 오류: $e', name: 'ProfileService.getProfile');
       rethrow;
@@ -79,9 +83,7 @@ class ProfileService {
     try {
       final userId = _currentUserId;
       final now = DateTime.now().toIso8601String();
-      final updateData = <String, dynamic>{
-        'updated_at': now,
-      };
+      final updateData = <String, dynamic>{'updated_at': now};
 
       if (termsAgreed) {
         updateData['terms_agreed_at'] = now;
@@ -121,8 +123,10 @@ class ProfileService {
       // DB 업데이트
       await updateProfile(photoUrl: imageUrl);
 
-      log('프로필 이미지 업데이트 성공: $imageUrl',
-          name: 'ProfileService.updateProfileImage');
+      log(
+        '프로필 이미지 업데이트 성공: $imageUrl',
+        name: 'ProfileService.updateProfileImage',
+      );
 
       return imageUrl;
     } catch (e) {
@@ -152,8 +156,10 @@ class ProfileService {
       final userId = _currentUserId;
 
       // 게시물 수
-      final postsResponse =
-          await _supabase.from('posts').select('author_id').eq('author_id', userId);
+      final postsResponse = await _supabase
+          .from('posts')
+          .select('author_id')
+          .eq('author_id', userId);
       final postsCount = (postsResponse as List).length;
 
       // 팔로워 수
@@ -177,11 +183,9 @@ class ProfileService {
       };
     } catch (e) {
       log('프로필 통계 조회 오류: $e', name: 'ProfileService.getProfileStats');
-      return {
-        'posts': 0,
-        'followers': 0,
-        'following': 0,
-      };
+      // 실패를 실제 통계 0으로 위장하지 않는다. 현재 유일한 소비자인
+      // MyProfileHeader가 오류/재시도 상태를 정확히 표시하도록 상향 전달한다.
+      rethrow;
     }
   }
 

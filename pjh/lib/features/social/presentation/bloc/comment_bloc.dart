@@ -1,30 +1,41 @@
 import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
-import '../../domain/usecases/get_comments.dart';
-import '../../domain/usecases/create_comment.dart';
-import '../../domain/usecases/delete_comment.dart';
-import '../../domain/usecases/update_comment.dart';
+
+import '../../../../config/injection_container.dart';
+import '../../../../core/services/realtime_service.dart';
 import '../../domain/entities/comment.dart';
 import '../../domain/repositories/social_repository.dart';
-import '../../../../config/injection_container.dart';
+import '../../domain/usecases/create_comment.dart';
+import '../../domain/usecases/delete_comment.dart';
+import '../../domain/usecases/get_comments.dart';
+import '../../domain/usecases/update_comment.dart';
 import 'comment_event.dart';
 import 'comment_state.dart';
-import '../../../../core/services/push_notification_service.dart';
-import '../../../../core/services/realtime_service.dart';
 
 class CommentBloc extends Bloc<CommentEvent, CommentState> {
+  static const int _commentsPerPage = 20;
+  static const String _loadErrorMessage = '댓글을 불러오지 못했어요. 잠시 후 다시 시도해주세요.';
+  static const String _actionErrorMessage = '요청을 완료하지 못했어요. 잠시 후 다시 시도해주세요.';
+
   final GetComments _getComments;
   final CreateComment _createComment;
   final DeleteComment _deleteComment;
   final UpdateComment _updateComment;
   final String _currentUserId;
-  final _pushService = PushNotificationService();
-  final _realtimeService = RealtimeService();
-  StreamSubscription<Map<String, dynamic>>? _commentSub;
+  final SocialRepository _socialRepository;
+  final RealtimeService _realtimeService;
+  final bool _enableRealtime;
 
-  static const int _commentsPerPage = 20;
+  StreamSubscription<Map<String, dynamic>>? _commentSub;
+  Timer? _realtimeDebounce;
   String? _lastCommentId;
+  bool _submissionInFlight = false;
+  final Set<String> _likeInFlight = <String>{};
+  final Set<String> _deleteInFlight = <String>{};
+  int _outcomeId = 0;
 
   CommentBloc({
     required GetComments getComments,
@@ -32,14 +43,21 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     required DeleteComment deleteComment,
     required UpdateComment updateComment,
     required String currentUserId,
+    SocialRepository? socialRepository,
+    RealtimeService? realtimeService,
+    bool enableRealtime = true,
   })  : _getComments = getComments,
         _createComment = createComment,
         _deleteComment = deleteComment,
         _updateComment = updateComment,
         _currentUserId = currentUserId,
+        _socialRepository = socialRepository ?? sl<SocialRepository>(),
+        _realtimeService = realtimeService ?? RealtimeService(),
+        _enableRealtime = enableRealtime,
         super(CommentInitial()) {
     on<LoadComments>(_onLoadComments);
     on<LoadMoreComments>(_onLoadMoreComments);
+    on<RefreshCommentsFromRealtime>(_onRefreshCommentsFromRealtime);
     on<CreateCommentRequested>(_onCreateCommentRequested);
     on<CreateReplyRequested>(_onCreateReplyRequested);
     on<DeleteCommentRequested>(_onDeleteCommentRequested);
@@ -52,29 +70,31 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     Emitter<CommentState> emit,
   ) async {
     emit(CommentLoading());
-    // 이 postId의 댓글 Realtime 구독 시작
-    _subscribeToRealtime(event.postId);
+    if (_enableRealtime) _subscribeToRealtime(event.postId);
     _lastCommentId = null;
 
     final result = await _getComments(
-      GetCommentsParams(
-        postId: event.postId,
-        limit: _commentsPerPage,
-        lastCommentId: null,
-      ),
+      GetCommentsParams(postId: event.postId, limit: _commentsPerPage),
     );
+    final comments = result.fold<List<Comment>?>((_) => null, (value) => value);
+    if (comments == null) {
+      emit(const CommentError(_loadErrorMessage));
+      return;
+    }
 
-    result.fold(
-      (failure) => emit(CommentError(failure.message)),
-      (comments) {
-        if (comments.isNotEmpty) {
-          _lastCommentId = comments.last.id;
-        }
-        emit(CommentLoaded(
-          comments: comments,
-          hasMore: comments.length >= _commentsPerPage,
-        ));
-      },
+    final totalCount = await _readServerTotal(event.postId);
+    if (totalCount == null) {
+      emit(const CommentError(_loadErrorMessage));
+      return;
+    }
+
+    if (comments.isNotEmpty) _lastCommentId = comments.last.id;
+    emit(
+      CommentLoaded(
+        comments: comments,
+        totalCount: totalCount,
+        hasMore: comments.length == _commentsPerPage,
+      ),
     );
   }
 
@@ -82,13 +102,20 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     LoadMoreComments event,
     Emitter<CommentState> emit,
   ) async {
-    if (state is! CommentLoaded) return;
+    final current = state;
+    if (current is! CommentLoaded ||
+        !current.hasMore ||
+        current.isLoadingMore) {
+      return;
+    }
 
-    final currentState = state as CommentLoaded;
-    if (!currentState.hasMore || currentState.isLoadingMore) return;
-
-    emit(currentState.copyWith(isLoadingMore: true));
-
+    emit(
+      current.copyWith(
+        isLoadingMore: true,
+        clearError: true,
+        clearActionOutcome: true,
+      ),
+    );
     final result = await _getComments(
       GetCommentsParams(
         postId: event.postId,
@@ -96,22 +123,27 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
         lastCommentId: _lastCommentId,
       ),
     );
+    final page = result.fold<List<Comment>?>((_) => null, (value) => value);
+    final latest = state;
+    if (latest is! CommentLoaded) return;
+    if (page == null) {
+      emit(latest.copyWith(isLoadingMore: false, error: '댓글을 더 불러오지 못했어요.'));
+      return;
+    }
 
-    result.fold(
-      (failure) => emit(currentState.copyWith(
+    if (page.isNotEmpty) _lastCommentId = page.last.id;
+    final knownIds = latest.comments.map((comment) => comment.id).toSet();
+    final merged = <Comment>[
+      ...latest.comments,
+      ...page.where((comment) => knownIds.add(comment.id)),
+    ];
+    emit(
+      latest.copyWith(
+        comments: merged,
+        hasMore: page.length == _commentsPerPage,
         isLoadingMore: false,
-        error: failure.message,
-      )),
-      (comments) {
-        if (comments.isNotEmpty) {
-          _lastCommentId = comments.last.id;
-        }
-        emit(CommentLoaded(
-          comments: [...currentState.comments, ...comments],
-          hasMore: comments.length >= _commentsPerPage,
-          isLoadingMore: false,
-        ));
-      },
+        clearError: true,
+      ),
     );
   }
 
@@ -119,10 +151,16 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     CreateCommentRequested event,
     Emitter<CommentState> emit,
   ) async {
-    // 기존 댓글 목록 보존 (실패 시 복원용)
-    final prevComments = state is CommentLoaded
-        ? List<Comment>.from((state as CommentLoaded).comments)
-        : <Comment>[];
+    final current = state;
+    if (current is! CommentLoaded || _submissionInFlight) return;
+    _submissionInFlight = true;
+    emit(
+      current.copyWith(
+        isSubmitting: true,
+        clearError: true,
+        clearActionOutcome: true,
+      ),
+    );
 
     final comment = Comment(
       id: const Uuid().v4(),
@@ -132,141 +170,211 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
       content: event.content,
       createdAt: DateTime.now(),
     );
+    final result = await _createComment(CreateCommentParams(comment: comment));
+    final created = result.fold<Comment?>((_) => null, (value) => value);
+    final latest = state;
+    if (latest is! CommentLoaded) {
+      _submissionInFlight = false;
+      return;
+    }
+    if (created == null) {
+      _submissionInFlight = false;
+      emit(const CommentError(_actionErrorMessage));
+      emit(
+        latest.copyWith(
+          isSubmitting: false,
+          actionOutcome: _outcome(
+            CommentActionKind.commentCreated,
+            succeeded: false,
+          ),
+        ),
+      );
+      return;
+    }
 
-    final result = await _createComment(
-      CreateCommentParams(comment: comment),
+    emit(
+      latest.copyWith(
+        comments: [created, ...latest.comments],
+        totalCount: latest.totalCount + 1,
+        actionOutcome: _outcome(
+          CommentActionKind.commentCreated,
+          succeeded: true,
+        ),
+      ),
     );
-
-    result.fold(
-      (failure) {
-        // 실패 시 스낵바 + 기존 목록 복원
-        emit(CommentError(failure.message));
-        emit(CommentLoaded(comments: prevComments));
-      },
-      (newComment) {
-        // 성공: 새 댓글을 목록 맨 앞에 추가
-        emit(CommentLoaded(
-          comments: [newComment, ...prevComments],
-        ));
-        // 게시글 작성자에게 댓글 알림 발송 (자기 자신 제외)
-        if (event.postAuthorId != null &&
-            event.postAuthorId!.isNotEmpty &&
-            event.postAuthorId != _currentUserId) {
-          _pushService.sendCommentNotification(
-            toUserId: event.postAuthorId!,
-            fromUserId: _currentUserId,
-            fromUserName: event.senderName ?? '사용자',
-            postId: event.postId,
-            commentPreview: event.content,
-          );
-        }
-      },
-    );
+    await _finishSubmissionWithServerCount(event.postId, emit);
   }
 
   Future<void> _onCreateReplyRequested(
     CreateReplyRequested event,
     Emitter<CommentState> emit,
   ) async {
+    final current = state;
+    if (current is! CommentLoaded || _submissionInFlight) return;
+    final parent = _locate(current.comments, event.parentId);
+    if (parent == null || parent.parent != null) return;
+
+    _submissionInFlight = true;
+    emit(
+      current.copyWith(
+        isSubmitting: true,
+        clearError: true,
+        clearActionOutcome: true,
+      ),
+    );
     final reply = Comment(
       id: const Uuid().v4(),
       postId: event.postId,
       authorId: _currentUserId,
-      authorName: '',
+      authorName: event.senderName ?? '',
       content: event.content,
       createdAt: DateTime.now(),
       parentId: event.parentId,
     );
-
     final result = await _createComment(CreateCommentParams(comment: reply));
+    final created = result.fold<Comment?>((_) => null, (value) => value);
+    final latest = state;
+    if (latest is! CommentLoaded) {
+      _submissionInFlight = false;
+      return;
+    }
+    if (created == null) {
+      _submissionInFlight = false;
+      emit(const CommentError(_actionErrorMessage));
+      emit(
+        latest.copyWith(
+          isSubmitting: false,
+          actionOutcome: _outcome(
+            CommentActionKind.replyCreated,
+            succeeded: false,
+          ),
+        ),
+      );
+      return;
+    }
 
-    result.fold(
-      (failure) {
-        if (state is CommentLoaded) {
-          emit((state as CommentLoaded).copyWith(error: failure.message));
-        }
-      },
-      (newReply) {
-        if (state is CommentLoaded) {
-          final currentState = state as CommentLoaded;
-          final updatedComments = currentState.comments.map((comment) {
-            if (comment.id == event.parentId) {
-              return comment.copyWith(
-                replies: [...comment.replies, newReply],
-              );
-            }
-            return comment;
-          }).toList();
-          emit(currentState.copyWith(comments: updatedComments));
-        }
-      },
+    final updated = _updateById(
+      latest.comments,
+      event.parentId,
+      (comment) => comment.copyWith(replies: [...comment.replies, created]),
     );
+    emit(
+      latest.copyWith(
+        comments: updated,
+        totalCount: latest.totalCount + 1,
+        actionOutcome: _outcome(
+          CommentActionKind.replyCreated,
+          succeeded: true,
+        ),
+      ),
+    );
+    await _finishSubmissionWithServerCount(event.postId, emit);
   }
 
   Future<void> _onDeleteCommentRequested(
     DeleteCommentRequested event,
     Emitter<CommentState> emit,
   ) async {
-    if (state is! CommentLoaded) return;
-
-    final currentState = state as CommentLoaded;
+    final current = state;
+    if (current is! CommentLoaded ||
+        _deleteInFlight.contains(event.commentId)) {
+      return;
+    }
+    final located = _locate(current.comments, event.commentId);
+    if (located == null) return;
+    _deleteInFlight.add(event.commentId);
+    emit(
+      current.copyWith(
+        pendingDeleteIds: {...current.pendingDeleteIds, event.commentId},
+        clearError: true,
+        clearActionOutcome: true,
+      ),
+    );
 
     final result = await _deleteComment(
       DeleteCommentParams(commentId: event.commentId),
     );
+    final succeeded = result.isRight();
+    _deleteInFlight.remove(event.commentId);
+    final latest = state;
+    if (latest is! CommentLoaded) return;
+    final pending = {...latest.pendingDeleteIds}..remove(event.commentId);
+    final kind = located.parent == null
+        ? CommentActionKind.commentDeleted
+        : CommentActionKind.replyDeleted;
+    if (!succeeded) {
+      emit(const CommentError(_actionErrorMessage));
+      emit(
+        latest.copyWith(
+          pendingDeleteIds: pending,
+          actionOutcome: _outcome(kind, succeeded: false),
+        ),
+      );
+      return;
+    }
 
-    result.fold(
-      (failure) {
-        emit(CommentError(failure.message));
-        Future.delayed(const Duration(seconds: 2), () {
-          if (!emit.isDone) emit(currentState);
-        });
-      },
-      (_) {
-        final updatedComments = currentState.comments
+    final removedCount =
+        located.parent == null ? 1 + located.comment.replies.length : 1;
+    final comments = located.parent == null
+        ? latest.comments
             .where((comment) => comment.id != event.commentId)
-            .toList();
-        emit(currentState.copyWith(comments: updatedComments));
-      },
+            .toList()
+        : _updateById(
+            latest.comments,
+            located.parent!.id,
+            (parent) => parent.copyWith(
+              replies: parent.replies
+                  .where((reply) => reply.id != event.commentId)
+                  .toList(),
+            ),
+          );
+    emit(
+      latest.copyWith(
+        comments: comments,
+        totalCount: max(0, latest.totalCount - removedCount),
+        pendingDeleteIds: pending,
+        actionOutcome: _outcome(kind, succeeded: true),
+      ),
     );
+    await _finishMutationWithServerCount(located.comment.postId, emit);
   }
 
   Future<void> _onUpdateCommentRequested(
     UpdateCommentRequested event,
     Emitter<CommentState> emit,
   ) async {
-    if (state is! CommentLoaded) return;
-
-    final currentState = state as CommentLoaded;
-
-    // Find the existing comment to update
-    final existingComment = currentState.comments.firstWhere(
-      (comment) => comment.id == event.commentId,
-    );
-
-    // Create updated comment with new content
-    final updatedComment = existingComment.copyWith(
+    final current = state;
+    if (current is! CommentLoaded) return;
+    final located = _locate(current.comments, event.commentId);
+    if (located == null) return;
+    final updated = located.comment.copyWith(
       content: event.content,
       updatedAt: DateTime.now(),
     );
-
-    final result = await _updateComment(
-      UpdateCommentParams(comment: updatedComment),
-    );
-
-    result.fold(
-      (failure) {
-        emit(CommentError(failure.message));
-        Future.delayed(const Duration(seconds: 2), () {
-          if (!emit.isDone) emit(currentState);
-        });
-      },
-      (newComment) {
-        final updatedComments = currentState.comments.map((comment) {
-          return comment.id == event.commentId ? newComment : comment;
-        }).toList();
-        emit(currentState.copyWith(comments: updatedComments));
-      },
+    final result = await _updateComment(UpdateCommentParams(comment: updated));
+    final saved = result.fold<Comment?>((_) => null, (value) => value);
+    final latest = state;
+    if (latest is! CommentLoaded) return;
+    if (saved == null) {
+      emit(const CommentError(_actionErrorMessage));
+      emit(
+        latest.copyWith(
+          actionOutcome: _outcome(
+            CommentActionKind.commentUpdated,
+            succeeded: false,
+          ),
+        ),
+      );
+      return;
+    }
+    emit(
+      latest.copyWith(
+        comments: _replaceById(latest.comments, saved),
+        actionOutcome: _outcome(
+          CommentActionKind.commentUpdated,
+          succeeded: true,
+        ),
+      ),
     );
   }
 
@@ -274,39 +382,178 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     LikeCommentRequested event,
     Emitter<CommentState> emit,
   ) async {
-    if (state is! CommentLoaded) return;
-
-    final currentState = state as CommentLoaded;
-    final repo = sl<SocialRepository>();
-
-    // Optimistic UI update
-    final updatedComments = currentState.comments.map((comment) {
-      if (comment.id == event.commentId) {
-        return comment.copyWith(
-          isLikedByCurrentUser: !event.isCurrentlyLiked,
-          likesCount: event.isCurrentlyLiked
-              ? (comment.likesCount - 1).clamp(0, 999999)
-              : comment.likesCount + 1,
-        );
-      }
-      return comment;
-    }).toList();
-    emit(currentState.copyWith(comments: updatedComments));
-
-    // Call API
-    final result = event.isCurrentlyLiked
-        ? await repo.unlikeComment(event.commentId, _currentUserId)
-        : await repo.likeComment(event.commentId, _currentUserId);
-
-    result.fold(
-      (failure) {
-        // Revert on failure
-        emit(currentState);
-      },
-      (_) {
-        // Success - optimistic update already applied
-      },
+    final current = state;
+    if (current is! CommentLoaded || _likeInFlight.contains(event.commentId)) {
+      return;
+    }
+    final located = _locate(current.comments, event.commentId);
+    if (located == null) return;
+    final previousLiked = located.comment.isLikedByCurrentUser;
+    final previousCount = located.comment.likesCount;
+    _likeInFlight.add(event.commentId);
+    emit(
+      current.copyWith(
+        comments: _updateById(
+          current.comments,
+          event.commentId,
+          (comment) => comment.copyWith(
+            isLikedByCurrentUser: !previousLiked,
+            likesCount:
+                previousLiked ? max(0, previousCount - 1) : previousCount + 1,
+          ),
+        ),
+        pendingLikeIds: {...current.pendingLikeIds, event.commentId},
+        clearActionOutcome: true,
+      ),
     );
+
+    final result = previousLiked
+        ? await _socialRepository.unlikeComment(event.commentId, _currentUserId)
+        : await _socialRepository.likeComment(event.commentId, _currentUserId);
+    _likeInFlight.remove(event.commentId);
+    final latest = state;
+    if (latest is! CommentLoaded) return;
+    final pending = {...latest.pendingLikeIds}..remove(event.commentId);
+    if (result.isLeft()) {
+      emit(const CommentError(_actionErrorMessage));
+      emit(
+        latest.copyWith(
+          comments: _updateById(
+            latest.comments,
+            event.commentId,
+            (comment) => comment.copyWith(
+              isLikedByCurrentUser: previousLiked,
+              likesCount: previousCount,
+            ),
+          ),
+          pendingLikeIds: pending,
+          actionOutcome: _outcome(
+            CommentActionKind.likeFailed,
+            succeeded: false,
+          ),
+        ),
+      );
+      return;
+    }
+    emit(latest.copyWith(pendingLikeIds: pending));
+  }
+
+  Future<void> _onRefreshCommentsFromRealtime(
+    RefreshCommentsFromRealtime event,
+    Emitter<CommentState> emit,
+  ) async {
+    final current = state;
+    if (current is! CommentLoaded ||
+        current.isSubmitting ||
+        current.pendingDeleteIds.isNotEmpty ||
+        current.pendingLikeIds.isNotEmpty) {
+      return;
+    }
+    final limit = max(_commentsPerPage, current.comments.length);
+    final result = await _getComments(
+      GetCommentsParams(postId: event.postId, limit: limit),
+    );
+    final comments = result.fold<List<Comment>?>((_) => null, (value) => value);
+    if (comments == null) return;
+    final totalCount = await _readServerTotal(event.postId);
+    final latest = state;
+    if (latest is! CommentLoaded) return;
+    if (comments.isNotEmpty) _lastCommentId = comments.last.id;
+    emit(
+      latest.copyWith(
+        comments: comments,
+        totalCount: totalCount ?? latest.totalCount,
+        hasMore: comments.length == limit ? latest.hasMore : false,
+        clearError: true,
+        clearActionOutcome: true,
+      ),
+    );
+  }
+
+  Future<int?> _readServerTotal(String postId) async {
+    final result = await _socialRepository.getPostDetail(postId);
+    return result.fold(
+      (_) => null,
+      (detail) => (detail?['comments_count'] as num?)?.toInt(),
+    );
+  }
+
+  Future<void> _finishSubmissionWithServerCount(
+    String postId,
+    Emitter<CommentState> emit,
+  ) async {
+    final serverTotal = await _readServerTotal(postId);
+    _submissionInFlight = false;
+    final latest = state;
+    if (latest is! CommentLoaded) return;
+    emit(
+      latest.copyWith(
+        totalCount: serverTotal ?? latest.totalCount,
+        isSubmitting: false,
+        clearActionOutcome: true,
+      ),
+    );
+  }
+
+  Future<void> _finishMutationWithServerCount(
+    String postId,
+    Emitter<CommentState> emit,
+  ) async {
+    final serverTotal = await _readServerTotal(postId);
+    final latest = state;
+    if (latest is! CommentLoaded) return;
+    emit(
+      latest.copyWith(
+        totalCount: serverTotal ?? latest.totalCount,
+        clearActionOutcome: true,
+      ),
+    );
+  }
+
+  CommentActionOutcome _outcome(
+    CommentActionKind kind, {
+    required bool succeeded,
+  }) {
+    return CommentActionOutcome(
+      id: ++_outcomeId,
+      kind: kind,
+      succeeded: succeeded,
+      message: succeeded ? null : _actionErrorMessage,
+    );
+  }
+
+  _LocatedComment? _locate(List<Comment> comments, String id) {
+    for (final comment in comments) {
+      if (comment.id == id) {
+        return _LocatedComment(comment: comment);
+      }
+      for (final reply in comment.replies) {
+        if (reply.id == id) {
+          return _LocatedComment(comment: reply, parent: comment);
+        }
+      }
+    }
+    return null;
+  }
+
+  List<Comment> _updateById(
+    List<Comment> comments,
+    String id,
+    Comment Function(Comment comment) update,
+  ) {
+    return comments.map((comment) {
+      if (comment.id == id) return update(comment);
+      final replies = comment.replies.map((reply) {
+        return reply.id == id ? update(reply) : reply;
+      }).toList();
+      return replies == comment.replies
+          ? comment
+          : comment.copyWith(replies: replies);
+    }).toList();
+  }
+
+  List<Comment> _replaceById(List<Comment> comments, Comment replacement) {
+    return _updateById(comments, replacement.id, (_) => replacement);
   }
 
   void _subscribeToRealtime(String postId) {
@@ -315,16 +562,25 @@ class CommentBloc extends Bloc<CommentEvent, CommentState> {
     _commentSub = _realtimeService.commentStream.listen((data) {
       if (data['postId'] != postId) return;
       final event = data['event'] as String?;
-      // delete 이벤트만 새로고침 (insert는 낙관적 업데이트로 이미 처리됨)
-      if (event == 'delete') {
-        add(LoadComments(postId: postId));
-      }
+      if (event != 'insert' && event != 'delete') return;
+      _realtimeDebounce?.cancel();
+      _realtimeDebounce = Timer(const Duration(milliseconds: 350), () {
+        if (!isClosed) add(RefreshCommentsFromRealtime(postId: postId));
+      });
     });
   }
 
   @override
-  Future<void> close() {
-    _commentSub?.cancel();
+  Future<void> close() async {
+    _realtimeDebounce?.cancel();
+    await _commentSub?.cancel();
     return super.close();
   }
+}
+
+class _LocatedComment {
+  final Comment comment;
+  final Comment? parent;
+
+  const _LocatedComment({required this.comment, this.parent});
 }

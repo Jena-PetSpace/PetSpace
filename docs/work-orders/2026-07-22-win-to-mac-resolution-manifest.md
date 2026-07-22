@@ -45,3 +45,46 @@
 | 36 | `pjh/pubspec.yaml` | `content` | `43005768fa391a841b8a62766b82e340712d31bbb656c84ee13b688094c7da95` | `d95cc9899a6dbdbf9876954d3d3610f7ef8a195d8b05d13cc495e93bee6e12ef` | `a4f5dce70b10c203e82bd645a433bb28c4d0ab96dc2cd5d2b9743138e1eec761` |
 | 37 | `supabase/petspace_setup.sql` | `content` | `4430fbb932b4502e8ac117c6bd0dd0875bb20aee354336898bf10a4040904b2b` | `a46e3b6660ff3013981907555fb5cbb11af614d28a4754bbafff7407b398decc` | `d0bf07aaac73296b95ad677d3a6632825bb28070046ec37965a1e8c09c65fcc3` |
 
+## 최종 해소 SHA-256
+
+아래 값은 검증 완료 후 작업 트리의 실제 bytes 기준이다. 삭제 채택 파일은 `ABSENT`로 기록한다.
+
+| path | final SHA-256 또는 ABSENT |
+|---|---|
+| `.gitignore` | `8f5ef31a228b21aca0ea186860142f74c6da13b217179fe7e4fa6c38ff22be54` |
+| `CLAUDE.md` | `252ce8dc8b833e858dc6d1b7ec28052fab757913b7e687c97133806f0f8a9b3e` |
+| `pjh/lib/features/auth/data/repositories/auth_repository_impl.dart` | `0f9d1e2e3822218682589bb15dcd8ed6f2750c0ef73dc0420eead1c797424808` |
+| `pjh/lib/features/chat/presentation/pages/chat_detail_page.dart` | `abd8ec127a28096e45b8e09bc56940141dd05f0bb92b16d7d441d1da73369ba1` |
+| `pjh/lib/features/chat/presentation/pages/chat_room_settings_page.dart` | `9b0a331ad16fd672eb5927b650c45bfd81030fa694a45aef5009a67af7cfb9c1` |
+| `pjh/lib/features/chat/presentation/pages/chat_rooms_page.dart` | `4567a3c432a70ec9ffe0bef96990812869d1309bdf19e784dcd6972ef3107df3` |
+| `pjh/lib/features/chat/presentation/pages/create_chat_page.dart` | `ce32abdd565ae01f7485884eeff59b249ad89c8e6e135306504729b4138f7dea` |
+| `pjh/lib/features/chat/presentation/widgets/chat_bubble.dart` | `e69b791deedb091fb2ab44fdcc1d6d458be9814f8994b22e5584e74a02e16331` |
+| `pjh/lib/features/chat/presentation/widgets/chat_input_bar.dart` | `69e45ce553cfb697302aa6c45b565f42c48261576089f74a4a384619c7bc4988` |
+| `pjh/lib/features/chat/presentation/widgets/chat_room_tile.dart` | `f1da3580be33b58ead37a14973e6af731374fdac868fc1ed5fc03d49325733be` |
+| `pjh/lib/features/health/presentation/pages/health_main_page.dart` | `3e05ed9055dbab3cf38e2276894e1a0ce79d7ec68fd5bdeaa624994e0041da31` |
+| `pjh/lib/features/health/presentation/widgets/health_record_sheets.dart` | `1f68e58ffae080f7f2916f7ae2393fd4d551fa1003c01f9b1c6603a91af464ae` |
+| `pjh/lib/features/pets/presentation/pages/pet_detail_page.dart` | `5e68bab43036b8a3df811a5bb26965230e3fc2d9c67cebf9911a044f867dcb0d` |
+| `pjh/lib/features/pets/presentation/pages/pet_management_page.dart` | `cb83ac13a3fdce8413beabc791cd6b37ea12d2e84fa7cbe573b94ff1656e8b37` |
+| `pjh/lib/features/pets/presentation/widgets/pet_card.dart` | `6e2cca45a9f2141f0fb2ac0a9790b0a8b9c6ce7d7e31d99932c3fbb75869d726` |
+| `pjh/lib/features/pets/presentation/widgets/add_pet_bottom_sheet.dart` | `ABSENT` |
+| `pjh/lib/features/profile/presentation/pages/community_guidelines_page.dart` | `16f41ece201c3109d4d70249fecc50b995b483047fb5f334ada8b5109e2d1a6a` |
+| `pjh/lib/features/profile/presentation/pages/help_page.dart` | `b328f9b4627a57e073c0fb5944a12a2653f99eb2a237da8c2991f7c7275f1de7` |
+| `pjh/lib/features/profile/presentation/pages/notification_settings_page.dart` | `6ca5ddd9477f5512b2f9592695613c530d3d3f8834199e8cc67f67787569a808` |
+| `pjh/lib/features/profile/presentation/pages/profile_edit_page.dart` | `1bdc30d16bea4e62999b28fd4cddfb8d82250469ac44c55b6ceee3a1a4e77c00` |
+| `pjh/lib/features/social/presentation/pages/explore_page.dart` | `5e35c226e08cb195ccd56f7a6bf00d892ab5ff544730474aeac7315f995d3ca3` |
+| `pjh/lib/features/social/presentation/pages/feed_page.dart` | `7f0cd36fd18fd3aea136b900ab4ed20d05636a6b688f568d49a115c417254793` |
+| `pjh/lib/features/social/presentation/pages/followers_page.dart` | `4286db9313001830a658f6983b47a709fc7aba62d1f91c32e462f8b1b9534efa` |
+| `pjh/lib/features/social/presentation/pages/hashtag_page.dart` | `bc052c311966eb240b4568d992179456df797b42b5dccee05b6cee17a24a9fde` |
+| `pjh/lib/features/social/presentation/pages/location_posts_page.dart` | `ffc8a8d3c96f355778c38437e7eaed3c74fa291ada2f8f318c612812abc7ce10` |
+| `pjh/lib/features/social/presentation/pages/post_detail_page.dart` | `36ada6a54b67ca7bf6802c451677f2d8922220cad39bcc7847570c5a83365197` |
+| `pjh/lib/features/social/presentation/pages/profile_page.dart` | `27b098941820137720a87235d60f9e9d383b8484a3d436d07767b2c860e0f9f3` |
+| `pjh/lib/features/social/presentation/pages/search_page.dart` | `d6bcf9817b40d4006df5dafc1820afb7693a0cd64e1f9a79c268893acc5d3abb` |
+| `pjh/lib/features/social/presentation/widgets/collection_picker_sheet.dart` | `b6109ff09149df5ecea2eb7468595c624490ccc87d65199e8061d9d3a1ece40b` |
+| `pjh/lib/features/social/presentation/widgets/comment_list_item.dart` | `8c7cd72c26ac7aca1895b9512ac4d18434fb637afb59f8c90c6b460f3d183682` |
+| `pjh/lib/features/social/presentation/widgets/likes_bottom_sheet.dart` | `25da05487dcaf9b55a10a829b24e50ab8490f7ce8701e2c7b27cd58f935b8c77` |
+| `pjh/lib/features/social/presentation/widgets/post_card_actions.dart` | `018ef1dea58c8807c1fb05b6961541415aa883650dd06bcd5d7d11efa80fbfef` |
+| `pjh/lib/features/social/presentation/widgets/post_card_media.dart` | `0e433e310429e726bb50245ba2238dc019fbfd2a965912b0c71ee9d4ac111f53` |
+| `pjh/lib/features/social/presentation/widgets/profile_stats_card.dart` | `015ecd1f669111ba7c129e6904b9d36aeed25fa024711b1cf13c9ff06ff6b323` |
+| `pjh/lib/shared/widgets/lazy_load_list.dart` | `2f64957b4ced5d206131b6cde5c5a204703e44813014a7155bf7d3ffb3ce3dc7` |
+| `pjh/pubspec.yaml` | `7458e391987c6e754d39fc504eeac7683cecca7fbd93a5e2019a472256873779` |
+| `supabase/petspace_setup.sql` | `6d4b06464714cc2fc515ed95a6ef3a5c61787f79891cdaf53be1c737d55bc5b6` |

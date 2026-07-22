@@ -17,6 +17,7 @@ class GetUpcomingRecords
       GetUpcomingRecordsParams params) {
     return repository.getUpcomingRecords(
       userId: params.userId,
+      petId: params.petId,
       daysAhead: params.daysAhead,
     );
   }
@@ -24,13 +25,15 @@ class GetUpcomingRecords
 
 class GetUpcomingRecordsParams extends Equatable {
   final String userId;
+  final String petId;
   final int daysAhead;
 
   const GetUpcomingRecordsParams({
     required this.userId,
+    required this.petId,
     this.daysAhead = 30,
   });
 
   @override
-  List<Object?> get props => [userId, daysAhead];
+  List<Object?> get props => [userId, petId, daysAhead];
 }

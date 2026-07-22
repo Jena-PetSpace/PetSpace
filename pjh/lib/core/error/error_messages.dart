@@ -72,6 +72,8 @@ class ErrorMessages {
       '건강 기록 수정에 실패했습니다.\n다시 시도해주세요.';
   static const String healthRecordDeleteFailed =
       '건강 기록 삭제에 실패했습니다.\n다시 시도해주세요.';
+  static const String healthUpcomingLoadFailed =
+      '다가오는 일정을 불러오지 못했습니다.\n다시 시도해주세요.';
 
   // 채팅 에러
   static const String chatRoomCreateFailed = '채팅방 생성에 실패했습니다.\n다시 시도해주세요.';

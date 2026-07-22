@@ -106,6 +106,25 @@ GoogleService-Info.plist는 local present=true와 merge 전후 보존 boolean만
 
 검증: format, analyze, 위 47경로 테스트, 전체 test, iOS release no-codesign build, git diff --check. mac-ios-release 반영·push·DB·Edge·APNs·signing·TestFlight·배포는 권한 밖이다.
 
+## 실행 결과 (2026-07-22)
+
+- PRE_MERGE_HEAD: `8926a912e650f1f613b557044227197123025aa7`
+- MERGE_HEAD: `b1f6b48e32dd3046503abe3b54aa2934f48a056b`
+- content conflict 36 + delete/modify 1의 37경로 의미 검토 완료; 실제 Git unresolved 33경로 해소, unresolved 0
+- `dart format`: resolution Dart 경로 적용, format diff 재검증 완료
+- `flutter analyze --no-pub`: 통과
+- 지정 테스트 47파일: 231건 통과
+- 전체 `flutter test --no-pub`: 689건 통과
+- `flutter build ios --release --no-codesign`: 통과
+- 충돌 표식: 0
+- 수동 변경 manifest 밖 경로: 0
+- `git diff --check`: 수동 변경분 오류 0; Theirs 자동 유입 문서 `docs/reviews/uiux_code_audit_2026-07-13.md`의 기존 EOF 빈 줄 1건만 재현
+- Apple/OAuth/URL scheme/entitlement와 iOS 보호 파일: Ours 보존
+- H2: Ours 보존; K1: Theirs 보존; profile/RPC viewer 권한은 `auth.uid()` 기준 유지
+- health root navigator와 mounted guard, iPad `shareHandler` + `shareOrigin`, pet editor 전환: 보존
+- `Podfile.lock`: `pubspec.yaml`에 포함된 `package_info_plus`의 iOS pod를 `pod install` 결과로만 추가
+- Google service plist: 로컬 존재 여부만 확인, 내용·hash 미수집
+
 ## 기계 검증 결과
 
 - Base→Theirs 변경: 260

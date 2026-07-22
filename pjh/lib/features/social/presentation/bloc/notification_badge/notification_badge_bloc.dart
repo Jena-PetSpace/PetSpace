@@ -14,18 +14,23 @@ class NotificationBadgeBloc
       : super(const NotificationBadgeState()) {
     on<NotificationBadgeLoadRequested>(_onLoadRequested);
     on<NotificationBadgeRefreshRequested>(_onRefreshRequested);
-    on<NotificationBadgeIncrementRequested>(_onIncrementRequested);
   }
 
   Future<void> _onLoadRequested(
     NotificationBadgeLoadRequested event,
     Emitter<NotificationBadgeState> emit,
   ) async {
-    final result =
-        await socialRepository.getUnreadNotificationsCount(event.userId);
+    emit(state.copyWith(isRefreshing: true, clearError: true));
+    final result = await socialRepository.getUnreadNotificationsCount(
+      event.userId,
+    );
     result.fold(
-      (failure) => null,
-      (count) => emit(state.copyWith(count: count)),
+      (failure) => emit(
+        state.copyWith(isRefreshing: false, errorMessage: failure.message),
+      ),
+      (count) => emit(
+        state.copyWith(count: count, isRefreshing: false, clearError: true),
+      ),
     );
   }
 
@@ -33,18 +38,17 @@ class NotificationBadgeBloc
     NotificationBadgeRefreshRequested event,
     Emitter<NotificationBadgeState> emit,
   ) async {
-    final result =
-        await socialRepository.getUnreadNotificationsCount(event.userId);
-    result.fold(
-      (failure) => null,
-      (count) => emit(state.copyWith(count: count)),
+    emit(state.copyWith(isRefreshing: true, clearError: true));
+    final result = await socialRepository.getUnreadNotificationsCount(
+      event.userId,
     );
-  }
-
-  void _onIncrementRequested(
-    NotificationBadgeIncrementRequested event,
-    Emitter<NotificationBadgeState> emit,
-  ) {
-    emit(state.copyWith(count: state.count + 1));
+    result.fold(
+      (failure) => emit(
+        state.copyWith(isRefreshing: false, errorMessage: failure.message),
+      ),
+      (count) => emit(
+        state.copyWith(count: count, isRefreshing: false, clearError: true),
+      ),
+    );
   }
 }

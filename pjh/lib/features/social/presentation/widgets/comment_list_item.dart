@@ -1,48 +1,118 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/comment.dart';
 import '../bloc/comment_bloc.dart';
 import '../bloc/comment_event.dart';
 
-class CommentListItem extends StatelessWidget {
+enum _CommentMenuAction { delete, report }
+
+class CommentListItem extends StatefulWidget {
   final Comment comment;
   final String currentUserId;
+  final String postAuthorId;
   final VoidCallback? onDelete;
   final VoidCallback? onReply;
+  final void Function(String rootCommentId, String authorName)? onReplyTo;
+  final Future<void> Function(Comment comment)? onReport;
+  final Set<String> pendingLikeIds;
+  final Set<String> pendingDeleteIds;
 
   const CommentListItem({
     super.key,
     required this.comment,
     required this.currentUserId,
+    this.postAuthorId = '',
     this.onDelete,
     this.onReply,
+    this.onReplyTo,
+    this.onReport,
+    this.pendingLikeIds = const <String>{},
+    this.pendingDeleteIds = const <String>{},
   });
 
   @override
+  State<CommentListItem> createState() => _CommentListItemState();
+}
+
+class _CommentListItemState extends State<CommentListItem> {
+  bool _showAllReplies = false;
+
+  @override
+  void didUpdateWidget(CommentListItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.comment.id != widget.comment.id ||
+        widget.comment.replies.length <= 2) {
+      _showAllReplies = false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final replies = widget.comment.replies;
+    final visibleReplies = _showAllReplies ? replies : replies.take(2).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildCommentRow(context, comment, isReply: false),
-        if (comment.replies.isNotEmpty)
+        _buildCommentRow(
+          context,
+          widget.comment,
+          isReply: false,
+          rootCommentId: widget.comment.id,
+        ),
+        if (visibleReplies.isNotEmpty)
           Padding(
             padding: EdgeInsets.only(left: 44.w),
             child: Column(
-              children: comment.replies
-                  .map((reply) =>
-                      _buildCommentRow(context, reply, isReply: true))
+              children: visibleReplies
+                  .map(
+                    (reply) => _buildCommentRow(
+                      context,
+                      reply,
+                      isReply: true,
+                      rootCommentId: widget.comment.id,
+                    ),
+                  )
                   .toList(),
+            ),
+          ),
+        if (replies.length > 2)
+          Padding(
+            padding: EdgeInsets.only(left: 54.w, right: 16.w),
+            child: TextButton(
+              key: Key('comment_replies_toggle_${widget.comment.id}'),
+              onPressed: () {
+                setState(() => _showAllReplies = !_showAllReplies);
+              },
+              style: TextButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                padding: EdgeInsets.symmetric(horizontal: 8.w),
+              ),
+              child: Text(
+                _showAllReplies ? '답글 접기' : '답글 ${replies.length - 2}개 더 보기',
+              ),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildCommentRow(BuildContext context, Comment c,
-      {required bool isReply}) {
+  Widget _buildCommentRow(
+    BuildContext context,
+    Comment comment, {
+    required bool isReply,
+    required String rootCommentId,
+  }) {
+    final imageUrl = comment.authorProfileImage?.trim();
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
+    final isLikePending = widget.pendingLikeIds.contains(comment.id);
+    final isDeletePending = widget.pendingDeleteIds.contains(comment.id);
+    final isOwner = comment.authorId == widget.currentUserId;
+    final canDelete = isOwner && (isReply || widget.onDelete != null);
+    final canReport = !isOwner && widget.onReport != null;
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: 16.w,
@@ -52,16 +122,18 @@ class CommentListItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Semantics(
-            label: '${c.authorName} 프로필 사진',
+            label: '${comment.authorName} 프로필 사진',
             image: true,
             child: CircleAvatar(
               radius: isReply ? 12.r : 16.r,
-              backgroundImage: c.authorProfileImage != null
-                  ? CachedNetworkImageProvider(c.authorProfileImage!)
+              backgroundImage: hasImage
+                  ? CachedNetworkImageProvider(imageUrl)
                   : null,
-              child: c.authorProfileImage == null
+              child: !hasImage
                   ? Text(
-                      c.authorName.isNotEmpty ? c.authorName[0] : '?',
+                      comment.authorName.trim().isEmpty
+                          ? '?'
+                          : comment.authorName.trim().substring(0, 1),
                       style: TextStyle(fontSize: isReply ? 10.sp : 12.sp),
                     )
                   : null,
@@ -74,89 +146,149 @@ class CommentListItem extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      c.authorName,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 13.sp),
+                    Flexible(
+                      child: Text(
+                        comment.authorName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13.sp,
+                        ),
+                      ),
                     ),
+                    if (comment.authorId == widget.postAuthorId) ...[
+                      SizedBox(width: 6.w),
+                      Container(
+                        key: Key('comment_author_badge_${comment.id}'),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6.w,
+                          vertical: 2.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.tilePastelBlue,
+                          borderRadius: BorderRadius.circular(6.r),
+                        ),
+                        child: Text(
+                          '작성자',
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
                     SizedBox(width: 6.w),
                     Text(
-                      _formatDateTime(c.createdAt),
-                      style:
-                          TextStyle(fontSize: 11.sp, color: AppTheme.neutral500),
+                      _formatDateTime(comment.createdAt),
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: Colors.grey[500],
+                      ),
                     ),
-                    const Spacer(),
-                    if (c.authorId == currentUserId)
-                      GestureDetector(
-                        onTap: () => isReply
-                            ? _showDeleteReplyConfirmation(context, c.id)
-                            : _showDeleteConfirmation(context),
-                        child: Icon(Icons.delete_outline,
-                            size: 16.w, color: AppTheme.neutral400),
+                    if (canDelete || canReport)
+                      _buildMenu(
+                        context,
+                        comment: comment,
+                        isReply: isReply,
+                        isDeletePending: isDeletePending,
+                        canDelete: canDelete,
+                        canReport: canReport,
                       ),
                   ],
                 ),
                 SizedBox(height: 3.h),
-                Text(c.content,
-                    style: TextStyle(fontSize: 14.sp, height: 1.4)),
-                if (c.updatedAt != null) ...[
+                Text(
+                  comment.content,
+                  style: TextStyle(fontSize: 14.sp, height: 1.4),
+                ),
+                if (comment.updatedAt != null) ...[
                   SizedBox(height: 2.h),
-                  Text('(수정됨)',
-                      style: TextStyle(
-                          fontSize: 11.sp,
-                          color: AppTheme.neutral400,
-                          fontStyle: FontStyle.italic)),
+                  Text(
+                    '(수정됨)',
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: Colors.grey[400],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
                 ],
-                SizedBox(height: 6.h),
                 Row(
                   children: [
-                    GestureDetector(
-                      onTap: () => context.read<CommentBloc>().add(
-                            LikeCommentRequested(
-                              commentId: c.id,
-                              isCurrentlyLiked: c.isLikedByCurrentUser,
-                            ),
-                          ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            c.isLikedByCurrentUser
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            size: 14.w,
-                            color: c.isLikedByCurrentUser
+                    Semantics(
+                      button: true,
+                      label: comment.isLikedByCurrentUser
+                          ? '댓글 좋아요 취소'
+                          : '댓글 좋아요',
+                      child: SizedBox(
+                        height: 44,
+                        child: TextButton.icon(
+                          key: Key('comment_like_${comment.id}'),
+                          onPressed: isLikePending
+                              ? null
+                              : () => context.read<CommentBloc>().add(
+                                  LikeCommentRequested(
+                                    commentId: comment.id,
+                                    isCurrentlyLiked:
+                                        comment.isLikedByCurrentUser,
+                                  ),
+                                ),
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(44, 44),
+                            padding: EdgeInsets.symmetric(horizontal: 4.w),
+                            foregroundColor: comment.isLikedByCurrentUser
                                 ? AppTheme.highlightColor
-                                : AppTheme.neutral400,
+                                : Colors.grey[500],
                           ),
-                          if (c.likesCount > 0) ...[
-                            SizedBox(width: 3.w),
-                            Text('${c.likesCount}',
-                                style: TextStyle(
-                                    fontSize: 11.sp, color: AppTheme.neutral500)),
-                          ],
-                        ],
-                      ),
-                    ),
-                    if (!isReply) ...[
-                      SizedBox(width: 14.w),
-                      GestureDetector(
-                        onTap: onReply,
-                        child: Text(
-                          '답글',
-                          style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppTheme.neutral500,
-                              fontWeight: FontWeight.w500),
+                          icon: isLikePending
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Icon(
+                                  comment.isLikedByCurrentUser
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  size: 16.w,
+                                ),
+                          label: Text(
+                            comment.likesCount > 0
+                                ? comment.likesCount.toString()
+                                : '좋아요',
+                            style: TextStyle(fontSize: 11.sp),
+                          ),
                         ),
                       ),
-                      if (comment.replies.isNotEmpty) ...[
-                        SizedBox(width: 4.w),
-                        Text('${comment.replies.length}',
-                            style: TextStyle(
-                                fontSize: 11.sp,
-                                color: AppTheme.primaryColor)),
-                      ],
-                    ],
+                    ),
+                    if (!isReply || widget.onReplyTo != null)
+                      SizedBox(
+                        height: 44,
+                        child: TextButton(
+                          key: Key('comment_reply_${comment.id}'),
+                          onPressed: () {
+                            final onReplyTo = widget.onReplyTo;
+                            if (onReplyTo != null) {
+                              onReplyTo(rootCommentId, comment.authorName);
+                              return;
+                            }
+                            if (!isReply) widget.onReply?.call();
+                          },
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(44, 44),
+                            padding: EdgeInsets.symmetric(horizontal: 8.w),
+                            foregroundColor: Colors.grey[600],
+                          ),
+                          child: Text(
+                            '답글 달기',
+                            style: TextStyle(fontSize: 12.sp),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -167,19 +299,96 @@ class CommentListItem extends StatelessWidget {
     );
   }
 
+  Widget _buildMenu(
+    BuildContext context, {
+    required Comment comment,
+    required bool isReply,
+    required bool isDeletePending,
+    required bool canDelete,
+    required bool canReport,
+  }) {
+    if (isDeletePending) {
+      return const SizedBox(
+        width: 44,
+        height: 44,
+        child: Center(
+          child: SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: PopupMenuButton<_CommentMenuAction>(
+        key: Key(
+          canDelete
+              ? 'comment_delete_${comment.id}'
+              : 'comment_report_${comment.id}',
+        ),
+        tooltip: isReply ? '답글 더보기' : '댓글 더보기',
+        padding: EdgeInsets.zero,
+        icon: Icon(Icons.more_horiz, size: 20.w, color: Colors.grey[500]),
+        onSelected: (action) {
+          if (action == _CommentMenuAction.report) {
+            widget.onReport?.call(comment);
+            return;
+          }
+          if (action == _CommentMenuAction.delete) {
+            if (isReply) {
+              _showDeleteReplyConfirmation(context, comment.id);
+            } else {
+              _showDeleteConfirmation(context);
+            }
+          }
+        },
+        itemBuilder: (_) => [
+          if (canDelete)
+            const PopupMenuItem<_CommentMenuAction>(
+              value: _CommentMenuAction.delete,
+              child: Row(
+                children: [
+                  Icon(Icons.delete_outline, size: 20),
+                  SizedBox(width: 10),
+                  Text('삭제'),
+                ],
+              ),
+            ),
+          if (canReport)
+            const PopupMenuItem<_CommentMenuAction>(
+              value: _CommentMenuAction.report,
+              child: Row(
+                children: [
+                  Icon(Icons.report_outlined, size: 20),
+                  SizedBox(width: 10),
+                  Text('신고'),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('댓글 삭제'),
-        content: const Text('이 댓글을 삭제하시겠습니까?'),
+        content: const Text('이 댓글과 답글을 삭제하시겠습니까?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
           TextButton(
             onPressed: () {
-              Navigator.pop(ctx);
-              onDelete!();
+              Navigator.pop(dialogContext);
+              widget.onDelete?.call();
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('삭제'),
@@ -190,20 +399,22 @@ class CommentListItem extends StatelessWidget {
   }
 
   void _showDeleteReplyConfirmation(BuildContext context, String replyId) {
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('답글 삭제'),
         content: const Text('이 답글을 삭제하시겠습니까?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
           TextButton(
             onPressed: () {
-              Navigator.pop(ctx);
-              context
-                  .read<CommentBloc>()
-                  .add(DeleteCommentRequested(commentId: replyId));
+              Navigator.pop(dialogContext);
+              context.read<CommentBloc>().add(
+                DeleteCommentRequested(commentId: replyId),
+              );
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('삭제'),
@@ -214,8 +425,7 @@ class CommentListItem extends StatelessWidget {
   }
 
   String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final diff = now.difference(dateTime);
+    final diff = DateTime.now().difference(dateTime);
     if (diff.inMinutes < 1) return '방금 전';
     if (diff.inHours < 1) return '${diff.inMinutes}분 전';
     if (diff.inDays < 1) return '${diff.inHours}시간 전';

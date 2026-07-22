@@ -13,3 +13,13 @@
 | `docs/work-orders/2026-07-22-win-to-mac-post-merge-edit-manifest.md` | post-merge 결과 SHA 기록 |
 
 `Podfile.lock` 직접 편집과 ours/theirs 일괄 선택은 금지한다.
+
+## 생성 결과 SHA-256
+
+| path | 결과 | SHA-256 |
+|---|---|---|
+| `pjh/pubspec.lock` | `flutter pub get` 후 merge 결과와 byte 동일 | `3b7c89fa9afcc84544ffde18191bf1e5f050912b0e66dbf12ba4f3e0b83ed29c` |
+| `pjh/ios/Podfile.lock` | `pod install`이 `package_info_plus` iOS pod/source/checksum을 추가 | `b5704a1f4ad822e4664ae8836fda498f61f9aecce0d583969106f2e682a2b757` |
+| `pjh/macos/Flutter/GeneratedPluginRegistrant.swift` | dependency graph 생성 결과가 merge 결과와 byte 동일 | `138f6b1ba3070dea1aac85cc138bb0e791da7c10e7d81d57596f31ba2268392a` |
+
+작업지시서 4개는 자기 자신의 hash를 본문에 넣는 순환 참조를 피하기 위해 이 표에서 제외하며, 최종 commit의 Git blob OID로 고정한다.

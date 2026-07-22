@@ -10,13 +10,11 @@ import '../../domain/usecases/follow_user.dart';
 import '../../domain/usecases/unfollow_user.dart';
 import '../../domain/repositories/social_repository.dart';
 import '../../../../core/services/analytics_service.dart';
-import '../../../../core/services/push_notification_service.dart';
 
 part 'profile_event.dart';
 part 'profile_state.dart';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
-  final _pushService = PushNotificationService();
   final GetUserProfile _getUserProfile;
   final FollowUser _followUser;
   final UnfollowUser _unfollowUser;
@@ -45,37 +43,33 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ) async {
     emit(ProfileLoading());
 
-    final result =
-        await _getUserProfile(GetUserProfileParams(userId: event.userId));
-
-    await result.fold(
-      (failure) async => emit(ProfileError(failure.message)),
-      (user) async {
-        // 현재 사용자 ID와 프로필 사용자 ID가 다를 경우에만 팔로우 여부 확인
-        bool isFollowing = false;
-        if (event.currentUserId != null &&
-            event.currentUserId != event.userId) {
-          final followResult = await _socialRepository.isFollowing(
-            event.currentUserId!,
-            event.userId,
-          );
-          followResult.fold(
-            (failure) {
-              // 팔로우 여부 확인 실패 시 false로 처리
-              isFollowing = false;
-            },
-            (following) {
-              isFollowing = following;
-            },
-          );
-        }
-
-        emit(ProfileLoaded(
-          user: user,
-          isFollowing: isFollowing,
-        ));
-      },
+    final result = await _getUserProfile(
+      GetUserProfileParams(userId: event.userId),
     );
+
+    await result.fold((failure) async => emit(ProfileError(failure.message)), (
+      user,
+    ) async {
+      // 현재 사용자 ID와 프로필 사용자 ID가 다를 경우에만 팔로우 여부 확인
+      bool isFollowing = false;
+      if (event.currentUserId != null && event.currentUserId != event.userId) {
+        final followResult = await _socialRepository.isFollowing(
+          event.currentUserId!,
+          event.userId,
+        );
+        followResult.fold(
+          (failure) {
+            // 팔로우 여부 확인 실패 시 false로 처리
+            isFollowing = false;
+          },
+          (following) {
+            isFollowing = following;
+          },
+        );
+      }
+
+      emit(ProfileLoaded(user: user, isFollowing: isFollowing));
+    });
   }
 
   Future<void> _onFollowUserRequested(
@@ -84,37 +78,37 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ) async {
     if (state is ProfileLoaded) {
       final currentState = state as ProfileLoaded;
-      emit(currentState.copyWith(
-        isFollowing: true,
-        user: currentState.user.copyWith(
-          followersCount: currentState.user.followersCount + 1,
+      emit(
+        currentState.copyWith(
+          isFollowing: true,
+          user: currentState.user.copyWith(
+            followersCount: currentState.user.followersCount + 1,
+          ),
         ),
-      ));
+      );
 
-      final result = await _followUser(FollowUserParams(
-        followerId: event.followerId,
-        followingId: event.followingId,
-      ));
+      final result = await _followUser(
+        FollowUserParams(
+          followerId: event.followerId,
+          followingId: event.followingId,
+        ),
+      );
 
       result.fold(
         (failure) {
           // Revert optimistic update
-          emit(currentState.copyWith(
-            isFollowing: false,
-            user: currentState.user.copyWith(
-              followersCount: currentState.user.followersCount - 1,
+          emit(
+            currentState.copyWith(
+              isFollowing: false,
+              user: currentState.user.copyWith(
+                followersCount: currentState.user.followersCount - 1,
+              ),
             ),
-          ));
+          );
           emit(currentState.copyWith(error: failure.message));
         },
-        (follow) {
+        (_) {
           AnalyticsService.instance.logFollow();
-          // 팔로우 성공 → 대상 사용자에게 알림 발송
-          _pushService.sendFollowNotification(
-            toUserId: event.followingId,
-            fromUserId: event.followerId,
-            fromUserName: event.followerName,
-          );
         },
       );
     }
@@ -126,27 +120,33 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ) async {
     if (state is ProfileLoaded) {
       final currentState = state as ProfileLoaded;
-      emit(currentState.copyWith(
-        isFollowing: false,
-        user: currentState.user.copyWith(
-          followersCount: currentState.user.followersCount - 1,
+      emit(
+        currentState.copyWith(
+          isFollowing: false,
+          user: currentState.user.copyWith(
+            followersCount: currentState.user.followersCount - 1,
+          ),
         ),
-      ));
+      );
 
-      final result = await _unfollowUser(UnfollowUserParams(
-        followerId: event.followerId,
-        followingId: event.followingId,
-      ));
+      final result = await _unfollowUser(
+        UnfollowUserParams(
+          followerId: event.followerId,
+          followingId: event.followingId,
+        ),
+      );
 
       result.fold(
         (failure) {
           // Revert optimistic update
-          emit(currentState.copyWith(
-            isFollowing: true,
-            user: currentState.user.copyWith(
-              followersCount: currentState.user.followersCount + 1,
+          emit(
+            currentState.copyWith(
+              isFollowing: true,
+              user: currentState.user.copyWith(
+                followersCount: currentState.user.followersCount + 1,
+              ),
             ),
-          ));
+          );
           emit(currentState.copyWith(error: failure.message));
         },
         (_) {
@@ -163,52 +163,47 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     if (state is! ProfileLoaded) return;
     final current = state as ProfileLoaded;
 
-    final result =
-        await _socialRepository.uploadCoverImage(event.userId, event.file);
-
-    result.fold(
-      (failure) => emit(current.copyWith(error: failure.message)),
-      (url) {
-        emit(current.copyWith(
-          user: current.user.copyWith(coverImageUrl: url),
-        ));
-      },
+    final result = await _socialRepository.uploadCoverImage(
+      event.userId,
+      event.file,
     );
+
+    result.fold((failure) => emit(current.copyWith(error: failure.message)), (
+      url,
+    ) {
+      emit(current.copyWith(user: current.user.copyWith(coverImageUrl: url)));
+    });
   }
 
   Future<void> _onRefreshProfileRequested(
     RefreshProfileRequested event,
     Emitter<ProfileState> emit,
   ) async {
-    final result =
-        await _getUserProfile(GetUserProfileParams(userId: event.userId));
-
-    await result.fold(
-      (failure) async => emit(ProfileError(failure.message)),
-      (user) async {
-        // 현재 사용자 ID와 프로필 사용자 ID가 다를 경우에만 팔로우 여부 확인
-        bool isFollowing = false;
-        if (event.currentUserId != null &&
-            event.currentUserId != event.userId) {
-          final followResult = await _socialRepository.isFollowing(
-            event.currentUserId!,
-            event.userId,
-          );
-          followResult.fold(
-            (failure) {
-              isFollowing = false;
-            },
-            (following) {
-              isFollowing = following;
-            },
-          );
-        }
-
-        emit(ProfileLoaded(
-          user: user,
-          isFollowing: isFollowing,
-        ));
-      },
+    final result = await _getUserProfile(
+      GetUserProfileParams(userId: event.userId),
     );
+
+    await result.fold((failure) async => emit(ProfileError(failure.message)), (
+      user,
+    ) async {
+      // 현재 사용자 ID와 프로필 사용자 ID가 다를 경우에만 팔로우 여부 확인
+      bool isFollowing = false;
+      if (event.currentUserId != null && event.currentUserId != event.userId) {
+        final followResult = await _socialRepository.isFollowing(
+          event.currentUserId!,
+          event.userId,
+        );
+        followResult.fold(
+          (failure) {
+            isFollowing = false;
+          },
+          (following) {
+            isFollowing = following;
+          },
+        );
+      }
+
+      emit(ProfileLoaded(user: user, isFollowing: isFollowing));
+    });
   }
 }

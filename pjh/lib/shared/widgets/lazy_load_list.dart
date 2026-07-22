@@ -3,8 +3,8 @@ import '../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 typedef LazyLoadCallback = Future<List<T>> Function<T>();
-typedef ItemBuilder<T> = Widget Function(
-    BuildContext context, T item, int index);
+typedef ItemBuilder<T> =
+    Widget Function(BuildContext context, T item, int index);
 
 class LazyLoadList<T> extends StatefulWidget {
   final Future<List<T>> Function() onLoadInitial;
@@ -154,10 +154,7 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
     Widget listView = _buildListView();
 
     if (widget.enablePullToRefresh) {
-      listView = RefreshIndicator(
-        onRefresh: _onRefresh,
-        child: listView,
-      );
+      listView = RefreshIndicator(onRefresh: _onRefresh, child: listView);
     }
 
     return listView;
@@ -190,9 +187,7 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
     if (_isLoadingMore) {
       return Padding(
         padding: EdgeInsets.all(16.w),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -202,10 +197,7 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
         child: Center(
           child: Text(
             '모든 항목을 불러왔습니다',
-            style: TextStyle(
-              color: AppTheme.neutral500,
-              fontSize: 14.sp,
-            ),
+            style: TextStyle(color: AppTheme.neutral500, fontSize: 14.sp),
           ),
         ),
       );
@@ -232,24 +224,14 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64.w,
-            color: AppTheme.errorColor,
-          ),
+          Icon(Icons.error_outline, size: 64.w, color: AppTheme.errorColor),
           SizedBox(height: 16.h),
-          Text(
-            '데이터를 불러오는 중 오류가 발생했습니다',
-            style: TextStyle(fontSize: 16.sp),
-          ),
+          Text('데이터를 불러오는 중 오류가 발생했습니다', style: TextStyle(fontSize: 16.sp)),
           SizedBox(height: 8.h),
           if (_errorMessage != null)
             Text(
               _errorMessage!,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: AppTheme.neutral500,
-              ),
+              style: TextStyle(fontSize: 12.sp, color: AppTheme.neutral500),
               textAlign: TextAlign.center,
             ),
           SizedBox(height: 16.h),
@@ -267,18 +249,11 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.inbox_outlined,
-            size: 64.w,
-            color: AppTheme.neutral500,
-          ),
+          Icon(Icons.inbox_outlined, size: 64.w, color: AppTheme.neutral500),
           SizedBox(height: 16.h),
           Text(
             '표시할 항목이 없습니다',
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: AppTheme.neutral500,
-            ),
+            style: TextStyle(fontSize: 16.sp, color: AppTheme.neutral500),
           ),
         ],
       ),
@@ -367,6 +342,12 @@ class LazyGridView<T> extends StatefulWidget {
   final EdgeInsets? padding;
   final Widget? emptyWidget;
 
+  /// 최초 조회 실패 시 표시할 선택형 상태 위젯.
+  ///
+  /// nullable인 이유는 기존 호출부의 동작을 보존하기 위해서다. 제공한 호출부는
+  /// [onRetry]를 상태뷰의 재시도 액션에 연결해야 한다.
+  final Widget Function(VoidCallback onRetry)? errorWidget;
+
   /// 그리드 위에 함께 스크롤되는 헤더(선택). null이면 기존 GridView.builder 경로
   /// 그대로(동작 무변경). 지정 시 CustomScrollView로 헤더+그리드를 한 스크롤로 묶되
   /// 페이지네이션(_onScroll)·controller는 동일하게 유지한다.
@@ -383,6 +364,7 @@ class LazyGridView<T> extends StatefulWidget {
     this.childAspectRatio = 1,
     this.padding,
     this.emptyWidget,
+    this.errorWidget,
     this.header,
   });
 
@@ -396,6 +378,7 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
   bool _isLoading = false;
   bool _isLoadingMore = false;
+  bool _hasError = false;
   bool _hasMore = true;
 
   @override
@@ -423,18 +406,22 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
     setState(() {
       _isLoading = true;
+      _hasError = false;
     });
 
     try {
       final newItems = await widget.onLoadInitial();
+      if (!mounted) return;
       setState(() {
         _items.clear();
         _items.addAll(newItems);
         _hasMore = newItems.isNotEmpty;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
+        _hasError = true;
         _isLoading = false;
       });
     }
@@ -449,12 +436,14 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
     try {
       final newItems = await widget.onLoadMore();
+      if (!mounted) return;
       setState(() {
         _items.addAll(newItems);
         _hasMore = newItems.isNotEmpty;
         _isLoadingMore = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         _isLoadingMore = false;
       });
@@ -473,6 +462,23 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
     if (_isLoading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_hasError && _items.isEmpty && widget.errorWidget != null) {
+      return RefreshIndicator(
+        onRefresh: _loadInitialData,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: widget.errorWidget!(_loadInitialData),
+              ),
+            );
+          },
+        ),
+      );
     }
 
     if (!_isLoading && _items.isEmpty && widget.emptyWidget != null) {
@@ -521,8 +527,12 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
   /// 헤더 + 그리드를 같은 ScrollController로 스크롤. 빈 상태에도 헤더는 노출.
   Widget _buildWithHeader() {
     final showGrid = !(_isLoading && _items.isEmpty);
+    final showError = _hasError && _items.isEmpty && widget.errorWidget != null;
     final showEmpty =
-        !_isLoading && _items.isEmpty && widget.emptyWidget != null;
+        !_isLoading &&
+        !showError &&
+        _items.isEmpty &&
+        widget.emptyWidget != null;
 
     return CustomScrollView(
       controller: _scrollController,
@@ -534,6 +544,11 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
               padding: EdgeInsets.symmetric(vertical: 32),
               child: Center(child: CircularProgressIndicator()),
             ),
+          )
+        else if (showError)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: widget.errorWidget!(_loadInitialData),
           )
         else if (showEmpty)
           SliverToBoxAdapter(child: widget.emptyWidget!)
@@ -555,7 +570,8 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
                   return widget.itemBuilder(context, _items[index], index);
                 },
                 childCount:
-                    _items.length + (_isLoadingMore ? widget.crossAxisCount : 0),
+                    _items.length +
+                    (_isLoadingMore ? widget.crossAxisCount : 0),
               ),
             ),
           ),
