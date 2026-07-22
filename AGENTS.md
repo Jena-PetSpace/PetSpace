@@ -19,7 +19,9 @@
 - 현행 문서 지도: `docs/README.md`
 - Android applicationId/namespace: `com.jena.petspace`
 - Android targetSdk: 36
-- 출시 작업 기준 브랜치: `win-android-release`
+- Android 출시 작업 기준 브랜치: `win-android-release`
+- iOS 출시 작업 기준 브랜치: `mac-ios-release`
+- 최종 통합 브랜치: `main` (양 플랫폼 검증과 별도 사용자 승인 뒤에만 반영)
 - 모든 Flutter 명령은 `pjh/`에서 실행한다.
 
 기능·라우트·BLoC 개수처럼 변하는 값은 이 파일에 고정하지 않는다. `docs/FUNCTIONAL_SPEC.md`, `docs/USER_FLOW.md`와 실제 코드를 대조한다.
@@ -66,14 +68,16 @@
 
 ## Git, 병렬 작업, 배포
 
-- 기본 작업은 이 노트북의 로컬 `feature/<작업명>` 브랜치와 전용 worktree에서 수행한다.
+- 기본 작업은 현재 작업 기기의 로컬 `feature/<작업명>` 브랜치와 전용 worktree에서 수행한다.
 - 구현·format·정적 분석·관련 테스트·승인된 교차 리뷰를 통과하면 feature 브랜치에 커밋한다.
 - Windows 앱의 승인된 변경은 로컬 `win-android-release`에 merge하고 동일 브랜치에서 재검증한 뒤 `origin/win-android-release`로 push하여 노트북·GitHub·실기기 빌드 소스를 일치시킨다.
 - `win-android-release`에서 기능 코드를 직접 편집하지 않는다. merge 충돌 해결과 생성 파일 정리만 허용한다.
-- `main`, `mac-ios-release` 직접 커밋·merge·push, rebase, tag 생성, 배포는 별도 사용자 승인 없이는 수행하지 않는다.
+- Mac mini에서는 `origin/mac-ios-release`에서 전용 integration/feature worktree를 만들고 최신 `origin/win-android-release`를 먼저 merge한다. 충돌 해결·iOS 수정·검증 뒤 승인된 결과만 로컬 `mac-ios-release`에 merge하고 `origin/mac-ios-release`로 push한다.
+- `mac-ios-release`에서 기능 코드를 직접 편집하지 않는다. integration/feature 브랜치의 검증된 변경만 반영한다.
+- `main` 직접 커밋·push, rebase, tag 생성, 배포는 별도 사용자 승인 없이는 수행하지 않는다. 최종 반영은 최신 Windows 변경을 포함한 iOS 통합 브랜치의 양 플랫폼 검증 뒤 PR/merge로 진행한다.
 - Claude Code와 Codex가 동시에 작업하면 에이전트별 Git worktree를 사용하고 같은 파일을 동시에 수정하지 않는다.
 - 다른 에이전트의 브랜치·worktree·커밋을 reset, clean, stash, checkout 등으로 제거하지 않는다.
-- 브랜치 생성과 커밋, Windows 통합은 작업지시서 또는 사용자의 현재·상시 지시가 허용한 범위에서만 수행한다.
+- 브랜치 생성과 커밋, 플랫폼 release 통합은 작업지시서 또는 사용자의 현재·상시 지시가 허용한 범위에서만 수행한다.
 - 커밋 메시지는 `[codex|claude] 영역: 요약` 형식을 사용한다.
 
 ## 검증과 완료 보고
