@@ -1,6 +1,7 @@
 // Supabase 기반 Post Model
 // TRD 문서의 posts 테이블 스키마에 맞게 구현
 
+import '../../../../core/utils/public_ai_text.dart';
 import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../domain/entities/post.dart';
 
@@ -8,6 +9,7 @@ class PostModel {
   final String id;
   final String authorId;
   final String? petId;
+
   /// 레거시 단일 URL (하위 호환 읽기 전용)
   final String? imageUrl;
   final List<String> imageUrls;
@@ -82,9 +84,8 @@ class PostModel {
 
     final createdAtStr = json['created_at'] as String?;
     final updatedAtStr = json['updated_at'] as String?;
-    final createdAt = createdAtStr != null
-        ? DateTime.parse(createdAtStr)
-        : DateTime.now();
+    final createdAt =
+        createdAtStr != null ? DateTime.parse(createdAtStr) : DateTime.now();
     final updatedAt =
         updatedAtStr != null ? DateTime.parse(updatedAtStr) : createdAt;
 
@@ -110,8 +111,7 @@ class PostModel {
       locationLat: (json['location_lat'] as num?)?.toDouble(),
       locationLng: (json['location_lng'] as num?)?.toDouble(),
       authorName: userData?['display_name'] as String? ?? authorNameFromRpc,
-      authorPhotoUrl:
-          userData?['photo_url'] as String? ?? authorPhotoFromRpc,
+      authorPhotoUrl: userData?['photo_url'] as String? ?? authorPhotoFromRpc,
     );
   }
 
@@ -121,8 +121,10 @@ class PostModel {
       'author_id': authorId,
       if (petId != null) 'pet_id': petId,
       // 하위 호환: image_url에 첫 번째 URL 기록
-      if (imageUrls.isNotEmpty) 'image_url': imageUrls.first
-      else if (imageUrl != null) 'image_url': imageUrl,
+      if (imageUrls.isNotEmpty)
+        'image_url': imageUrls.first
+      else if (imageUrl != null)
+        'image_url': imageUrl,
       'image_urls': imageUrls,
       'post_type': _ensureValidPostType(postType),
       if (emotionAnalysis != null) 'emotion_analysis': emotionAnalysis,
@@ -180,7 +182,7 @@ class PostModel {
       authorName: authorName ?? 'Unknown User',
       authorProfileImage: authorPhotoUrl,
       type: type,
-      content: caption,
+      content: caption == null ? null : publicAiText(caption!),
       imageUrls: imageUrls,
       emotionAnalysis: analysis,
       tags: hashtags,

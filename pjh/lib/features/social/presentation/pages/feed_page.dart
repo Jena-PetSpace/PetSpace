@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/utils/share_origin.dart';
+import '../../../../core/utils/public_ai_text.dart';
 import '../../../../shared/widgets/haptic_refresh_indicator.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/post.dart';
@@ -71,16 +72,16 @@ class _FeedPageState extends State<FeedPage> {
       final uid = _effectiveUserId;
       if (uid != null) {
         context.read<FeedBloc>().add(
-          LoadRecommendedPostsRequested(userId: uid),
-        );
+              LoadRecommendedPostsRequested(userId: uid),
+            );
       }
     } else {
       context.read<FeedBloc>().add(
-        LoadFeedRequested(
-          userId: _effectiveUserId,
-          followingOnly: widget.followingOnly,
-        ),
-      );
+            LoadFeedRequested(
+              userId: _effectiveUserId,
+              followingOnly: widget.followingOnly,
+            ),
+          );
     }
   }
 
@@ -101,19 +102,19 @@ class _FeedPageState extends State<FeedPage> {
       final uid = _effectiveUserId;
       if (uid != null) {
         context.read<FeedBloc>().add(
-          LoadRecommendedPostsRequested(
-            userId: uid,
-            offset: state.posts.length,
-          ),
-        );
+              LoadRecommendedPostsRequested(
+                userId: uid,
+                offset: state.posts.length,
+              ),
+            );
       }
     } else {
       context.read<FeedBloc>().add(
-        LoadMorePostsRequested(
-          userId: widget.userId,
-          followingOnly: widget.followingOnly,
-        ),
-      );
+            LoadMorePostsRequested(
+              userId: widget.userId,
+              followingOnly: widget.followingOnly,
+            ),
+          );
     }
     if (widget.interleaveOperational) {
       // 운영 카드 선로딩 — cubit 자체 가드(hasReachedMax/isLoadingMore)로 안전.
@@ -171,11 +172,11 @@ class _FeedPageState extends State<FeedPage> {
                 textColor: Colors.white,
                 onPressed: () {
                   context.read<FeedBloc>().add(
-                    LoadMorePostsRequested(
-                      userId: widget.userId,
-                      followingOnly: widget.followingOnly,
-                    ),
-                  );
+                        LoadMorePostsRequested(
+                          userId: widget.userId,
+                          followingOnly: widget.followingOnly,
+                        ),
+                      );
                 },
               ),
             ),
@@ -201,8 +202,8 @@ class _FeedPageState extends State<FeedPage> {
               final uid = _effectiveUserId;
               if (uid != null) {
                 context.read<FeedBloc>().add(
-                  LoadRecommendedPostsRequested(userId: uid),
-                );
+                      LoadRecommendedPostsRequested(userId: uid),
+                    );
               }
             },
             child: _buildRecommendedList(state),
@@ -212,11 +213,11 @@ class _FeedPageState extends State<FeedPage> {
             onRefresh: () async {
               _clearLocalSurfaceOverrides();
               context.read<FeedBloc>().add(
-                RefreshFeedRequested(
-                  userId: widget.userId,
-                  followingOnly: widget.followingOnly,
-                ),
-              );
+                    RefreshFeedRequested(
+                      userId: widget.userId,
+                      followingOnly: widget.followingOnly,
+                    ),
+                  );
             },
             child: _buildFeedList(state),
           );
@@ -352,12 +353,12 @@ class _FeedPageState extends State<FeedPage> {
         if (uid.isEmpty) return;
         if (visiblePost.isLikedByCurrentUser) {
           context.read<FeedBloc>().add(
-            UnlikePostRequested(postId: post.id, userId: uid),
-          );
+                UnlikePostRequested(postId: post.id, userId: uid),
+              );
         } else {
           context.read<FeedBloc>().add(
-            LikePostRequested(postId: post.id, userId: uid),
-          );
+                LikePostRequested(postId: post.id, userId: uid),
+              );
         }
       },
       shareText: _shareText(visiblePost),
@@ -372,8 +373,8 @@ class _FeedPageState extends State<FeedPage> {
             post: post,
             onSave: (updatedPost) {
               context.read<FeedBloc>().add(
-                UpdatePostRequested(post: updatedPost),
-              );
+                    UpdatePostRequested(post: updatedPost),
+                  );
             },
           ),
         );
@@ -403,11 +404,11 @@ class _FeedPageState extends State<FeedPage> {
   Widget _buildNetworkErrorState() {
     return NetworkErrorScreen(
       onRetry: () => context.read<FeedBloc>().add(
-        LoadFeedRequested(
-          userId: widget.userId,
-          followingOnly: widget.followingOnly,
-        ),
-      ),
+            LoadFeedRequested(
+              userId: widget.userId,
+              followingOnly: widget.followingOnly,
+            ),
+          ),
     );
   }
 
@@ -435,11 +436,11 @@ class _FeedPageState extends State<FeedPage> {
           ElevatedButton(
             onPressed: () {
               context.read<FeedBloc>().add(
-                LoadFeedRequested(
-                  userId: widget.userId,
-                  followingOnly: widget.followingOnly,
-                ),
-              );
+                    LoadFeedRequested(
+                      userId: widget.userId,
+                      followingOnly: widget.followingOnly,
+                    ),
+                  );
             },
             child: Text('다시 시도', style: TextStyle(fontSize: 14.sp)),
           ),
@@ -463,10 +464,9 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   String _shareText(Post post) {
-    final content = post.content ?? '';
-    final preview = content.length > 100
-        ? '${content.substring(0, 100)}...'
-        : content;
+    final content = publicAiText(post.content ?? '');
+    final preview =
+        content.length > 100 ? '${content.substring(0, 100)}...' : content;
     return preview.isEmpty
         ? 'PetSpace에서 게시물을 확인해보세요.'
         : '$preview\n\nPetSpace에서 게시물을 확인해보세요.';

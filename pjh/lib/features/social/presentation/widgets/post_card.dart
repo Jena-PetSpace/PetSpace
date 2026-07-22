@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
 import '../../../../core/services/block_service.dart';
 import '../../../../core/utils/hashtag_utils.dart';
+import '../../../../core/utils/public_ai_text.dart';
 import '../../../../core/utils/relative_time.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_viewer_page.dart';
@@ -106,6 +107,7 @@ class _PostCardState extends State<PostCard> {
   }
 
   String get currentUserId => widget.currentUserId;
+  String get visibleContent => publicAiText(post.content ?? '');
 
   void _openDetail() {
     final callback = widget.onOpenDetail;
@@ -126,7 +128,7 @@ class _PostCardState extends State<PostCard> {
         children: [
           _buildHeader(context),
           // 캡션 탭 → 게시글 상세
-          if (post.content != null && post.content!.isNotEmpty)
+          if (visibleContent.isNotEmpty)
             InkWell(
               key: const Key('post_card_open_detail'),
               onTap: _openDetail,
@@ -147,7 +149,7 @@ class _PostCardState extends State<PostCard> {
   }
 
   Widget _buildContent() {
-    final content = post.content!;
+    final content = visibleContent;
     final isLong = content.length > _contentTruncateThreshold;
     final displayText = (!_isContentExpanded && isLong)
         ? content.substring(0, _contentTruncateThreshold)

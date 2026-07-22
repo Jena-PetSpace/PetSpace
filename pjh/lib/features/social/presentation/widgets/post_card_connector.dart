@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../config/injection_container.dart' as di;
+import '../../../../core/utils/public_ai_text.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/repositories/social_repository.dart';
 import '../controllers/post_interaction_coordinator.dart';
@@ -221,7 +222,7 @@ class _PostCardConnectorState extends State<PostCardConnector> {
   }
 
   String _defaultShareText(Post post) {
-    final caption = post.content?.trim() ?? '';
+    final caption = publicAiText(post.content ?? '');
     final preview =
         caption.length > 100 ? '${caption.substring(0, 100)}...' : caption;
     return preview.isEmpty

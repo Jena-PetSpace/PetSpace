@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
+import '../../../../core/utils/public_ai_text.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/repositories/social_repository.dart';
 
@@ -202,7 +203,7 @@ class _UserPostsListState extends State<UserPostsList> {
                 imageCount = thumbUrl != null ? 1 : 0;
               }
 
-              final caption = post['caption'] as String? ?? '';
+              final caption = publicAiText(post['caption'] as String? ?? '');
 
               return Semantics(
                 button: true,

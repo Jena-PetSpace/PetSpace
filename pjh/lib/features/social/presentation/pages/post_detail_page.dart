@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../config/injection_container.dart' as di;
 import '../../../../core/services/block_service.dart';
+import '../../../../core/utils/public_ai_text.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../emotion/domain/repositories/emotion_repository.dart';
@@ -278,9 +279,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
     }
 
     notifier.publish(
-      type: wasSaved
-          ? SavedPostsChangeType.unsaved
-          : SavedPostsChangeType.saved,
+      type:
+          wasSaved ? SavedPostsChangeType.unsaved : SavedPostsChangeType.saved,
       postId: postId,
       wasSaved: wasSaved,
       isSaved: !wasSaved,
@@ -343,29 +343,28 @@ class _PostDetailPageState extends State<PostDetailPage> {
       return;
     }
     final authState = ctx.read<AuthBloc>().state;
-    final senderName = authState is AuthAuthenticated
-        ? authState.user.displayName
-        : '사용자';
+    final senderName =
+        authState is AuthAuthenticated ? authState.user.displayName : '사용자';
 
     if (_replyToCommentId != null) {
       ctx.read<CommentBloc>().add(
-        CreateReplyRequested(
-          postId: widget.postId,
-          parentId: _replyToCommentId!,
-          content: content,
-          postAuthorId: _post?['author_id'] as String?,
-          senderName: senderName,
-        ),
-      );
+            CreateReplyRequested(
+              postId: widget.postId,
+              parentId: _replyToCommentId!,
+              content: content,
+              postAuthorId: _post?['author_id'] as String?,
+              senderName: senderName,
+            ),
+          );
     } else {
       ctx.read<CommentBloc>().add(
-        CreateCommentRequested(
-          postId: widget.postId,
-          content: content,
-          postAuthorId: _post?['author_id'] as String?,
-          senderName: senderName,
-        ),
-      );
+            CreateCommentRequested(
+              postId: widget.postId,
+              content: content,
+              postAuthorId: _post?['author_id'] as String?,
+              senderName: senderName,
+            ),
+          );
     }
   }
 
@@ -481,9 +480,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
                     current.actionOutcome?.succeeded == false) {
                   return false;
                 }
-                final previousOutcome = previous is CommentLoaded
-                    ? previous.actionOutcome
-                    : null;
+                final previousOutcome =
+                    previous is CommentLoaded ? previous.actionOutcome : null;
                 return previousOutcome != current.actionOutcome;
               },
               listener: (context, state) {
@@ -548,8 +546,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
                           postAuthorId: _post?['author_id'] as String? ?? '',
                           onDelete: comment.authorId == myId
                               ? () => context.read<CommentBloc>().add(
-                                  DeleteCommentRequested(commentId: comment.id),
-                                )
+                                    DeleteCommentRequested(
+                                        commentId: comment.id),
+                                  )
                               : null,
                           onReplyTo: _showReplyInput,
                           onReport: _reportComment,
@@ -602,15 +601,15 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final authorId = _post!['author_id'] as String? ?? '';
     final authorName = user?['display_name'] as String? ?? '알 수 없음';
     final photoUrl = user?['photo_url'] as String?;
-    final content = _post!['caption'] as String? ?? '';
+    final content = publicAiText(_post!['caption'] as String? ?? '');
     // image_urls 배열 우선, 없으면 image_url 단일 필드 폴백
     final rawUrls = _post!['image_urls'];
     final List<String> imageUrls =
         rawUrls != null && (rawUrls as List).isNotEmpty
-        ? List<String>.from(rawUrls)
-        : (_post!['image_url'] as String?) != null
-        ? [_post!['image_url'] as String]
-        : [];
+            ? List<String>.from(rawUrls)
+            : (_post!['image_url'] as String?) != null
+                ? [_post!['image_url'] as String]
+                : [];
     final createdAt = _post!['created_at'] as String? ?? '';
     final commentsCount = _commentTotalCount(commentState);
 
@@ -808,9 +807,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final petId = _post?['pet_id'] as String?;
     if (rawEmotion == null || petId == null) return const SizedBox.shrink();
 
-    final emotion = rawEmotion is Map<String, dynamic>
-        ? rawEmotion
-        : <String, dynamic>{};
+    final emotion =
+        rawEmotion is Map<String, dynamic> ? rawEmotion : <String, dynamic>{};
     final numEntries = emotion.entries.where((e) => e.value is num).toList()
       ..sort((a, b) => (b.value as num).compareTo(a.value as num));
     if (numEntries.isEmpty) return const SizedBox.shrink();
@@ -921,10 +919,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
     num value,
   ) async {
     final result = await di.sl<EmotionRepository>().getEmotionComparisonInsight(
-      petId: petId,
-      emotion: emotion,
-      value: value,
-    );
+          petId: petId,
+          emotion: emotion,
+          value: value,
+        );
     return result.fold((_) => null, (insight) => insight);
   }
 
@@ -1002,8 +1000,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
           OutlinedButton(
             key: const Key('post_comments_retry'),
             onPressed: () => context.read<CommentBloc>().add(
-              LoadComments(postId: widget.postId),
-            ),
+                  LoadComments(postId: widget.postId),
+                ),
             child: const Text('다시 시도'),
           ),
         ],
@@ -1025,8 +1023,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
         child: TextButton.icon(
           key: const Key('post_comments_load_more_retry'),
           onPressed: () => context.read<CommentBloc>().add(
-            LoadMoreComments(postId: widget.postId),
-          ),
+                LoadMoreComments(postId: widget.postId),
+              ),
           icon: const Icon(Icons.refresh),
           label: const Text('댓글 더 불러오기'),
         ),
@@ -1036,35 +1034,35 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 
   Widget _buildEmptyComments() => Padding(
-    padding: EdgeInsets.symmetric(vertical: 40.h, horizontal: 16.w),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.mode_comment_outlined,
-          size: 40.w,
-          color: AppTheme.secondaryTextColor,
+        padding: EdgeInsets.symmetric(vertical: 40.h, horizontal: 16.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.mode_comment_outlined,
+              size: 40.w,
+              color: AppTheme.secondaryTextColor,
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              '아직 댓글이 없어요',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: AppTheme.secondaryTextColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              '첫 댓글을 작성해보세요',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: AppTheme.secondaryTextColor.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 12.h),
-        Text(
-          '아직 댓글이 없어요',
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: AppTheme.secondaryTextColor,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          '첫 댓글을 작성해보세요',
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: AppTheme.secondaryTextColor.withValues(alpha: 0.7),
-          ),
-        ),
-      ],
-    ),
-  );
+      );
 
   Widget _buildCommentInput(BuildContext ctx) {
     final state = ctx.watch<CommentBloc>().state;
@@ -1217,10 +1215,9 @@ class _PostDetailPageState extends State<PostDetailPage> {
   }
 
   Future<void> _sharePost() async {
-    final caption = (_post?['caption'] as String? ?? '').trim();
-    final preview = caption.length > 100
-        ? '${caption.substring(0, 100)}...'
-        : caption;
+    final caption = publicAiText(_post?['caption'] as String? ?? '');
+    final preview =
+        caption.length > 100 ? '${caption.substring(0, 100)}...' : caption;
     final text = preview.isEmpty
         ? 'PetSpace에서 게시물을 확인해보세요.'
         : '$preview\n\nPetSpace에서 게시물을 확인해보세요.';
@@ -1348,9 +1345,8 @@ class _MultiImageCarouselState extends State<_MultiImageCarousel> {
                 width: _current == i ? 16.w : 6.w,
                 height: 6.h,
                 decoration: BoxDecoration(
-                  color: _current == i
-                      ? AppTheme.primaryColor
-                      : Colors.grey[300],
+                  color:
+                      _current == i ? AppTheme.primaryColor : Colors.grey[300],
                   borderRadius: BorderRadius.circular(3.r),
                 ),
               );

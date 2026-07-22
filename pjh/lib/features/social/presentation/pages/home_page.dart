@@ -41,6 +41,7 @@ class _HomePageState extends State<HomePage> {
   String _selectedCategory = CommunityCategories.issueContents.first.value;
   final ValueNotifier<int> _questCheckNotifier = ValueNotifier(0);
   String _lastLocation = '';
+  Listenable? _routerDelegate;
 
   @override
   void initState() {
@@ -52,7 +53,8 @@ class _HomePageState extends State<HomePage> {
           if (mounted) _refreshBadges();
         });
         // GoRouter 변화 감지: 다른 페이지에서 /home으로 돌아올 때 퀘스트 재검증
-        GoRouter.of(context).routerDelegate.addListener(_onRouteChanged);
+        _routerDelegate = GoRouter.of(context).routerDelegate
+          ..addListener(_onRouteChanged);
       }
     });
   }
@@ -96,7 +98,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _badgeTimer?.cancel();
-    GoRouter.of(context).routerDelegate.removeListener(_onRouteChanged);
+    _routerDelegate?.removeListener(_onRouteChanged);
     _questCheckNotifier.dispose();
     super.dispose();
   }
@@ -110,93 +112,93 @@ class _HomePageState extends State<HomePage> {
         statusBarBrightness: Brightness.light,
       ),
       child: Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      // AppBar 완전 제거 → 커스텀 헤더
-      body: RefreshIndicator(
-        onRefresh: () async {
-          _refreshAll();
-          await Future.delayed(const Duration(milliseconds: 600));
-        },
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // ── 커스텀 헤더 (딥블루 + 로고 + 대시보드) ──
-            const SliverToBoxAdapter(
-              child: HomeDashboardHeader(),
-            ),
-
-            // ── 퀵 액션 (원형 버튼 5개) ──────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 16.h),
-                child: const HomeQuickActions(),
+        backgroundColor: AppTheme.backgroundColor,
+        // AppBar 완전 제거 → 커스텀 헤더
+        body: RefreshIndicator(
+          onRefresh: () async {
+            _refreshAll();
+            await Future.delayed(const Duration(milliseconds: 600));
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // ── 커스텀 헤더 (딥블루 + 로고 + 대시보드) ──
+              const SliverToBoxAdapter(
+                child: HomeDashboardHeader(),
               ),
-            ),
 
-            // ── 배너형 광고 / 공지 슬롯 (자리만) ──────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 20.h),
-                child: const HomeAdBanner(),
-              ),
-            ),
-
-            // ── 핫이슈 (썸네일 + 헤드라인 카드) ───────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 24.h),
-                child: const HotIssueCard(),
-              ),
-            ),
-
-            // ── 매거진: 카테고리 칩 ──────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 24.h),
-                child: _buildMagazineHeader(),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 12.h),
-                child: CategoryFilterChips(
-                  onSelected: (value) {
-                    setState(() => _selectedCategory = value);
-                  },
+              // ── 퀵 액션 (원형 버튼 5개) ──────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 16.h),
+                  child: const HomeQuickActions(),
                 ),
               ),
-            ),
 
-            // ── 매거진: 카테고리별 콘텐츠 ─────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 12.h),
-                child: _buildCategoryContent(),
+              // ── 배너형 광고 / 공지 슬롯 (자리만) ──────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 20.h),
+                  child: const HomeAdBanner(),
+                ),
               ),
-            ),
 
-            // ── 뉴스 (외부 기사 스크랩 — 추후 구현, 자리만) ─
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(top: 28.h, bottom: 32.h),
-                child: const HomeNewsSection(),
+              // ── 핫이슈 (썸네일 + 헤드라인 카드) ───────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 24.h),
+                  child: const HotIssueCard(),
+                ),
               ),
-            ),
 
-            // ── (임시 배치) 기존 홈 카드들 — 스크롤 하단 ──
-            //   MBTI·운세·퀴즈·퀘스트. 시안엔 없던 영역이라
-            //   실제 화면에서 위치를 확인한 뒤 최종 자리를 정한다.
-            //   2026-06-29: 출시 버전에서 일단 숨김 처리(주석). 되살리려면 주석 해제.
-            // SliverToBoxAdapter(
-            //   child: Padding(
-            //     padding: EdgeInsets.only(top: 28.h),
-            //     child: _buildLegacyCardsSection(),
-            //   ),
-            // ),
-          ],
+              // ── 매거진: 카테고리 칩 ──────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 24.h),
+                  child: _buildMagazineHeader(),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 12.h),
+                  child: CategoryFilterChips(
+                    onSelected: (value) {
+                      setState(() => _selectedCategory = value);
+                    },
+                  ),
+                ),
+              ),
+
+              // ── 매거진: 카테고리별 콘텐츠 ─────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 12.h),
+                  child: _buildCategoryContent(),
+                ),
+              ),
+
+              // ── 뉴스 (외부 기사 스크랩 — 추후 구현, 자리만) ─
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 28.h, bottom: 32.h),
+                  child: const HomeNewsSection(),
+                ),
+              ),
+
+              // ── (임시 배치) 기존 홈 카드들 — 스크롤 하단 ──
+              //   MBTI·운세·퀴즈·퀘스트. 시안엔 없던 영역이라
+              //   실제 화면에서 위치를 확인한 뒤 최종 자리를 정한다.
+              //   2026-06-29: 출시 버전에서 일단 숨김 처리(주석). 되살리려면 주석 해제.
+              // SliverToBoxAdapter(
+              //   child: Padding(
+              //     padding: EdgeInsets.only(top: 28.h),
+              //     child: _buildLegacyCardsSection(),
+              //   ),
+              // ),
+            ],
+          ),
         ),
-      ),
-    ), // Scaffold
+      ), // Scaffold
     ); // AnnotatedRegion
   }
 
