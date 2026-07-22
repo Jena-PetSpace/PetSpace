@@ -4,12 +4,19 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
 
+typedef ChatImageFilePicker = Future<List<File>?> Function(
+  BuildContext context,
+);
+
 class ChatInputBar extends StatefulWidget {
   final TextEditingController controller;
   final bool isSending;
   final ValueChanged<String> onSendText;
   final ValueChanged<File> onSendImage;
   final ValueChanged<List<File>> onSendMultipleImages;
+  final ChatImageFilePicker? imageFilePicker;
+
+  static const int maxImageCount = 10;
 
   const ChatInputBar({
     super.key,
@@ -18,6 +25,7 @@ class ChatInputBar extends StatefulWidget {
     required this.onSendText,
     required this.onSendImage,
     required this.onSendMultipleImages,
+    this.imageFilePicker,
   });
 
   @override
@@ -65,17 +73,29 @@ class _ChatInputBarState extends State<ChatInputBar> {
   Future<void> _showImageSourceSheet() async {
     if (widget.isSending) return;
 
-    final images = await ImageSourcePicker.pickMultiple(
-      context,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
-
-    if (images != null && images.isNotEmpty && mounted) {
-      final files = images.map((xf) => File(xf.path)).toList();
-      _showImagePreview(files);
+    final injectedPicker = widget.imageFilePicker;
+    List<File>? files;
+    if (injectedPicker != null) {
+      files = await injectedPicker(context);
+    } else {
+      final images = await ImageSourcePicker.pickMultiple(
+        context,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+        limit: ChatInputBar.maxImageCount,
+      );
+      files = images?.map((image) => File(image.path)).toList(growable: false);
     }
+
+    if (!mounted || files == null || files.isEmpty) return;
+    if (files.length > ChatInputBar.maxImageCount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('사진은 한 번에 최대 10장까지 보낼 수 있어요.')),
+      );
+      return;
+    }
+    _showImagePreview(files);
   }
 
   void _showImagePreview(List<File> images) {
@@ -116,9 +136,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
           color: surface,
           border: Border(
             top: BorderSide(
-              color: isDark
-                  ? theme.colorScheme.outlineVariant
-                  : AppTheme.border,
+              color:
+                  isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
             ),
           ),
         ),
@@ -153,9 +172,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       color: theme.colorScheme.onSurface,
                     ),
                     decoration: InputDecoration(
-                      hintText: widget.isSending
-                          ? '메시지를 보내는 중입니다'
-                          : '메시지를 입력하세요',
+                      hintText:
+                          widget.isSending ? '메시지를 보내는 중입니다' : '메시지를 입력하세요',
                       hintStyle: TextStyle(
                         fontSize: AppTheme.fontCaption.sp,
                         color: muted,

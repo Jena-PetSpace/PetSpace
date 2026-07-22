@@ -112,6 +112,8 @@ void main() {
 
     expect(failed.sendOutcome?.text, '보존할 초안');
     expect(failed.messages, isEmpty);
+    expect(failed.sendOutcome?.errorMessage, '메시지를 보내지 못했습니다.');
+    expect(failed.sendOutcome?.errorMessage, isNot(contains('전송 실패')));
 
     bloc.add(const ChatDetailRetryLastSendRequested());
     final succeeded = await bloc.stream

@@ -165,7 +165,20 @@ void main() {
     expect(find.byKey(const Key('chat_selected_summary')), findsOneWidget);
     expect(find.text('2명 선택'), findsOneWidget);
     expect(find.byKey(const Key('chat_group_name_field')), findsOneWidget);
+    expect(find.text('그룹 채팅을 만듭니다'), findsOneWidget);
+    expect(find.text('선택 · 비워두면 참여자 이름으로 만들어요.'), findsOneWidget);
     expect(find.text('그룹 만들기'), findsOneWidget);
+  });
+
+  testWidgets('한 명 선택 시 상대 이름과 1:1 목적을 CTA에 표시한다', (tester) async {
+    await pumpPage(tester);
+
+    await tester.tap(find.byKey(const Key('chat_user_user-2')));
+    await tester.pump();
+
+    expect(find.text('1:1 채팅을 시작합니다'), findsOneWidget);
+    expect(find.text('콩떡이네와 채팅 시작'), findsOneWidget);
+    expect(find.byKey(const Key('chat_group_name_field')), findsNothing);
   });
 
   testWidgets('생성 pending 중 선택과 검색의 중복 조작을 막는다', (tester) async {
@@ -173,6 +186,12 @@ void main() {
     await tester.tap(find.byKey(const Key('chat_user_user-2')));
     await tester.pump();
     await tester.tap(find.byKey(const Key('chat_user_user-3')));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const Key('chat_user_search_field')),
+      '모카',
+    );
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
 
     await tester.tap(find.byKey(const Key('chat_create_primary_action')));
@@ -182,6 +201,14 @@ void main() {
       find.byKey(const Key('chat_user_search_field')),
     );
     expect(searchField.enabled, isFalse);
+    final clearButton = find.ancestor(
+      of: find.byIcon(Icons.clear),
+      matching: find.byType(IconButton),
+    );
+    expect(
+      tester.widget<IconButton>(clearButton).onPressed,
+      isNull,
+    );
     expect(
       tester
           .widget<ElevatedButton>(
@@ -190,8 +217,6 @@ void main() {
           .onPressed,
       isNull,
     );
-    await tester.tap(find.byKey(const Key('chat_user_user-2')));
-    await tester.pump();
     expect(find.text('2명 선택'), findsOneWidget);
     verify(
       () => chatRoomsBloc.add(
@@ -227,6 +252,22 @@ void main() {
     await tester.tap(find.byKey(const Key('chat_user_user-3')));
     await tester.pump();
 
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('320x568과 200% 글자 크기에서 그룹 생성 CTA가 유지된다', (tester) async {
+    await pumpPage(
+      tester,
+      size: const Size(320, 568),
+      textScale: 2,
+    );
+    await tester.tap(find.byKey(const Key('chat_user_user-2')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('chat_user_user-3')));
+    await tester.pump();
+
+    expect(find.text('그룹 만들기'), findsOneWidget);
+    expect(find.text('선택 · 비워두면 참여자 이름으로 만들어요.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

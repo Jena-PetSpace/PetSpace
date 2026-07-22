@@ -114,4 +114,39 @@ void main() {
     expect(safeArea.bottom, isTrue);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('사진 10장 상한을 넘으면 전송하지 않고 안전하게 안내한다', (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    var singleCalls = 0;
+    var multipleCalls = 0;
+
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        builder: (_, __) => MaterialApp(
+          home: Scaffold(
+            body: ChatInputBar(
+              controller: controller,
+              imageFilePicker: (_) async => List.generate(
+                11,
+                (index) => File('selected-$index.jpg'),
+              ),
+              onSendText: (_) {},
+              onSendImage: (_) => singleCalls++,
+              onSendMultipleImages: (_) => multipleCalls++,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('사진 선택'));
+    await tester.pump();
+
+    expect(find.text('사진은 한 번에 최대 10장까지 보낼 수 있어요.'), findsOneWidget);
+    expect(singleCalls, 0);
+    expect(multipleCalls, 0);
+    expect(find.byType(Dialog), findsNothing);
+  });
 }

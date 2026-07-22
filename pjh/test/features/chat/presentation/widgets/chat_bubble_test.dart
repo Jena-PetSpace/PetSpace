@@ -177,4 +177,23 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('320x568과 200% 글자 크기에서도 메시지 메타가 overflow하지 않는다', (tester) async {
+    await pumpBubble(
+      tester,
+      ChatBubble(
+        message: message(
+          senderId: 'user-2',
+          content: '확대 글자에서도 메시지와 시간이 서로 겹치지 않고 읽혀야 합니다.',
+        ),
+        isMine: false,
+        showSenderInfo: true,
+      ),
+      size: const Size(320, 568),
+      textScale: 2,
+    );
+
+    expect(find.text('콩떡이네'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

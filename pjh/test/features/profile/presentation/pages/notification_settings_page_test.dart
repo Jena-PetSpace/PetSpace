@@ -140,6 +140,8 @@ void main() {
     expect(tester.widget<SwitchListTile>(likeTile).value, isTrue);
     expect(find.textContaining('설정 동기화에 실패했습니다.'), findsOneWidget);
     expect(find.textContaining('private database detail'), findsNothing);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('notification_like'), isTrue);
     verify(
       () => repository.upsertNotificationPreference(
         userId: 'viewer',

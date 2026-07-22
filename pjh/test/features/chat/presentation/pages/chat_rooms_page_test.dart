@@ -194,4 +194,26 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('320x568과 200% 글자 크기에서도 목록 핵심 정보가 유지된다', (tester) async {
+    await pumpPage(
+      tester,
+      ChatRoomsLoaded(
+        rooms: [
+          room(
+            'room-1',
+            '아주 긴 이름의 동네 반려동물 산책 모임',
+            '아주 긴 마지막 메시지는 한 줄에서 자연스럽게 줄임표로 표시됩니다',
+            unreadCount: 12,
+          ),
+        ],
+      ),
+      size: const Size(320, 568),
+      textScale: 2,
+    );
+
+    expect(find.text('최근 대화'), findsOneWidget);
+    expect(find.byKey(const Key('chat_room_more_room-1')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -51,7 +51,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     final result =
         await getChatMessages(GetChatMessagesParams(roomId: event.roomId));
     result.fold(
-      (failure) => emit(ChatDetailError(message: failure.message)),
+      (_) => emit(const ChatDetailError(message: '대화를 불러오지 못했습니다.')),
       (messages) => emit(ChatDetailLoaded(
         messages: messages,
         hasReachedMax: messages.length < 30,
@@ -83,12 +83,12 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     ));
 
     result.fold(
-      (failure) {
+      (_) {
         final latestState = state;
         if (latestState is! ChatDetailLoaded) return;
         emit(latestState.copyWith(
           isLoadingMore: false,
-          loadMoreError: failure.message,
+          loadMoreError: '이전 메시지를 불러오지 못했습니다.',
         ));
       },
       (newMessages) {
@@ -217,14 +217,14 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       }
 
       result.fold(
-        (failure) {
+        (_) {
           final latest = state is ChatDetailLoaded
               ? state as ChatDetailLoaded
               : currentState;
           emit(latest.copyWith(
             sendOutcome: pending.copyWith(
               status: ChatSendStatus.failure,
-              errorMessage: failure.message,
+              errorMessage: '메시지를 보내지 못했습니다.',
             ),
           ));
         },
@@ -279,7 +279,9 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
     final result =
         await getChatMessages(GetChatMessagesParams(roomId: event.roomId));
     result.fold(
-      (failure) => emit(ChatDetailError(message: failure.message)),
+      (_) => emit(
+        const ChatDetailError(message: '대화를 새로고침하지 못했습니다.'),
+      ),
       (messages) => emit(ChatDetailLoaded(
         messages: messages,
         hasReachedMax: messages.length < 30,

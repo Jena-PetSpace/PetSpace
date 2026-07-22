@@ -130,6 +130,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('오늘'), findsOneWidget);
+    expect(find.text('게시물을 좋아합니다.'), findsNothing);
     await tester.tap(find.byKey(const Key('notifications_mark_all_read')));
     await tester.pump();
     verify(
@@ -146,5 +147,50 @@ void main() {
     await tester.pump();
 
     expect(find.text('모든 알림을 읽음으로 처리하지 못했어요.'), findsOneWidget);
+  });
+
+  testWidgets('320x568과 200% 글자 크기에서 알림 행이 overflow하지 않는다', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final bloc = _MockNotificationsBloc();
+    final loaded = NotificationsLoaded(
+      notifications: [unreadNotification()],
+      hasReachedMax: true,
+    );
+    when(() => bloc.state).thenReturn(loaded);
+    whenListen(
+      bloc,
+      const Stream<NotificationsState>.empty(),
+      initialState: loaded,
+    );
+    addTearDown(bloc.close);
+
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        minTextAdapt: true,
+        builder: (context, _) => MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(2),
+            ),
+            child: child!,
+          ),
+          home: NotificationsPage(
+            userId: 'user-1',
+            bloc: bloc,
+            nowProvider: () => now,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('오늘'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

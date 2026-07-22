@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -10,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:meong_nyang_diary/config/injection_container.dart';
+import 'package:meong_nyang_diary/core/error/failures.dart';
 import 'package:meong_nyang_diary/features/auth/domain/entities/user.dart';
 import 'package:meong_nyang_diary/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:meong_nyang_diary/features/chat/domain/entities/chat_participant.dart';
@@ -100,7 +102,13 @@ void main() {
     WidgetTester tester,
     List<ChatParticipant> participants, {
     Future<File?> Function(BuildContext context)? photoPicker,
+    Size size = const Size(390, 844),
+    double textScale = 1,
   }) async {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     when(() => repository.getRoomParticipants('room-1'))
         .thenAnswer((_) async => Right(participants));
 
@@ -112,6 +120,12 @@ void main() {
           value: authBloc,
           child: MaterialApp(
             theme: AppTheme.lightTheme,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(textScale),
+              ),
+              child: child!,
+            ),
             initialRoute: '/settings',
             routes: {
               '/': (_) => const Scaffold(body: SizedBox.shrink()),
@@ -267,6 +281,11 @@ void main() {
     );
     expect(find.byKey(const Key('chat_room_save_button')), findsNothing);
     expect(find.text('멤버 초대'), findsNothing);
+    expect(find.text('채팅방 정보 · 읽기 전용'), findsOneWidget);
+    expect(
+      find.text('일반 참여자는 방 이름과 대표 사진을 확인만 할 수 있어요.'),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const Key('chat_participant_menu_user-1')),
       findsNothing,
@@ -283,6 +302,49 @@ void main() {
     expect(find.text('채팅방 나가기'), findsOneWidget);
   });
 
+  testWidgets('나가기는 서버 성공 전 이동하지 않고 중복 요청을 막는다', (tester) async {
+    final pending = Completer<Either<Failure, void>>();
+    when(
+      () => repository.leaveChatRoom(
+        roomId: 'room-1',
+        userId: 'user-1',
+        leaverName: '정현',
+      ),
+    ).thenAnswer((_) => pending.future);
+
+    await pumpPage(tester, [
+      participant('user-1', '정현'),
+      participant('user-2', '콩떡이네', role: ChatRole.admin),
+    ]);
+    await tester.drag(
+      find.byKey(const Key('chat_room_settings_content')),
+      const Offset(0, -600),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('채팅방 나가기'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, '나가기'));
+    await tester.pump();
+
+    expect(find.text('채팅방 나가는 중'), findsOneWidget);
+    expect(find.text('서버 응답을 기다리고 있습니다.'), findsOneWidget);
+    verify(
+      () => repository.leaveChatRoom(
+        roomId: 'room-1',
+        userId: 'user-1',
+        leaverName: '정현',
+      ),
+    ).called(1);
+    expect(find.text('settings-route-probe'), findsNothing);
+
+    pending.complete(
+      const Left<Failure, void>(ServerFailure(message: 'private detail')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('채팅방 나가기'), findsOneWidget);
+    expect(find.textContaining('private detail'), findsNothing);
+  });
+
   test('직접 Supabase 호출과 가짜 방별 알림 UI는 다시 생기지 않는다', () {
     final source = File(
       'lib/features/chat/presentation/pages/chat_room_settings_page.dart',
@@ -291,5 +353,23 @@ void main() {
     expect(source, isNot(contains('Supabase.instance')));
     expect(source, isNot(contains('SwitchListTile')));
     expect(source, isNot(contains('chat_notification_')));
+  });
+
+  testWidgets('320x568과 200% 글자 크기에서 관리자 설정이 overflow하지 않는다', (
+    tester,
+  ) async {
+    await pumpPage(
+      tester,
+      [
+        participant('user-1', '정현', role: ChatRole.admin),
+        participant('user-2', '콩떡이네'),
+      ],
+      size: const Size(320, 568),
+      textScale: 2,
+    );
+
+    expect(find.text('채팅방 꾸미기 · 관리자만'), findsOneWidget);
+    expect(find.byKey(const Key('chat_room_save_button')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

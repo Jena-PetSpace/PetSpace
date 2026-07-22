@@ -40,6 +40,14 @@ class _CreateChatPageState extends State<CreateChatPage> {
   Timer? _searchDebounce;
   int _searchGeneration = 0;
 
+  Color get _mutedColor => Theme.of(context).brightness == Brightness.dark
+      ? Theme.of(context).colorScheme.onSurfaceVariant
+      : AppTheme.secondaryTextColor;
+
+  Color get _avatarSurface => Theme.of(context).brightness == Brightness.dark
+      ? Theme.of(context).colorScheme.surfaceContainerHighest
+      : AppTheme.neutral200;
+
   String get _currentUserId {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) return authState.user.id;
@@ -137,18 +145,17 @@ class _CreateChatPageState extends State<CreateChatPage> {
       return;
     }
     result.fold(
-      (failure) {
+      (_) {
         setState(() {
           _searchResults = [];
           _isSearching = false;
-          _searchError = failure.message;
+          _searchError = '사용자를 검색하지 못했습니다.';
         });
       },
       (users) {
         setState(() {
-          _searchResults = users
-              .where((u) => u.userId != _currentUserId)
-              .toList();
+          _searchResults =
+              users.where((u) => u.userId != _currentUserId).toList();
           _isSearching = false;
           _searchError = null;
         });
@@ -238,9 +245,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
             ),
           ),
         ),
-        bottomNavigationBar: _selectedUsers.isEmpty
-            ? null
-            : _buildPrimaryAction(),
+        bottomNavigationBar:
+            _selectedUsers.isEmpty ? null : _buildPrimaryAction(),
       ),
     );
   }
@@ -259,7 +265,16 @@ class _CreateChatPageState extends State<CreateChatPage> {
             style: TextStyle(
               fontSize: AppTheme.fontCaption.sp,
               fontWeight: FontWeight.w700,
-              color: AppTheme.secondaryTextColor,
+              color: _mutedColor,
+            ),
+          ),
+          SizedBox(height: 3.h),
+          Text(
+            _selectedUsers.length == 1 ? '1:1 채팅을 시작합니다' : '그룹 채팅을 만듭니다',
+            key: const Key('chat_selected_mode'),
+            style: TextStyle(
+              fontSize: AppTheme.fontMicro.sp,
+              color: _mutedColor,
             ),
           ),
           SizedBox(height: 8.h),
@@ -287,9 +302,8 @@ class _CreateChatPageState extends State<CreateChatPage> {
                   style: TextStyle(fontSize: AppTheme.fontCaption.sp),
                 ),
                 deleteIcon: Icon(Icons.close, size: 16.w),
-                onDeleted: _isCreatingChat
-                    ? null
-                    : () => _toggleUserSelection(user),
+                onDeleted:
+                    _isCreatingChat ? null : () => _toggleUserSelection(user),
               );
             }).toList(),
           ),
@@ -307,10 +321,10 @@ class _CreateChatPageState extends State<CreateChatPage> {
         enabled: !_isCreatingChat,
         decoration: InputDecoration(
           labelText: '그룹 이름',
-          hintText: '비워두면 참여자 이름으로 만들어요',
-          hintStyle: TextStyle(
+          helperText: '선택 · 비워두면 참여자 이름으로 만들어요.',
+          helperStyle: TextStyle(
             fontSize: AppTheme.fontCaption.sp,
-            color: AppTheme.secondaryTextColor,
+            color: _mutedColor,
           ),
           prefixIcon: const Icon(Icons.group),
         ),
@@ -330,22 +344,24 @@ class _CreateChatPageState extends State<CreateChatPage> {
           hintText: '닉네임 또는 반려동물 이름으로 검색',
           hintStyle: TextStyle(
             fontSize: AppTheme.fontCaption.sp,
-            color: AppTheme.secondaryTextColor,
+            color: _mutedColor,
           ),
           prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    _searchDebounce?.cancel();
-                    _searchGeneration++;
-                    setState(() {
-                      _searchResults = [];
-                      _isSearching = false;
-                      _searchError = null;
-                    });
-                  },
+                  onPressed: _isCreatingChat
+                      ? null
+                      : () {
+                          _searchController.clear();
+                          _searchDebounce?.cancel();
+                          _searchGeneration++;
+                          setState(() {
+                            _searchResults = [];
+                            _isSearching = false;
+                            _searchError = null;
+                          });
+                        },
                 )
               : null,
         ),
@@ -388,7 +404,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
             style: TextStyle(
               fontSize: 13.sp,
               fontWeight: FontWeight.w600,
-              color: AppTheme.secondaryTextColor,
+              color: _mutedColor,
             ),
           ),
         ),
@@ -451,12 +467,11 @@ class _CreateChatPageState extends State<CreateChatPage> {
       enabled: !_isCreatingChat,
       leading: CircleAvatar(
         radius: 20.r,
-        backgroundColor: Colors.grey[200],
-        backgroundImage: user.photoUrl != null
-            ? NetworkImage(user.photoUrl!)
-            : null,
+        backgroundColor: _avatarSurface,
+        backgroundImage:
+            user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
         child: user.photoUrl == null
-            ? Icon(Icons.person, size: 20.w, color: Colors.grey[500])
+            ? Icon(Icons.person, size: 20.w, color: _mutedColor)
             : null,
       ),
       title: Text(
@@ -468,20 +483,29 @@ class _CreateChatPageState extends State<CreateChatPage> {
               Icons.check_circle,
               color: Theme.of(context).colorScheme.primary,
             )
-          : Icon(Icons.circle_outlined, color: Colors.grey[400]),
+          : Icon(Icons.circle_outlined, color: _mutedColor),
       onTap: () => _toggleUserSelection(user),
     );
   }
 
   Widget _buildPrimaryAction() {
-    final label = _selectedUsers.length >= 2 ? '그룹 만들기' : '대화 시작';
+    final selectedName = _selectedUsers.first.displayName?.trim();
+    final label = _selectedUsers.length >= 2
+        ? '그룹 만들기'
+        : '${selectedName?.isNotEmpty == true ? selectedName : '선택한 사용자'}와 채팅 시작';
     return SafeArea(
       top: false,
       child: Container(
         padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
-        decoration: const BoxDecoration(
-          color: AppTheme.surfaceColor,
-          border: Border(top: BorderSide(color: AppTheme.border)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).colorScheme.outlineVariant
+                  : AppTheme.border,
+            ),
+          ),
         ),
         child: ElevatedButton(
           key: const Key('chat_create_primary_action'),

@@ -161,18 +161,24 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
       column: serverColumn,
       value: value,
     );
-    result.fold((_) {
-      dev.log(
-        '서버 알림 설정 저장 실패',
-        name: 'NotificationSettings',
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('설정 동기화에 실패했습니다. 네트워크를 확인해주세요.')),
+    await result.fold(
+      (_) async {
+        await prefs.setBool(localKey, !value);
+        dev.log(
+          '서버 알림 설정 저장 실패',
+          name: 'NotificationSettings',
         );
-        onRollback?.call();
-      }
-    }, (_) {});
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('설정 동기화에 실패했습니다. 네트워크를 확인해주세요.'),
+            ),
+          );
+          onRollback?.call();
+        }
+      },
+      (_) async {},
+    );
   }
 
   @override

@@ -47,6 +47,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   File? _pendingPhotoFile; // 저장 전 대기 중인 사진
   bool _hasNameChanged = false;
   bool _isSaving = false;
+  bool _isLeaving = false;
   bool _loadFailed = false;
   ChatRoomType? _roomType;
   String _initialName = '';
@@ -112,17 +113,14 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   Future<bool> _loadRoomInfo() async {
     final result = await sl<ChatRepository>().getChatRoomInfo(widget.roomId);
     return result.fold(
-      (failure) {
-        log(
-          '[ChatRoomSettings] 채팅방 정보 로드 실패: ${failure.message}',
-          name: 'ChatRoomSettings',
-        );
+      (_) {
+        log('채팅방 정보 로드 실패', name: 'ChatRoomSettings');
         return false;
       },
       (info) {
         if (info == null || !mounted) return false;
-        final serverName = (info['name'] as String? ?? widget.roomName ?? '')
-            .trim();
+        final serverName =
+            (info['name'] as String? ?? widget.roomName ?? '').trim();
         setState(() {
           _currentPhotoUrl = info['avatar_url'] as String?;
           _roomType = switch (info['type']) {
@@ -144,11 +142,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
       widget.roomId,
     );
     return result.fold(
-      (failure) {
-        log(
-          '[ChatRoomSettings] 참여자 로드 실패: ${failure.message}',
-          name: 'ChatRoomSettings',
-        );
+      (_) {
+        log('채팅방 참여자 로드 실패', name: 'ChatRoomSettings');
         return false;
       },
       (participants) {
@@ -262,6 +257,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Future<void> _leaveRoom() async {
+    if (_isLeaving) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -281,7 +277,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
+    setState(() => _isLeaving = true);
 
     // 내 이름: 참여자 목록에서 찾기 (이미 로드됨)
     final me = _participants.firstWhere(
@@ -307,6 +304,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
     result.fold(
       (failure) {
         if (mounted) {
+          setState(() => _isLeaving = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('채팅방에서 나가지 못했습니다. 다시 시도해주세요.'),
@@ -406,34 +404,35 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
               key: Key('chat_room_settings_loading'),
             )
           : _loadFailed
-          ? PetSpaceStateView.error(
-              key: const Key('chat_room_settings_error'),
-              icon: Icons.cloud_off_outlined,
-              title: '채팅방 정보를 불러오지 못했어요',
-              message: '인터넷 연결을 확인하고 다시 시도해주세요.',
-              actionLabel: '다시 시도',
-              onAction: _loadData,
-            )
-          : ListView(
-              key: const Key('chat_room_settings_content'),
-              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
-              children: [
-                _buildSummaryCard(),
-                SizedBox(height: 24.h),
-                _buildEditSection(),
-                SizedBox(height: 24.h),
-                _buildParticipantsSection(),
-                SizedBox(height: 24.h),
-                _buildLeaveSection(),
-              ],
-            ),
-      bottomNavigationBar: !_isLoading && !_loadFailed && _isAdmin
-          ? _buildSaveBar()
-          : null,
+              ? PetSpaceStateView.error(
+                  key: const Key('chat_room_settings_error'),
+                  icon: Icons.cloud_off_outlined,
+                  title: '채팅방 정보를 불러오지 못했어요',
+                  message: '인터넷 연결을 확인하고 다시 시도해주세요.',
+                  actionLabel: '다시 시도',
+                  onAction: _loadData,
+                )
+              : ListView(
+                  key: const Key('chat_room_settings_content'),
+                  padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 32.h),
+                  children: [
+                    _buildSummaryCard(),
+                    SizedBox(height: 24.h),
+                    _buildEditSection(),
+                    SizedBox(height: 24.h),
+                    _buildParticipantsSection(),
+                    SizedBox(height: 24.h),
+                    _buildLeaveSection(),
+                  ],
+                ),
+      bottomNavigationBar:
+          !_isLoading && !_loadFailed && _isAdmin ? _buildSaveBar() : null,
     );
   }
 
   Widget _buildSummaryCard() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final displayName = _initialName.isNotEmpty ? _initialName : '이름 없는 채팅방';
     return Container(
       key: const Key('chat_room_summary_card'),
@@ -441,7 +440,9 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(
+          color: isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+        ),
       ),
       child: Row(
         children: [
@@ -451,9 +452,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
             backgroundImage: _pendingPhotoFile != null
                 ? FileImage(_pendingPhotoFile!)
                 : (_currentPhotoUrl != null
-                          ? CachedNetworkImageProvider(_currentPhotoUrl!)
-                          : null)
-                      as ImageProvider?,
+                    ? CachedNetworkImageProvider(_currentPhotoUrl!)
+                    : null) as ImageProvider?,
             child: _pendingPhotoFile == null && _currentPhotoUrl == null
                 ? Icon(
                     _roomType == ChatRoomType.group
@@ -475,7 +475,9 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
                   style: TextStyle(
                     fontSize: AppTheme.fontHeading.sp,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.brandDeep,
+                    color: isDark
+                        ? theme.colorScheme.onSurface
+                        : AppTheme.brandDeep,
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -483,7 +485,9 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
                   '참여자 ${_participants.length}명',
                   style: TextStyle(
                     fontSize: AppTheme.fontCaption.sp,
-                    color: AppTheme.secondaryTextColor,
+                    color: isDark
+                        ? theme.colorScheme.onSurfaceVariant
+                        : AppTheme.secondaryTextColor,
                   ),
                 ),
               ],
@@ -512,7 +516,10 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
 
   Widget _buildEditSection() {
     return PetSpaceSettingsSection(
-      title: '채팅방 꾸미기',
+      title: _isAdmin ? '채팅방 꾸미기 · 관리자만' : '채팅방 정보 · 읽기 전용',
+      description: _isAdmin
+          ? '방 이름과 대표 사진은 관리자만 변경할 수 있어요.'
+          : '일반 참여자는 방 이름과 대표 사진을 확인만 할 수 있어요.',
       children: [
         Padding(
           padding: EdgeInsets.all(16.w),
@@ -540,9 +547,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
             backgroundImage: _pendingPhotoFile != null
                 ? FileImage(_pendingPhotoFile!)
                 : (_currentPhotoUrl != null
-                          ? CachedNetworkImageProvider(_currentPhotoUrl!)
-                          : null)
-                      as ImageProvider?,
+                    ? CachedNetworkImageProvider(_currentPhotoUrl!)
+                    : null) as ImageProvider?,
             child: _pendingPhotoFile == null && _currentPhotoUrl == null
                 ? Icon(Icons.group, size: 40.w, color: AppTheme.actionBase)
                 : null,
@@ -618,13 +624,20 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Widget _buildSaveBar() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return SafeArea(
       top: false,
       child: Container(
         padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
-        decoration: const BoxDecoration(
-          color: AppTheme.surfaceColor,
-          border: Border(top: BorderSide(color: AppTheme.border)),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color:
+                  isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+            ),
+          ),
         ),
         child: ElevatedButton(
           key: const Key('chat_room_save_button'),
@@ -667,6 +680,8 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Widget _buildParticipantTile(ChatParticipant participant) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isMe = participant.userId == _currentUserId;
     return ListTile(
       key: Key('chat_participant_${participant.userId}'),
@@ -694,7 +709,9 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
         ].join(' · '),
         style: TextStyle(
           fontSize: AppTheme.fontCaption.sp,
-          color: AppTheme.secondaryTextColor,
+          color: isDark
+              ? theme.colorScheme.onSurfaceVariant
+              : AppTheme.secondaryTextColor,
         ),
       ),
       trailing: !isMe && _roomType == ChatRoomType.group
@@ -724,10 +741,18 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
       children: [
         PetSpaceSettingsTile(
           icon: Icons.logout_rounded,
-          title: '채팅방 나가기',
-          subtitle: '나간 후에는 대화 내용을 볼 수 없습니다.',
+          title: _isLeaving ? '채팅방 나가는 중' : '채팅방 나가기',
+          subtitle:
+              _isLeaving ? '서버 응답을 기다리고 있습니다.' : '나간 후에는 대화 내용을 볼 수 없습니다.',
+          trailing: _isLeaving
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : null,
           destructive: true,
-          onTap: _leaveRoom,
+          enabled: !_isLeaving,
+          onTap: _isLeaving ? null : _leaveRoom,
         ),
       ],
     );
@@ -801,11 +826,11 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
       return;
     }
     result.fold(
-      (failure) {
+      (_) {
         setState(() {
           _searchResults = [];
           _isSearching = false;
-          _searchError = failure.message;
+          _searchError = '사용자를 검색하지 못했습니다.';
         });
       },
       (users) {
@@ -989,71 +1014,74 @@ class _AddMembersSheetState extends State<_AddMembersSheet> {
             child: _isSearching
                 ? const Center(child: CircularProgressIndicator())
                 : _searchError != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('검색 결과를 불러오지 못했습니다'),
-                        SizedBox(height: 12.h),
-                        OutlinedButton(
-                          onPressed: () {
-                            final query = _searchController.text.trim();
-                            if (query.isNotEmpty) _scheduleSearch(query);
-                          },
-                          child: const Text('다시 시도'),
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('검색 결과를 불러오지 못했습니다'),
+                            SizedBox(height: 12.h),
+                            OutlinedButton(
+                              onPressed: () {
+                                final query = _searchController.text.trim();
+                                if (query.isNotEmpty) _scheduleSearch(query);
+                              },
+                              child: const Text('다시 시도'),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  )
-                : _searchResults.isEmpty
-                ? Center(
-                    child: Text(
-                      _searchController.text.isEmpty
-                          ? '사용자를 검색하세요'
-                          : '검색 결과가 없습니다',
-                      style: TextStyle(fontSize: 14.sp, color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    controller: scrollController,
-                    itemCount: _searchResults.length,
-                    itemBuilder: (context, index) {
-                      final user = _searchResults[index];
-                      final isSelected = _selectedUsers.any(
-                        (u) => u.userId == user.userId,
-                      );
-                      return ListTile(
-                        leading: CircleAvatar(
-                          radius: 20.r,
-                          backgroundColor: Colors.grey[200],
-                          backgroundImage: user.photoUrl != null
-                              ? NetworkImage(user.photoUrl!)
-                              : null,
-                          child: user.photoUrl == null
-                              ? Icon(
-                                  Icons.person,
-                                  size: 20.w,
-                                  color: Colors.grey[500],
-                                )
-                              : null,
-                        ),
-                        title: Text(
-                          user.displayName ?? '알 수 없는 사용자',
-                          style: TextStyle(fontSize: 15.sp),
-                        ),
-                        trailing: isSelected
-                            ? Icon(
-                                Icons.check_circle,
-                                color: Theme.of(context).colorScheme.primary,
-                              )
-                            : Icon(
-                                Icons.circle_outlined,
-                                color: Colors.grey[400],
-                              ),
-                        onTap: () => _toggleUser(user),
-                      );
-                    },
-                  ),
+                      )
+                    : _searchResults.isEmpty
+                        ? Center(
+                            child: Text(
+                              _searchController.text.isEmpty
+                                  ? '사용자를 검색하세요'
+                                  : '검색 결과가 없습니다',
+                              style: TextStyle(
+                                  fontSize: 14.sp, color: Colors.grey),
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: scrollController,
+                            itemCount: _searchResults.length,
+                            itemBuilder: (context, index) {
+                              final user = _searchResults[index];
+                              final isSelected = _selectedUsers.any(
+                                (u) => u.userId == user.userId,
+                              );
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  radius: 20.r,
+                                  backgroundColor: Colors.grey[200],
+                                  backgroundImage: user.photoUrl != null
+                                      ? NetworkImage(user.photoUrl!)
+                                      : null,
+                                  child: user.photoUrl == null
+                                      ? Icon(
+                                          Icons.person,
+                                          size: 20.w,
+                                          color: Colors.grey[500],
+                                        )
+                                      : null,
+                                ),
+                                title: Text(
+                                  user.displayName ?? '알 수 없는 사용자',
+                                  style: TextStyle(fontSize: 15.sp),
+                                ),
+                                trailing: isSelected
+                                    ? Icon(
+                                        Icons.check_circle,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      )
+                                    : Icon(
+                                        Icons.circle_outlined,
+                                        color: Colors.grey[400],
+                                      ),
+                                onTap: () => _toggleUser(user),
+                              );
+                            },
+                          ),
           ),
         ],
       ),

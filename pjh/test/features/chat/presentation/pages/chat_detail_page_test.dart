@@ -218,6 +218,22 @@ void main() {
     expect(find.byKey(const Key('chat_direct_user_menu')), findsNothing);
   });
 
+  testWidgets('가장 최근 내 메시지는 상대가 모두 읽으면 읽음 상태를 표시한다', (tester) async {
+    final mine = ChatMessage(
+      id: 'message-mine',
+      roomId: 'room-1',
+      senderId: 'user-1',
+      content: '주말에 같이 걸을까요?',
+      createdAt: DateTime(2026, 7, 20, 15),
+    );
+    await pumpPage(
+      tester,
+      ChatDetailLoaded(messages: [mine, message()]),
+    );
+
+    expect(find.text('읽음'), findsOneWidget);
+  });
+
   test('이미지 전송과 실시간 보강은 C1A BLoC 계약을 유지한다', () {
     final source =
         File('lib/features/chat/presentation/pages/chat_detail_page.dart')

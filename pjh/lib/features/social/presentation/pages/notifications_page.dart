@@ -10,7 +10,6 @@ import '../../../../shared/widgets/petspace_state_view.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../domain/entities/notification.dart' as app;
 import '../bloc/notifications_bloc.dart';
-import '../widgets/notification_card.dart';
 
 class NotificationsPage extends StatelessWidget {
   final String userId;
@@ -161,12 +160,12 @@ class _NotificationsView extends StatelessWidget {
     for (final notification in state.notifications) {
       final group = _isSameDay(notification.createdAt, now) ? '오늘' : '이전 알림';
       if (group != previousGroup) {
-        children.add(_groupHeader(group));
+        children.add(_groupHeader(context, group));
         previousGroup = group;
       }
       children.add(
-        NotificationCard(
-          notification: notification,
+        _NotificationListItem(
+          notification: _withoutRedundantBody(notification),
           now: now,
           isReadPending: state.pendingReadIds.contains(notification.id),
           onTap: () {
@@ -229,7 +228,8 @@ class _NotificationsView extends StatelessWidget {
     );
   }
 
-  Widget _groupHeader(String label) {
+  Widget _groupHeader(BuildContext context, String label) {
+    final theme = Theme.of(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 8.h),
       child: Text(
@@ -237,7 +237,9 @@ class _NotificationsView extends StatelessWidget {
         style: TextStyle(
           fontSize: AppTheme.fontCaption.sp,
           fontWeight: FontWeight.w700,
-          color: AppTheme.secondaryTextColor,
+          color: theme.brightness == Brightness.dark
+              ? theme.colorScheme.onSurfaceVariant
+              : AppTheme.secondaryTextColor,
         ),
       ),
     );
@@ -247,6 +249,14 @@ class _NotificationsView extends StatelessWidget {
       left.year == right.year &&
       left.month == right.month &&
       left.day == right.day;
+
+  app.Notification _withoutRedundantBody(app.Notification notification) {
+    if (notification.type == app.NotificationType.like ||
+        notification.type == app.NotificationType.follow) {
+      return notification.copyWith(body: '');
+    }
+    return notification;
+  }
 
   void _navigateToContent(BuildContext context, app.Notification notification) {
     switch (notification.type) {
@@ -291,5 +301,202 @@ class _NotificationsView extends StatelessWidget {
       ..showSnackBar(
         const SnackBar(content: Text('연결된 내용을 열 수 없어요.')),
       );
+  }
+}
+
+class _NotificationListItem extends StatelessWidget {
+  final app.Notification notification;
+  final VoidCallback onTap;
+  final bool isReadPending;
+  final DateTime now;
+
+  const _NotificationListItem({
+    required this.notification,
+    required this.onTap,
+    required this.isReadPending,
+    required this.now,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
+    final unreadSurface = isDark
+        ? theme.colorScheme.surfaceContainerHighest
+        : AppTheme.actionContainer.withValues(alpha: 0.55);
+
+    return Material(
+      color: notification.isRead ? Colors.transparent : unreadSurface,
+      child: InkWell(
+        key: Key('notification_${notification.id}'),
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildIcon(context),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: notification.senderName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: AppTheme.fontCaption.sp,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          TextSpan(
+                            text: _actionText(notification.type),
+                            style: TextStyle(
+                              fontSize: AppTheme.fontCaption.sp,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (notification.body.isNotEmpty) ...[
+                      SizedBox(height: 4.h),
+                      Text(
+                        notification.body,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: AppTheme.fontMicro.sp,
+                          color: muted,
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 5.h),
+                    Text(
+                      _relativeTime(notification.createdAt),
+                      style: TextStyle(
+                        fontSize: AppTheme.fontMicro.sp,
+                        color: muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8.w),
+              if (isReadPending)
+                const SizedBox.square(
+                  dimension: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else if (!notification.isRead)
+                Container(
+                  width: 8.w,
+                  height: 8.w,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.actionBase,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIcon(BuildContext context) {
+    final theme = Theme.of(context);
+    final initial = notification.senderName.trim().isEmpty
+        ? '?'
+        : notification.senderName.trim()[0];
+    return Stack(
+      children: [
+        Semantics(
+          label: '${notification.senderName} 프로필 사진',
+          image: true,
+          child: CircleAvatar(
+            radius: 20.r,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+            backgroundImage: notification.senderProfileImage == null
+                ? null
+                : NetworkImage(notification.senderProfileImage!),
+            child: notification.senderProfileImage == null
+                ? Text(
+                    initial,
+                    style: TextStyle(
+                      fontSize: AppTheme.fontCaption.sp,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  )
+                : null,
+          ),
+        ),
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: Container(
+            padding: EdgeInsets.all(2.w),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _typeIcon(notification.type),
+              size: 12.w,
+              color: notification.type == app.NotificationType.like
+                  ? AppTheme.errorColor
+                  : AppTheme.actionBase,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _actionText(app.NotificationType type) {
+    return switch (type) {
+      app.NotificationType.like => '님이 게시물에 좋아요를 눌렀어요.',
+      app.NotificationType.comment => '님이 댓글을 남겼어요.',
+      app.NotificationType.follow => '님이 팔로우하기 시작했어요.',
+      app.NotificationType.mention => '님이 회원님을 언급했어요.',
+      app.NotificationType.system => '에서 새 소식을 전했어요.',
+      app.NotificationType.adminNewPost => '에서 새 게시물을 알려드려요.',
+      app.NotificationType.emotionAnalysis => '님이 AI 분석을 공유했어요.',
+      app.NotificationType.healthAlert => '에서 건강 일정을 알려드려요.',
+      app.NotificationType.friendRequest => '님이 친구 요청을 보냈어요.',
+      app.NotificationType.postShare => '님이 게시물을 공유했어요.',
+      app.NotificationType.unknown => '에서 새 알림을 보냈어요.',
+    };
+  }
+
+  IconData _typeIcon(app.NotificationType type) {
+    return switch (type) {
+      app.NotificationType.like => Icons.favorite_rounded,
+      app.NotificationType.comment => Icons.chat_bubble_rounded,
+      app.NotificationType.follow => Icons.person_add_rounded,
+      app.NotificationType.mention => Icons.alternate_email_rounded,
+      app.NotificationType.system => Icons.campaign_outlined,
+      app.NotificationType.adminNewPost => Icons.article_outlined,
+      app.NotificationType.emotionAnalysis => Icons.psychology_rounded,
+      app.NotificationType.healthAlert => Icons.health_and_safety_outlined,
+      app.NotificationType.friendRequest => Icons.person_add_alt_1_rounded,
+      app.NotificationType.postShare => Icons.share_rounded,
+      app.NotificationType.unknown => Icons.notifications_none_rounded,
+    };
+  }
+
+  String _relativeTime(DateTime createdAt) {
+    final difference = now.difference(createdAt);
+    if (difference.inMinutes < 1) return '방금 전';
+    if (difference.inHours < 1) return '${difference.inMinutes}분 전';
+    if (difference.inDays < 1) return '${difference.inHours}시간 전';
+    if (difference.inDays < 7) return '${difference.inDays}일 전';
+    return '${createdAt.month}/${createdAt.day}';
   }
 }

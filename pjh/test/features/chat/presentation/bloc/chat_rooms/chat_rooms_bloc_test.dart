@@ -73,7 +73,8 @@ void main() {
 
     expect(failed.rooms.single.id, 'room-1');
     expect(failed.isRefreshing, isFalse);
-    expect(failed.refreshErrorMessage, '새로고침 실패');
+    expect(failed.refreshErrorMessage, '새 대화를 확인하지 못했습니다.');
+    expect(failed.refreshErrorMessage, isNot(contains('새로고침 실패')));
   });
 
   test('생성 중 중복 요청은 한 번만 실행한다', () async {

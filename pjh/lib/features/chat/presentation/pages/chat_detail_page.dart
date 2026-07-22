@@ -60,15 +60,15 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       if (mounted) {
         // 메시지 로드
         context.read<ChatDetailBloc>().add(
-          ChatDetailLoadRequested(roomId: widget.roomId),
-        );
+              ChatDetailLoadRequested(roomId: widget.roomId),
+            );
         // 읽음 처리
         context.read<ChatDetailBloc>().add(
-          ChatDetailMarkAsReadRequested(
-            roomId: widget.roomId,
-            userId: _currentUserId,
-          ),
-        );
+              ChatDetailMarkAsReadRequested(
+                roomId: widget.roomId,
+                userId: _currentUserId,
+              ),
+            );
         // 참여자 로드
         _loadParticipants();
         // DB에서 최신 방 이름 로드
@@ -94,10 +94,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       widget.roomId,
     );
     result.fold(
-      (failure) => log(
-        'Failed to load participants: ${failure.message}',
-        name: 'ChatDetail',
-      ),
+      (_) => log('Failed to load chat participants', name: 'ChatDetail'),
       (participants) {
         if (mounted) setState(() => _participants = participants);
       },
@@ -107,10 +104,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Future<void> _refreshRoomName() async {
     final result = await sl<ChatRepository>().getChatRoomInfo(widget.roomId);
     result.fold(
-      (failure) => log(
-        'Failed to refresh room name: ${failure.message}',
-        name: 'ChatDetail',
-      ),
+      (_) => log('Failed to refresh chat room info', name: 'ChatDetail'),
       (info) {
         if (!mounted || info == null) return;
         setState(() {
@@ -227,13 +221,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
     // 현재 방 즉시 재그리기(차단 상대 기존 메시지 비표시).
     context.read<ChatDetailBloc>().add(
-      ChatDetailBlockApplied(roomId: widget.roomId),
-    );
+          ChatDetailBlockApplied(roomId: widget.roomId),
+        );
     // 채팅방 목록에서 차단 방 숨김 갱신(목록 BLoC이 트리에 없으면 다음 자연 로드에서 반영).
     try {
       context.read<ChatRoomsBloc>().add(
-        ChatRoomsRefreshRequested(userId: _currentUserId),
-      );
+            ChatRoomsRefreshRequested(userId: _currentUserId),
+          );
     } catch (_) {
       // ChatRoomsBloc 미제공 컨텍스트 — getChatRooms 필터가 다음 로드 시 적용됨.
     }
@@ -258,47 +252,46 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent * 0.8) {
       context.read<ChatDetailBloc>().add(
-        ChatDetailLoadMoreRequested(roomId: widget.roomId),
-      );
+            ChatDetailLoadMoreRequested(roomId: widget.roomId),
+          );
     }
   }
 
   void _subscribeToMessages() {
-    _messageSubscription = sl<ChatRepository>()
-        .subscribeToRoomMessages(widget.roomId)
-        .listen(
-          (message) {
-            if (!mounted) return;
-            final sender = _participants.cast<ChatParticipant?>().firstWhere(
+    _messageSubscription =
+        sl<ChatRepository>().subscribeToRoomMessages(widget.roomId).listen(
+      (message) {
+        if (!mounted) return;
+        final sender = _participants.cast<ChatParticipant?>().firstWhere(
               (participant) => participant?.userId == message.senderId,
               orElse: () => null,
             );
-            final hydratedMessage = sender == null
-                ? message
-                : message.copyWith(
-                    senderName: sender.displayName,
-                    senderPhotoUrl: sender.photoUrl,
-                  );
-            // 본인이 보낸 메시지는 이미 UI에 반영됨 - 중복 방지는 BLoC에서 처리
-            context.read<ChatDetailBloc>().add(
+        final hydratedMessage = sender == null
+            ? message
+            : message.copyWith(
+                senderName: sender.displayName,
+                senderPhotoUrl: sender.photoUrl,
+              );
+        // 본인이 보낸 메시지는 이미 UI에 반영됨 - 중복 방지는 BLoC에서 처리
+        context.read<ChatDetailBloc>().add(
               ChatDetailNewMessageReceived(message: hydratedMessage),
             );
-            _scheduleReadAndParticipantsRefresh();
-            // 새 메시지 수신 시 맨 아래로 스크롤
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_scrollController.hasClients) {
-                _scrollController.animateTo(
-                  0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOut,
-                );
-              }
-            });
-          },
-          onError: (e) {
-            log('Failed to parse realtime message: $e', name: 'ChatDetail');
-          },
-        );
+        _scheduleReadAndParticipantsRefresh();
+        // 새 메시지 수신 시 맨 아래로 스크롤
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      },
+      onError: (_) {
+        log('Failed to receive realtime chat message', name: 'ChatDetail');
+      },
+    );
   }
 
   void _scheduleReadAndParticipantsRefresh() {
@@ -307,11 +300,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _readReceiptTimer = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
       context.read<ChatDetailBloc>().add(
-        ChatDetailMarkAsReadRequested(
-          roomId: widget.roomId,
-          userId: _currentUserId,
-        ),
-      );
+            ChatDetailMarkAsReadRequested(
+              roomId: widget.roomId,
+              userId: _currentUserId,
+            ),
+          );
     });
     _participantsRefreshTimer = Timer(const Duration(milliseconds: 800), () {
       if (mounted) _loadParticipants();
@@ -424,8 +417,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       actionLabel: '다시 시도',
                       onAction: () {
                         context.read<ChatDetailBloc>().add(
-                          ChatDetailLoadRequested(roomId: widget.roomId),
-                        );
+                              ChatDetailLoadRequested(roomId: widget.roomId),
+                            );
                       },
                     );
                   }
@@ -460,30 +453,30 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   isSending: isSending,
                   onSendText: (text) {
                     context.read<ChatDetailBloc>().add(
-                      ChatDetailSendTextRequested(
-                        roomId: widget.roomId,
-                        senderId: _currentUserId,
-                        content: text,
-                      ),
-                    );
+                          ChatDetailSendTextRequested(
+                            roomId: widget.roomId,
+                            senderId: _currentUserId,
+                            content: text,
+                          ),
+                        );
                   },
                   onSendImage: (File imageFile) {
                     context.read<ChatDetailBloc>().add(
-                      ChatDetailSendImageRequested(
-                        roomId: widget.roomId,
-                        senderId: _currentUserId,
-                        imageFile: imageFile,
-                      ),
-                    );
+                          ChatDetailSendImageRequested(
+                            roomId: widget.roomId,
+                            senderId: _currentUserId,
+                            imageFile: imageFile,
+                          ),
+                        );
                   },
                   onSendMultipleImages: (List<File> images) {
                     context.read<ChatDetailBloc>().add(
-                      ChatDetailSendMultipleImagesRequested(
-                        roomId: widget.roomId,
-                        senderId: _currentUserId,
-                        images: images,
-                      ),
-                    );
+                          ChatDetailSendMultipleImagesRequested(
+                            roomId: widget.roomId,
+                            senderId: _currentUserId,
+                            images: images,
+                          ),
+                        );
                   },
                 );
               },
@@ -560,7 +553,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               isMine: isMine,
               showSenderInfo: showSenderInfo,
               unreadCount: unreadCount,
-              showReadLabel: false,
+              showReadLabel: isMine && unreadCount == 0 && index == 0,
               onLongPress: isMine ? null : () => _reportMessage(message),
             ),
           ],
@@ -584,19 +577,25 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       text = '${local.year}년 ${local.month}월 ${local.day}일';
     }
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Center(
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 12.h),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: AppTheme.actionContainer,
+          color: isDark
+              ? theme.colorScheme.surfaceContainerHighest
+              : AppTheme.actionContainer,
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Text(
           text,
           style: TextStyle(
             fontSize: AppTheme.fontMicro.sp,
-            color: AppTheme.secondaryTextColor,
+            color: isDark
+                ? theme.colorScheme.onSurfaceVariant
+                : AppTheme.secondaryTextColor,
           ),
         ),
       ),
@@ -604,6 +603,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Widget _buildSendFailureCard(ChatSendOutcome outcome) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final detail = switch (outcome.kind) {
       ChatSendKind.text => '입력 내용은 성공할 때까지 그대로 유지됩니다.',
       ChatSendKind.image => '선택한 사진을 다시 보낼 수 있습니다.',
@@ -635,7 +636,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   style: TextStyle(
                     fontSize: AppTheme.fontCaption.sp,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.primaryTextColor,
+                    color: isDark
+                        ? theme.colorScheme.onSurface
+                        : AppTheme.primaryTextColor,
                   ),
                 ),
                 SizedBox(height: 2.h),
@@ -643,7 +646,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   detail,
                   style: TextStyle(
                     fontSize: AppTheme.fontMicro.sp,
-                    color: AppTheme.secondaryTextColor,
+                    color: isDark
+                        ? theme.colorScheme.onSurfaceVariant
+                        : AppTheme.secondaryTextColor,
                   ),
                 ),
               ],
@@ -653,8 +658,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             key: const Key('chat_send_retry'),
             onPressed: () {
               context.read<ChatDetailBloc>().add(
-                const ChatDetailRetryLastSendRequested(),
-              );
+                    const ChatDetailRetryLastSendRequested(),
+                  );
             },
             style: TextButton.styleFrom(
               minimumSize: const Size(44, 44),
@@ -668,6 +673,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Widget _buildLoadMoreError() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       key: const Key('chat_load_more_error'),
       margin: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
@@ -675,7 +682,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(
+          color: isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+        ),
       ),
       child: Column(
         children: [
@@ -683,7 +692,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             '이전 메시지를 불러오지 못했어요.',
             style: TextStyle(
               fontSize: AppTheme.fontCaption.sp,
-              color: AppTheme.secondaryTextColor,
+              color: isDark
+                  ? theme.colorScheme.onSurfaceVariant
+                  : AppTheme.secondaryTextColor,
             ),
           ),
           SizedBox(height: 8.h),
@@ -691,8 +702,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             key: const Key('chat_load_more_retry'),
             onPressed: () {
               context.read<ChatDetailBloc>().add(
-                ChatDetailLoadMoreRequested(roomId: widget.roomId),
-              );
+                    ChatDetailLoadMoreRequested(roomId: widget.roomId),
+                  );
             },
             style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
             child: const Text('다시 시도'),

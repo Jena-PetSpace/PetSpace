@@ -33,12 +33,17 @@ class ChatBubble extends StatelessWidget {
       return _buildSystemMessage(context);
     }
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
       child: Row(
-        mainAxisAlignment: isMine
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMine) ...[
@@ -59,9 +64,8 @@ class ChatBubble extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment: isMine
-                  ? CrossAxisAlignment.end
-                  : CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 if (showSenderInfo && !isMine)
                   Padding(
@@ -70,7 +74,7 @@ class ChatBubble extends StatelessWidget {
                       message.senderName ?? '',
                       style: TextStyle(
                         fontSize: 12.sp,
-                        color: AppTheme.secondaryTextColor,
+                        color: muted,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -103,7 +107,7 @@ class ChatBubble extends StatelessWidget {
                               _formatTime(message.createdAt),
                               style: TextStyle(
                                 fontSize: 10.sp,
-                                color: Colors.grey,
+                                color: muted,
                               ),
                             ),
                           ],
@@ -141,7 +145,7 @@ class ChatBubble extends StatelessWidget {
                               _formatTime(message.createdAt),
                               style: TextStyle(
                                 fontSize: AppTheme.fontMicro.sp,
-                                color: AppTheme.secondaryTextColor,
+                                color: muted,
                               ),
                             ),
                           ],
@@ -154,7 +158,7 @@ class ChatBubble extends StatelessWidget {
                     padding: EdgeInsets.only(top: 2.h, right: 4.w),
                     child: Text(
                       '읽음',
-                      style: TextStyle(fontSize: 10.sp, color: Colors.grey),
+                      style: TextStyle(fontSize: 10.sp, color: muted),
                     ),
                   ),
               ],
@@ -167,18 +171,24 @@ class ChatBubble extends StatelessWidget {
   }
 
   Widget _buildMessageContent(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     if (message.isDeleted) {
       return Container(
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: AppTheme.actionContainer,
+          color: isDark
+              ? theme.colorScheme.surfaceContainerHighest
+              : AppTheme.actionContainer,
           borderRadius: BorderRadius.circular(16.r),
         ),
         child: Text(
           '삭제된 메시지입니다',
           style: TextStyle(
             fontSize: 14.sp,
-            color: AppTheme.secondaryTextColor,
+            color: isDark
+                ? theme.colorScheme.onSurfaceVariant
+                : AppTheme.secondaryTextColor,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -231,10 +241,13 @@ class ChatBubble extends StatelessWidget {
       key: Key(isMine ? 'chat_text_bubble_mine' : 'chat_text_bubble_other'),
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: isMine
-            ? AppTheme.actionBase
-            : Theme.of(context).colorScheme.surface,
-        border: isMine ? null : Border.all(color: AppTheme.border),
+        color: isMine ? AppTheme.actionBase : theme.colorScheme.surface,
+        border: isMine
+            ? null
+            : Border.all(
+                color:
+                    isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+              ),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(16.r),
           topRight: Radius.circular(16.r),
@@ -246,9 +259,7 @@ class ChatBubble extends StatelessWidget {
         message.content ?? '',
         style: TextStyle(
           fontSize: 14.sp,
-          color: isMine
-              ? Colors.white
-              : Theme.of(context).colorScheme.onSurface,
+          color: isMine ? Colors.white : theme.colorScheme.onSurface,
         ),
       ),
     );
@@ -466,18 +477,27 @@ class ChatBubble extends StatelessWidget {
   }
 
   Widget _buildSystemMessage(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Center(
       child: Container(
         key: const Key('chat_system_message'),
         margin: EdgeInsets.symmetric(vertical: 8.h),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: AppTheme.actionContainer,
+          color: isDark
+              ? theme.colorScheme.surfaceContainerHighest
+              : AppTheme.actionContainer,
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: Text(
           message.content ?? '',
-          style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor),
+          style: TextStyle(
+            fontSize: 12.sp,
+            color: isDark
+                ? theme.colorScheme.onSurfaceVariant
+                : AppTheme.secondaryTextColor,
+          ),
         ),
       ),
     );
