@@ -197,15 +197,6 @@ class _CreatePostPageState extends State<CreatePostPage>
             ),
             title: Text(_isEditMode ? '게시글 수정' : '게시글 작성'),
             centerTitle: true,
-            actions: [
-              TextButton(
-                key: const Key('create_post_submit_top'),
-                onPressed: _isSubmitting
-                    ? null
-                    : (_isEditMode ? _updatePost : _submit),
-                child: Text(_isEditMode ? '수정' : '게시'),
-              ),
-            ],
           ),
           // P2-3: 키보드 외부 영역 탭 시 자동 닫기 (한국 모바일 표준 UX)
           body: GestureDetector(
@@ -213,7 +204,7 @@ class _CreatePostPageState extends State<CreatePostPage>
             onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
             child: SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 36.h),
+                padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 24.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -239,12 +230,15 @@ class _CreatePostPageState extends State<CreatePostPage>
                       _buildPetSection(),
                     ],
                     SizedBox(height: 20.h),
+                    _buildContentSection(),
+                    SizedBox(height: 18.h),
                     _buildSectionLabel('사진', '최대 10장'),
                     SizedBox(height: 8.h),
                     MultiImagePicker(
                       key: const Key('create_post_image_picker'),
                       images: _selectedImages,
                       maxImages: 10,
+                      emptyHeight: 132,
                       onChanged: (imgs) => setState(() {
                         _selectedImages = imgs;
                         _submissionError = null;
@@ -252,9 +246,7 @@ class _CreatePostPageState extends State<CreatePostPage>
                     ),
                     SizedBox(height: 16.h),
                     if (widget.emotionAnalysis != null) _buildEmotionSection(),
-                    SizedBox(height: 16.h),
-                    _buildContentSection(),
-                    SizedBox(height: 16.h),
+                    if (widget.emotionAnalysis != null) SizedBox(height: 16.h),
                     _buildHashtagSection(),
                     SizedBox(height: 16.h),
                     _buildPrivacySection(),
@@ -280,34 +272,44 @@ class _CreatePostPageState extends State<CreatePostPage>
                         ),
                       ),
                     ],
-                    SizedBox(height: 20.h),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: FilledButton(
-                        key: const Key('create_post_submit_button'),
-                        onPressed: _isSubmitting
-                            ? null
-                            : (_isEditMode ? _updatePost : _submit),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppTheme.actionBase,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: _isSubmitting
-                            ? const SizedBox.square(
-                                dimension: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(_isEditMode ? '수정하기' : '게시하기'),
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
+          ),
+          bottomNavigationBar: _buildSubmitBar(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubmitBar() {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 12.h),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: theme.colorScheme.outlineVariant),
+            ),
+          ),
+          child: FilledButton(
+            key: const Key('create_post_submit_button'),
+            onPressed:
+                _isSubmitting ? null : (_isEditMode ? _updatePost : _submit),
+            child: _isSubmitting
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(_isEditMode ? '수정하기' : '게시하기'),
           ),
         ),
       ),
@@ -315,6 +317,7 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 
   Widget _buildSectionLabel(String title, String trailing) {
+    final theme = Theme.of(context);
     return Row(
       children: [
         Text(
@@ -322,6 +325,7 @@ class _CreatePostPageState extends State<CreatePostPage>
           style: TextStyle(
             fontSize: AppTheme.fontBody.sp,
             fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         const Spacer(),
@@ -329,7 +333,7 @@ class _CreatePostPageState extends State<CreatePostPage>
           trailing,
           style: TextStyle(
             fontSize: AppTheme.fontMicro.sp,
-            color: AppTheme.secondaryTextColor,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -376,12 +380,14 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 
   Widget _buildEmotionSection() {
+    final theme = Theme.of(context);
     return Container(
+      key: const Key('create_post_emotion_card'),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
+        color: theme.colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.blue[100]!),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,8 +402,11 @@ class _CreatePostPageState extends State<CreatePostPage>
                   SizedBox(width: 8.w),
                   Text(
                     'AI 감정 분석 결과',
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
                   ),
                 ],
               ),
@@ -418,7 +427,10 @@ class _CreatePostPageState extends State<CreatePostPage>
             SizedBox(height: 8.h),
             Text(
               _getEmotionSummary(widget.emotionAnalysis!),
-              style: TextStyle(color: AppTheme.neutral700, fontSize: 14.sp),
+              style: TextStyle(
+                color: theme.colorScheme.onPrimaryContainer,
+                fontSize: 14.sp,
+              ),
             ),
           ],
         ],
@@ -444,6 +456,7 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 
   Widget _buildContentSection() {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -458,23 +471,19 @@ class _CreatePostPageState extends State<CreatePostPage>
               setState(() => _submissionError = null);
             }
           },
-          style: TextStyle(fontSize: 14.sp),
+          style: TextStyle(
+            fontSize: AppTheme.fontBody.sp,
+            color: theme.colorScheme.onSurface,
+          ),
           decoration: InputDecoration(
             hintText: '반려동물과의 특별한 순간을 공유해보세요...',
-            hintStyle: TextStyle(color: AppTheme.neutral400, fontSize: 14.sp),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide: const BorderSide(color: AppTheme.neutral300),
+            hintStyle: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: AppTheme.fontCaption.sp,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.r),
-              borderSide:
-                  const BorderSide(color: AppTheme.primaryColor, width: 2),
-            ),
-            filled: true,
-            fillColor: AppTheme.neutral50,
             contentPadding: EdgeInsets.all(16.w),
           ),
+          minLines: 4,
           maxLines: 6,
           maxLength: 1000,
         ),
@@ -483,6 +492,7 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 
   Widget _buildHashtagSection() {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -504,9 +514,15 @@ class _CreatePostPageState extends State<CreatePostPage>
             ),
             ActionChip(
               key: const Key('create_post_add_hashtag'),
-              label: Text('+ 추가', style: TextStyle(fontSize: 12.sp)),
+              label: Text(
+                '+ 추가',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
               onPressed: _showAddHashtagDialog,
-              backgroundColor: AppTheme.neutral100,
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
             ),
           ],
         ),
@@ -515,18 +531,24 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 
   Widget _buildPrivacySection() {
+    final theme = Theme.of(context);
     return Container(
+      key: const Key('create_post_privacy_card'),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: AppTheme.neutral50,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: AppTheme.neutral200),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('공개 범위',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp)),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16.sp,
+                color: theme.colorScheme.onSurface,
+              )),
           SizedBox(height: 8.h),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,6 +564,7 @@ class _CreatePostPageState extends State<CreatePostPage>
                       style: TextStyle(
                         fontSize: AppTheme.fontBody.sp,
                         fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     SizedBox(height: 3.h),
@@ -551,7 +574,7 @@ class _CreatePostPageState extends State<CreatePostPage>
                           : '로그인한 모든 사용자가 볼 수 있어요.',
                       style: TextStyle(
                         fontSize: AppTheme.fontCaption.sp,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -565,7 +588,7 @@ class _CreatePostPageState extends State<CreatePostPage>
               '제한 공개는 데이터 정책 검증이 끝난 뒤 제공할 예정입니다.',
               style: TextStyle(
                 fontSize: AppTheme.fontMicro.sp,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -575,6 +598,7 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 
   Widget _buildLocationSection() {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: () async {
         final result = await LocationPickerSheet.show(context);
@@ -583,11 +607,12 @@ class _CreatePostPageState extends State<CreatePostPage>
         }
       },
       child: Container(
+        key: const Key('create_post_location_card'),
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         decoration: BoxDecoration(
-          color: AppTheme.neutral50,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppTheme.neutral200),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
@@ -598,7 +623,7 @@ class _CreatePostPageState extends State<CreatePostPage>
               size: 20.w,
               color: _location != null
                   ? AppTheme.primaryColor
-                  : AppTheme.secondaryTextColor,
+                  : theme.colorScheme.onSurfaceVariant,
             ),
             SizedBox(width: 10.w),
             Expanded(
@@ -607,16 +632,16 @@ class _CreatePostPageState extends State<CreatePostPage>
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: _location != null
-                      ? AppTheme.primaryTextColor
-                      : AppTheme.secondaryTextColor,
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
             if (_location != null)
               GestureDetector(
                 onTap: () => setState(() => _location = null),
-                child:
-                    Icon(Icons.close, size: 18.w, color: AppTheme.neutral400),
+                child: Icon(Icons.close,
+                    size: 18.w, color: theme.colorScheme.onSurfaceVariant),
               ),
           ],
         ),

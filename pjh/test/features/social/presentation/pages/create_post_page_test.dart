@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:meong_nyang_diary/features/social/presentation/bloc/feed_bloc.dart';
 import 'package:meong_nyang_diary/features/social/presentation/pages/create_post_page.dart';
+import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _MockFeedBloc extends MockBloc<FeedEvent, FeedState>
     implements FeedBloc {}
@@ -35,15 +36,16 @@ void main() {
     await bloc.close();
   });
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {ThemeData? theme}) async {
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(390, 844),
         minTextAdapt: true,
         builder: (_, __) => BlocProvider<FeedBloc>.value(
           value: bloc,
-          child: const MaterialApp(
-            home: CreatePostPage(
+          child: MaterialApp(
+            theme: theme,
+            home: const CreatePostPage(
               currentUserId: 'author-1',
               currentUserName: '보리네',
             ),
@@ -73,7 +75,7 @@ void main() {
     );
     tester.testTextInput.hide();
     await tester.pump();
-    final submit = find.byKey(const Key('create_post_submit_top'));
+    final submit = find.byKey(const Key('create_post_submit_button'));
     await tester.tap(submit);
     await tester.pump();
 
@@ -113,6 +115,28 @@ void main() {
     expect(
       find.text('본문과 태그를 임시 저장하고 작성 화면을 닫을까요?\n사진과 위치는 저장되지 않습니다.'),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('단일 하단 CTA와 다크 surface를 사용한다', (tester) async {
+    await pumpPage(tester, theme: AppTheme.darkTheme);
+
+    expect(find.byKey(const Key('create_post_submit_top')), findsNothing);
+    expect(find.byKey(const Key('create_post_submit_button')), findsOneWidget);
+
+    final privacy = tester.widget<Container>(
+      find.byKey(const Key('create_post_privacy_card')),
+    );
+    final location = tester.widget<Container>(
+      find.byKey(const Key('create_post_location_card')),
+    );
+    expect(
+      (privacy.decoration! as BoxDecoration).color,
+      AppTheme.darkTheme.colorScheme.surface,
+    );
+    expect(
+      (location.decoration! as BoxDecoration).color,
+      AppTheme.darkTheme.colorScheme.surface,
     );
   });
 }

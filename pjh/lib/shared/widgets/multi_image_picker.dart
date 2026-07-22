@@ -11,12 +11,14 @@ class MultiImagePicker extends StatelessWidget {
   final List<File> images;
   final ValueChanged<List<File>> onChanged;
   final int maxImages;
+  final double emptyHeight;
 
   const MultiImagePicker({
     super.key,
     required this.images,
     required this.onChanged,
     this.maxImages = 10,
+    this.emptyHeight = 148,
   });
 
   Future<void> _pickImages(BuildContext context) async {
@@ -71,7 +73,7 @@ class MultiImagePicker extends StatelessWidget {
               width: 40.w,
               height: 4.h,
               decoration: BoxDecoration(
-                color: AppTheme.neutral300,
+                color: Theme.of(ctx).colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2.r),
               ),
             ),
@@ -108,37 +110,43 @@ class MultiImagePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final emptySurface =
+        isDark ? theme.colorScheme.primaryContainer : AppTheme.actionContainer;
+    final emptyForeground =
+        isDark ? theme.colorScheme.onPrimaryContainer : AppTheme.brandDeep;
     if (images.isEmpty) {
       return Semantics(
         label: '사진 추가하기, 최대 $maxImages장',
         button: true,
         child: Material(
           key: const Key('multi_image_picker_empty'),
-          color: AppTheme.actionContainer,
+          color: emptySurface,
           borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
           child: InkWell(
             onTap: () => _pickImages(context),
             borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
             child: Container(
-              height: math.max(132, 148.h).toDouble(),
+              height: math.max(emptyHeight, emptyHeight.h).toDouble(),
               width: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.add_photo_alternate_outlined,
-                    size: 36,
-                    color: AppTheme.actionBase,
+                    size: 32,
+                    color: emptyForeground,
                   ),
                   SizedBox(height: 8.h),
                   Text(
                     '사진 추가',
                     style: TextStyle(
-                      color: AppTheme.brandDeep,
+                      color: emptyForeground,
                       fontSize: AppTheme.fontBody.sp,
                       fontWeight: FontWeight.w700,
                     ),
@@ -147,7 +155,7 @@ class MultiImagePicker extends StatelessWidget {
                   Text(
                     '최대 $maxImages장 · 사진만 지원',
                     style: TextStyle(
-                      color: AppTheme.secondaryTextColor,
+                      color: theme.colorScheme.onSurfaceVariant,
                       fontSize: AppTheme.fontCaption.sp,
                     ),
                   ),
@@ -290,11 +298,17 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface =
+        isDark ? theme.colorScheme.primaryContainer : AppTheme.actionContainer;
+    final foreground =
+        isDark ? theme.colorScheme.onPrimaryContainer : AppTheme.brandDeep;
     return Semantics(
       label: '사진 더 추가',
       button: true,
       child: Material(
-        color: AppTheme.actionContainer,
+        color: surface,
         borderRadius: BorderRadius.circular(10.r),
         child: InkWell(
           onTap: onTap,
@@ -304,22 +318,22 @@ class _AddButton extends StatelessWidget {
             margin: EdgeInsets.only(right: 4.w),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10.r),
-              border: Border.all(color: AppTheme.border),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.add_photo_alternate_outlined,
                   size: 28,
-                  color: AppTheme.actionBase,
+                  color: foreground,
                 ),
                 SizedBox(height: 6.h),
                 Text(
                   '사진 추가',
                   style: TextStyle(
                     fontSize: AppTheme.fontCaption.sp,
-                    color: AppTheme.brandDeep,
+                    color: foreground,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

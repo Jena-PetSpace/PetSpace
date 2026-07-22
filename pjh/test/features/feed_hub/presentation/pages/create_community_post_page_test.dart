@@ -8,6 +8,7 @@ import 'package:meong_nyang_diary/core/error/failures.dart';
 import 'package:meong_nyang_diary/features/feed_hub/presentation/pages/create_community_post_page.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/post.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
+import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _MockRepository extends Mock implements SocialRepository {}
 
@@ -20,12 +21,13 @@ void main() {
 
   setUp(() => repository = _MockRepository());
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {ThemeData? theme}) async {
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(390, 844),
         minTextAdapt: true,
         builder: (_, __) => MaterialApp(
+          theme: theme,
           initialRoute: '/write',
           routes: {
             '/': (_) => const Scaffold(body: Text('완료')),
@@ -92,5 +94,20 @@ void main() {
     expect(captured.category, 'info');
     expect(captured.isPublic, isTrue);
     expect(captured.isPrivate, isFalse);
+  });
+
+  testWidgets('단일 하단 CTA와 다크 안내 surface를 사용한다', (tester) async {
+    await pumpPage(tester, theme: AppTheme.darkTheme);
+
+    expect(find.byKey(const Key('community_submit_top')), findsNothing);
+    expect(find.byKey(const Key('community_submit_button')), findsOneWidget);
+
+    final notice = tester.widget<Container>(
+      find.byKey(const Key('community_draft_notice')),
+    );
+    expect(
+      (notice.decoration! as BoxDecoration).color,
+      AppTheme.darkTheme.colorScheme.surfaceContainerHighest,
+    );
   });
 }

@@ -147,8 +147,9 @@ class _FeedHubViewState extends State<_FeedHubView>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.subtleBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: _buildAppBar(),
       body: Column(
         children: [
@@ -172,8 +173,10 @@ class _FeedHubViewState extends State<_FeedHubView>
   }
 
   AppBar _buildAppBar() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return AppBar(
-      backgroundColor: AppTheme.surfaceColor,
+      backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       toolbarHeight: 48.h,
@@ -182,7 +185,7 @@ class _FeedHubViewState extends State<_FeedHubView>
         style: TextStyle(
           fontSize: 20.sp,
           fontWeight: FontWeight.w800,
-          color: AppTheme.brandDeep,
+          color: isDark ? theme.colorScheme.onSurface : AppTheme.brandDeep,
         ),
       ),
       centerTitle: false,
@@ -191,7 +194,7 @@ class _FeedHubViewState extends State<_FeedHubView>
         // 현재 탭 문법에 맞는 작성 화면으로 이동한다.
         IconButton(
           icon: Icon(Icons.edit_outlined,
-              size: 22.w, color: AppTheme.primaryTextColor),
+              size: 22.w, color: theme.colorScheme.onSurface),
           onPressed: _onWritePressed,
           tooltip: '글쓰기',
         ),
@@ -200,8 +203,8 @@ class _FeedHubViewState extends State<_FeedHubView>
             'assets/svg/icon_search.svg',
             width: 22,
             height: 22,
-            colorFilter: const ColorFilter.mode(
-              AppTheme.primaryTextColor,
+            colorFilter: ColorFilter.mode(
+              theme.colorScheme.onSurface,
               BlendMode.srcIn,
             ),
           ),
@@ -214,19 +217,22 @@ class _FeedHubViewState extends State<_FeedHubView>
   }
 
   Widget _buildTabBar() {
+    final theme = Theme.of(context);
     return Container(
-      color: AppTheme.surfaceColor,
+      color: theme.colorScheme.surface,
       child: TabBar(
         controller: _tabController,
-        labelColor: AppTheme.primaryColor,
-        unselectedLabelColor: AppTheme.secondaryTextColor,
+        labelColor: theme.brightness == Brightness.dark
+            ? theme.colorScheme.primary
+            : AppTheme.brandDeep,
+        unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
         labelStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700),
         unselectedLabelStyle:
             TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w500),
-        indicatorColor: AppTheme.primaryColor,
+        indicatorColor: AppTheme.actionBase,
         indicatorWeight: 2.5,
         indicatorSize: TabBarIndicatorSize.label,
-        dividerColor: AppTheme.dividerColor,
+        dividerColor: theme.dividerColor,
         dividerHeight: 1,
         tabs: const [
           Tab(text: '피드', height: 40),
@@ -239,19 +245,21 @@ class _FeedHubViewState extends State<_FeedHubView>
   // ── 커뮤니티 ────────────────────────────────────────────────────
 
   Widget _buildLoungeBody() {
+    final theme = Theme.of(context);
     return Column(
       children: [
         _buildLoungeCategoryBar(),
-        const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
+        Divider(height: 1, thickness: 1, color: theme.dividerColor),
         Expanded(child: _buildLoungeList()),
       ],
     );
   }
 
   Widget _buildLoungeCategoryBar() {
+    final theme = Theme.of(context);
     final labels = ['전체', ...CommunityCategories.lounge.map((c) => c.label)];
     return Container(
-      color: AppTheme.surfaceColor,
+      color: theme.colorScheme.surface,
       height: 48.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,

@@ -73,7 +73,7 @@ class CommunityPostCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryTextColor,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                   SizedBox(width: 8.w),
@@ -151,21 +151,25 @@ class CommunityPostCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(Icons.favorite_border,
-                      size: 14.w, color: AppTheme.secondaryTextColor),
+                      size: 14.w, color: theme.colorScheme.onSurfaceVariant),
                   SizedBox(width: 4.w),
                   Text(
                     '좋아요 $likes',
                     style: TextStyle(
-                        fontSize: 10.sp, color: AppTheme.secondaryTextColor),
+                      fontSize: 10.sp,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   SizedBox(width: 16.w),
                   Icon(Icons.chat_bubble_outline,
-                      size: 14.w, color: AppTheme.secondaryTextColor),
+                      size: 14.w, color: theme.colorScheme.onSurfaceVariant),
                   SizedBox(width: 4.w),
                   Text(
                     '댓글 $comments',
                     style: TextStyle(
-                        fontSize: 10.sp, color: AppTheme.secondaryTextColor),
+                      fontSize: 10.sp,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),

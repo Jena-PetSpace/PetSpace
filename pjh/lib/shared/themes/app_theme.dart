@@ -4,10 +4,13 @@ import 'package:flutter/services.dart';
 class AppTheme {
   // ══ AppTheme v2 토큰 (2026-07-09, 딥블루+스틸블루 포트폴리오 — 황정훈 확정) ══
   // 원칙: 화면 면적의 ~90% 뉴트럴. 딥블루 도면적 채움 금지. 원빨강 전면 금지.
-  static const Color brandDeep = Color(0xFF1E3A5F); // 헤딩 텍스트·브랜드 워딩·선택 칩 채움·하단 탭 활성
-  static const Color actionBase = Color(0xFF3A6EA8); // 버튼 채움·링크·활성 인디케이터·FAB·스위치 on
+  static const Color brandDeep =
+      Color(0xFF1E3A5F); // 헤딩 텍스트·브랜드 워딩·선택 칩 채움·하단 탭 활성
+  static const Color actionBase =
+      Color(0xFF3A6EA8); // 버튼 채움·링크·활성 인디케이터·FAB·스위치 on
   static const Color actionPressed = Color(0xFF2E5786); // actionBase 눌림
-  static const Color actionContainer = Color(0xFFE8F0F8); // 액션 연한 배경 (선택 배경·정보 칩 배경)
+  static const Color actionContainer =
+      Color(0xFFE8F0F8); // 액션 연한 배경 (선택 배경·정보 칩 배경)
   static const Color textBody = Color(0xFF283746); // 본문
   static const Color textMuted = Color(0xFF687789); // 보조·시간·카운트
   static const Color border = Color(0xFFDCE3E9); // 카드 보더 0.5~1px
@@ -15,8 +18,10 @@ class AppTheme {
 
   // 브랜드 컬러 (기존 토큰명 유지 — v2 값/alias)
   static const Color primaryColor = brandDeep;
+
   /// @deprecated v2에서 actionBase로 통합. 신규 사용 금지.
   static const Color secondaryColor = actionBase;
+
   /// @deprecated v2에서 actionBase로 통합. 신규 사용 금지.
   static const Color accentColor = actionBase;
   static const Color highlightColor =
@@ -25,7 +30,8 @@ class AppTheme {
   static const Color subColor = infoSky;
 
   // 배경 컬러
-  static const Color backgroundColor = Color(0xFFFAF8F3); // warm off-white 화면 배경
+  static const Color backgroundColor =
+      Color(0xFFFAF8F3); // warm off-white 화면 배경
   static const Color surfaceColor = Colors.white; // 카드·시트
   static const Color cardColor = Colors.white;
 
@@ -53,11 +59,13 @@ class AppTheme {
   static const Color sadnessColor = Color(0xFF2C4482); // 인디고 (슬픔)
   static const Color anxietyColor = Color(0xFFFF6F61); // 코랄 레드 (불안)
   /// @deprecated Use physiologicalColor. 생리지표용으로 의미 분리됨.
-  static const Color sleepinessColor = Color(0xFF1E3A5F); // 딥 블루 (졸림 → deprecated)
+  static const Color sleepinessColor =
+      Color(0xFF1E3A5F); // 딥 블루 (졸림 → deprecated)
   static const Color curiosityColor = Color(0xFF0077B6); // 브라이트 블루 (호기심)
 
   // 신규 감정 컬러 (8종 확장 — JENA 팔레트 기반)
-  static const Color physiologicalColor = Color(0xFF1E3A5F); // 생리지표 (sleepinessColor 동일값)
+  static const Color physiologicalColor =
+      Color(0xFF1E3A5F); // 생리지표 (sleepinessColor 동일값)
   static const Color calmColor = Color(0xFF2E7D6B); // 틸 그린 (편안함)
   static const Color excitementColor = Color(0xFFE8A838); // 따뜻한 앰버 (흥분)
   static const Color fearColor = Color(0xFF6B3FA0); // 딥 퍼플 (공포)
@@ -65,39 +73,65 @@ class AppTheme {
 
   // 감정 정렬 순서 상수 (긍정 → 중립 → 부정)
   static const List<String> emotionOrder = [
-    'happiness', 'calm', 'excitement', 'curiosity',
-    'anxiety', 'fear', 'sadness', 'discomfort',
+    'happiness',
+    'calm',
+    'excitement',
+    'curiosity',
+    'anxiety',
+    'fear',
+    'sadness',
+    'discomfort',
   ];
 
   // 감정 컬러 헬퍼 (8종 + 하위 호환)
   static Color getEmotionColor(String emotion) {
     switch (emotion.toLowerCase()) {
-      case 'happiness':  return happinessColor;
-      case 'calm':       return calmColor;
-      case 'excitement': return excitementColor;
-      case 'curiosity':  return curiosityColor;
-      case 'anxiety':    return anxietyColor;
-      case 'fear':       return fearColor;
-      case 'sadness':    return sadnessColor;
-      case 'discomfort': return discomfortColor;
-      case 'sleepiness': return physiologicalColor; // 하위 호환
-      default:           return primaryColor;
+      case 'happiness':
+        return happinessColor;
+      case 'calm':
+        return calmColor;
+      case 'excitement':
+        return excitementColor;
+      case 'curiosity':
+        return curiosityColor;
+      case 'anxiety':
+        return anxietyColor;
+      case 'fear':
+        return fearColor;
+      case 'sadness':
+        return sadnessColor;
+      case 'discomfort':
+        return discomfortColor;
+      case 'sleepiness':
+        return physiologicalColor; // 하위 호환
+      default:
+        return primaryColor;
     }
   }
 
   // 감정 한국어 라벨 헬퍼
   static String getEmotionLabel(String emotion) {
     switch (emotion.toLowerCase()) {
-      case 'happiness':  return '기쁨';
-      case 'calm':       return '편안함';
-      case 'excitement': return '흥분';
-      case 'curiosity':  return '호기심';
-      case 'anxiety':    return '불안';
-      case 'fear':       return '공포';
-      case 'sadness':    return '슬픔';
-      case 'discomfort': return '불편함';
-      case 'sleepiness': return '졸림';
-      default:           return emotion;
+      case 'happiness':
+        return '기쁨';
+      case 'calm':
+        return '편안함';
+      case 'excitement':
+        return '흥분';
+      case 'curiosity':
+        return '호기심';
+      case 'anxiety':
+        return '불안';
+      case 'fear':
+        return '공포';
+      case 'sadness':
+        return '슬픔';
+      case 'discomfort':
+        return '불편함';
+      case 'sleepiness':
+        return '졸림';
+      default:
+        return emotion;
     }
   }
 
@@ -105,41 +139,61 @@ class AppTheme {
   // (감정 일러스트 8종 자산 제작 시 교체 예정)
   static IconData getEmotionIcon(String emotion) {
     switch (emotion.toLowerCase()) {
-      case 'happiness':  return Icons.mood;
-      case 'calm':       return Icons.self_improvement;
-      case 'excitement': return Icons.celebration;
-      case 'curiosity':  return Icons.psychology;
-      case 'anxiety':    return Icons.warning_amber_rounded;
-      case 'fear':       return Icons.warning_amber_outlined;
-      case 'sadness':    return Icons.mood_bad;
-      case 'discomfort': return Icons.sick_outlined;
-      case 'sleepiness': return Icons.bedtime; // 하위 호환
-      default:           return Icons.pets;
+      case 'happiness':
+        return Icons.mood;
+      case 'calm':
+        return Icons.self_improvement;
+      case 'excitement':
+        return Icons.celebration;
+      case 'curiosity':
+        return Icons.psychology;
+      case 'anxiety':
+        return Icons.warning_amber_rounded;
+      case 'fear':
+        return Icons.warning_amber_outlined;
+      case 'sadness':
+        return Icons.mood_bad;
+      case 'discomfort':
+        return Icons.sick_outlined;
+      case 'sleepiness':
+        return Icons.bedtime; // 하위 호환
+      default:
+        return Icons.pets;
     }
   }
 
   // 감정 이모지 헬퍼 — v2: 인앱 UI 사용 금지(외부 공유 카드 전용 잔존)
   static String getEmotionEmoji(String emotion) {
     switch (emotion.toLowerCase()) {
-      case 'happiness':  return '😊';
-      case 'calm':       return '😌';
-      case 'excitement': return '🤩';
-      case 'curiosity':  return '🧐';
-      case 'anxiety':    return '😰';
-      case 'fear':       return '😨';
-      case 'sadness':    return '😢';
-      case 'discomfort': return '😣';
-      case 'sleepiness': return '😴';
-      default:           return '🐾';
+      case 'happiness':
+        return '😊';
+      case 'calm':
+        return '😌';
+      case 'excitement':
+        return '🤩';
+      case 'curiosity':
+        return '🧐';
+      case 'anxiety':
+        return '😰';
+      case 'fear':
+        return '😨';
+      case 'sadness':
+        return '😢';
+      case 'discomfort':
+        return '😣';
+      case 'sleepiness':
+        return '😴';
+      default:
+        return '🐾';
     }
   }
 
   // 감정 그룹 헬퍼 (UI 그룹핑용)
   static String getEmotionGroup(String emotion) {
     const positive = ['happiness', 'calm', 'excitement'];
-    const neutral  = ['curiosity'];
+    const neutral = ['curiosity'];
     if (positive.contains(emotion)) return 'positive';
-    if (neutral.contains(emotion))  return 'neutral';
+    if (neutral.contains(emotion)) return 'neutral';
     return 'negative';
   }
 
@@ -152,29 +206,29 @@ class AppTheme {
   // === Semantic Tokens ===
   static const Color success = Color(0xFF4CAF50);
   static const Color warning = Color(0xFFFF9800);
-  static const Color danger  = highlightColor;
-  static const Color info    = actionBase;
+  static const Color danger = highlightColor;
+  static const Color info = actionBase;
 
   static const Color featureEmotion = Color(0xFFFF6F61);
-  static const Color featureHealth  = Color(0xFF1E3A5F);
-  static const Color featurePlay    = Color(0xFF7E57C2);
+  static const Color featureHealth = Color(0xFF1E3A5F);
+  static const Color featurePlay = Color(0xFF7E57C2);
   static const Color featureFortune = Color(0xFFFFB300);
-  static const Color featureQuiz    = Color(0xFF0077B6);
-  static const Color featureWalk    = Color(0xFF26A69A);
+  static const Color featureQuiz = Color(0xFF0077B6);
+  static const Color featureWalk = Color(0xFF26A69A);
 
   static const Color surfaceWarm = Color(0xFFFFF8E8);
   static const Color surfaceCool = Color(0xFFF8F9FA);
 
   // 파스텔 타일/뱃지 배경 팔레트 (settings·my 타일 색 승격 — 2026-06-12 확정)
-  static const Color tilePastelBlue     = Color(0xFFE6F1FB);
-  static const Color tilePastelGreen    = Color(0xFFEAF3DE);
-  static const Color tilePastelPeach    = Color(0xFFFAECE7);
-  static const Color tilePastelSand     = Color(0xFFF1EFE8);
-  static const Color tilePastelPink     = Color(0xFFFBEAF0);
-  static const Color tilePastelRose     = Color(0xFFFCEBEB);
-  static const Color tilePastelMint     = Color(0xFFE1F5EE);
+  static const Color tilePastelBlue = Color(0xFFE6F1FB);
+  static const Color tilePastelGreen = Color(0xFFEAF3DE);
+  static const Color tilePastelPeach = Color(0xFFFAECE7);
+  static const Color tilePastelSand = Color(0xFFF1EFE8);
+  static const Color tilePastelPink = Color(0xFFFBEAF0);
+  static const Color tilePastelRose = Color(0xFFFCEBEB);
+  static const Color tilePastelMint = Color(0xFFE1F5EE);
   static const Color tilePastelLavender = Color(0xFFEEEDFE);
-  static const Color tilePastelPurple   = Color(0xFFE9E3F5);
+  static const Color tilePastelPurple = Color(0xFFE9E3F5);
 
   // 중간 회색 계열 토큰 (v2: divider는 구분선 전용, 보더는 border 토큰)
   static const Color dividerColor = Color(0xFFF1F3F6);
@@ -288,6 +342,23 @@ class AppTheme {
         ),
       ),
 
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: actionBase,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: disabledColor.withValues(alpha: 0.45),
+          disabledForegroundColor: Colors.white.withValues(alpha: 0.78),
+          minimumSize: const Size(0, 52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusMd),
+          ),
+          textStyle: const TextStyle(
+            fontSize: fontBody,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
       // Text Button 테마 — v2: 링크 actionBase
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
@@ -323,7 +394,7 @@ class AppTheme {
           borderSide: const BorderSide(color: highlightColor),
         ),
         labelStyle: const TextStyle(color: secondaryTextColor),
-        hintStyle: const TextStyle(color: lightTextColor),
+        hintStyle: const TextStyle(color: textMuted),
       ),
 
       // Bottom Navigation Bar 테마
@@ -399,7 +470,7 @@ class AppTheme {
     const darkText = Color(0xFFE0E0E0);
     const darkSecondaryText = Color(0xFF9E9E9E);
     const darkDivider = Color(0xFF2E2E2E);
-    const darkHint = Color(0xFF757575);
+    const darkHint = Color(0xFF9E9E9E);
 
     return ThemeData(
       useMaterial3: true,
@@ -408,7 +479,8 @@ class AppTheme {
         seedColor: primaryColor,
         brightness: Brightness.dark,
         surface: darkSurface,
-        primary: primaryColor,
+        primary: actionBase,
+        onPrimary: Colors.white,
         secondary: highlightColor,
       ),
       primaryColor: primaryColor,
@@ -419,7 +491,14 @@ class AppTheme {
         backgroundColor: darkSurface,
         foregroundColor: darkText,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: darkSurface,
         centerTitle: true,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: darkSurface,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
         titleTextStyle: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
@@ -467,6 +546,24 @@ class AppTheme {
           ),
           textStyle: const TextStyle(
             fontSize: 16,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Pretendard',
+          ),
+        ),
+      ),
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: actionBase,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: darkDivider,
+          disabledForegroundColor: darkSecondaryText,
+          minimumSize: const Size(0, 52),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusMd),
+          ),
+          textStyle: const TextStyle(
+            fontSize: fontBody,
             fontWeight: FontWeight.w600,
             fontFamily: 'Pretendard',
           ),
@@ -549,9 +646,18 @@ class AppTheme {
       textTheme: const TextTheme(
         displayLarge: TextStyle(color: darkText, fontFamily: 'Pretendard'),
         displayMedium: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        headlineLarge: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        headlineMedium: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        headlineSmall: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        titleLarge: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        titleMedium: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        titleSmall: TextStyle(color: darkText, fontFamily: 'Pretendard'),
         bodyLarge: TextStyle(color: darkText, fontFamily: 'Pretendard'),
         bodyMedium: TextStyle(color: darkText, fontFamily: 'Pretendard'),
         bodySmall:
+            TextStyle(color: darkSecondaryText, fontFamily: 'Pretendard'),
+        labelMedium: TextStyle(color: darkText, fontFamily: 'Pretendard'),
+        labelSmall:
             TextStyle(color: darkSecondaryText, fontFamily: 'Pretendard'),
         labelLarge: TextStyle(
             color: darkText,
@@ -607,5 +713,4 @@ class AppTheme {
       ),
     );
   }
-
 }

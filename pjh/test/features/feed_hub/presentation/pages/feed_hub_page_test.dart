@@ -7,6 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:meong_nyang_diary/features/feed_hub/presentation/cubit/community_cubit.dart';
 import 'package:meong_nyang_diary/features/feed_hub/presentation/pages/feed_hub_page.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
+import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _MockRepository extends Mock implements SocialRepository {}
 
@@ -66,5 +67,29 @@ void main() {
     expect(find.byKey(const Key('community_post_title')), findsNothing);
     expect(find.byKey(const Key('community_post_body')), findsOneWidget);
     expect(find.byType(CircleAvatar), findsOneWidget);
+  });
+
+  testWidgets('다크 모드에서 허브 배경과 앱바가 theme surface를 따른다', (tester) async {
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        minTextAdapt: true,
+        builder: (_, __) => MaterialApp(
+          theme: AppTheme.darkTheme,
+          home: FeedHubPage(
+            initialTab: 1,
+            communityCubit: cubit,
+            feedContent: const Center(child: Text('피드 본문')),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(
+        scaffold.backgroundColor, AppTheme.darkTheme.scaffoldBackgroundColor);
+    expect(appBar.backgroundColor, AppTheme.darkTheme.colorScheme.surface);
   });
 }

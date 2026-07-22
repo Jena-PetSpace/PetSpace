@@ -140,13 +140,6 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
           ),
           title: const Text('커뮤니티 글쓰기'),
           centerTitle: true,
-          actions: [
-            TextButton(
-              key: const Key('community_submit_top'),
-              onPressed: _isSubmitting ? null : _submit,
-              child: const Text('등록'),
-            ),
-          ],
         ),
         body: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -244,11 +237,15 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
                 ),
                 SizedBox(height: 12.h),
                 Container(
+                  key: const Key('community_draft_notice'),
                   width: double.infinity,
                   padding: EdgeInsets.all(14.w),
                   decoration: BoxDecoration(
-                    color: AppTheme.subtleBackground,
+                    color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant,
+                    ),
                   ),
                   child: Text(
                     '등록 실패 시 제목·내용·카테고리를 그대로 유지합니다. 작성 중 나가면 내용은 저장되지 않아요.',
@@ -274,19 +271,21 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
             ),
           ),
         ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 12.h),
-            child: SizedBox(
-              height: 52,
+        bottomNavigationBar: Material(
+          color: theme.colorScheme.surface,
+          surfaceTintColor: Colors.transparent,
+          child: SafeArea(
+            top: false,
+            child: Container(
+              padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 12.h),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+              ),
               child: FilledButton(
                 key: const Key('community_submit_button'),
                 onPressed: _isSubmitting ? null : _submit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.actionBase,
-                  foregroundColor: Colors.white,
-                ),
                 child: _isSubmitting
                     ? const SizedBox.square(
                         dimension: 20,
@@ -305,6 +304,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
   }
 
   Widget _label(String title, String trailing) {
+    final theme = Theme.of(context);
     return Row(
       children: [
         Text(
@@ -312,6 +312,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
           style: TextStyle(
             fontSize: AppTheme.fontBody.sp,
             fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         const Spacer(),
@@ -319,7 +320,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
           trailing,
           style: TextStyle(
             fontSize: AppTheme.fontMicro.sp,
-            color: AppTheme.secondaryTextColor,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
