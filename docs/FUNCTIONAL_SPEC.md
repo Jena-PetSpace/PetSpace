@@ -1,6 +1,6 @@
 # FUNCTIONAL SPEC — 펫페이스
 
-> 도메인별 상태관리·데이터·인터랙션 명세. 클로드 디자인이 컴포넌트·상태 단위로 이해하도록 분해.
+> 도메인별 상태관리·데이터·인터랙션 명세. 2026-07-23 UI/UX 신뢰도 개선 W0~W6 로컬 구현 기준.
 > 근거: BLoC/Cubit 17개 · domain/entities
 
 ---
@@ -68,11 +68,11 @@ status: scheduled·completed·overdue·cancelled
 
 ## 3. 화면 상태 패턴 (공통)
 
-대부분의 목록·상세 화면은 다음 상태를 가짐 — 클로드 디자인에서 각 상태별 화면을 모두 준비해야 함:
+대부분의 목록·상세 화면은 다음 상태를 가진다. 최초 실패와 기존 콘텐츠를 보존하는 refresh/load-more 실패를 구분한다.
 - **Loading**: `shimmer_loading`(스켈레톤)
 - **Loaded**: 콘텐츠
 - **Empty**: `empty_state_widget` (예: 펫 미등록 / 기록 없음 / 글 없음)
-- **Error**: `error_dialog` / `network_error_widget` / `error_snackbar`
+- **Error**: 안전한 사용자 문구 + 영역별 재시도. 서버 원문·예외·식별자는 UI와 로그에 노출하지 않음
 - **Rate-limited**: `rate_limit_countdown` (AI 분석 등 요청 제한)
 
 ---
@@ -83,20 +83,21 @@ status: scheduled·completed·overdue·cancelled
 이미지 선택(단일) → 가이드 → 풀스크린 로딩 → 결과(감정 9종 시각화 + FacialFeature 근거 + contextNote) → 공유/저장/히스토리
 
 ### 건강관리
-기록 추가(5종 타입별 입력 폼) → 필터 칩으로 조회 → 다가오는 알림 → 트렌드 차트 → PDF 요약 생성
+대표 반려동물 → 다음 케어 → 최근 기록 → 5종 full task editor(추가/편집/삭제) → 필터 → 트렌드 → PDF 요약. 자동 예정일 알림은 운영 연결 전 `준비 중`, 5초 기기 테스트와 분리한다.
 
 ### 피드/커뮤니티
-모드 전환(사진 ↔ Q&A) → 키셋 페이지네이션 → 작성/댓글/북마크 → 신고·차단 → 실시간 반영
+`피드`(사진 중심) ↔ `커뮤니티`(주제 중심) → 키셋 페이지네이션 → 사진 최대 10장 또는 제목/본문 작성 → 댓글/답글/좋아요/저장 → 신고·K1 차단 → 실패 복구. 스토리와 동영상 업로드는 제공하지 않는다.
 
 ### 채팅
-방 목록(미읽음 배지) → 입장(실시간) → 메시지 → 설정(신고·차단·나가기)
+방 목록(최초/새로고침 오류 분리) → 1명 선택 시 1:1, 2명 이상 선택 시 그룹 생성 → 텍스트/사진 최대 10장 → 동일 요청 재전송 → 신고·K1 차단 → 관리자 편집/멤버 읽기 전용 → 서버 성공 후 나가기. 저장 계약이 없는 멤버 강제 퇴장과 방별 알림 switch는 노출하지 않는다.
 
 ---
 
-## 5. 컴포넌트 우선 등록 목록 (클로드 디자인)
-1. 디자인 토큰 (color/typography/spacing) — `DESIGN_BASELINE.md` 기준
-2. 하단 네비 + 중앙 FAB
-3. 카드 계열 (홈 매거진·핫이슈·기능 카드)
-4. 상태 위젯 5종 (loading/loaded/empty/error/rate-limit)
-5. 이미지 선택·뷰어·업로드 진행
-6. 결과 화면 토큰 (감정·건강 result)
+## 5. 공용 UI 계약
+
+1. 디자인 토큰(color/typography/spacing)은 `AppTheme`과 `DESIGN_BASELINE.md`를 따른다.
+2. 하단 내비게이션은 홈·건강·AI 분석·피드·MY의 다섯 루트에서만 보이며 모두 같은 크기와 위계다.
+3. 작성·편집·상세·설정·채팅 task 화면에는 하단 탭이나 중앙 FAB를 표시하지 않는다.
+4. 카드·설정 row·category chip·loading/empty/error 상태는 공용 컴포넌트를 우선한다.
+5. 최소 터치 영역 44pt, 320×568과 글자 200%, light/dark mode를 회귀 기준으로 둔다.
+6. 공개 AI 결과는 confidence 백분율이나 진단 확정 표현을 사용하지 않는다.

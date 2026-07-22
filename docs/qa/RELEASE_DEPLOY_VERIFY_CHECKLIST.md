@@ -1,18 +1,37 @@
 # 통합 배포·검증 체크리스트 (출시 전 정리 회차)
 
-이번 세션까지 코드는 완료됐으나 **실제 동작이 미검증**인 4개 트랙을 한 번에 배포·검증한다.
-**순서 의존성이 있으니 위에서부터 차례로** 진행할 것. (예: gemini-proxy 배포 전엔 분석 기능
-자체가 안 돌아 분석 검증 불가.)
+이 문서는 로컬 UI/UX 검증과 운영 배포 검증을 분리한다. 2026-07-22 회차에서는 운영 DB/RPC·Edge·APNs·signing·TestFlight·스토어 배포를 실행하지 않았다. 아래 기존 운영 PHASE는 별도 승인 후에만 수행한다.
 
-- 작성일: 2026-06-14 / 브랜치: win-android-release (모두 푸시 완료)
+- 현행 기준일: 2026-07-22 / 로컬 브랜치: `codex/post-merge-full-app-audit-20260722` / 원격 push 안 함
 - 표기: 🟦=정현님 대시보드/콘솔 수동 작업, 📱=실기기 검증, ⛔=선행 의존성
 
 ---
 
+## PHASE UIUX — W0~W6 로컬 검증
+
+- [x] iPhone 17 Simulator 390×844 light/dark 실화면 반복 검토
+- [x] 320×568·200% 글자 크기 widget 회귀
+- [x] 인증·온보딩, MY·대표 반려동물, 피드·커뮤니티, 건강, 채팅·알림의 wave별 지정 테스트
+- [x] `flutter analyze --no-pub` → 0 issues
+- [x] `flutter test --no-pub` → 788 tests passed
+- [x] `flutter build ios --release --no-codesign --no-pub` 성공
+- [x] `git diff --check` 및 충돌 표식 검색 통과
+- [x] Apple/OAuth·K1/H2/H1·`auth.uid()` RPC·health root navigator·iPad share 계약 read-only 검토
+- [x] 레거시 작성·편집 bottom sheet의 안전하게 강제되지 않은 `팔로워만` 선택 제거 및 canonical 작성 화면 연결
+- [ ] QA 계정 2개를 사용하는 게시/팔로우/좋아요/댓글/메시지/신고/차단 E2E
+- [ ] 실제 iOS 기기 VoiceOver·카메라·사진 권한·푸시·공유 시트 검증
+- [ ] 실제 Android 기기 TalkBack·카메라·사진 권한·푸시·back 동작 검증
+
+> legacy audience 항목은 2026-07-23 사용자 승인으로 W3 보완 manifest에 추가해 로컬 수정·재검증했다. 나머지 미완료 항목은 운영 사용자 대신 격리 QA 계정·실기기가 준비된 뒤 수행한다. 자동·시뮬레이터 통과를 운영 백엔드와 실기기 검증 완료로 간주하지 않는다.
+
+---
+
+## 기존 운영 배포 PHASE (이번 회차 미실행)
+
 ## PHASE 0 — 빌드 준비
 - [ ] `cd pjh && flutter pub get`
-- [ ] `flutter analyze` → 0 / `flutter test` → 262 pass·14 baseline(사전 실패, Sprint5 인계) 확인
-- [ ] 릴리스 빌드 가능 확인: `flutter build apk --release --split-per-abi`
+- [ ] `flutter analyze --no-pub` / `flutter test --no-pub` 재확인
+- [ ] Android 릴리스 빌드: `flutter build apk --release --split-per-abi`
 
 ---
 
@@ -25,7 +44,7 @@
       `AIzaSyAVqHgz...`가 박혀 있어 프록시화만으론 옛 키가 계속 유효. Google AI Studio에서 폐기.
 
 📱 **검증** (docs/qa/gemini_proxy_verification.md)
-- [ ] APK strings에 기존 Gemini 키 미검출: `unzip -p app-arm64-v8a-release.apk | strings | grep -c AIzaSyAVqHgz` → 0
+- [ ] APK strings에 폐기 대상 키 미검출: 검사용 값은 로컬 보안 채널에서만 주입하고 문서·로그에는 남기지 않음
 - [ ] 로그인 후 감정 분석 1회 → 결과 화면 정상 + gemini-proxy 로그에 200
 - [ ] JWT 없이 curl → 401 / 잘못된 토큰 → 401
 

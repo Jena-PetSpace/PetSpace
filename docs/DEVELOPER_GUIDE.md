@@ -4,13 +4,14 @@
 | 항목 | 내용 |
 |------|------|
 | 프로젝트명 | PetSpace (펫페이스) |
-| 버전 | 1.0.0 |
-| 플랫폼 | Android (iOS 추후 지원) |
-| 패키지명 | meong_nyang_diary |
-| 기술 스택 | Flutter 3.x / Dart 3.x + Supabase + Firebase FCM |
+| 버전 | 1.0.0+1 |
+| 플랫폼 | Android + iOS |
+| 앱 식별자 | Android `com.petspace.app` / iOS `com.jena.petspace` |
+| Flutter 패키지명 | meong_nyang_diary |
+| 기술 스택 | Flutter 3.41.6 / Dart 3.11.4 + Supabase + Firebase FCM |
 | 아키텍처 | Clean Architecture + BLoC + GetIt DI |
 | 레포지토리 | github.com/Jena-PetSpace/PetSpace |
-| 문서 최종 수정 | 2026-03-26 |
+| 문서 최종 수정 | 2026-07-22 |
 
 ---
 
@@ -61,12 +62,12 @@ PetSpace는 반려동물 보호자를 위한 AI 기반 감정 분석 + 소셜 �
 | 탭 인덱스 | 이름 | 경로 | 주요 기능 |
 |---------|------|------|---------|
 | Tab 0 | 홈 🏠 | /home | 피드 미리보기, 반려동물 카드, 카테고리 필터 |
-| Tab 1 | 건강관리 ❤️ | /health | 백신/검진/체중/투약/수술 기록 관리 |
-| Tab 2 | AI분석 🧠 | /emotion | 감정 분석 (FAB 강조) |
+| Tab 1 | 건강 ❤️ | /health | 다음 케어와 백신/검진/체중/투약/수술 기록 관리 |
+| Tab 2 | AI 분석 ✨ | /emotion | 감정 분석 |
 | Tab 3 | 피드 📱 | /feed | 소셜 피드, 팔로잉, 커뮤니티 |
 | Tab 4 | MY 👤 | /my | 프로필, 저장글, 알림 설정 |
 
-> **Tab 2(AI분석)** 는 중앙 FAB 버튼으로 강조 표시. `primaryColor → accentColor` 그라데이션 적용.
+> 다섯 루트 탭은 같은 크기와 위계다. 하단 탭은 `/home`, `/health`, `/emotion`, `/feed`, `/my`에서만 보이고 작성·편집·상세·설정·채팅 화면에서는 숨긴다.
 
 ---
 
@@ -82,7 +83,7 @@ PetSpace는 반려동물 보호자를 위한 AI 기반 감정 분석 + 소셜 �
 | DI | get_it | ^7.7.0 | 의존성 주입 컨테이너 |
 | 백엔드 | supabase_flutter | ^2.5.6 | Auth / DB / Storage / Realtime |
 | 푸시알림 | firebase_messaging | ^15.1.5 | FCM Android 푸시 알림 |
-| AI | Google Gemini API | — | 감정 분석 (secrets.dart에 키 관리) |
+| AI | Google Gemini API via Supabase Edge | — | 앱에는 장기 Gemini 키를 넣지 않고 인증된 `gemini-proxy` 사용 |
 | 라우팅 | go_router | ^14.2.7 | 선언적 딥링크 라우팅 |
 | 함수형 | dartz | ^0.10.1 | Either<Failure, T> 에러 처리 |
 | 반응형 | flutter_screenutil | ^5.9.3 | 다양한 화면 크기 대응 |
@@ -379,7 +380,7 @@ Future<void> init() async {
 
 ## 7. 라우팅 규칙
 
-### 7.1 전체 라우트 맵
+### 7.1 주요 라우트 맵
 
 | 경로 | 이름 | 설명 |
 |------|------|------|
@@ -398,14 +399,18 @@ Future<void> init() async {
 | /my | my | MY 탭 |
 | /my/saved | my-saved | 저장한 글 |
 | /post/:postId | post-detail | 게시글 상세 |
-| /profile | profile | 내 프로필 |
-| /profile/edit | profile-edit | 프로필 편집 |
-| /profile/settings | settings | 설정 |
+| /my/posts | my-posts | 내 게시물 |
+| /my/edit-profile | my-edit-profile | 프로필 편집 |
+| /settings/my | my-settings | 설정 |
+| /settings/notification | notification-settings | 알림 설정 |
+| /settings/privacy | privacy-settings | 개인정보 설정 |
 | /user-profile/:userId | user-profile | 타인 프로필 |
 | /search | search | 검색 |
 | /explore | explore | 탐색 |
 | /chat | chat | 채팅 목록 |
+| /chat/new | chat-new | 1:1·그룹 채팅 생성 |
 | /chat/:roomId | chat-detail | 채팅 상세 |
+| /chat/:roomId/settings | chat-settings | 채팅방 설정 |
 | /notifications | notifications | 알림 |
 
 ### 7.2 라우트 추가 규칙
@@ -586,8 +591,8 @@ Tab 2 (AI분석 FAB 탭)
 ### 10.3 소셜 피드 플로우
 
 ```
-Tab 3 (피드 탭) → FeedHubPage (3개 탭)
-  ├→ 추천 탭: FeedPage(followingOnly: false)
+Tab 3 (피드 탭) → FeedHubPage (`피드` / `커뮤니티` 2개 탭)
+  ├→ 피드 탭: FeedPage
   │    └→ FeedBloc.LoadFeedRequested
   │         └→ 피드 목록 (PostCard)
   │              ├→ 좋아요 → FeedBloc.LikePostRequested → 낙관적 업데이트 → 알림 발송
@@ -595,24 +600,27 @@ Tab 3 (피드 탭) → FeedHubPage (3개 탭)
   │              │    └→ CommentBloc + Realtime 구독 (실시간 댓글)
   │              ├→ 북마크 → FeedBloc.SavePostRequested
   │              └→ 더보기 → 신고/차단 (user_blocks 테이블)
-  ├→ 팔로잉 탭: FeedPage(followingOnly: true)
-  └→ 커뮤니티 탭: posts 테이블 hashtags 기반 필터링
+  └→ 커뮤니티 탭: posts 테이블 category 기반 필터링
        ├→ 카테고리: 전체 / Q&A / 건강 / 훈련 / 매거진
-       └→ FAB → CreateCommunityPostPage (내용/해시태그)
+       └→ 작성 → CreateCommunityPostPage (제목/본문/카테고리)
 ```
+
+피드 작성은 사진 최대 10장만 지원한다. 스토리·동영상·안전하게 강제되지 않은 `팔로워만` 공개 범위는 UI에서 약속하지 않는다.
 
 ### 10.4 건강 관리 플로우
 
 ```
 Tab 1 (건강관리) → HealthMainPage
   └→ HealthBloc.LoadHealthRecords
-       └→ 기록 목록 (유형별 필터: 백신/검진/체중/투약/수술)
-            ├→ FAB (+) → AddHealthRecordSheet (바텀시트)
-            │    └→ 날짜/제목/설명/다음 예정일 입력
+       └→ 대표 반려동물 → 다음 케어 → 최근 기록
+            ├→ 기록 추가/편집 → HealthRecordEditorPage (full task screen)
+            │    └→ 5종 타입별 필수/선택 필드와 다음 예정일 입력
             │         └→ HealthBloc.AddHealthRecordRequested
             ├→ 기록 탭 → HealthBloc.UpdateHealthRecordRequested
             └→ 기록 삭제 → HealthBloc.DeleteHealthRecordRequested
 ```
+
+자동 예정일 알림은 운영 연결 전 `준비 중`이며, 현재 제공되는 5초 기기 알림 테스트와 구분한다.
 
 ### 10.5 알림 플로우
 
@@ -984,7 +992,7 @@ cd PetSpace/pjh
 # 3. 의존성 설치
 flutter pub get
 
-# 4. secrets.dart 생성 (아래 내용으로)
+# 4. gitignored secrets.dart를 로컬에서만 생성 (실제 값은 문서·로그·manifest에 기록하지 않음)
 # 5. 실행
 flutter run
 ```
@@ -993,10 +1001,12 @@ flutter run
 // pjh/lib/config/secrets.dart (gitignore — 직접 생성 필요)
 const String supabaseUrl = 'YOUR_SUPABASE_URL';
 const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
-const String geminiApiKey = 'AIzaSyBc6Q5SJV4FgER-6RWzRNyh70qvGuX3rVE';
+const String geminiApiKey = 'YOUR_GEMINI_API_KEY';
 const String kakaoNativeKey = 'YOUR_KAKAO_NATIVE_KEY';
 const String googleClientId = 'YOUR_GOOGLE_CLIENT_ID';
 ```
+
+위 블록은 변수 형태를 설명하는 placeholder일 뿐이다. 실제 값이나 파일의 SHA·크기·환경변수 목록을 문서/로그/커밋에 남기지 않으며, 장기 Gemini 키는 클라이언트에 배포하지 않는다.
 
 ### 19.2 Supabase 초기 설정
 

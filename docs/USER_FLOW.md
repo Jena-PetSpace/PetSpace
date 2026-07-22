@@ -1,7 +1,7 @@
 # USER FLOW — 펫페이스
 
-> 현재 코드(`win-android-release`) 라우팅 기준 · 기준 2026-06-18
-> 근거: `app_router.dart`(64 라우트) / `main_navigation.dart`(5탭) / 70 page
+> 현재 코드(`codex/post-merge-full-app-audit-20260722`) 라우팅 기준 · 기준 2026-07-22
+> 근거: `app_router.dart`(GoRoute 선언 66개) / `main_navigation.dart`(5탭) / feature page source 78개
 > 용도: 클로드 디자인 입력 + UI 비교 기준
 
 ---
@@ -26,7 +26,9 @@ GoRouter `redirect`가 `AuthBloc.state`로 분기:
 ```
 /onboarding → /onboarding/slides → /onboarding/login
    ├─ 이메일 → /onboarding/email-verification
-   └─ 카카오 → /onboarding/kakao-consent → (/oauth)
+   ├─ 카카오 → /onboarding/kakao-consent → (/oauth)
+   ├─ Google OAuth
+   └─ iOS Apple 로그인
 → /onboarding/terms (상세: terms-detail)
 → /onboarding/profile
 → /onboarding/pet-registration   (펫 여권 필드 포함)
@@ -35,19 +37,21 @@ GoRouter `redirect`가 `AuthBloc.state`로 분기:
 
 [비번 재설정] /auth/password-reset/request → verify → new-password → login
 ```
-미구현: Sign in with Apple.
+Apple 로그인은 iOS에서만 노출하며 nonce·Supabase OAuth·callback 계약을 보존한다. provider 인증 중에는 다른 provider와 이메일 submit을 중복 실행하지 않는다.
 
 ---
 
-## 3. 메인 탭 (ShellRoute, 네비바 유지)
+## 3. 메인 탭 (ShellRoute, 루트에서만 네비바 유지)
 
 | 탭 | 라우트 | 아이콘 | 화면 |
 |---|---|---|---|
 | 홈 | `/home` | cottage | HomePage (⚠️ 매거진 리디자인 중) |
-| 건강관리 | `/health` | monitor_heart | HealthMainPage |
-| AI분석 | `/emotion` | psychology | (중앙 FAB 강조) |
+| 건강 | `/health` | monitor_heart | HealthMainPage |
+| AI 분석 | `/emotion` | auto_awesome | EmotionAnalysisPage |
 | 피드 | `/feed` | photo_library | FeedHubPage |
 | MY | `/my` | pets | MyPage |
+
+다섯 루트 탭은 같은 크기와 위계를 사용한다. 작성·편집·상세·설정·채팅으로 이동하면 하단 탭을 숨긴다.
 
 ---
 
@@ -88,12 +92,13 @@ GoRouter `redirect`가 `AuthBloc.state`로 분기:
 
 ```
 /health (HealthMainPage)
-  ├─ 건강 기록 추가 (5종: 접종·검진·체중·투약·수술)
-  ├─ 필터 칩 / 다가오는 알림
+  ├─ 대표 반려동물 / 다음 케어
+  ├─ 건강 기록 full task editor (5종: 접종·검진·체중·투약·수술)
+  ├─ 최근 기록 / 필터 칩
   ├─ 피부질환 AI 진단 → health/loading → /health/result
   ├─ 체중·감정 트렌드 차트
   ├─ PDF 건강 요약서 (온디바이스)
-  └─ /health/alert-settings
+  └─ /health/alert-settings (자동 예정일 알림은 준비 중, 5초 기기 테스트만 분리 제공)
   [빈 상태] 펫 미등록 / 기록 없음 / 에러 분기
 ```
 
@@ -103,7 +108,7 @@ GoRouter `redirect`가 `AuthBloc.state`로 분기:
 
 ```
 /feed (FeedHubPage)
-  사진 피드(FeedBloc) ↔ Q&A(CommunityCubit) 분리
+  피드(사진 중심 FeedBloc) ↔ 커뮤니티(주제 중심 CommunityCubit) 분리
   ├─ 작성 → /create-post | create-community-post
   ├─ 상세 → /post/:postId → comments
   ├─ 탐색 → /explore   검색 → /search
@@ -111,6 +116,7 @@ GoRouter `redirect`가 `AuthBloc.state`로 분기:
   ├─ 채널 → /channels   알림 → /notifications
   └─ 프로필 → /user-profile/:id → followers/:uid, following/:uid
   [안전] 신고 2종 → 차단 → 실시간 필터 / 방 숨김
+  [제한] 사진 최대 10장, 스토리·동영상 없음, 안전한 audience 계약 전 `팔로워만` 숨김
 ```
 
 ---
@@ -119,7 +125,14 @@ GoRouter `redirect`가 `AuthBloc.state`로 분기:
 
 ```
 /chat → /chat/new (생성)
-      → /chat/:roomId (실시간) → /chat/:roomId/settings (신고·차단·나가기)
+      ├─ 1명 선택 → 1:1 채팅
+      └─ 2명 이상 선택 → 그룹 채팅
+      → /chat/:roomId (실시간, 텍스트·사진 최대 10장, 실패 요청 재전송)
+      → /chat/:roomId/settings
+           ├─ 1:1 상대 또는 그룹 참여자 신고·K1 차단
+           ├─ 관리자: 방 이름·사진·초대 편집
+           ├─ 일반 멤버: 방 정보 읽기 전용
+           └─ 서버 성공 후 나가기
 ```
 
 ---
@@ -127,7 +140,7 @@ GoRouter `redirect`가 `AuthBloc.state`로 분기:
 ## 9. MY 탭
 
 ```
-/my (통계)
+/my (대표 반려동물 identity + 사용자 프로필)
   ├─ /my/posts · /my/saved · /my/edit-profile
   ├─ /pets → pet-detail · /pet/public/:petId
   ├─ /reward
@@ -135,13 +148,15 @@ GoRouter `redirect`가 `AuthBloc.state`로 분기:
   부속: community-guidelines · privacy-policy
 ```
 
+대표 반려동물 선택은 계정 단위 M1 계약으로 복원되고 MY 카드에 다음 건강 일정을 연결한다. migration은 저장소에만 있으며 운영 DB 적용은 별도 승인 대상이다.
+
 ---
 
-## 10. 화면 인벤토리 (클로드 디자인 비교 체크리스트)
+## 10. 핵심 화면 인벤토리 (디자인 비교 체크리스트)
 
 > "현재 → 개선안" 비교 표의 행. 우선순위는 제안값(사용 빈도·첫인상·핵심 가치).
 >
-> **수 체계 주의 (축이 다름)**: `app_router.dart`의 GoRoute 선언 = **64개**(이 중 redirect-only 2개: `/oauth`→login, `/emotion/history`→ai-history → 실제 페이지 빌드 **62개**). 아래 화면 인벤토리 = **66행**(화면 단위). 라우트 없는 화면 9개는 라우트칸 `-` 표시: terms-detail·analysis-guide·health-loading·emotion-trend·create-community-post·feed·comments·my-emotion-history·pet-detail. **64 ≠ 66은 정상**(라우트 축 vs 화면 축).
+> **수 체계 주의 (축이 다름)**: `app_router.dart`의 GoRoute 선언은 **66개**, feature page source는 **78개**다. 아래 66행은 최초 디자인 비교를 위해 고정한 핵심 화면 목록이며 전체 파일 인벤토리가 아니다. 라우트 없는 내부 page와 redirect-only route가 있어 숫자를 서로 등치하지 않는다.
 
 | # | 도메인 | 화면 | 라우트 | 우선순위 |
 |---|---|---|---|---|
