@@ -49,7 +49,10 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     if (generation != _loadGeneration) return;
 
     await result.fold(
-      (failure) async => emit(HealthError(failure.message, petId: event.petId)),
+      (_) async => emit(HealthError(
+        '건강 기록을 불러오지 못했어요. 연결을 확인한 뒤 다시 시도해주세요.',
+        petId: event.petId,
+      )),
       (records) async {
         List<HealthRecord> upcoming = [];
         String? upcomingError;
@@ -62,7 +65,7 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
           );
           if (generation != _loadGeneration) return;
           upcomingResult.fold(
-            (failure) => upcomingError = failure.message,
+            (_) => upcomingError = '다음 케어 일정을 새로 확인하지 못했어요.',
             (list) => upcoming = list,
           );
         }
@@ -101,15 +104,16 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
         await addHealthRecord(AddHealthRecordParams(record: event.record));
 
     await result.fold(
-      (failure) async {
+      (_) async {
         if (!_isCurrentScope(currentState, loadGeneration)) return;
+        const message = '기록을 저장하지 못했어요. 입력 내용은 유지되니 다시 시도해주세요.';
         emit(currentState.copyWith(
-          error: failure.message,
+          error: message,
           mutation: HealthMutationState(
             operationId: event.operationId,
             type: HealthMutationType.add,
             phase: HealthMutationPhase.failed,
-            message: failure.message,
+            message: message,
           ),
         ));
       },
@@ -154,15 +158,16 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
         UpdateHealthRecordParams(record: event.record));
 
     await result.fold(
-      (failure) async {
+      (_) async {
         if (!_isCurrentScope(currentState, loadGeneration)) return;
+        const message = '변경사항을 저장하지 못했어요. 입력 내용은 유지되니 다시 시도해주세요.';
         emit(currentState.copyWith(
-          error: failure.message,
+          error: message,
           mutation: HealthMutationState(
             operationId: event.operationId,
             type: HealthMutationType.update,
             phase: HealthMutationPhase.failed,
-            message: failure.message,
+            message: message,
           ),
         ));
       },
@@ -211,15 +216,16 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
     );
 
     await result.fold(
-      (failure) async {
+      (_) async {
         if (!_isCurrentScope(currentState, loadGeneration)) return;
+        const message = '기록을 삭제하지 못했어요. 기존 기록은 그대로 유지됩니다.';
         emit(currentState.copyWith(
-          error: failure.message,
+          error: message,
           mutation: HealthMutationState(
             operationId: event.operationId,
             type: HealthMutationType.delete,
             phase: HealthMutationPhase.failed,
-            message: failure.message,
+            message: message,
           ),
         ));
       },
@@ -262,7 +268,7 @@ class HealthBloc extends Bloc<HealthEvent, HealthState> {
         GetUpcomingRecordsParams(userId: userId, petId: next.petId),
       );
       result.fold(
-        (failure) => refreshError = failure.message,
+        (_) => refreshError = '다음 케어 일정을 새로 확인하지 못했어요.',
         (records) => upcoming = records,
       );
     }

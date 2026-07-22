@@ -161,7 +161,7 @@ void main() {
         .thenAnswer((_) async => const Right(<HealthRecord>[]));
     when(() => updateRecord(any())).thenAnswer(
       (_) async => const Left(
-        ServerFailure(message: '건강 기록 수정에 실패했습니다.'),
+        ServerFailure(message: 'PostgrestException raw diagnostic'),
       ),
     );
 
@@ -184,6 +184,8 @@ void main() {
 
     expect(result.records.single.title, initial.title);
     expect(result.mutation.message, isNotEmpty);
+    expect(result.mutation.message, isNot(contains('PostgrestException')));
+    expect(result.mutation.message, contains('입력 내용은 유지'));
   });
 
   test('same-pet reload prevents a stale mutation from replacing fresh data',

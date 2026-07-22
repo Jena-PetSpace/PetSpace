@@ -36,15 +36,36 @@ void main() {
     expect(main, contains("'건강 기록을 불러오지 못했어요'"));
   });
 
-  test('editor keeps five record types and 44dp type controls', () {
+  test('editor is a root full-screen task with five retained type inputs', () {
     final sheets = _read(
       'pjh/lib/features/health/presentation/widgets/health_record_sheets.dart',
     );
+    final editor = _read(
+      'pjh/lib/features/health/presentation/pages/health_record_editor_page.dart',
+    );
+    final form = _read(
+      'pjh/lib/features/health/presentation/widgets/health_record_form.dart',
+    );
 
-    expect(sheets, contains('height: 44,'));
-    expect(sheets, isNot(contains('height: 44.h')));
-    expect(sheets, contains("'다음 예정일 해제'"));
-    expect(sheets, contains('!nextDate!.isBefore(firstDate)'));
-    expect(sheets, contains('return AppTheme.actionBase'));
+    expect(sheets, contains('rootNavigator: true'));
+    expect(sheets, contains('HealthRecordEditorPage('));
+    expect(sheets, isNot(contains('showModalBottomSheet(')));
+    expect(form, contains('height: 44,'));
+    expect(form, isNot(contains('height: 44.h')));
+    for (final value in [
+      'HealthRecordType.vaccination',
+      'HealthRecordType.checkup',
+      'HealthRecordType.weight',
+      'HealthRecordType.medication',
+      'HealthRecordType.surgery',
+    ]) {
+      expect(form, contains(value));
+    }
+    expect(editor, contains('백신 종류를 입력해주세요.'));
+    expect(editor, contains('0보다 큰 체중을 kg 단위로 입력해주세요.'));
+    expect(editor, contains('약 이름을 입력해주세요.'));
+    expect(editor, contains('수술명을 입력해주세요.'));
+    expect(editor, contains('nextDate!.isBefore(_recordDate)'));
+    expect(editor, contains('의료 진단'));
   });
 }

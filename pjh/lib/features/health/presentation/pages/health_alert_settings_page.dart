@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../core/services/local_notification_service.dart';
@@ -22,6 +23,7 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
   bool _isTesting = false;
   String? _resultMessage;
   bool _resultSucceeded = false;
+  HealthAlertScheduleResult? _lastResult;
 
   LocalNotificationService get _notificationService =>
       widget.notificationService ?? sl<LocalNotificationService>();
@@ -31,6 +33,7 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
     setState(() {
       _isTesting = true;
       _resultMessage = null;
+      _lastResult = null;
     });
 
     final result = await _notificationService.scheduleHealthAlert(
@@ -43,9 +46,11 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
 
     setState(() {
       _isTesting = false;
+      _lastResult = result;
       _resultSucceeded = result == HealthAlertScheduleResult.scheduled;
       _resultMessage = switch (result) {
-        HealthAlertScheduleResult.scheduled => '테스트 알림을 예약했어요. 5초 뒤 확인해주세요.',
+        HealthAlertScheduleResult.scheduled =>
+          '테스트 알림을 예약했어요. 5초 뒤 수신 여부를 확인해주세요. 자동 예정일 알림이 켜진 것은 아닙니다.',
         HealthAlertScheduleResult.permissionDenied =>
           '기기 설정에서 알림 권한을 허용한 뒤 다시 시도해주세요.',
         HealthAlertScheduleResult.unavailable =>
@@ -245,15 +250,35 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
                       : AppTheme.errorColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
                 ),
-                child: Text(
-                  _resultMessage!,
-                  style: TextStyle(
-                    fontSize: AppTheme.fontCaption.sp,
-                    color: _resultSucceeded
-                        ? AppTheme.brandDeep
-                        : AppTheme.errorColor,
-                    height: 1.45,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _resultMessage!,
+                      style: TextStyle(
+                        fontSize: AppTheme.fontCaption.sp,
+                        color: _resultSucceeded
+                            ? AppTheme.brandDeep
+                            : AppTheme.errorColor,
+                        height: 1.45,
+                      ),
+                    ),
+                    if (_lastResult ==
+                        HealthAlertScheduleResult.permissionDenied) ...[
+                      SizedBox(height: 8.h),
+                      TextButton.icon(
+                        key: const Key('health_alert_open_settings'),
+                        onPressed: openAppSettings,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppTheme.errorColor,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(44, 44),
+                        ),
+                        icon: const Icon(Icons.settings_outlined, size: 18),
+                        label: const Text('기기 설정 열기'),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),

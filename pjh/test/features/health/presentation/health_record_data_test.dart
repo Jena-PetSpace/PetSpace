@@ -36,8 +36,8 @@ void main() {
     });
 
     test('체중: bcs 없으면 키 제외', () {
-      final d = buildHealthRecordData(
-          type: HealthRecordType.weight, weightKg: 5.2);
+      final d =
+          buildHealthRecordData(type: HealthRecordType.weight, weightKg: 5.2);
       expect(d, {'weight_kg': 5.2});
       expect(d.containsKey('bcs'), false);
     });
@@ -92,6 +92,10 @@ void main() {
     });
     test('비용 콤마 제거 파싱', () => expect(parseCost('50,000'), 50000));
     test('비용 빈값 → null', () => expect(parseCost('  '), null));
+    test('비용 음수/문자 → null', () {
+      expect(parseCost('-1'), null);
+      expect(parseCost('만원'), null);
+    });
   });
 
   // ── 자동 제목 ──────────────────────────────────────────────────────────────
@@ -103,8 +107,8 @@ void main() {
   // ── 카드 부제 (하위호환 fallback) ──────────────────────────────────────────
   group('recordCardSubtitle', () {
     test('체중: data 있으면 "5.2kg · BCS 5"', () {
-      final s = recordCardSubtitle(_rec(HealthRecordType.weight,
-          data: {'weight_kg': 5.2, 'bcs': 5}));
+      final s = recordCardSubtitle(
+          _rec(HealthRecordType.weight, data: {'weight_kg': 5.2, 'bcs': 5}));
       expect(s, '5.2kg · BCS 5');
     });
 
@@ -133,6 +137,41 @@ void main() {
       final s = recordCardSubtitle(_rec(HealthRecordType.vaccination,
           data: {'vaccine_type': '광견병', 'hospital': 'C병원'}));
       expect(s, '광견병 · C병원');
+    });
+  });
+
+  group('recordCardDisplayTitle / recordCardDetail', () {
+    test('체중은 기록 이름과 BCS를 중복 없이 분리한다', () {
+      final record = _rec(
+        HealthRecordType.weight,
+        title: '체중 5.4kg',
+        data: const {'weight_kg': 5.4, 'bcs': 5},
+      );
+      expect(recordCardDisplayTitle(record), '체중 5.4kg');
+      expect(recordCardDetail(record), 'BCS 5');
+    });
+
+    test('예방접종은 백신 이름과 병원을 분리한다', () {
+      final record = _rec(
+        HealthRecordType.vaccination,
+        title: '종합 예방접종',
+        data: const {
+          'vaccine_type': '종합 예방접종',
+          'hospital': '제나동물병원',
+        },
+      );
+      expect(recordCardDisplayTitle(record), '종합 예방접종');
+      expect(recordCardDetail(record), '제나동물병원');
+    });
+
+    test('빈 legacy 제목과 data도 안전한 유형명으로 표시한다', () {
+      final record = _rec(
+        HealthRecordType.vaccination,
+        title: '',
+        data: const {},
+      );
+      expect(recordCardDisplayTitle(record), '예방접종');
+      expect(recordCardDetail(record), '세부 내용 없음');
     });
   });
 }

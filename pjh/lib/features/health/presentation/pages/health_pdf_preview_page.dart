@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:printing/printing.dart';
 
+import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_state_view.dart';
 import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../pets/domain/entities/pet.dart';
@@ -44,25 +45,49 @@ class _HealthPdfPreviewPageState extends State<HealthPdfPreviewPage> {
         ),
         centerTitle: true,
       ),
-      body: PdfPreview(
-        key: ValueKey('health-pdf-${widget.pet.id}-$_generation'),
-        build: (_) => HealthPdfGenerator.buildPdfBytes(
-          pet: widget.pet,
-          ownerName: widget.ownerName,
-          records: widget.records,
-          latestAnalysis: widget.latestAnalysis,
-        ),
-        pdfFileName: '${widget.pet.name}_건강요약서.pdf',
-        canChangePageFormat: false,
-        canChangeOrientation: false,
-        canDebug: false,
-        onError: (context, _) => PetSpaceStateView.error(
-          icon: Icons.description_outlined,
-          title: '건강 리포트를 만들지 못했어요',
-          message: '잠시 후 다시 시도해주세요.',
-          actionLabel: '다시 생성',
-          onAction: () => setState(() => _generation++),
-        ),
+      body: Column(
+        children: [
+          Container(
+            key: const Key('health_pdf_scope_notice'),
+            width: double.infinity,
+            margin: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: AppTheme.actionContainer,
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
+            ),
+            child: Text(
+              '기록을 확인한 뒤 상단 기능으로 저장하거나 공유할 수 있어요. 이 요약서는 의료 진단을 대신하지 않습니다.',
+              style: TextStyle(
+                fontSize: AppTheme.fontCaption.sp,
+                height: 1.45,
+                color: AppTheme.brandDeep,
+              ),
+            ),
+          ),
+          Expanded(
+            child: PdfPreview(
+              key: ValueKey('health-pdf-${widget.pet.id}-$_generation'),
+              build: (_) => HealthPdfGenerator.buildPdfBytes(
+                pet: widget.pet,
+                ownerName: widget.ownerName,
+                records: widget.records,
+                latestAnalysis: widget.latestAnalysis,
+              ),
+              pdfFileName: '${widget.pet.name}_건강요약서.pdf',
+              canChangePageFormat: false,
+              canChangeOrientation: false,
+              canDebug: false,
+              onError: (context, _) => PetSpaceStateView.error(
+                icon: Icons.description_outlined,
+                title: '건강 리포트를 만들지 못했어요',
+                message: '기록은 그대로 유지됩니다. 잠시 후 다시 시도해주세요.',
+                actionLabel: '다시 생성',
+                onAction: () => setState(() => _generation++),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

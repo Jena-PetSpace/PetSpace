@@ -61,6 +61,12 @@ class HealthPdfGenerator {
           ],
           if (!data.hasAny)
             pw.Text('아직 건강 기록이 없습니다.', style: const pw.TextStyle(fontSize: 12)),
+          pw.SizedBox(height: 18),
+          pw.Divider(color: PdfColors.grey400),
+          pw.Text(
+            '이 문서는 보호자가 입력한 건강 기록을 정리한 참고 자료이며 의료 진단이나 수의사의 판단을 대신하지 않습니다.',
+            style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+          ),
         ],
       ),
     );

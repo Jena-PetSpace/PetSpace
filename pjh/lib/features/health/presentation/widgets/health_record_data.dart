@@ -65,7 +65,8 @@ double? parseWeightKg(String raw) {
 int? parseCost(String raw) {
   final cleaned = raw.trim().replaceAll(',', '');
   if (cleaned.isEmpty) return null;
-  return int.tryParse(cleaned);
+  final value = int.tryParse(cleaned);
+  return value != null && value >= 0 ? value : null;
 }
 
 /// 체중 기록 자동 제목("체중 5.2kg"). 그 외 타입은 사용자 title 유지.
@@ -75,6 +76,77 @@ String weightTitle(double weightKg) {
       ? weightKg.toInt().toString()
       : weightKg.toString();
   return '체중 ${s}kg';
+}
+
+/// 최근 기록 카드의 첫 줄. 사용자가 저장한 이름을 우선하고, 오래된 빈 제목은
+/// 구조화 데이터 또는 기록 유형으로 안전하게 보완한다.
+String recordCardDisplayTitle(HealthRecord record) {
+  if (record.title.trim().isNotEmpty) return record.title.trim();
+  final data = record.data;
+  final structured = switch (record.recordType) {
+    HealthRecordType.vaccination => data['vaccine_type'],
+    HealthRecordType.checkup => null,
+    HealthRecordType.weight => data['weight_kg'],
+    HealthRecordType.medication => data['med_name'],
+    HealthRecordType.surgery => data['surgery_name'],
+  };
+  if (record.recordType == HealthRecordType.weight && structured is num) {
+    return weightTitle(structured.toDouble());
+  }
+  if (structured is String && structured.trim().isNotEmpty) {
+    return structured.trim();
+  }
+  return switch (record.recordType) {
+    HealthRecordType.vaccination => '예방접종',
+    HealthRecordType.checkup => '건강검진',
+    HealthRecordType.weight => '체중 기록',
+    HealthRecordType.medication => '투약 기록',
+    HealthRecordType.surgery => '수술 기록',
+  };
+}
+
+/// 첫 줄과 중복되지 않는 최근 기록 카드의 보조 정보.
+String recordCardDetail(HealthRecord record) {
+  final data = record.data;
+  String optionalDescription() => record.description?.trim().isNotEmpty == true
+      ? record.description!.trim()
+      : '세부 내용 없음';
+
+  switch (record.recordType) {
+    case HealthRecordType.weight:
+      final bcs = data['bcs'];
+      return bcs is num ? 'BCS ${bcs.toInt()}' : optionalDescription();
+    case HealthRecordType.vaccination:
+      final hospital = data['hospital'];
+      return hospital is String && hospital.trim().isNotEmpty
+          ? hospital.trim()
+          : optionalDescription();
+    case HealthRecordType.checkup:
+      final parts = <String>[
+        if (data['hospital'] is String &&
+            (data['hospital'] as String).trim().isNotEmpty)
+          (data['hospital'] as String).trim(),
+        if (data['result'] is String &&
+            (data['result'] as String).trim().isNotEmpty)
+          (data['result'] as String).trim(),
+      ];
+      return parts.isEmpty ? optionalDescription() : parts.join(' · ');
+    case HealthRecordType.medication:
+      final parts = <String>[
+        if (data['dosage'] is String &&
+            (data['dosage'] as String).trim().isNotEmpty)
+          (data['dosage'] as String).trim(),
+        if (data['frequency'] is String &&
+            (data['frequency'] as String).trim().isNotEmpty)
+          (data['frequency'] as String).trim(),
+      ];
+      return parts.isEmpty ? optionalDescription() : parts.join(' · ');
+    case HealthRecordType.surgery:
+      final hospital = data['hospital'];
+      return hospital is String && hospital.trim().isNotEmpty
+          ? hospital.trim()
+          : optionalDescription();
+  }
 }
 
 /// 카드 부제 — record.data에서 타입별 핵심 정보를 뽑는다.

@@ -56,6 +56,7 @@ void main() {
     await tester.tap(find.byKey(const Key('health_alert_test_button')));
     await tester.pumpAndSettle();
     expect(find.textContaining('테스트 알림을 예약했어요'), findsOneWidget);
+    expect(find.textContaining('자동 예정일 알림이 켜진 것은 아닙니다'), findsOneWidget);
   });
 
   testWidgets('permission denial never displays the success message',
@@ -68,5 +69,6 @@ void main() {
 
     expect(find.textContaining('알림 권한을 허용'), findsOneWidget);
     expect(find.textContaining('테스트 알림을 예약했어요'), findsNothing);
+    expect(find.byKey(const Key('health_alert_open_settings')), findsOneWidget);
   });
 }

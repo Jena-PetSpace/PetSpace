@@ -1,741 +1,79 @@
 part of '../pages/health_main_page.dart';
 
+/// 기존 호출부 이름을 유지하면서 기록 입력을 root full-screen task로 전환한다.
 extension _HealthMainSheets on _HealthMainViewState {
   static const _mutationWaitTimeout = Duration(seconds: 20);
 
-  /// 추가/수정 시트의 기록 유형 선택 — 메인 필터 칩과 동일한 비주얼·라벨
-  /// (_filterTypes·_typeChip 공유, '전체'만 필터 전용이라 제외).
-  Widget _buildRecordTypeSelector(
-    HealthRecordType selected,
-    ValueChanged<HealthRecordType> onSelect,
-  ) {
-    final types = _HealthMainViewState._filterTypes
-        .where((t) => t.$1 != null)
-        .toList();
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.zero,
-        itemCount: types.length,
-        separatorBuilder: (_, __) => SizedBox(width: 6.w),
-        itemBuilder: (context, i) {
-          final (type, label) = types[i];
-          return _typeChip(
-            label: label,
-            color: _HealthMainViewState._filterTypeColors[type]!,
-            isSelected: selected == type,
-            onTap: () => onSelect(type!),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showAddRecordSheet(BuildContext context) {
-    final selectedPetState = context.read<PetBloc>().state;
-    final selectedPet = selectedPetState is PetLoaded
-        ? selectedPetState.selectedPet
-        : null;
+  Future<void> _showAddRecordSheet(BuildContext context) async {
+    final petState = context.read<PetBloc>().state;
+    final pet = petState is PetLoaded ? petState.selectedPet : null;
     final healthState = context.read<HealthBloc>().state;
-    if (selectedPet == null ||
+    final healthBloc = context.read<HealthBloc>();
+    final messenger = ScaffoldMessenger.of(context);
+    if (pet == null ||
         healthState is! HealthLoaded ||
-        healthState.petId != selectedPet.id ||
+        healthState.petId != pet.id ||
         healthState.mutation.phase == HealthMutationPhase.pending) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('건강 기록을 불러온 뒤 다시 시도해주세요.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('건강 기록을 불러온 뒤 다시 시도해주세요.')),
+      );
       return;
     }
 
-    final titleController = TextEditingController();
-    final descController = TextEditingController();
-    final typeFields = _TypeFieldState();
-    HealthRecordType selectedType = HealthRecordType.vaccination;
-    DateTime selectedDate = DateTime.now();
-    DateTime? nextDate;
-    bool isSubmitting = false;
-    String? submitError;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      // 탭바·FAB 위(루트 내비게이터)에 띄워 저장 버튼 가림 방지
-      useRootNavigator: true,
-      useSafeArea: true,
-      // 긴 폼(투약·검진 등)도 화면을 다 덮지 않고 내부 스크롤
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20.w,
-            right: 20.w,
-            top: 20.h,
-            // 키보드(viewInsets) + 시스템 내비게이션 바(padding.bottom) 회피
-            bottom:
-                MediaQuery.of(ctx).viewInsets.bottom +
-                MediaQuery.of(ctx).padding.bottom +
-                12.h,
-          ),
-          // Column(max) → maxHeight(85%)까지 채워 유형과 무관하게 시트 높이 고정.
-          // 제목·저장 버튼은 고정, 가운데 폼만 스크롤.
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '건강 기록 추가',
-                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20.h),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 기록 타입
-                      Text(
-                        '기록 유형',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      _buildRecordTypeSelector(
-                        selectedType,
-                        (t) => setSheetState(() => selectedType = t),
-                      ),
-                      SizedBox(height: 16.h),
-
-                      // 타입별 전용 입력
-                      _buildTypeFields(selectedType, typeFields, setSheetState),
-                      SizedBox(height: 12.h),
-
-                      // 제목 (선택 — 체중은 자동 생성)
-                      TextField(
-                        controller: titleController,
-                        style: TextStyle(fontSize: 14.sp),
-                        decoration: InputDecoration(
-                          labelText: '제목 (선택)',
-                          labelStyle: TextStyle(fontSize: 14.sp),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-
-                      // 메모
-                      TextField(
-                        controller: descController,
-                        style: TextStyle(fontSize: 14.sp),
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          labelText: '메모 (선택)',
-                          labelStyle: TextStyle(fontSize: 14.sp),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-
-                      // 날짜
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.calendar_today),
-                        title: Text(
-                          '기록 날짜: ${_formatDate(selectedDate)}',
-                          style: TextStyle(fontSize: 14.sp),
-                        ),
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: selectedDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                          );
-                          if (picked != null) {
-                            setSheetState(() => selectedDate = picked);
-                          }
-                        },
-                      ),
-
-                      // 다음 예정일
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.event),
-                        title: Text(
-                          nextDate != null
-                              ? '다음 예정일: ${_formatDate(nextDate!)}'
-                              : '다음 예정일 (선택)',
-                          style: TextStyle(fontSize: 14.sp),
-                        ),
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: DateTime.now().add(
-                              const Duration(days: 30),
-                            ),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2030),
-                          );
-                          if (picked != null) {
-                            setSheetState(() => nextDate = picked);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 12.h),
-              if (submitError != null) ...[
-                Semantics(
-                  liveRegion: true,
-                  child: Text(
-                    submitError!,
-                    style: TextStyle(
-                      color: AppTheme.errorColor,
-                      fontSize: 12.sp,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 8.h),
-              ],
-
-              // 저장 버튼 — 시트 하단 고정(스크롤과 무관하게 항상 노출)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          final typeError = _validateTypeFields(
-                            selectedType,
-                            typeFields,
-                          );
-                          if (typeError != null) {
-                            ScaffoldMessenger.of(
-                              ctx,
-                            ).showSnackBar(SnackBar(content: Text(typeError)));
-                            return;
-                          }
-
-                          final petState = context.read<PetBloc>().state;
-                          if (petState is! PetLoaded ||
-                              petState.selectedPet == null) {
-                            setSheetState(() {
-                              submitError = '반려동물을 먼저 선택해주세요.';
-                            });
-                            return;
-                          }
-                          final currentHealthState = context
-                              .read<HealthBloc>()
-                              .state;
-                          if (currentHealthState is! HealthLoaded ||
-                              currentHealthState.petId !=
-                                  petState.selectedPet!.id ||
-                              currentHealthState.mutation.phase ==
-                                  HealthMutationPhase.pending) {
-                            setSheetState(() {
-                              submitError = '건강 기록을 불러온 뒤 다시 시도해주세요.';
-                            });
-                            return;
-                          }
-
-                          final data = _composeData(selectedType, typeFields);
-                          // 제목: 입력값 우선, 체중은 자동 생성, 그 외 비면 타입명.
-                          String title = titleController.text.trim();
-                          if (title.isEmpty) {
-                            if (selectedType == HealthRecordType.weight) {
-                              title = weightTitle(
-                                parseWeightKg(typeFields.weight.text)!,
-                              );
-                            } else {
-                              title = _getRecordTypeName(selectedType);
-                            }
-                          }
-
-                          final record = HealthRecord(
-                            id: '',
-                            petId: petState.selectedPet!.id,
-                            userId: '',
-                            recordType: selectedType,
-                            title: title,
-                            description: descController.text.trim().isEmpty
-                                ? null
-                                : descController.text.trim(),
-                            recordDate: selectedDate,
-                            nextDate: nextDate,
-                            status: selectedDate.isAfter(DateTime.now())
-                                ? HealthRecordStatus.scheduled
-                                : HealthRecordStatus.completed,
-                            data: data,
-                            createdAt: DateTime.now(),
-                            updatedAt: DateTime.now(),
-                          );
-
-                          final operationId =
-                              'add-${DateTime.now().microsecondsSinceEpoch}';
-                          setSheetState(() {
-                            isSubmitting = true;
-                            submitError = null;
-                          });
-                          final bloc = context.read<HealthBloc>();
-                          bloc.add(
-                            AddHealthRecordEvent(
-                              record: record,
-                              operationId: operationId,
-                            ),
-                          );
-                          final outcome = await _waitForMutation(
-                            bloc,
-                            operationId,
-                          );
-                          if (!ctx.mounted) return;
-                          if (outcome.phase == HealthMutationPhase.succeeded) {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('건강 기록을 저장했어요')),
-                            );
-                          } else {
-                            setSheetState(() {
-                              isSubmitting = false;
-                              submitError =
-                                  outcome.message ??
-                                  '건강 기록 저장에 실패했습니다. 다시 시도해주세요.';
-                            });
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.actionBase,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 14.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                  child: isSubmitting
-                      ? SizedBox(
-                          width: 20.w,
-                          height: 20.w,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          '저장',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
+    final saved = await Navigator.of(context, rootNavigator: true).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => HealthRecordEditorPage(
+          pet: pet,
+          userId: healthState.userId ?? pet.userId,
+          healthBloc: healthBloc,
         ),
       ),
+    );
+    if (!mounted || saved != true) return;
+    messenger.showSnackBar(
+      const SnackBar(content: Text('건강 기록을 저장했어요.')),
     );
   }
 
-  void _showEditRecordSheet(BuildContext context, HealthRecord record) {
-    final titleController = TextEditingController(text: record.title);
-    final descController = TextEditingController(
-      text: record.description ?? '',
-    );
-    final typeFields = _TypeFieldState()..hydrate(record.data);
-    HealthRecordType selectedType = record.recordType;
-    DateTime selectedDate = record.recordDate;
-    DateTime? nextDate = record.nextDate;
-    HealthRecordStatus selectedStatus = record.status;
-    bool isSubmitting = false;
-    String? submitError;
+  Future<void> _showEditRecordSheet(
+    BuildContext context,
+    HealthRecord record,
+  ) async {
+    final petState = context.read<PetBloc>().state;
+    final pet = petState is PetLoaded ? petState.selectedPet : null;
+    final healthState = context.read<HealthBloc>().state;
+    final healthBloc = context.read<HealthBloc>();
+    final messenger = ScaffoldMessenger.of(context);
+    if (pet == null ||
+        healthState is! HealthLoaded ||
+        healthState.petId != record.petId ||
+        healthState.mutation.phase == HealthMutationPhase.pending) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('건강 기록을 불러온 뒤 다시 시도해주세요.')),
+      );
+      return;
+    }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      // 탭바·FAB 위(루트 내비게이터)에 띄워 저장 버튼 가림 방지
-      useRootNavigator: true,
-      useSafeArea: true,
-      // 긴 폼(투약·검진 등)도 화면을 다 덮지 않고 내부 스크롤
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20.w,
-            right: 20.w,
-            top: 20.h,
-            // 키보드(viewInsets) + 시스템 내비게이션 바(padding.bottom) 회피
-            bottom:
-                MediaQuery.of(ctx).viewInsets.bottom +
-                MediaQuery.of(ctx).padding.bottom +
-                12.h,
-          ),
-          // Column(max) → maxHeight(85%)까지 채워 유형과 무관하게 시트 높이 고정.
-          // 헤더·수정 완료 버튼은 고정, 가운데 폼만 스크롤.
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '건강 기록 수정',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    color: AppTheme.highlightColor,
-                    tooltip: '기록 삭제',
-                    onPressed: isSubmitting
-                        ? null
-                        : () async {
-                            final confirmed = await _confirmDeleteFromEdit(ctx);
-                            if (confirmed != true || !ctx.mounted) return;
-                            setSheetState(() {
-                              isSubmitting = true;
-                              submitError = null;
-                            });
-                            final deleted = await _requestDelete(record.id);
-                            if (!ctx.mounted) return;
-                            if (deleted) {
-                              Navigator.pop(ctx);
-                            } else {
-                              setSheetState(() {
-                                isSubmitting = false;
-                                submitError = '기록을 삭제하지 못했습니다. 다시 시도해주세요.';
-                              });
-                            }
-                          },
-                  ),
-                ],
-              ),
-              SizedBox(height: 20.h),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '기록 유형',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      _buildRecordTypeSelector(
-                        selectedType,
-                        (t) => setSheetState(() => selectedType = t),
-                      ),
-                      SizedBox(height: 16.h),
-
-                      // 타입별 전용 입력
-                      _buildTypeFields(selectedType, typeFields, setSheetState),
-                      SizedBox(height: 12.h),
-
-                      TextField(
-                        controller: titleController,
-                        style: TextStyle(fontSize: 14.sp),
-                        decoration: InputDecoration(
-                          labelText: '제목 (선택)',
-                          labelStyle: TextStyle(fontSize: 14.sp),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-
-                      TextField(
-                        controller: descController,
-                        style: TextStyle(fontSize: 14.sp),
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          labelText: '메모 (선택)',
-                          labelStyle: TextStyle(fontSize: 14.sp),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-
-                      // 상태
-                      Text(
-                        '상태',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 8.h),
-                      Wrap(
-                        spacing: 8.w,
-                        children: HealthRecordStatus.values.map((status) {
-                          return ChoiceChip(
-                            label: Text(
-                              _getStatusName(status),
-                              style: TextStyle(fontSize: 12.sp),
-                            ),
-                            selected: status == selectedStatus,
-                            selectedColor: _getStatusColor(
-                              status,
-                            ).withValues(alpha: 0.2),
-                            onSelected: (_) =>
-                                setSheetState(() => selectedStatus = status),
-                          );
-                        }).toList(),
-                      ),
-                      SizedBox(height: 12.h),
-
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.calendar_today),
-                        title: Text(
-                          '기록 날짜: ${_formatDate(selectedDate)}',
-                          style: TextStyle(fontSize: 14.sp),
-                        ),
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: selectedDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                          );
-                          if (picked != null) {
-                            setSheetState(() => selectedDate = picked);
-                          }
-                        },
-                      ),
-
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.event),
-                        title: Text(
-                          nextDate != null
-                              ? '다음 예정일: ${_formatDate(nextDate!)}'
-                              : '다음 예정일 (선택)',
-                          style: TextStyle(fontSize: 14.sp),
-                        ),
-                        onTap: () async {
-                          final firstDate = DateTime.now();
-                          final initialDate =
-                              nextDate != null && !nextDate!.isBefore(firstDate)
-                              ? nextDate!
-                              : firstDate.add(const Duration(days: 30));
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: initialDate,
-                            firstDate: firstDate,
-                            lastDate: DateTime(2030),
-                          );
-                          if (picked != null) {
-                            setSheetState(() => nextDate = picked);
-                          }
-                        },
-                      ),
-                      if (nextDate != null)
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: isSubmitting
-                                ? null
-                                : () => setSheetState(() => nextDate = null),
-                            child: const Text('다음 예정일 해제'),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 12.h),
-              if (submitError != null) ...[
-                Semantics(
-                  liveRegion: true,
-                  child: Text(
-                    submitError!,
-                    style: TextStyle(
-                      color: AppTheme.errorColor,
-                      fontSize: 12.sp,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 8.h),
-              ],
-
-              // 수정 완료 — 시트 하단 고정(스크롤과 무관하게 항상 노출)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () async {
-                          final typeError = _validateTypeFields(
-                            selectedType,
-                            typeFields,
-                          );
-                          if (typeError != null) {
-                            ScaffoldMessenger.of(
-                              ctx,
-                            ).showSnackBar(SnackBar(content: Text(typeError)));
-                            return;
-                          }
-                          final currentHealthState = context
-                              .read<HealthBloc>()
-                              .state;
-                          if (currentHealthState is! HealthLoaded ||
-                              currentHealthState.petId != record.petId ||
-                              currentHealthState.mutation.phase ==
-                                  HealthMutationPhase.pending) {
-                            setSheetState(() {
-                              submitError = '건강 기록을 불러온 뒤 다시 시도해주세요.';
-                            });
-                            return;
-                          }
-
-                          final data = _composeData(selectedType, typeFields);
-                          String title = titleController.text.trim();
-                          if (title.isEmpty) {
-                            if (selectedType == HealthRecordType.weight) {
-                              title = weightTitle(
-                                parseWeightKg(typeFields.weight.text)!,
-                              );
-                            } else {
-                              title = _getRecordTypeName(selectedType);
-                            }
-                          }
-
-                          final updated = HealthRecord(
-                            id: record.id,
-                            petId: record.petId,
-                            userId: record.userId,
-                            recordType: selectedType,
-                            title: title,
-                            description: descController.text.trim().isEmpty
-                                ? null
-                                : descController.text.trim(),
-                            recordDate: selectedDate,
-                            nextDate: nextDate,
-                            status: selectedStatus,
-                            data: data,
-                            createdAt: record.createdAt,
-                            updatedAt: DateTime.now(),
-                          );
-
-                          final operationId =
-                              'update-${record.id}-${DateTime.now().microsecondsSinceEpoch}';
-                          setSheetState(() {
-                            isSubmitting = true;
-                            submitError = null;
-                          });
-                          final bloc = context.read<HealthBloc>();
-                          bloc.add(
-                            UpdateHealthRecordEvent(
-                              record: updated,
-                              operationId: operationId,
-                            ),
-                          );
-                          final outcome = await _waitForMutation(
-                            bloc,
-                            operationId,
-                          );
-                          if (!ctx.mounted) return;
-                          if (outcome.phase == HealthMutationPhase.succeeded) {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('건강 기록을 수정했어요')),
-                            );
-                          } else {
-                            setSheetState(() {
-                              isSubmitting = false;
-                              submitError =
-                                  outcome.message ??
-                                  '건강 기록 수정에 실패했습니다. 다시 시도해주세요.';
-                            });
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.actionBase,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 14.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                  child: isSubmitting
-                      ? SizedBox(
-                          width: 20.w,
-                          height: 20.w,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          '수정 완료',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
-              ),
-            ],
-          ),
+    final saved = await Navigator.of(context, rootNavigator: true).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => HealthRecordEditorPage(
+          pet: pet,
+          userId: healthState.userId ?? pet.userId,
+          healthBloc: healthBloc,
+          record: record,
         ),
       ),
     );
-  }
-
-  /// 수정 시트의 삭제 확인 다이얼로그. 확인 색은 경고 앰버(AppTheme.highlightColor).
-  Future<bool?> _confirmDeleteFromEdit(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('기록 삭제', style: TextStyle(fontSize: 18.sp)),
-        content: Text(
-          '이 기록을 삭제할까요?\n삭제한 기록은 복구할 수 없어요.',
-          style: TextStyle(fontSize: 14.sp),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('취소', style: TextStyle(fontSize: 14.sp)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(
-              foregroundColor: AppTheme.highlightColor,
-            ),
-            child: Text('삭제', style: TextStyle(fontSize: 14.sp)),
-          ),
-        ],
-      ),
+    if (!mounted || saved != true) return;
+    messenger.showSnackBar(
+      const SnackBar(content: Text('건강 기록 변경을 반영했어요.')),
     );
   }
 
   Future<HealthMutationState> _waitForMutation(
     HealthBloc bloc,
     String operationId,
-  ) async {
+  ) {
     return bloc.stream
         .where((state) => state is HealthLoaded)
         .cast<HealthLoaded>()
@@ -750,277 +88,43 @@ extension _HealthMainSheets on _HealthMainViewState {
           onTimeout: () => HealthMutationState(
             operationId: operationId,
             phase: HealthMutationPhase.failed,
-            message: '요청 처리 상태를 확인하지 못했습니다. 다시 시도해주세요.',
+            message: '처리 결과를 확인하지 못했어요. 다시 시도해주세요.',
           ),
         );
   }
 
-  IconData _getRecordIcon(HealthRecordType type) {
-    switch (type) {
-      case HealthRecordType.vaccination:
-        return Icons.vaccines;
-      case HealthRecordType.checkup:
-        return Icons.health_and_safety;
-      case HealthRecordType.weight:
-        return Icons.monitor_weight;
-      case HealthRecordType.medication:
-        return Icons.medication;
-      case HealthRecordType.surgery:
-        return Icons.local_hospital;
-    }
-  }
+  IconData _getRecordIcon(HealthRecordType type) => switch (type) {
+        HealthRecordType.vaccination => Icons.vaccines_outlined,
+        HealthRecordType.checkup => Icons.health_and_safety_outlined,
+        HealthRecordType.weight => Icons.monitor_weight_outlined,
+        HealthRecordType.medication => Icons.medication_outlined,
+        HealthRecordType.surgery => Icons.local_hospital_outlined,
+      };
 
-  Color _getRecordColor(HealthRecordType type) {
-    return AppTheme.actionBase;
-  }
+  Color _getRecordColor(HealthRecordType _) => AppTheme.actionBase;
 
-  String _getRecordTypeName(HealthRecordType type) {
-    switch (type) {
-      case HealthRecordType.vaccination:
-        return '예방접종';
-      case HealthRecordType.checkup:
-        return '건강검진';
-      case HealthRecordType.weight:
-        return '체중기록';
-      case HealthRecordType.medication:
-        return '투약';
-      case HealthRecordType.surgery:
-        return '수술';
-    }
-  }
+  String _getRecordTypeName(HealthRecordType type) => switch (type) {
+        HealthRecordType.vaccination => '예방접종',
+        HealthRecordType.checkup => '건강검진',
+        HealthRecordType.weight => '체중',
+        HealthRecordType.medication => '투약',
+        HealthRecordType.surgery => '수술',
+      };
 
-  String _getStatusName(HealthRecordStatus status) {
-    switch (status) {
-      case HealthRecordStatus.scheduled:
-        return '예정';
-      case HealthRecordStatus.completed:
-        return '완료';
-      case HealthRecordStatus.overdue:
-        return '지남';
-      case HealthRecordStatus.cancelled:
-        return '취소';
-    }
-  }
+  String _getStatusName(HealthRecordStatus status) => switch (status) {
+        HealthRecordStatus.scheduled => '예정',
+        HealthRecordStatus.completed => '완료',
+        HealthRecordStatus.overdue => '지남',
+        HealthRecordStatus.cancelled => '취소',
+      };
 
-  Color _getStatusColor(HealthRecordStatus status) {
-    switch (status) {
-      case HealthRecordStatus.scheduled:
-        return AppTheme.highlightColor;
-      case HealthRecordStatus.completed:
-        return AppTheme.successColor;
-      case HealthRecordStatus.overdue:
-        return AppTheme.errorColor;
-      case HealthRecordStatus.cancelled:
-        return Colors.grey;
-    }
-  }
+  Color _getStatusColor(HealthRecordStatus status) => switch (status) {
+        HealthRecordStatus.scheduled => AppTheme.actionBase,
+        HealthRecordStatus.completed => AppTheme.successColor,
+        HealthRecordStatus.overdue => AppTheme.errorColor,
+        HealthRecordStatus.cancelled => AppTheme.textMuted,
+      };
 
-  String _formatDate(DateTime date) {
-    return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
-  }
-
-  /// 타입별 전용 입력 필드. 공통 필드(메모·날짜·상태) 위에 노출된다.
-  /// 값은 [s]의 컨트롤러/필드에 담기고, 저장 시 buildHealthRecordData로 data Map 구성.
-  Widget _buildTypeFields(
-    HealthRecordType type,
-    _TypeFieldState s,
-    void Function(void Function()) setSheetState,
-  ) {
-    InputDecoration deco(String label) => InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(fontSize: 14.sp),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
-    );
-
-    switch (type) {
-      case HealthRecordType.weight:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: s.weight,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              style: TextStyle(fontSize: 14.sp),
-              decoration: deco('체중 (kg)'),
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              'BCS (선택, 1~9)',
-              style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
-            ),
-            SizedBox(height: 8.h),
-            Wrap(
-              spacing: 6.w,
-              children: List.generate(9, (i) {
-                final v = i + 1;
-                return ChoiceChip(
-                  label: Text('$v', style: TextStyle(fontSize: 12.sp)),
-                  selected: s.bcs == v,
-                  selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
-                  onSelected: (_) =>
-                      setSheetState(() => s.bcs = s.bcs == v ? null : v),
-                );
-              }),
-            ),
-          ],
-        );
-      case HealthRecordType.vaccination:
-        return TextField(
-          controller: s.vaccineType,
-          style: TextStyle(fontSize: 14.sp),
-          decoration: deco('백신 종류'),
-        );
-      case HealthRecordType.medication:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: s.medName,
-              style: TextStyle(fontSize: 14.sp),
-              decoration: deco('약 이름'),
-            ),
-            SizedBox(height: 12.h),
-            TextField(
-              controller: s.dosage,
-              style: TextStyle(fontSize: 14.sp),
-              decoration: deco('용량 (선택)'),
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              '반복 주기',
-              style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
-            ),
-            SizedBox(height: 8.h),
-            Wrap(
-              spacing: 6.w,
-              children: medicationFrequencies.map((f) {
-                return ChoiceChip(
-                  label: Text(f, style: TextStyle(fontSize: 12.sp)),
-                  selected: s.frequency == f,
-                  selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
-                  onSelected: (_) => setSheetState(
-                    () => s.frequency = s.frequency == f ? null : f,
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        );
-      case HealthRecordType.checkup:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: s.hospital,
-              style: TextStyle(fontSize: 14.sp),
-              decoration: deco('병원 (선택)'),
-            ),
-            SizedBox(height: 12.h),
-            TextField(
-              controller: s.result,
-              style: TextStyle(fontSize: 14.sp),
-              decoration: deco('결과/소견 (선택)'),
-            ),
-            SizedBox(height: 12.h),
-            TextField(
-              controller: s.cost,
-              keyboardType: TextInputType.number,
-              style: TextStyle(fontSize: 14.sp),
-              decoration: deco('비용 (선택, 원)'),
-            ),
-          ],
-        );
-      case HealthRecordType.surgery:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: s.surgeryName,
-              style: TextStyle(fontSize: 14.sp),
-              decoration: deco('수술명'),
-            ),
-            SizedBox(height: 12.h),
-            TextField(
-              controller: s.hospital,
-              style: TextStyle(fontSize: 14.sp),
-              decoration: deco('병원 (선택)'),
-            ),
-          ],
-        );
-    }
-  }
-
-  /// 타입별 필수 검증. 통과 시 null, 실패 시 안내 메시지 반환.
-  String? _validateTypeFields(HealthRecordType type, _TypeFieldState s) {
-    switch (type) {
-      case HealthRecordType.weight:
-        if (parseWeightKg(s.weight.text) == null) {
-          return '체중(kg)을 올바르게 입력해주세요';
-        }
-        return null;
-      case HealthRecordType.medication:
-        if (s.medName.text.trim().isEmpty) return '약 이름을 입력해주세요';
-        return null;
-      case HealthRecordType.surgery:
-        if (s.surgeryName.text.trim().isEmpty) return '수술명을 입력해주세요';
-        return null;
-      case HealthRecordType.vaccination:
-      case HealthRecordType.checkup:
-        return null;
-    }
-  }
-
-  /// [s]에서 타입별 data Map 구성.
-  Map<String, dynamic> _composeData(HealthRecordType type, _TypeFieldState s) {
-    return buildHealthRecordData(
-      type: type,
-      weightKg: parseWeightKg(s.weight.text),
-      bcs: s.bcs,
-      vaccineType: s.vaccineType.text,
-      hospital: s.hospital.text,
-      medName: s.medName.text,
-      dosage: s.dosage.text,
-      frequency: s.frequency,
-      endDate: s.endDate,
-      result: s.result.text,
-      cost: parseCost(s.cost.text),
-      surgeryName: s.surgeryName.text,
-    );
-  }
-}
-
-/// 타입별 전용 입력 상태(컨트롤러·선택값). add/edit 시트에서 공유.
-class _TypeFieldState {
-  final weight = TextEditingController();
-  int? bcs;
-  final vaccineType = TextEditingController();
-  final hospital = TextEditingController();
-  final medName = TextEditingController();
-  final dosage = TextEditingController();
-  String? frequency;
-  DateTime? endDate;
-  final result = TextEditingController();
-  final cost = TextEditingController();
-  final surgeryName = TextEditingController();
-
-  /// 기존 레코드의 data로 초기화(수정 시트용). null-safe.
-  void hydrate(Map<String, dynamic> d) {
-    final w = d['weight_kg'];
-    if (w is num) weight.text = w.toString();
-    final b = d['bcs'];
-    if (b is num) bcs = b.toInt();
-    vaccineType.text = (d['vaccine_type'] as String?) ?? '';
-    hospital.text = (d['hospital'] as String?) ?? '';
-    medName.text = (d['med_name'] as String?) ?? '';
-    dosage.text = (d['dosage'] as String?) ?? '';
-    frequency = d['frequency'] as String?;
-    final e = d['end_date'];
-    if (e is String) endDate = DateTime.tryParse(e);
-    result.text = (d['result'] as String?) ?? '';
-    final c = d['cost'];
-    if (c is num) cost.text = c.toInt().toString();
-    surgeryName.text = (d['surgery_name'] as String?) ?? '';
-  }
+  String _formatDate(DateTime date) =>
+      '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 }
