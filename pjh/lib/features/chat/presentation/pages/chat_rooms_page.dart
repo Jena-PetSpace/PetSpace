@@ -38,8 +38,8 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<ChatRoomsBloc>().add(
-          ChatRoomsLoadRequested(userId: _currentUserId),
-        );
+              ChatRoomsLoadRequested(userId: _currentUserId),
+            );
       }
     });
   }
@@ -99,31 +99,32 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
 
   void _loadRooms() {
     context.read<ChatRoomsBloc>().add(
-      ChatRoomsLoadRequested(userId: _currentUserId),
-    );
+          ChatRoomsLoadRequested(userId: _currentUserId),
+        );
   }
 
   Future<void> _refreshRooms() {
     context.read<ChatRoomsBloc>().add(
-      ChatRoomsRefreshRequested(userId: _currentUserId),
-    );
+          ChatRoomsRefreshRequested(userId: _currentUserId),
+        );
     // 진행·실패 표시는 ChatRoomsLoaded.isRefreshing/refreshErrorMessage가
     // 화면 안에서 담당한다. RefreshIndicator 콜백은 이벤트 전달까지만 보장한다.
     return Future<void>.value();
   }
 
   Widget _buildLoadedState(ChatRoomsLoaded state) {
+    final theme = Theme.of(context);
+    final mutedColor = theme.brightness == Brightness.dark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
     final normalized = _query.trim().toLowerCase();
     final filteredRooms = normalized.isEmpty
         ? state.rooms
-        : state.rooms
-              .where((room) {
-                final name = room.displayName(_currentUserId).toLowerCase();
-                final preview = (room.lastMessage ?? '').toLowerCase();
-                return name.contains(normalized) ||
-                    preview.contains(normalized);
-              })
-              .toList(growable: false);
+        : state.rooms.where((room) {
+            final name = room.displayName(_currentUserId).toLowerCase();
+            final preview = (room.lastMessage ?? '').toLowerCase();
+            return name.contains(normalized) || preview.contains(normalized);
+          }).toList(growable: false);
 
     return Column(
       children: [
@@ -180,14 +181,14 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                             style: TextStyle(
                               fontSize: AppTheme.fontCaption.sp,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.secondaryTextColor,
+                              color: mutedColor,
                             ),
                           ),
                           Text(
                             '${filteredRooms.length}개',
                             style: TextStyle(
                               fontSize: AppTheme.fontCaption.sp,
-                              color: AppTheme.secondaryTextColor,
+                              color: mutedColor,
                             ),
                           ),
                         ],
@@ -202,7 +203,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                                 key: const Key('chat_rooms_empty'),
                                 icon: Icons.chat_bubble_outline_rounded,
                                 title: '아직 채팅이 없어요',
-                                message: '새 채팅을 시작해보세요.',
+                                message: '반려동물 이야기를 나눌 사람을 찾아보세요.',
                                 actionLabel: '새 채팅',
                                 onAction: () => context.push('/chat/new'),
                               )
@@ -214,11 +215,9 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                               ),
                       )
                     else
-                      for (
-                        int index = 0;
-                        index < filteredRooms.length;
-                        index++
-                      ) ...[
+                      for (int index = 0;
+                          index < filteredRooms.length;
+                          index++) ...[
                         ChatRoomTile(
                           room: filteredRooms[index],
                           currentUserId: _currentUserId,
@@ -248,13 +247,17 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
   }
 
   Widget _buildRefreshErrorCard() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       key: const Key('chat_rooms_refresh_error'),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(
+          color: isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,7 +273,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                   style: TextStyle(
                     fontSize: AppTheme.fontBody.sp,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.primaryTextColor,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 SizedBox(height: 4.h),
@@ -278,7 +281,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
                   '기존 대화는 그대로 유지됩니다.',
                   style: TextStyle(
                     fontSize: AppTheme.fontCaption.sp,
-                    color: AppTheme.secondaryTextColor,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 SizedBox(height: 8.h),
@@ -306,53 +309,56 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
       ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: EdgeInsets.only(top: 8.h),
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2.r),
+        child: Builder(
+          builder: (sheetContext) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: EdgeInsets.only(top: 8.h),
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Theme.of(sheetContext).colorScheme.outlineVariant,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Text(
-                roomName,
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+              Padding(
+                padding: EdgeInsets.all(16.w),
+                child: Text(
+                  roomName,
+                  style:
+                      TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: Text('채팅방 설정', style: TextStyle(fontSize: 14.sp)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await context.push(
-                  '/chat/${room.id}/settings?name=${Uri.encodeComponent(roomName)}',
-                );
-                if (!context.mounted) return;
-                await _refreshRooms();
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.exit_to_app,
-                color: AppTheme.errorColor,
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: Text('채팅방 설정', style: TextStyle(fontSize: 14.sp)),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await context.push(
+                    '/chat/${room.id}/settings?name=${Uri.encodeComponent(roomName)}',
+                  );
+                  if (!context.mounted) return;
+                  await _refreshRooms();
+                },
               ),
-              title: Text(
-                '채팅방 나가기',
-                style: TextStyle(fontSize: 14.sp, color: AppTheme.errorColor),
+              ListTile(
+                leading: const Icon(
+                  Icons.exit_to_app,
+                  color: AppTheme.errorColor,
+                ),
+                title: Text(
+                  '채팅방 나가기',
+                  style: TextStyle(fontSize: 14.sp, color: AppTheme.errorColor),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _confirmLeaveRoom(context, room);
+                },
               ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _confirmLeaveRoom(context, room);
-              },
-            ),
-            SizedBox(height: 8.h),
-          ],
+              SizedBox(height: 8.h),
+            ],
+          ),
         ),
       ),
     );

@@ -82,6 +82,7 @@ void main() {
     ChatRoomsState state, {
     Size size = const Size(390, 844),
     double textScale = 1,
+    ThemeData? theme,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -99,7 +100,7 @@ void main() {
         designSize: const Size(390, 844),
         minTextAdapt: true,
         builder: (context, _) => MaterialApp(
-          theme: AppTheme.lightTheme,
+          theme: theme ?? AppTheme.lightTheme,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(
               textScaler: TextScaler.linear(textScale),
@@ -214,6 +215,25 @@ void main() {
 
     expect(find.text('최근 대화'), findsOneWidget);
     expect(find.byKey(const Key('chat_room_more_room-1')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('다크 테마에서도 새로고침 오류 카드가 기존 목록과 같은 표면을 사용한다', (tester) async {
+    await pumpPage(
+      tester,
+      ChatRoomsLoaded(
+        rooms: [room('room-1', '콩떡이네', '안녕하세요')],
+        refreshErrorMessage: 'private-error',
+      ),
+      theme: AppTheme.darkTheme,
+    );
+
+    final card = tester.widget<Container>(
+      find.byKey(const Key('chat_rooms_refresh_error')),
+    );
+    final decoration = card.decoration! as BoxDecoration;
+    expect(decoration.color, AppTheme.darkTheme.colorScheme.surface);
+    expect(find.textContaining('private-error'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }
