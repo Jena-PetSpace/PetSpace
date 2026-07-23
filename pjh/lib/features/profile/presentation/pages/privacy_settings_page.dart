@@ -58,6 +58,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
   void _onSearchChanged(String _) {
     _debounce?.cancel();
     _requestToken++;
+    setState(() {});
     _debounce = Timer(const Duration(milliseconds: 350), _loadFirstPage);
   }
 
@@ -140,20 +141,58 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     if (!mounted) return;
     result.fold(
       (_) => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('차단을 해제하지 못했습니다. 다시 시도해 주세요.')),
+        const SnackBar(
+          key: Key('unblock_user_error'),
+          content: Text('차단을 해제하지 못했습니다. 다시 시도해 주세요.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.errorColor,
+        ),
       ),
       (_) {
         final remaining = _users.where((item) => item.id != user.id).toList();
         final shouldLoadMore = remaining.isEmpty && _cursor != null;
         setState(() => _users = remaining);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${user.displayName}님의 차단을 해제했습니다.')),
+          SnackBar(
+            key: const Key('unblock_user_success'),
+            content: Text('${user.displayName}님의 차단을 해제했습니다.'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
         if (shouldLoadMore) unawaited(_loadMore());
       },
     );
     if (mounted) {
       setState(() => _pendingUnblockIds.remove(user.id));
+    }
+  }
+
+  Future<void> _confirmUnblock(BlockedUser user) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: ValueKey('unblock-confirm-dialog-${user.id}'),
+        scrollable: true,
+        icon: const Icon(Icons.lock_open_outlined),
+        title: const Text('차단을 해제할까요?'),
+        content: Text(
+          '${user.displayName}님의 차단을 해제하면 서로의 프로필과 활동이 다시 보일 수 있습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            key: ValueKey('confirm-unblock-user-${user.id}'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('차단 해제'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _unblock(user);
     }
   }
 
@@ -168,24 +207,22 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
             context.canPop() ? context.pop() : context.go('/settings/my'),
       ),
       body: ListView(
+        key: const Key('privacy_settings_content'),
         controller: _scrollController,
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
         children: [
-          const PetSpaceSettingsSection(
-            title: '개인정보 안내',
-            children: [
-              ListTile(
-                title: Text('현재 제공 범위'),
-                subtitle: Text(
-                  '이메일 검색과 온라인 상태 표시는 제공하지 않습니다. '
-                  '프로필과 게시물 공개 범위 제어 기능은 아직 제공되지 않습니다.',
-                ),
-              ),
-            ],
+          const PetSpaceSettingsOverviewCard(
+            key: Key('privacy_settings_overview'),
+            icon: Icons.shield_outlined,
+            title: '공개 정보와 차단을 관리하세요',
+            description: '이메일과 온라인 상태는 공개하지 않습니다. '
+                '현재 프로필·게시물 공개 범위 변경은 제공하지 않으며, '
+                '차단으로 원하지 않는 상호작용을 제한할 수 있어요.',
           ),
           SizedBox(height: 24.h),
           PetSpaceSettingsSection(
             title: '차단한 사용자',
+            description: '차단 해제 전 상대 계정을 다시 한 번 확인해 주세요.',
             children: [
               Padding(
                 padding: EdgeInsets.all(12.w),
@@ -193,9 +230,21 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
                   key: const Key('blocked-user-search'),
                   controller: _searchController,
                   onChanged: _onSearchChanged,
-                  decoration: const InputDecoration(
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
                     hintText: '이름 또는 사용자 이름 검색',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            key: const Key('blocked-user-search-clear'),
+                            tooltip: '검색어 지우기',
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                            icon: const Icon(Icons.close),
+                          ),
                   ),
                 ),
               ),
@@ -260,6 +309,9 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
       title: Text(user.displayName),
       subtitle: user.username == null ? null : Text('@${user.username}'),
       trailing: Semantics(
+        key: ValueKey(
+          'unblock-user-semantics-${user.id}-${isPending ? 'pending' : 'ready'}',
+        ),
         button: true,
         enabled: !isPending,
         excludeSemantics: true,
@@ -270,7 +322,7 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
           height: 44,
           child: TextButton(
             key: ValueKey('unblock-user-${user.id}'),
-            onPressed: isPending ? null : () => _unblock(user),
+            onPressed: isPending ? null : () => _confirmUnblock(user),
             child: isPending
                 ? const Row(
                     mainAxisSize: MainAxisSize.min,

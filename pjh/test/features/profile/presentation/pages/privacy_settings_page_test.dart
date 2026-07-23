@@ -12,6 +12,7 @@ import 'package:meong_nyang_diary/core/error/failures.dart';
 import 'package:meong_nyang_diary/features/profile/presentation/pages/privacy_settings_page.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/blocked_user.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
+import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _Repository extends Mock implements SocialRepository {}
 
@@ -34,9 +35,21 @@ Right<Failure, BlockedUsersPage> _page(
       ),
     );
 
-Widget _host(SocialRepository repository) => ScreenUtilInit(
+Widget _host(
+  SocialRepository repository, {
+  ThemeData? theme,
+  double textScale = 1,
+}) =>
+    ScreenUtilInit(
       designSize: const Size(375, 812),
       builder: (_, __) => MaterialApp(
+        theme: theme ?? AppTheme.lightTheme,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScale),
+          ),
+          child: child!,
+        ),
         home: PrivacySettingsPage(repository: repository),
       ),
     );
@@ -63,6 +76,23 @@ Widget _routerHost(SocialRepository repository) {
   );
 }
 
+Future<void> _confirmUnblock(
+  WidgetTester tester,
+  String userId,
+) async {
+  final button = find.byKey(ValueKey('unblock-user-$userId'));
+  await tester.ensureVisible(button);
+  await tester.pumpAndSettle();
+  await tester.tap(button);
+  await tester.pumpAndSettle();
+  expect(
+    find.byKey(ValueKey('unblock-confirm-dialog-$userId')),
+    findsOneWidget,
+  );
+  await tester.tap(find.byKey(ValueKey('confirm-unblock-user-$userId')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   late _Repository repository;
 
@@ -80,6 +110,8 @@ void main() {
     await tester.pumpWidget(_host(repository));
     await tester.pumpAndSettle();
 
+    expect(find.textContaining('이메일과 온라인 상태는 공개하지 않습니다'), findsOneWidget);
+    expect(find.textContaining('프로필·게시물 공개 범위 변경'), findsOneWidget);
     expect(find.byKey(const ValueKey('blocked-user-one')), findsOneWidget);
     expect(find.text('@one'), findsOneWidget);
 
@@ -215,23 +247,11 @@ void main() {
     await tester.pumpWidget(_host(repository));
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('blocked-user-two')),
-        matching: find.text('차단 해제'),
-      ),
-    );
-    await tester.pump();
+    await _confirmUnblock(tester, 'two');
     expect(find.byKey(const ValueKey('blocked-user-two')), findsOneWidget);
     expect(find.text('차단을 해제하지 못했습니다. 다시 시도해 주세요.'), findsOneWidget);
 
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('blocked-user-one')),
-        matching: find.text('차단 해제'),
-      ),
-    );
-    await tester.pump();
+    await _confirmUnblock(tester, 'one');
     expect(find.byKey(const ValueKey('blocked-user-one')), findsNothing);
     expect(find.byKey(const ValueKey('blocked-user-two')), findsOneWidget);
   });
@@ -250,7 +270,18 @@ void main() {
     await tester.pumpAndSettle();
 
     final firstButton = find.byKey(const ValueKey('unblock-user-one'));
+    await tester.ensureVisible(firstButton);
+    await tester.pumpAndSettle();
     await tester.tap(firstButton);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('unblock-confirm-dialog-one')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('confirm-unblock-user-one')),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(firstButton);
     await tester.pump();
 
@@ -265,8 +296,10 @@ void main() {
           .onPressed,
       isNotNull,
     );
-    final semantics = tester.getSemantics(firstButton);
-    expect(semantics.label, contains('차단 해제 중'));
+    final progressSemantics = tester.widget<Semantics>(
+      find.byKey(const ValueKey('unblock-user-semantics-one-pending')),
+    );
+    expect(progressSemantics.properties.label, contains('차단 해제 중'));
     expect(tester.getSize(firstButton).height, greaterThanOrEqualTo(44));
 
     pending.complete(const Right<Failure, void>(null));
@@ -357,13 +390,7 @@ void main() {
 
     await tester.pumpWidget(_host(repository));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('blocked-user-one')),
-        matching: find.text('차단 해제'),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _confirmUnblock(tester, 'one');
 
     expect(find.byKey(const ValueKey('blocked-user-one')), findsNothing);
     expect(find.byKey(const ValueKey('blocked-user-next')), findsOneWidget);
@@ -392,17 +419,66 @@ void main() {
 
     await tester.pumpWidget(_host(repository));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('blocked-user-one')),
-        matching: find.text('차단 해제'),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _confirmUnblock(tester, 'one');
 
     expect(find.text('차단 목록을 더 불러오지 못했습니다.'), findsOneWidget);
     expect(find.text('다시 시도'), findsOneWidget);
     expect(find.text('차단한 사용자가 없습니다.'), findsNothing);
+  });
+
+  testWidgets('unblock requires confirmation and cancel keeps the user blocked',
+      (
+    tester,
+  ) async {
+    when(
+      () => repository.getBlockedUsers(query: '', limit: 20, cursor: null),
+    ).thenAnswer((_) async => _page([_user('one')]));
+
+    await tester.pumpWidget(_host(repository));
+    await tester.pumpAndSettle();
+    final button = find.byKey(const ValueKey('unblock-user-one'));
+    await tester.ensureVisible(button);
+    await tester.pumpAndSettle();
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    expect(find.text('차단을 해제할까요?'), findsOneWidget);
+    expect(find.textContaining('다시 보일 수 있습니다'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, '취소'));
+    await tester.pumpAndSettle();
+
+    verifyNever(() => repository.unblockUser(any()));
+    expect(find.byKey(const ValueKey('blocked-user-one')), findsOneWidget);
+  });
+
+  testWidgets('small dark screen at 200% keeps privacy controls overflow-free',
+      (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    when(
+      () => repository.getBlockedUsers(query: '', limit: 20, cursor: null),
+    ).thenAnswer((_) async => _page([_user('one', name: '길고 긴 반려인 이름')]));
+
+    await tester.pumpWidget(
+      _host(
+        repository,
+        theme: AppTheme.darkTheme,
+        textScale: 2,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('privacy_settings_overview')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    final button = find.byKey(const ValueKey('unblock-user-one'));
+    await tester.ensureVisible(button);
+    await tester.pumpAndSettle();
+    expect(tester.getSize(button).height, greaterThanOrEqualTo(44));
+    expect(tester.takeException(), isNull);
   });
 
   test('does not use direct Supabase or local privacy toggles', () {

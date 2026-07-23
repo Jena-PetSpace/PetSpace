@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:meong_nyang_diary/core/error/failures.dart';
 import 'package:meong_nyang_diary/features/profile/presentation/pages/notification_settings_page.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
+import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _Repository extends Mock implements SocialRepository {}
 
@@ -23,11 +24,20 @@ const _serverSettings = <String, dynamic>{
 Widget _host({
   required SocialRepository repository,
   required Future<bool> Function() permissionLoader,
+  ThemeData? theme,
+  double textScale = 1,
 }) =>
     ScreenUtilInit(
       designSize: const Size(390, 844),
       minTextAdapt: true,
       builder: (_, __) => MaterialApp(
+        theme: theme ?? AppTheme.lightTheme,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScale),
+          ),
+          child: child!,
+        ),
         home: NotificationSettingsPage(
           repository: repository,
           currentUserIdProvider: () => 'viewer',
@@ -133,6 +143,8 @@ void main() {
       of: find.text('좋아요'),
       matching: find.byType(SwitchListTile),
     );
+    await tester.ensureVisible(likeTile);
+    await tester.pumpAndSettle();
     await tester
         .tap(find.descendant(of: likeTile, matching: find.byType(Switch)));
     await tester.pumpAndSettle();
@@ -178,5 +190,43 @@ void main() {
 
     expect(permissionChecks, 2);
     expect(find.text('시스템 알림이 꺼져 있어요'), findsNothing);
+  });
+
+  testWidgets('small dark screen at 200% keeps status and switches usable', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    when(
+      () => repository.getNotificationPreferences('viewer'),
+    ).thenAnswer(
+      (_) async => const Right<Failure, Map<String, dynamic>?>(
+        _serverSettings,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _host(
+        repository: repository,
+        permissionLoader: () async => true,
+        theme: AppTheme.darkTheme,
+        textScale: 2,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('notification_settings_overview')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('notification_system_switch')),
+      300,
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 }

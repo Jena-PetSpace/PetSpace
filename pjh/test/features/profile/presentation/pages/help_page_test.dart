@@ -11,6 +11,7 @@ void main() {
   Future<void> pumpPage(
     WidgetTester tester, {
     double textScale = 1,
+    ThemeData? theme,
     Future<AppPackageInfo> Function()? loader,
     Future<bool> Function(Uri uri)? emailLauncher,
   }) async {
@@ -19,7 +20,7 @@ void main() {
         designSize: const Size(390, 844),
         minTextAdapt: true,
         builder: (context, _) => MaterialApp(
-          theme: AppTheme.lightTheme,
+          theme: theme ?? AppTheme.lightTheme,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(
               context,
@@ -44,6 +45,7 @@ void main() {
       find.byKey(const Key('help_app_version')),
       300,
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('앱 버전: 3.2.0 (19)'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -58,6 +60,7 @@ void main() {
       find.byKey(const Key('help_app_version')),
       300,
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('앱 버전: 확인할 수 없음'), findsOneWidget);
     expect(find.textContaining('platform-private'), findsNothing);
@@ -83,7 +86,47 @@ void main() {
     await tester.tap(find.text(AppConfig.supportEmail).first);
     await tester.pump();
 
-    expect(launchedUri, Uri(scheme: 'mailto', path: AppConfig.supportEmail));
+    expect(
+      launchedUri,
+      Uri(
+        scheme: 'mailto',
+        path: AppConfig.supportEmail,
+        queryParameters: const {'subject': 'PetSpace 앱 문의'},
+      ),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('작은 다크 화면과 200% 글자에서도 FAQ와 문의 영역이 유지된다', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpPage(
+      tester,
+      textScale: 2,
+      theme: AppTheme.darkTheme,
+    );
+    expect(find.byKey(const Key('help_overview')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('help_faq_0')),
+      250,
+    );
+    await tester.tap(find.byKey(const Key('help_faq_0')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('사진 중심의 반려동물 근황'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('help_support_email')),
+      300,
+    );
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 }

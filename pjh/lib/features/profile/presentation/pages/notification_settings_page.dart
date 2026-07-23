@@ -171,7 +171,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
+              key: Key('notification_save_error'),
               content: Text('설정 동기화에 실패했습니다. 네트워크를 확인해주세요.'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppTheme.errorColor,
             ),
           );
           onRollback?.call();
@@ -183,6 +186,17 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
 
   @override
   Widget build(BuildContext context) {
+    final overviewTitle = !_systemPermissionGranted
+        ? '알림 권한을 확인해 주세요'
+        : _pushEnabled
+            ? '필요한 소식만 받아보세요'
+            : '푸시 알림을 쉬고 있어요';
+    final overviewDescription = !_systemPermissionGranted
+        ? '앱 설정과 별개로 기기의 알림 권한이 꺼져 있습니다.'
+        : _pushEnabled
+            ? '좋아요, 댓글, 팔로우처럼 받고 싶은 알림을 직접 선택할 수 있어요.'
+            : '알림 유형별 선택은 보존되며, 다시 켜면 그대로 적용됩니다.';
+
     return PetSpacePageScaffold(
       title: '알림 설정',
       actions: [
@@ -199,8 +213,23 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
           ),
       ],
       body: ListView(
+        key: const Key('notification_settings_content'),
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
         children: [
+          PetSpaceSettingsOverviewCard(
+            key: const Key('notification_settings_overview'),
+            icon: !_systemPermissionGranted
+                ? Icons.notifications_off_outlined
+                : _pushEnabled
+                    ? Icons.notifications_active_outlined
+                    : Icons.notifications_paused_outlined,
+            title: overviewTitle,
+            description: overviewDescription,
+            accentColor: !_systemPermissionGranted
+                ? AppTheme.warningColor
+                : AppTheme.actionBase,
+          ),
+          SizedBox(height: 16.h),
           if (!_systemPermissionGranted)
             _SystemPermissionWarning(
               onTap: () async {
@@ -213,10 +242,13 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
               },
             ),
           PetSpaceSettingsSection(
+            title: '전체 알림',
+            description: '기기에서 받는 PetSpace 푸시 알림을 한 번에 관리합니다.',
             children: [
               _buildSwitchTile(
+                key: const Key('notification_push_switch'),
                 title: '푸시 알림',
-                subtitle: '전체 푸시 알림을 켜거나 끕니다',
+                subtitle: '모든 푸시 알림을 한 번에 켜거나 끕니다',
                 value: _pushEnabled,
                 onChanged: (value) {
                   setState(() => _pushEnabled = value);
@@ -233,8 +265,12 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
           SizedBox(height: 24.h),
           PetSpaceSettingsSection(
             title: '알림 유형',
+            description: _pushEnabled
+                ? '받고 싶은 활동 알림만 선택하세요.'
+                : '푸시 알림을 켜면 아래 선택이 다시 적용됩니다.',
             children: [
               _buildSwitchTile(
+                key: const Key('notification_like_switch'),
                 title: '좋아요',
                 subtitle: '내 게시물에 좋아요가 달리면 알림',
                 value: _likeNotification && _pushEnabled,
@@ -252,6 +288,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
                     : null,
               ),
               _buildSwitchTile(
+                key: const Key('notification_comment_switch'),
                 title: '댓글',
                 subtitle: '내 게시물에 댓글이 달리면 알림',
                 value: _commentNotification && _pushEnabled,
@@ -269,6 +306,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
                     : null,
               ),
               _buildSwitchTile(
+                key: const Key('notification_follow_switch'),
                 title: '팔로우',
                 subtitle: '누군가 나를 팔로우하면 알림',
                 value: _followNotification && _pushEnabled,
@@ -286,6 +324,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
                     : null,
               ),
               _buildSwitchTile(
+                key: const Key('notification_mention_switch'),
                 title: '멘션',
                 subtitle: '누군가 나를 언급하면 알림',
                 value: _mentionNotification && _pushEnabled,
@@ -303,6 +342,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
                     : null,
               ),
               _buildSwitchTile(
+                key: const Key('notification_system_switch'),
                 title: '시스템',
                 subtitle: '공지사항 및 시스템 안내',
                 value: _systemNotification && _pushEnabled,
@@ -328,6 +368,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
   }
 
   Widget _buildSwitchTile({
+    required Key key,
     required String title,
     required String subtitle,
     required bool value,
@@ -345,6 +386,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage>
         ? theme.colorScheme.onSurface.withValues(alpha: 0.38)
         : AppTheme.disabledColor;
     return SwitchListTile(
+      key: key,
       title: Text(
         title,
         style: TextStyle(
