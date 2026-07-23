@@ -131,7 +131,6 @@ class _MyPostsPageState extends State<MyPostsPage>
         if (state is FeedLoaded) {
           if (state.posts.isEmpty) {
             return _buildEmptyState(
-              icon: Icons.article_outlined,
               title: '작성한 게시물이 없습니다',
               subtitle: '반려동물의 일상을 공유해보세요!',
               buttonLabel: '게시물 작성하기',
@@ -206,7 +205,6 @@ class _MyPostsPageState extends State<MyPostsPage>
                 final filtered = _filterHistory(state.history);
                 if (filtered.isEmpty) {
                   return _buildEmptyState(
-                    icon: Icons.psychology_outlined,
                     title: '감정분석 기록이 없습니다',
                     subtitle: 'AI분석 탭에서 반려동물의\n감정을 분석해보세요!',
                     buttonLabel: '감정분석 하러가기',
@@ -375,7 +373,6 @@ class _MyPostsPageState extends State<MyPostsPage>
   // ─── 커뮤니티 탭 ───
   Widget _buildCommunityTab() {
     return _buildEmptyState(
-      icon: Icons.forum_outlined,
       title: '작성한 커뮤니티 글이 없습니다',
       subtitle: '커뮤니티에서 다른 반려인들과\n소통해보세요!',
       buttonLabel: '커뮤니티 가기',
@@ -385,7 +382,6 @@ class _MyPostsPageState extends State<MyPostsPage>
 
   // ─── 공통 빈 상태 ───
   Widget _buildEmptyState({
-    required IconData icon,
     required String title,
     required String subtitle,
     required String buttonLabel,
@@ -395,8 +391,6 @@ class _MyPostsPageState extends State<MyPostsPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64.w, color: AppTheme.lightTextColor),
-          SizedBox(height: 16.h),
           Text(
             title,
             style: TextStyle(
@@ -416,10 +410,9 @@ class _MyPostsPageState extends State<MyPostsPage>
             ),
           ),
           SizedBox(height: 24.h),
-          ElevatedButton.icon(
+          ElevatedButton(
             onPressed: onPressed,
-            icon: Icon(icon, size: 18.w),
-            label: Text(buttonLabel),
+            child: Text(buttonLabel),
           ),
         ],
       ),

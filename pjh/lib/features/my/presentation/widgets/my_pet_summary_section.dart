@@ -37,12 +37,30 @@ class MyPetSummarySection extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<PetBloc, PetState>(
       builder: (context, state) {
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
         return Container(
           key: const Key('my_pet_summary_section'),
-          color: Theme.of(context).colorScheme.surface,
           padding: embedded
-              ? EdgeInsets.symmetric(vertical: 4.h)
+              ? EdgeInsets.fromLTRB(14.w, 6.h, 14.w, 8.h)
               : EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 16.h),
+          decoration: BoxDecoration(
+            color: isDark
+                ? theme.colorScheme.surface
+                : embedded
+                    ? AppTheme.brandPanelSurface
+                    : theme.colorScheme.surface,
+            borderRadius: embedded
+                ? BorderRadius.circular(AppTheme.radiusLg.r)
+                : BorderRadius.zero,
+            border: embedded
+                ? Border.all(
+                    color: isDark
+                        ? theme.colorScheme.outlineVariant
+                        : AppTheme.actionBase.withValues(alpha: 0.18),
+                  )
+                : null,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -60,12 +78,16 @@ class MyPetSummarySection extends StatelessWidget {
                   TextButton(
                     key: const Key('my_pet_manage_button'),
                     onPressed: () => context.push('/pets'),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(44, 44),
+                      padding: EdgeInsets.symmetric(horizontal: 6.w),
+                    ),
                     child: const Text('관리'),
                   ),
                 ],
               ),
-              SizedBox(height: 8.h),
-              _buildState(context, state),
+              SizedBox(height: embedded ? 0 : 8.h),
+              _buildState(context, state, compact: embedded),
             ],
           ),
         );
@@ -73,7 +95,11 @@ class MyPetSummarySection extends StatelessWidget {
     );
   }
 
-  Widget _buildState(BuildContext context, PetState state) {
+  Widget _buildState(
+    BuildContext context,
+    PetState state, {
+    required bool compact,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     if (state is PetInitial || state is PetLoading) {
@@ -97,6 +123,7 @@ class MyPetSummarySection extends StatelessWidget {
       return _InlineMessage(
         key: const Key('my_pet_summary_error'),
         icon: Icons.cloud_off_outlined,
+        showIcon: true,
         title: '반려동물 정보를 불러오지 못했어요',
         description: '프로필과 게시물은 계속 이용할 수 있어요.',
         actionLabel: '다시 시도',
@@ -134,6 +161,7 @@ class MyPetSummarySection extends StatelessWidget {
       pet: selectedPet,
       userId: userId,
       loadNextHealth: loader,
+      compact: compact,
     );
   }
 }
@@ -142,12 +170,14 @@ class _SelectedPetHero extends StatefulWidget {
   final Pet pet;
   final String userId;
   final LoadMyNextHealth loadNextHealth;
+  final bool compact;
 
   const _SelectedPetHero({
     super.key,
     required this.pet,
     required this.userId,
     required this.loadNextHealth,
+    required this.compact,
   });
 
   @override
@@ -192,23 +222,29 @@ class _SelectedPetHeroState extends State<_SelectedPetHero> {
       onTap: () => context.push('/pets'),
       borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
       child: Ink(
-        padding: EdgeInsets.all(16.w),
+        padding: widget.compact
+            ? EdgeInsets.fromLTRB(8.w, 4.h, 8.w, 4.h)
+            : EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: theme.brightness == Brightness.dark
               ? theme.colorScheme.surfaceContainerHighest
-              : AppTheme.actionContainer,
+              : widget.compact
+                  ? Colors.transparent
+                  : AppTheme.surfaceColor,
           borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
-          border: Border.all(
-            color: theme.brightness == Brightness.dark
-                ? theme.colorScheme.outlineVariant
-                : AppTheme.border,
-          ),
+          border: widget.compact
+              ? null
+              : Border.all(
+                  color: theme.brightness == Brightness.dark
+                      ? theme.colorScheme.outlineVariant
+                      : AppTheme.dividerColor,
+                ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _PetAvatar(pet: pet),
-            SizedBox(width: 14.w),
+            _PetAvatar(pet: pet, compact: widget.compact),
+            SizedBox(width: widget.compact ? 12.w : 14.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,7 +298,6 @@ class _SelectedPetHeroState extends State<_SelectedPetHero> {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  SizedBox(height: 12.h),
                   _buildHealth(context),
                 ],
               ),
@@ -278,87 +313,85 @@ class _SelectedPetHeroState extends State<_SelectedPetHero> {
       future: _healthFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Row(
-            key: const Key('my_next_health_loading'),
-            children: [
-              SizedBox(
-                width: 14.w,
-                height: 14.w,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.w,
-                  color: AppTheme.featureHealth,
+          return Padding(
+            padding: EdgeInsets.only(top: 12.h),
+            child: Row(
+              key: const Key('my_next_health_loading'),
+              children: [
+                SizedBox(
+                  width: 14.w,
+                  height: 14.w,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.w,
+                    color: AppTheme.featureHealth,
+                  ),
                 ),
-              ),
-              SizedBox(width: 8.w),
-              const Expanded(
-                child: Text(
-                  '다가오는 건강 일정을 확인하고 있어요',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                SizedBox(width: 8.w),
+                const Expanded(
+                  child: Text(
+                    '다가오는 건강 일정을 확인하고 있어요',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         }
 
         if (snapshot.hasError) {
-          return Row(
-            key: const Key('my_next_health_error'),
-            children: [
-              const Icon(
-                Icons.cloud_off_outlined,
-                size: 18,
-                color: AppTheme.featureHealth,
-              ),
-              SizedBox(width: 6.w),
-              const Expanded(child: Text('건강 일정을 불러오지 못했어요')),
-              TextButton(
-                key: const Key('my_next_health_retry'),
-                onPressed: _retryHealth,
-                child: const Text('다시 시도'),
-              ),
-            ],
+          return Padding(
+            padding: EdgeInsets.only(top: 12.h),
+            child: Row(
+              key: const Key('my_next_health_error'),
+              children: [
+                const Icon(
+                  Icons.cloud_off_outlined,
+                  size: 18,
+                  color: AppTheme.featureHealth,
+                ),
+                SizedBox(width: 6.w),
+                const Expanded(child: Text('건강 일정을 불러오지 못했어요')),
+                TextButton(
+                  key: const Key('my_next_health_retry'),
+                  onPressed: _retryHealth,
+                  child: const Text('다시 시도'),
+                ),
+              ],
+            ),
           );
         }
 
         final record = snapshot.data;
         if (record == null) {
-          return const Row(
-            key: Key('my_next_health_empty'),
+          return const SizedBox.shrink(key: Key('my_next_health_empty'));
+        }
+
+        return Padding(
+          padding: EdgeInsets.only(top: 12.h),
+          child: Row(
+            key: const Key('my_next_health_value'),
             children: [
-              Icon(
-                Icons.event_available_outlined,
+              const Icon(
+                Icons.health_and_safety_outlined,
                 size: 18,
                 color: AppTheme.featureHealth,
               ),
-              SizedBox(width: 6),
-              Expanded(child: Text('다가오는 건강 일정이 없어요')),
-            ],
-          );
-        }
-
-        return Row(
-          key: const Key('my_next_health_value'),
-          children: [
-            const Icon(
-              Icons.health_and_safety_outlined,
-              size: 18,
-              color: AppTheme.featureHealth,
-            ),
-            SizedBox(width: 6.w),
-            Expanded(
-              child: Text(
-                '${_formatDate(record.dueDate!)} · ${record.title}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: AppTheme.fontCaption.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
+              SizedBox(width: 6.w),
+              Expanded(
+                child: Text(
+                  '${_formatDate(record.dueDate!)} · ${record.title}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: AppTheme.fontCaption.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -369,33 +402,37 @@ class _SelectedPetHeroState extends State<_SelectedPetHero> {
 
 class _PetAvatar extends StatelessWidget {
   final Pet pet;
+  final bool compact;
 
-  const _PetAvatar({required this.pet});
+  const _PetAvatar({required this.pet, required this.compact});
 
   @override
   Widget build(BuildContext context) {
     final url = pet.avatarUrl;
+    final size = compact ? 48.w : 72.w;
     return Container(
-      width: 72.w,
-      height: 72.w,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Theme.of(context).colorScheme.surface,
+        color: compact && Theme.of(context).brightness == Brightness.light
+            ? AppTheme.actionContainer
+            : Theme.of(context).colorScheme.surface,
       ),
       clipBehavior: Clip.antiAlias,
       child: url != null && url.isNotEmpty
           ? CachedNetworkImage(
               imageUrl: url,
               fit: BoxFit.cover,
-              errorWidget: (_, __, ___) => _fallback(),
+              errorWidget: (_, __, ___) => _fallback(compact),
             )
-          : _fallback(),
+          : _fallback(compact),
     );
   }
 
-  Widget _fallback() => const Icon(
+  Widget _fallback(bool compact) => Icon(
         Icons.pets,
-        size: 30,
+        size: compact ? 22.w : 30.w,
         color: AppTheme.actionBase,
       );
 }
@@ -406,6 +443,7 @@ class _InlineMessage extends StatelessWidget {
   final String description;
   final String actionLabel;
   final VoidCallback onAction;
+  final bool showIcon;
 
   const _InlineMessage({
     super.key,
@@ -414,6 +452,7 @@ class _InlineMessage extends StatelessWidget {
     required this.description,
     required this.actionLabel,
     required this.onAction,
+    this.showIcon = false,
   });
 
   @override
@@ -427,8 +466,10 @@ class _InlineMessage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 26.w, color: AppTheme.actionBase),
-          SizedBox(width: 12.w),
+          if (showIcon) ...[
+            Icon(icon, size: 26.w, color: AppTheme.actionBase),
+            SizedBox(width: 12.w),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

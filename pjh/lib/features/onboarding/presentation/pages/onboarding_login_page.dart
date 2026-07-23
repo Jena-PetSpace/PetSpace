@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/error/error_messages.dart';
+import '../../../../core/utils/auth_input_validators.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/rate_limit_countdown.dart';
 import '../../../auth/domain/entities/user.dart';
@@ -199,7 +200,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                         labelText: '아이디',
                         hintText: 'jena@example.com',
                       ),
-                      validator: _validateEmail,
+                      validator: AuthInputValidators.validateEmail,
                     ),
                     SizedBox(height: 14.h),
                     TextFormField(
@@ -481,15 +482,6 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         ),
       ),
     );
-  }
-
-  String? _validateEmail(String? value) {
-    final email = value?.trim() ?? '';
-    if (email.isEmpty) return '이메일을 입력해주세요.';
-    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
-      return '올바른 이메일 주소를 입력해주세요.';
-    }
-    return null;
   }
 
   String? _validatePassword(String? value) {

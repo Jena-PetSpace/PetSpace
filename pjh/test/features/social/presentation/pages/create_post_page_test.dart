@@ -66,6 +66,24 @@ void main() {
     expect(find.textContaining('동영상'), findsNothing);
   });
 
+  testWidgets('본문이나 사진이 없으면 게시 버튼과 오해하기 쉬운 색을 활성화하지 않는다', (
+    tester,
+  ) async {
+    await pumpPage(tester);
+
+    final submitFinder = find.byKey(const Key('create_post_submit_button'));
+    expect(tester.widget<FilledButton>(submitFinder).onPressed, isNull);
+
+    await tester.enterText(
+      find.byKey(const Key('create_post_content_field')),
+      '보리와 산책했어요.',
+    );
+    await tester.pump();
+
+    expect(tester.widget<FilledButton>(submitFinder).onPressed, isNotNull);
+    expect(find.text('태그 추가'), findsOneWidget);
+  });
+
   testWidgets('작성 요청은 전체 공개이며 실패 시 안전한 안내와 입력을 보존한다', (tester) async {
     await pumpPage(tester);
 

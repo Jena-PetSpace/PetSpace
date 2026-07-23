@@ -29,7 +29,7 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('empty state keeps icon subordinate to the explanation', (
+  testWidgets('empty state omits decorative icon and keeps the explanation', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -44,7 +44,7 @@ void main() {
 
     expect(find.text('아직 게시물이 없어요'), findsOneWidget);
     expect(find.text('첫 게시물을 작성해 보세요.'), findsOneWidget);
-    expect(tester.widget<Icon>(find.byIcon(Icons.pets_outlined)).size, 26.w);
+    expect(find.byIcon(Icons.pets_outlined), findsNothing);
   });
 
   testWidgets('error state announces change and provides a 44pt recovery', (

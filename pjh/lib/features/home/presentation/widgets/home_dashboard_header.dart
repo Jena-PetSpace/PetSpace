@@ -82,7 +82,11 @@ class HomeDashboardHeader extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('🔥', style: TextStyle(fontSize: 13.sp)),
+              Icon(
+                Icons.local_fire_department_rounded,
+                size: 16.w,
+                color: Colors.white,
+              ),
               SizedBox(width: 4.w),
               Text(
                 '$streak일',
@@ -99,15 +103,18 @@ class HomeDashboardHeader extends StatelessWidget {
     );
   }
 
-  // ── 액션 아이콘 공통 버튼 (24 아이콘 + 8 패딩 = 40×40 터치영역) ──
-  Widget _iconButton({required VoidCallback onTap, required Widget child}) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.all(8.w),
-        child: child,
-      ),
+  // ── 액션 아이콘 공통 버튼 (iOS 최소 44pt + 접근성 이름) ──
+  Widget _iconButton({
+    required VoidCallback onTap,
+    required String tooltip,
+    required Widget child,
+  }) {
+    return IconButton(
+      onPressed: onTap,
+      tooltip: tooltip,
+      constraints: BoxConstraints.tightFor(width: 44.w, height: 44.w),
+      padding: EdgeInsets.all(10.w),
+      icon: child,
     );
   }
 
@@ -124,6 +131,7 @@ class HomeDashboardHeader extends StatelessWidget {
   Widget _buildSearchIcon(BuildContext context) {
     return _iconButton(
       onTap: () => context.push('/search'),
+      tooltip: '검색',
       child: _headerIcon('assets/svg/icon_search.svg'),
     );
   }
@@ -133,6 +141,7 @@ class HomeDashboardHeader extends StatelessWidget {
     return BlocBuilder<NotificationBadgeBloc, NotificationBadgeState>(
       builder: (context, notiState) {
         return _iconButton(
+          tooltip: '알림',
           onTap: () {
             context.push('/notifications');
             final authState = context.read<AuthBloc>().state;
@@ -176,6 +185,7 @@ class HomeDashboardHeader extends StatelessWidget {
       builder: (context, badgeState) {
         return _iconButton(
           onTap: () => context.push('/chat'),
+          tooltip: '채팅',
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -185,13 +195,16 @@ class HomeDashboardHeader extends StatelessWidget {
                   top: -4.h,
                   right: -5.w,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
                     decoration: BoxDecoration(
                       color: AppTheme.highlightColor,
                       borderRadius: BorderRadius.circular(10.r),
-                      border: Border.all(color: AppTheme.primaryColor, width: 1.5),
+                      border:
+                          Border.all(color: AppTheme.primaryColor, width: 1.5),
                     ),
-                    constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.w),
+                    constraints:
+                        BoxConstraints(minWidth: 16.w, minHeight: 16.w),
                     child: Text(
                       badgeState.count > 99 ? '99+' : '${badgeState.count}',
                       style: TextStyle(
@@ -279,7 +292,7 @@ class HomeDashboardHeader extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.pets, size: 24.sp, color: AppTheme.brandDeep),
+            Icon(Icons.pets, size: 24.sp, color: Colors.white),
             SizedBox(width: 12.w),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

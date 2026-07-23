@@ -86,9 +86,6 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.psychology_outlined,
-              size: 64.w, color: AppTheme.lightTextColor),
-          SizedBox(height: 16.h),
           Text(
             '감정분석 기록이 없습니다',
             style: TextStyle(
@@ -106,10 +103,9 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
                 height: 1.5),
           ),
           SizedBox(height: 24.h),
-          ElevatedButton.icon(
+          ElevatedButton(
             onPressed: () => context.go('/emotion'),
-            icon: const Icon(Icons.psychology),
-            label: const Text('감정분석 하러가기'),
+            child: const Text('감정분석 하러가기'),
           ),
         ],
       ),
@@ -192,11 +188,13 @@ class _MyEmotionHistoryPageState extends State<MyEmotionHistoryPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildMiniBar('기쁨', analysis.emotions.happiness, AppTheme.happinessColor),
+                _buildMiniBar(
+                    '기쁨', analysis.emotions.happiness, AppTheme.happinessColor),
                 SizedBox(height: 2.h),
                 _buildMiniBar('편안', analysis.emotions.calm, AppTheme.calmColor),
                 SizedBox(height: 2.h),
-                _buildMiniBar('불안', analysis.emotions.anxiety, AppTheme.anxietyColor),
+                _buildMiniBar(
+                    '불안', analysis.emotions.anxiety, AppTheme.anxietyColor),
               ],
             ),
           ],

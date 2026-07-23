@@ -1038,12 +1038,6 @@ class _PostDetailPageState extends State<PostDetailPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.mode_comment_outlined,
-              size: 40.w,
-              color: AppTheme.secondaryTextColor,
-            ),
-            SizedBox(height: 12.h),
             Text(
               '아직 댓글이 없어요',
               style: TextStyle(

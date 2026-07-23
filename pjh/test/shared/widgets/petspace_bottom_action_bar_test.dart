@@ -31,8 +31,12 @@ void main() {
     final safeArea = tester.widget<SafeArea>(
       find.descendant(of: bar, matching: find.byType(SafeArea)),
     );
+    final decoratedBox = tester.widget<DecoratedBox>(
+      find.descendant(of: bar, matching: find.byType(DecoratedBox)).first,
+    );
 
     expect(material.color, AppTheme.backgroundColor);
+    expect((decoratedBox.decoration as BoxDecoration).border, isNull);
     expect(safeArea.top, isFalse);
     expect(safeArea.bottom, isTrue);
   });

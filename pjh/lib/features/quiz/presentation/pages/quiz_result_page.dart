@@ -147,8 +147,8 @@ class _QuizResultPageState extends State<QuizResultPage> {
                   ...List.generate(snap.answers.length, (i) {
                     return Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
-                      child: QuizReviewTile(
-                          index: i + 1, answer: snap.answers[i]),
+                      child:
+                          QuizReviewTile(index: i + 1, answer: snap.answers[i]),
                     );
                   }),
                   SizedBox(height: 12.h),
@@ -272,10 +272,10 @@ class _QuizResultPageState extends State<QuizResultPage> {
 
   Widget _bottomBar() {
     return Container(
+      key: const ValueKey('quiz-result-bottom-action'),
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 16.h),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: QuizTheme.divider)),
+        color: QuizTheme.bg,
       ),
       child: SizedBox(
         width: double.infinity,

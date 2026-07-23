@@ -173,9 +173,6 @@ class _EmotionTrendMiniChartState extends State<EmotionTrendMiniChart> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.insights_outlined,
-              size: 32.w, color: AppTheme.secondaryTextColor),
-          SizedBox(height: 8.h),
           Text(
             '아직 분석 기록이 없어요',
             style:

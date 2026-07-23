@@ -19,6 +19,7 @@ class SavedPostsGrid extends StatefulWidget {
   final ValueChanged<int>? onCountChanged;
   final VoidCallback? onCountError;
   final SavedPostsChangeNotifier? changeNotifier;
+  final bool usePrimaryScrollController;
 
   const SavedPostsGrid({
     super.key,
@@ -29,6 +30,7 @@ class SavedPostsGrid extends StatefulWidget {
     this.onCountChanged,
     this.onCountError,
     this.changeNotifier,
+    this.usePrimaryScrollController = false,
   });
 
   @override
@@ -122,14 +124,20 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
     }
     if (!isInScope) return;
 
+    final activeController = widget.usePrimaryScrollController
+        ? PrimaryScrollController.maybeOf(context)
+        : _scrollController;
     final offset =
-        _scrollController.hasClients ? _scrollController.offset : 0.0;
+        activeController?.hasClients == true ? activeController!.offset : 0.0;
     await _refreshVisibleWindow();
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
-      _scrollController.jumpTo(
-        math.min(offset, _scrollController.position.maxScrollExtent),
+      final controller = widget.usePrimaryScrollController
+          ? PrimaryScrollController.maybeOf(context)
+          : _scrollController;
+      if (controller?.hasClients != true) return;
+      controller!.jumpTo(
+        math.min(offset, controller.position.maxScrollExtent),
       );
     });
   }
@@ -267,6 +275,7 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
         _GridMessage(
           key: const Key('saved_posts_error'),
           icon: Icons.cloud_off_outlined,
+          showIcon: true,
           title: '저장한 게시글을 불러오지 못했어요',
           actionLabel: '다시 시도',
           onAction: _loadInitial,
@@ -289,12 +298,8 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
       );
     }
 
-    return CustomScrollView(
-      key: PageStorageKey<String>(
-        'saved-posts-${widget.scope.type.name}-${widget.scope.collectionId}',
-      ),
-      controller: _scrollController,
-      slivers: [
+    return _buildScrollable(
+      [
         if (widget.header != null) SliverToBoxAdapter(child: widget.header),
         SliverGrid(
           delegate: SliverChildBuilderDelegate(
@@ -325,12 +330,32 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
     );
   }
 
+  Widget _buildScrollable(List<Widget> slivers) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.extentAfter < 360) _loadMore();
+        return false;
+      },
+      child: CustomScrollView(
+        key: PageStorageKey<String>(
+          'saved-posts-${widget.scope.type.name}-${widget.scope.collectionId}',
+        ),
+        controller:
+            widget.usePrimaryScrollController ? null : _scrollController,
+        primary: widget.usePrimaryScrollController,
+        slivers: slivers,
+      ),
+    );
+  }
+
   Widget _withHeader(Widget body) {
-    if (widget.header == null) return body;
-    return Column(
-      children: [
-        widget.header!,
-        Expanded(child: body),
+    return _buildScrollable(
+      [
+        if (widget.header != null) SliverToBoxAdapter(child: widget.header),
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: body,
+        ),
       ],
     );
   }
@@ -440,6 +465,7 @@ class _GridMessage extends StatelessWidget {
   final String? subtitle;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final bool showIcon;
 
   const _GridMessage({
     super.key,
@@ -448,6 +474,7 @@ class _GridMessage extends StatelessWidget {
     this.subtitle,
     this.actionLabel,
     this.onAction,
+    this.showIcon = false,
   });
 
   @override
@@ -458,8 +485,10 @@ class _GridMessage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 52, color: AppTheme.lightTextColor),
-            const SizedBox(height: 12),
+            if (showIcon) ...[
+              Icon(icon, size: 52, color: AppTheme.lightTextColor),
+              const SizedBox(height: 12),
+            ],
             Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
             if (subtitle != null) ...[
               const SizedBox(height: 6),
@@ -467,7 +496,17 @@ class _GridMessage extends StatelessWidget {
             ],
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 14),
-              OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
+              ElevatedButton(
+                onPressed: onAction,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.actionBase,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                ),
+                child: Text(actionLabel!),
+              ),
             ],
           ],
         ),

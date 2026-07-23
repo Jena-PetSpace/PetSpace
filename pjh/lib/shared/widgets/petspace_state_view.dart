@@ -85,7 +85,7 @@ class PetSpaceStateView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (icon != null) ...[
+              if (_isError && icon != null) ...[
                 Container(
                   width: 56.w,
                   height: 56.w,

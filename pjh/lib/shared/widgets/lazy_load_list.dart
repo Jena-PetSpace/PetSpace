@@ -3,8 +3,8 @@ import '../../shared/themes/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 typedef LazyLoadCallback = Future<List<T>> Function<T>();
-typedef ItemBuilder<T> =
-    Widget Function(BuildContext context, T item, int index);
+typedef ItemBuilder<T> = Widget Function(
+    BuildContext context, T item, int index);
 
 class LazyLoadList<T> extends StatefulWidget {
   final Future<List<T>> Function() onLoadInitial;
@@ -249,8 +249,6 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inbox_outlined, size: 64.w, color: AppTheme.neutral500),
-          SizedBox(height: 16.h),
           Text(
             '표시할 항목이 없습니다',
             style: TextStyle(fontSize: 16.sp, color: AppTheme.neutral500),
@@ -341,6 +339,7 @@ class LazyGridView<T> extends StatefulWidget {
   final double childAspectRatio;
   final EdgeInsets? padding;
   final Widget? emptyWidget;
+  final bool usePrimaryScrollController;
 
   /// 최초 조회 실패 시 표시할 선택형 상태 위젯.
   ///
@@ -366,6 +365,7 @@ class LazyGridView<T> extends StatefulWidget {
     this.emptyWidget,
     this.errorWidget,
     this.header,
+    this.usePrimaryScrollController = false,
   });
 
   @override
@@ -456,7 +456,7 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
     if (widget.header != null) {
       return RefreshIndicator(
         onRefresh: _loadInitialData,
-        child: _buildWithHeader(),
+        child: _withPaginationListener(_buildWithHeader()),
       );
     }
 
@@ -470,6 +470,7 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
+              primary: widget.usePrimaryScrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -490,6 +491,7 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
+              primary: widget.usePrimaryScrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -503,24 +505,41 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
 
     return RefreshIndicator(
       onRefresh: _loadInitialData,
-      child: GridView.builder(
-        controller: _scrollController,
-        padding: widget.padding,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: widget.crossAxisCount,
-          mainAxisSpacing: widget.mainAxisSpacing,
-          crossAxisSpacing: widget.crossAxisSpacing,
-          childAspectRatio: widget.childAspectRatio,
-        ),
-        itemCount: _items.length + (_isLoadingMore ? widget.crossAxisCount : 0),
-        itemBuilder: (context, index) {
-          if (index >= _items.length) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      child: _withPaginationListener(
+        GridView.builder(
+          controller:
+              widget.usePrimaryScrollController ? null : _scrollController,
+          primary: widget.usePrimaryScrollController,
+          padding: widget.padding,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: widget.crossAxisCount,
+            mainAxisSpacing: widget.mainAxisSpacing,
+            crossAxisSpacing: widget.crossAxisSpacing,
+            childAspectRatio: widget.childAspectRatio,
+          ),
+          itemCount:
+              _items.length + (_isLoadingMore ? widget.crossAxisCount : 0),
+          itemBuilder: (context, index) {
+            if (index >= _items.length) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          return widget.itemBuilder(context, _items[index], index);
-        },
+            return widget.itemBuilder(context, _items[index], index);
+          },
+        ),
       ),
+    );
+  }
+
+  Widget _withPaginationListener(Widget child) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification.metrics.extentAfter < 300) {
+          _loadMoreData();
+        }
+        return false;
+      },
+      child: child,
     );
   }
 
@@ -528,14 +547,14 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
   Widget _buildWithHeader() {
     final showGrid = !(_isLoading && _items.isEmpty);
     final showError = _hasError && _items.isEmpty && widget.errorWidget != null;
-    final showEmpty =
-        !_isLoading &&
+    final showEmpty = !_isLoading &&
         !showError &&
         _items.isEmpty &&
         widget.emptyWidget != null;
 
     return CustomScrollView(
-      controller: _scrollController,
+      controller: widget.usePrimaryScrollController ? null : _scrollController,
+      primary: widget.usePrimaryScrollController,
       slivers: [
         SliverToBoxAdapter(child: widget.header),
         if (_isLoading && _items.isEmpty)
@@ -569,8 +588,7 @@ class _LazyGridViewState<T> extends State<LazyGridView<T>> {
                   }
                   return widget.itemBuilder(context, _items[index], index);
                 },
-                childCount:
-                    _items.length +
+                childCount: _items.length +
                     (_isLoadingMore ? widget.crossAxisCount : 0),
               ),
             ),

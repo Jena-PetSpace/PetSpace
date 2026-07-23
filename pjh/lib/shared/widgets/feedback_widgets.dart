@@ -310,12 +310,6 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 80.w,
-              color: iconColor ?? AppTheme.neutral400,
-            ),
-            SizedBox(height: 24.h),
             Text(
               title,
               style: TextStyle(

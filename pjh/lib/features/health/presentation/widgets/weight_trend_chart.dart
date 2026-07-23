@@ -37,9 +37,6 @@ class WeightTrendChart extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.monitor_weight_outlined,
-              size: 32.w, color: AppTheme.secondaryTextColor),
-          SizedBox(height: 8.h),
           Text('체중을 기록하면 추이를 볼 수 있어요',
               style: TextStyle(
                   fontSize: 13.sp, color: AppTheme.secondaryTextColor)),
@@ -110,10 +107,10 @@ class WeightTrendChart extends StatelessWidget {
               maxY: range.max,
               gridData: const FlGridData(show: false),
               titlesData: FlTitlesData(
-                topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false)),
+                topTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,

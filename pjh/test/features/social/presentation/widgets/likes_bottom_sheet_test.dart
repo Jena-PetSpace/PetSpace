@@ -77,6 +77,7 @@ void main() {
 
     await pumpSheet(tester);
     expect(find.byKey(const Key('likes_empty')), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_border), findsNothing);
 
     await tester.enterText(
       find.byKey(const Key('likes_search_field')),
@@ -96,6 +97,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('likes_search_empty')), findsOneWidget);
+    expect(find.byIcon(Icons.search_off), findsNothing);
   });
 
   testWidgets('failed unfollow restores only the affected row safely',

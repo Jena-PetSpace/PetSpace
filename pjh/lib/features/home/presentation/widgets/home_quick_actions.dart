@@ -9,8 +9,7 @@ import '../../../../core/usecases/usecase.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../fortune/data/datasources/fortune_seen_local_data_source.dart'
     show fortuneDateKey;
-import '../../../mbti/domain/entities/pet_mbti_result.dart'
-    show MbtiSpeciesX;
+import '../../../mbti/domain/entities/pet_mbti_result.dart' show MbtiSpeciesX;
 import '../../../mbti/domain/usecases/get_latest_mbti_result.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
@@ -69,43 +68,56 @@ class HomeQuickActions extends StatelessWidget {
   }
 
   Widget _buildItem(BuildContext context, _QuickAction action) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: action.label,
       onTap: action.onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        children: [
-          Container(
-            width: 52.w,
-            height: 52.w,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              // 피그마 시안 방향: 무채색 배경 + 딥블루 단색 스트로크 아이콘
-              color: AppTheme.border, // v2-review: ECEEF1 근사
-              shape: BoxShape.circle,
-            ),
-            child: SvgPicture.asset(
-              action.asset,
-              width: 24.w,
-              height: 24.w,
-              colorFilter: const ColorFilter.mode(
-                AppTheme.primaryColor,
-                BlendMode.srcIn,
+      child: ExcludeSemantics(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: action.onTap,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 4.h),
+              child: Column(
+                children: [
+                  Container(
+                    width: 52.w,
+                    height: 52.w,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      // 중립 캔버스 위에서 기능 버튼의 경계만 가볍게 표시한다.
+                      color: AppTheme.border,
+                      shape: BoxShape.circle,
+                    ),
+                    child: SvgPicture.asset(
+                      action.asset,
+                      width: 24.w,
+                      height: 24.w,
+                      colorFilter: const ColorFilter.mode(
+                        AppTheme.primaryColor,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    action.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10.5.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryTextColor,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          SizedBox(height: 8.h),
-          Text(
-            action.label,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10.5.sp,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.primaryTextColor,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -36,8 +36,8 @@ const List<NavigationItem> rootNavigationItems = <NavigationItem>[
     route: '/health',
   ),
   NavigationItem(
-    icon: Icons.auto_awesome_outlined,
-    selectedIcon: Icons.auto_awesome,
+    icon: Icons.pets_outlined,
+    selectedIcon: Icons.pets,
     label: 'AI 분석',
     route: '/emotion',
   ),

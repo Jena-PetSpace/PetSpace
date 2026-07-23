@@ -301,6 +301,7 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
       return _StatusView(
         key: const Key('likes_initial_error'),
         icon: Icons.cloud_off_outlined,
+        showIcon: true,
         message: _initialError!,
         actionLabel: '다시 시도',
         onAction: () => _loadPage(reset: true),
@@ -398,12 +399,10 @@ class _LikesBottomSheetState extends State<LikesBottomSheet> {
         onPressed: isPending ? null : () => _toggleFollow(user),
         style: OutlinedButton.styleFrom(
           padding: EdgeInsets.zero,
-          foregroundColor: following
-              ? AppTheme.primaryColor
-              : AppTheme.surfaceColor,
-          backgroundColor: following
-              ? AppTheme.surfaceColor
-              : AppTheme.primaryColor,
+          foregroundColor:
+              following ? AppTheme.primaryColor : AppTheme.surfaceColor,
+          backgroundColor:
+              following ? AppTheme.surfaceColor : AppTheme.primaryColor,
           side: const BorderSide(color: AppTheme.primaryColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.r),
@@ -453,6 +452,7 @@ class _StatusView extends StatelessWidget {
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final bool showIcon;
 
   const _StatusView({
     super.key,
@@ -460,6 +460,7 @@ class _StatusView extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.showIcon = false,
   });
 
   @override
@@ -470,8 +471,10 @@ class _StatusView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 40, color: AppTheme.hintColor),
-            const SizedBox(height: 12),
+            if (showIcon) ...[
+              Icon(icon, size: 40, color: AppTheme.hintColor),
+              const SizedBox(height: 12),
+            ],
             Text(
               message,
               textAlign: TextAlign.center,

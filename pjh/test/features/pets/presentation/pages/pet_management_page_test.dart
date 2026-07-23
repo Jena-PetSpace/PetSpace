@@ -110,6 +110,10 @@ void main() {
       addButton.style?.backgroundColor?.resolve(<WidgetState>{}),
       AppTheme.actionContainer,
     );
+    final side = addButton.style?.side?.resolve(<WidgetState>{});
+    expect(side, isNotNull);
+    expect(side!.style, BorderStyle.solid);
+    expect(side.width, greaterThan(0));
     expect(
       tester.getSize(find.byKey(const Key('pet_management_add_button'))).height,
       greaterThanOrEqualTo(48),

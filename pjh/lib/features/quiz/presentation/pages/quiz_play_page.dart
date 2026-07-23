@@ -140,8 +140,7 @@ class _QuizPlayPageState extends State<QuizPlayPage> {
           final vm = snapshot.data!;
           if (vm.set.isEmpty) {
             return Center(
-              child: Text('출제할 문항이 없어요.',
-                  style: TextStyle(fontSize: 14.sp)),
+              child: Text('출제할 문항이 없어요.', style: TextStyle(fontSize: 14.sp)),
             );
           }
           return _buildQuiz(vm);
@@ -191,7 +190,8 @@ class _QuizPlayPageState extends State<QuizPlayPage> {
                   ),
                   if (locked) ...[
                     SizedBox(height: 20.h),
-                    QuizFeedbackBanner(isCorrect: isCorrect, explain: q.explain),
+                    QuizFeedbackBanner(
+                        isCorrect: isCorrect, explain: q.explain),
                   ],
                 ],
               ),
@@ -318,10 +318,10 @@ class _QuizPlayPageState extends State<QuizPlayPage> {
   Widget _bottomBar(_PlayVM vm, bool locked) {
     final isLast = _index >= vm.set.length - 1;
     return Container(
+      key: const ValueKey('quiz-play-bottom-action'),
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 16.h),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: QuizTheme.divider)),
+        color: QuizTheme.bg,
       ),
       child: SizedBox(
         width: double.infinity,

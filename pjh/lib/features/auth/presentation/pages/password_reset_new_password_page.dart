@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../shared/themes/app_theme.dart';
-import '../../../../shared/widgets/icon_badge_circle.dart';
 import '../../../../shared/widgets/info_box.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 
@@ -187,16 +186,6 @@ class _PasswordResetNewPasswordPageState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconBadgeCircle(
-                    icon: Icons.lock_outline,
-                    size: 56,
-                    tone: BadgeTone.feature,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
                 // 제목
                 const Text(
                   '새 비밀번호를\n설정해주세요',

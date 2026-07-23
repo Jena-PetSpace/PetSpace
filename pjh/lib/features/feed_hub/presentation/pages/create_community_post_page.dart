@@ -44,6 +44,11 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
   SocialRepository get _repository =>
       widget.repository ?? sl<SocialRepository>();
 
+  bool get _canSubmit =>
+      !_isSubmitting &&
+      _titleController.text.trim().isNotEmpty &&
+      _contentController.text.trim().isNotEmpty;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -202,12 +207,12 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
                   maxLength: 100,
                   textInputAction: TextInputAction.next,
                   onChanged: (_) {
-                    if (_titleError != null || _submitError != null) {
-                      setState(() {
+                    setState(() {
+                      if (_titleError != null || _submitError != null) {
                         _titleError = null;
                         _submitError = null;
-                      });
-                    }
+                      }
+                    });
                   },
                   decoration: InputDecoration(
                     hintText: '이야기의 핵심을 적어주세요',
@@ -225,12 +230,12 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
                   maxLines: 12,
                   maxLength: 2000,
                   onChanged: (_) {
-                    if (_contentError != null || _submitError != null) {
-                      setState(() {
+                    setState(() {
+                      if (_contentError != null || _submitError != null) {
                         _contentError = null;
                         _submitError = null;
-                      });
-                    }
+                      }
+                    });
                   },
                   decoration: InputDecoration(
                     hintText: '상황이나 경험을 자세히 적어주세요',
@@ -278,7 +283,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
           key: const Key('community_bottom_action'),
           child: FilledButton(
             key: const Key('community_submit_button'),
-            onPressed: _isSubmitting ? null : _submit,
+            onPressed: _canSubmit ? _submit : null,
             child: _isSubmitting
                 ? const SizedBox.square(
                     dimension: 20,

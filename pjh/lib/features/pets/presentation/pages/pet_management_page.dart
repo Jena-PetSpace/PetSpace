@@ -151,6 +151,9 @@ class _PetManagementPageState extends State<PetManagementPage> {
               shadowColor: Colors.transparent,
               surfaceTintColor: Colors.transparent,
               elevation: 0,
+              side: BorderSide(
+                color: addForeground.withValues(alpha: 0.32),
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.r),
               ),

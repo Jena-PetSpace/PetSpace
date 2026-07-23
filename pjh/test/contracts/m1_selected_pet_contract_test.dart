@@ -9,7 +9,7 @@ void main() {
 
   setUpAll(() {
     migration = File(
-      '../supabase/migrations/M1_selected_pet_contract.sql',
+      '../supabase/migrations/20260723042242_m1_selected_pet_contract.sql',
     ).readAsStringSync();
     setup = File('../supabase/petspace_setup.sql').readAsStringSync();
     setupM1 = setup.substring(setup.lastIndexOf('M1 SELECTED PET CONTRACT'));

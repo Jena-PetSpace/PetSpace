@@ -217,8 +217,12 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const Spacer(),
-          GestureDetector(
-            onTap: () => context.go('/feed?tab=lounge'),
+          TextButton(
+            onPressed: () => context.go('/feed?tab=lounge'),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+            ),
             child: Text(
               '더보기',
               style: TextStyle(

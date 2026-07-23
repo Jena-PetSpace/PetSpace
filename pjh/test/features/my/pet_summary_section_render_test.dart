@@ -43,6 +43,7 @@ void main() {
     required PetState state,
     LoadMyNextHealth? loadNextHealth,
     double textScale = 1,
+    bool embedded = false,
   }) async {
     final petBloc = MockPetBloc();
     whenListen(
@@ -69,6 +70,7 @@ void main() {
                   child: MyPetSummarySection(
                     userId: 'u-1',
                     loadNextHealth: loadNextHealth,
+                    embedded: embedded,
                   ),
                 ),
               ),
@@ -114,6 +116,45 @@ void main() {
     expect(find.byKey(const Key('my_selected_pet_hero')), findsOneWidget);
     expect(find.text('흰둥이'), findsOneWidget);
     expect(find.text('8월 3일 · 종합 예방접종'), findsOneWidget);
+  });
+
+  testWidgets('다가오는 건강 일정이 없으면 빈 문구와 불필요한 행을 표시하지 않는다', (
+    tester,
+  ) async {
+    final pet = buildPet();
+    await pumpSection(
+      tester,
+      state: PetLoaded(pets: [pet], selectedPet: pet),
+      loadNextHealth: ({required userId, required petId}) async => null,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('my_next_health_empty')), findsOneWidget);
+    expect(find.text('다가오는 건강 일정이 없어요'), findsNothing);
+    expect(find.byIcon(Icons.event_available_outlined), findsNothing);
+  });
+
+  testWidgets('MY 내장형 대표 반려동물은 중첩 테두리와 별도 선택 배경을 사용하지 않는다', (
+    tester,
+  ) async {
+    final pet = buildPet();
+    await pumpSection(
+      tester,
+      state: PetLoaded(pets: [pet], selectedPet: pet),
+      loadNextHealth: ({required userId, required petId}) async => null,
+      embedded: true,
+    );
+    await tester.pumpAndSettle();
+
+    final hero = tester.widget<Ink>(
+      find.descendant(
+        of: find.byKey(const Key('my_selected_pet_hero')),
+        matching: find.byType(Ink),
+      ),
+    );
+    final decoration = hero.decoration! as BoxDecoration;
+    expect(decoration.border, isNull);
+    expect(decoration.color, Colors.transparent);
   });
 
   testWidgets('건강 조회 실패는 대표 카드 안에서만 재시도하고 회복한다', (tester) async {

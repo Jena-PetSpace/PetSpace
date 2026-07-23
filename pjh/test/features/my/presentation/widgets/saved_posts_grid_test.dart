@@ -13,6 +13,7 @@ import 'package:meong_nyang_diary/features/social/domain/entities/post.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/saved_posts_page.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
 import 'package:meong_nyang_diary/features/social/presentation/utils/saved_posts_change_notifier.dart';
+import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _MockRepository extends Mock implements SocialRepository {}
 
@@ -126,6 +127,36 @@ void main() {
     final label = tester.widget<Text>(find.text('감정분석'));
     expect(label.style!.fontSize, greaterThanOrEqualTo(12));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('저장 빈 상태는 장식 아이콘 없이 파란 피드 탐색 버튼을 제공한다', (
+    tester,
+  ) async {
+    when(
+      () => repository.getSavedPostsPage(
+        userId: 'u1',
+        scope: const SavedPostsScope.all(),
+        cursor: null,
+        limit: 30,
+      ),
+    ).thenAnswer(
+      (_) async => const Right(SavedPostsPage(items: [], hasMore: false)),
+    );
+
+    await pump(tester);
+
+    expect(find.byIcon(Icons.bookmark_outline_rounded), findsNothing);
+    final button = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, '피드 탐색'),
+    );
+    expect(
+      button.style?.backgroundColor?.resolve(<WidgetState>{}),
+      AppTheme.actionBase,
+    );
+    expect(
+      button.style?.foregroundColor?.resolve(<WidgetState>{}),
+      Colors.white,
+    );
   });
 
   testWidgets('notifier unsave는 현재 scope 타일을 즉시 제거한다', (tester) async {

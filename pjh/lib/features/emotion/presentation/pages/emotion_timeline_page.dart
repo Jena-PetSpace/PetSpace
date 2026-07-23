@@ -38,7 +38,9 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; });
+    setState(() {
+      _loading = true;
+    });
     final result = await sl<EmotionRepository>().getEmotionTimeline(
       petId: widget.petId,
       days: _daysRange,
@@ -51,19 +53,21 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
         setState(() => _loading = false);
       },
       (rows) {
-        final list = rows.map((json) => _TimelineEntry(
-              date: DateTime.parse(json['date'] as String),
-              dominantEmotion:
-                  json['dominant_emotion'] as String? ?? 'happiness',
-              dominantValue:
-                  (json['dominant_value'] as num?)?.toDouble() ?? 0,
-              happiness: (json['happiness_avg'] as num?)?.toDouble() ?? 0,
-              sadness: (json['sadness_avg'] as num?)?.toDouble() ?? 0,
-              anger: (json['anger_avg'] as num?)?.toDouble() ?? 0,
-              fear: (json['fear_avg'] as num?)?.toDouble() ?? 0,
-              count: (json['analysis_count'] as num?)?.toInt() ?? 0,
-              imageUrl: json['first_image_url'] as String?,
-            )).toList();
+        final list = rows
+            .map((json) => _TimelineEntry(
+                  date: DateTime.parse(json['date'] as String),
+                  dominantEmotion:
+                      json['dominant_emotion'] as String? ?? 'happiness',
+                  dominantValue:
+                      (json['dominant_value'] as num?)?.toDouble() ?? 0,
+                  happiness: (json['happiness_avg'] as num?)?.toDouble() ?? 0,
+                  sadness: (json['sadness_avg'] as num?)?.toDouble() ?? 0,
+                  anger: (json['anger_avg'] as num?)?.toDouble() ?? 0,
+                  fear: (json['fear_avg'] as num?)?.toDouble() ?? 0,
+                  count: (json['analysis_count'] as num?)?.toInt() ?? 0,
+                  imageUrl: json['first_image_url'] as String?,
+                ))
+            .toList();
         setState(() {
           _entries = list;
           _loading = false;
@@ -82,7 +86,9 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
         elevation: 0,
         title: Text(
           '${widget.petName}의 감정 기록',
-          style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700,
+          style: TextStyle(
+              fontSize: 17.sp,
+              fontWeight: FontWeight.w700,
               color: AppTheme.primaryTextColor),
         ),
         centerTitle: true,
@@ -110,19 +116,17 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_graph, size: 64.w, color: AppTheme.secondaryTextColor),
-            SizedBox(height: 16.h),
             Text(
               '${widget.petName}의 첫 AI 감정분석을 해보세요',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15.sp, color: AppTheme.secondaryTextColor,
+              style: TextStyle(
+                  fontSize: 15.sp,
+                  color: AppTheme.secondaryTextColor,
                   height: 1.5),
             ),
             SizedBox(height: 24.h),
-            ElevatedButton.icon(
+            ElevatedButton(
               onPressed: () => context.push('/emotion'),
-              icon: const Icon(Icons.pets),
-              label: const Text('지금 분석하기'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.actionBase,
                 foregroundColor: Colors.white,
@@ -130,6 +134,7 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24.r)),
               ),
+              child: const Text('지금 분석하기'),
             ),
           ],
         ),
@@ -159,11 +164,14 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(widget.petName,
-                  style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700,
+                  style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
                       color: AppTheme.primaryTextColor)),
               Text(
                 '지난 $_daysRange일 동안 $totalCount회 분석',
-                style: TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor),
+                style: TextStyle(
+                    fontSize: 12.sp, color: AppTheme.secondaryTextColor),
               ),
             ],
           ),
@@ -190,7 +198,8 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
                   decoration: BoxDecoration(
                     color: _daysRange == days
                         ? AppTheme.primaryColor
@@ -230,10 +239,13 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
     List<LineChartBarData> lines = [];
     emotions.forEach((key, color) {
       final spots = sorted.asMap().entries.map((e) {
-        final val = key == 'happiness' ? e.value.happiness
-            : key == 'sadness' ? e.value.sadness
-            : key == 'anger' ? e.value.anger
-            : e.value.fear;
+        final val = key == 'happiness'
+            ? e.value.happiness
+            : key == 'sadness'
+                ? e.value.sadness
+                : key == 'anger'
+                    ? e.value.anger
+                    : e.value.fear;
         return FlSpot(e.key.toDouble(), val.clamp(0.0, 1.0));
       }).toList();
 
@@ -258,31 +270,37 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('감정 변화 흐름',
-              style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w700,
+              style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
                   color: AppTheme.primaryTextColor)),
           SizedBox(height: 4.h),
           // 범례
           Wrap(
             spacing: 12.w,
-            children: emotions.entries.map((e) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(width: 10.w, height: 3.h,
-                    color: e.value),
-                SizedBox(width: 4.w),
-                Text(AppTheme.getEmotionLabel(e.key),
-                    style: TextStyle(fontSize: 10.sp,
-                        color: AppTheme.secondaryTextColor)),
-              ],
-            )).toList(),
+            children: emotions.entries
+                .map((e) => Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 10.w, height: 3.h, color: e.value),
+                        SizedBox(width: 4.w),
+                        Text(AppTheme.getEmotionLabel(e.key),
+                            style: TextStyle(
+                                fontSize: 10.sp,
+                                color: AppTheme.secondaryTextColor)),
+                      ],
+                    ))
+                .toList(),
           ),
           SizedBox(height: 12.h),
           SizedBox(
             height: 160.h,
             child: lines.isEmpty
-                ? Center(child: Text('차트 데이터 없음',
-                    style: TextStyle(fontSize: 12.sp,
-                        color: AppTheme.secondaryTextColor)))
+                ? Center(
+                    child: Text('차트 데이터 없음',
+                        style: TextStyle(
+                            fontSize: 12.sp,
+                            color: AppTheme.secondaryTextColor)))
                 : LineChart(LineChartData(
                     gridData: FlGridData(
                       show: true,
@@ -300,8 +318,13 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                           interval: 0.5,
                           reservedSize: 28.w,
                           getTitlesWidget: (val, _) => Text(
-                            val == 0 ? '0' : val == 0.5 ? '0.5' : '1',
-                            style: TextStyle(fontSize: 9.sp,
+                            val == 0
+                                ? '0'
+                                : val == 0.5
+                                    ? '0.5'
+                                    : '1',
+                            style: TextStyle(
+                                fontSize: 9.sp,
                                 color: AppTheme.secondaryTextColor),
                           ),
                         ),
@@ -318,7 +341,8 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                             return Padding(
                               padding: EdgeInsets.only(top: 4.h),
                               child: Text('${d.month}/${d.day}',
-                                  style: TextStyle(fontSize: 9.sp,
+                                  style: TextStyle(
+                                      fontSize: 9.sp,
                                       color: AppTheme.secondaryTextColor)),
                             );
                           },
@@ -336,9 +360,14 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                     lineTouchData: LineTouchData(
                       touchTooltipData: LineTouchTooltipData(
                         getTooltipItems: (spots) => spots.map((s) {
-                          final keys = ['happiness', 'sadness', 'anger', 'fear'];
-                          final key = s.barIndex < keys.length
-                              ? keys[s.barIndex] : '';
+                          final keys = [
+                            'happiness',
+                            'sadness',
+                            'anger',
+                            'fear'
+                          ];
+                          final key =
+                              s.barIndex < keys.length ? keys[s.barIndex] : '';
                           return LineTooltipItem(
                             '${AppTheme.getEmotionLabel(key)}: ${(s.y * 100).toInt()}%',
                             TextStyle(fontSize: 10.sp, color: Colors.white),
@@ -367,8 +396,7 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
     final isExpanded = _expandedIndex == index;
 
     return GestureDetector(
-      onTap: () => setState(() =>
-          _expandedIndex = isExpanded ? null : index),
+      onTap: () => setState(() => _expandedIndex = isExpanded ? null : index),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -387,7 +415,8 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                     child: entry.imageUrl != null
                         ? CachedNetworkImage(
                             imageUrl: entry.imageUrl!,
-                            width: 56.w, height: 56.w,
+                            width: 56.w,
+                            height: 56.w,
                             fit: BoxFit.cover,
                             errorWidget: (_, __, ___) => _emojiBlock(entry),
                           )
@@ -400,7 +429,8 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                       children: [
                         Text(
                           _formatDate(entry.date),
-                          style: TextStyle(fontSize: 13.sp,
+                          style: TextStyle(
+                              fontSize: 13.sp,
                               fontWeight: FontWeight.w600,
                               color: AppTheme.secondaryTextColor),
                         ),
@@ -410,19 +440,22 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                             Icon(
                               AppTheme.getEmotionIcon(entry.dominantEmotion),
                               size: 20.sp,
-                              color: AppTheme.getEmotionColor(entry.dominantEmotion),
+                              color: AppTheme.getEmotionColor(
+                                  entry.dominantEmotion),
                             ),
                             SizedBox(width: 6.w),
                             Text(
                               AppTheme.getEmotionLabel(entry.dominantEmotion),
-                              style: TextStyle(fontSize: 15.sp,
+                              style: TextStyle(
+                                  fontSize: 15.sp,
                                   fontWeight: FontWeight.w700,
                                   color: AppTheme.primaryTextColor),
                             ),
                             SizedBox(width: 6.w),
                             Text(
                               '${(entry.dominantValue * 100).toInt()}%',
-                              style: TextStyle(fontSize: 13.sp,
+                              style: TextStyle(
+                                  fontSize: 13.sp,
                                   color: AppTheme.secondaryTextColor),
                             ),
                           ],
@@ -430,16 +463,14 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                         if (entry.count > 1)
                           Text(
                             '${entry.count}회 분석 평균',
-                            style: TextStyle(fontSize: 11.sp,
-                                color: AppTheme.primaryColor),
+                            style: TextStyle(
+                                fontSize: 11.sp, color: AppTheme.primaryColor),
                           ),
                       ],
                     ),
                   ),
                   Icon(
-                    isExpanded
-                        ? Icons.expand_less
-                        : Icons.expand_more,
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
                     color: AppTheme.secondaryTextColor,
                     size: 20.w,
                   ),
@@ -461,7 +492,8 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
 
   Widget _emojiBlock(_TimelineEntry entry) {
     return Container(
-      width: 56.w, height: 56.w,
+      width: 56.w,
+      height: 56.w,
       decoration: BoxDecoration(
         color: AppTheme.subtleBackground,
         borderRadius: BorderRadius.circular(8.r),
@@ -493,8 +525,8 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
               SizedBox(
                 width: 52.w,
                 child: Text(label,
-                    style: TextStyle(fontSize: 11.sp,
-                        color: AppTheme.secondaryTextColor)),
+                    style: TextStyle(
+                        fontSize: 11.sp, color: AppTheme.secondaryTextColor)),
               ),
               SizedBox(width: 8.w),
               Expanded(
@@ -512,8 +544,8 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
               ),
               SizedBox(width: 8.w),
               Text('${(val * 100).toInt()}%',
-                  style: TextStyle(fontSize: 11.sp,
-                      color: AppTheme.secondaryTextColor)),
+                  style: TextStyle(
+                      fontSize: 11.sp, color: AppTheme.secondaryTextColor)),
             ],
           ),
         );
@@ -523,11 +555,16 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
 
   Color _emotionColor(String emotion) {
     switch (emotion) {
-      case 'happiness': return AppTheme.successColor;
-      case 'sadness': return Colors.blue;
-      case 'anger': return AppTheme.errorColor;
-      case 'fear': return Colors.orange;
-      default: return AppTheme.primaryColor;
+      case 'happiness':
+        return AppTheme.successColor;
+      case 'sadness':
+        return Colors.blue;
+      case 'anger':
+        return AppTheme.errorColor;
+      case 'fear':
+        return Colors.orange;
+      default:
+        return AppTheme.primaryColor;
     }
   }
 

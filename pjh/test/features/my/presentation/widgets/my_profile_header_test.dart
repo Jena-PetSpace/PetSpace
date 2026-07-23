@@ -48,7 +48,16 @@ void main() {
     WidgetTester tester, {
     double textScale = 1,
     ThemeData? theme,
+    Size? surface,
   }) async {
+    if (surface != null) {
+      tester.view.physicalSize = surface;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+    }
     final router = GoRouter(
       routes: [
         GoRoute(
@@ -116,6 +125,77 @@ void main() {
     expect(find.textContaining('레벨 1'), findsNothing);
     expect(find.textContaining('0 P'), findsNothing);
     expect(find.textContaining('@private'), findsNothing);
+    final avatarBottom = tester
+        .getBottomLeft(
+          find.byKey(const Key('my_profile_avatar')),
+        )
+        .dy;
+    expect(
+      tester.getSize(find.byKey(const Key('my_profile_avatar'))),
+      Size(92.h, 92.h),
+    );
+    final bioTop = tester
+        .getTopLeft(
+          find.byKey(const Key('my_profile_bio')),
+        )
+        .dy;
+    final nameTop = tester
+        .getTopLeft(
+          find.byKey(const Key('my_profile_name')),
+        )
+        .dy;
+    final statsTop = tester
+        .getTopLeft(
+          find.byKey(const Key('my_stats_bar')),
+        )
+        .dy;
+    final avatarTop = tester
+        .getTopLeft(
+          find.byKey(const Key('my_profile_avatar')),
+        )
+        .dy;
+    final nameLeft = tester
+        .getTopLeft(
+          find.byKey(const Key('my_profile_name')),
+        )
+        .dx;
+    final postsLeft = tester.getTopLeft(find.text('게시글')).dx;
+    expect(statsTop, greaterThan(nameTop));
+    expect(avatarTop, closeTo(nameTop, 1));
+    expect(postsLeft, closeTo(nameLeft, 1));
+    expect(bioTop, greaterThanOrEqualTo(avatarBottom));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('기본 글자 크기에서 프로필 이미지와 이름·통계 블록의 상하단을 맞춘다', (
+    tester,
+  ) async {
+    when(() => service.getProfile()).thenAnswer(
+      (_) async => {
+        'display_name': '정현',
+        'bio': '흰둥이와 매일 산책해요',
+        'photo_url': null,
+      },
+    );
+    when(() => service.getProfileStats()).thenAnswer(
+      (_) async => {'posts': 3, 'followers': 4, 'following': 5},
+    );
+
+    await pumpHeader(tester, surface: const Size(390, 844));
+
+    final avatar = find.byKey(const Key('my_profile_avatar'));
+    final stats = find.byKey(const Key('my_stats_bar'));
+    final name = find.byKey(const Key('my_profile_name'));
+    expect(
+        tester.getTopLeft(avatar).dy, closeTo(tester.getTopLeft(name).dy, 1));
+    expect(
+      tester.getBottomLeft(avatar).dy,
+      closeTo(tester.getBottomLeft(stats).dy, 1),
+    );
+    expect(
+      tester.getTopLeft(find.text('게시글')).dx,
+      closeTo(tester.getTopLeft(name).dx, 1),
+    );
     expect(tester.takeException(), isNull);
   });
 

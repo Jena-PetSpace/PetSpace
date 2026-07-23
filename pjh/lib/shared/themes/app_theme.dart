@@ -30,10 +30,10 @@ class AppTheme {
   static const Color subColor = infoSky;
 
   // 배경 컬러
-  static const Color backgroundColor =
-      Color(0xFFFAF8F3); // warm off-white 화면 배경
+  static const Color backgroundColor = Color(0xFFF7F8FA); // 기존 중립 화면 배경
   static const Color surfaceColor = Colors.white; // 카드·시트
   static const Color cardColor = Colors.white;
+  static const Color brandPanelSurface = Color(0xFFF7F8FA); // 홈 하단과 같은 MY 정보 패널
 
   // 텍스트 컬러
   static const Color primaryTextColor = textBody;
@@ -320,8 +320,10 @@ class AppTheme {
         color: cardColor,
         elevation: 0,
         shadowColor: Colors.black26,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: border),
         ),
       ),
 
@@ -331,6 +333,7 @@ class AppTheme {
           backgroundColor: actionBase,
           foregroundColor: Colors.white,
           elevation: 0,
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
@@ -367,6 +370,22 @@ class AppTheme {
           textStyle: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: actionBase,
+          minimumSize: const Size(0, 48),
+          side: const BorderSide(color: border),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusMd),
+          ),
+          textStyle: const TextStyle(
+            fontSize: fontBody,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -513,8 +532,10 @@ class AppTheme {
         color: darkCard,
         elevation: 0,
         shadowColor: Colors.black54,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: darkDivider),
         ),
       ),
 
@@ -540,6 +561,7 @@ class AppTheme {
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           elevation: 2,
+          minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -586,7 +608,9 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryColor,
+          minimumSize: const Size(0, 48),
           side: const BorderSide(color: primaryColor),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

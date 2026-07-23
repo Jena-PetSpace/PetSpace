@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../theme/emotion_result_tokens.dart';
 
 /// 결과 페이지 하단 액션 바.
-/// - 베이지 배경 + 0.5px 상단 베이지 디바이더
+/// - 결과 페이지와 이어지는 베이지 단일 캔버스
 /// - 3개 액션: 공유(40x40 흰 박스), 저장(40x40 흰 박스), 히스토리(flex 코랄 버튼)
 /// - fromHistory=true 일 때 히스토리 버튼이 "닫기"로 동작
 /// - 감정/건강 페이지 모두 "분석 기록 모아보기"로 통일
@@ -59,12 +59,6 @@ class BottomActionBar extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: EmotionResultTokens.background,
-        border: Border(
-          top: BorderSide(
-            color: EmotionResultTokens.dividerLight,
-            width: 0.5,
-          ),
-        ),
       ),
       child: SafeArea(
         top: false,

@@ -298,6 +298,7 @@ class _FollowersPageState extends State<FollowersPage>
       return _FollowStateView(
         key: Key(isFollowers ? 'followers_empty' : 'following_empty'),
         icon: hasQuery ? Icons.search_off : Icons.people_outline,
+        showIcon: false,
         title: hasQuery
             ? '검색 결과가 없어요'
             : isFollowers
@@ -389,6 +390,7 @@ class _FollowStateView extends StatelessWidget {
   final String description;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final bool showIcon;
 
   const _FollowStateView({
     super.key,
@@ -397,6 +399,7 @@ class _FollowStateView extends StatelessWidget {
     required this.description,
     this.actionLabel,
     this.onAction,
+    this.showIcon = true,
   });
 
   @override
@@ -409,24 +412,26 @@ class _FollowStateView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 56.w,
-              height: 56.w,
-              decoration: BoxDecoration(
-                color: isDark
-                    ? theme.colorScheme.primaryContainer
-                    : AppTheme.actionContainer,
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+            if (showIcon) ...[
+              Container(
+                width: 56.w,
+                height: 56.w,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? theme.colorScheme.primaryContainer
+                      : AppTheme.actionContainer,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+                ),
+                child: Icon(
+                  icon,
+                  size: 26.w,
+                  color: isDark
+                      ? theme.colorScheme.onPrimaryContainer
+                      : AppTheme.actionBase,
+                ),
               ),
-              child: Icon(
-                icon,
-                size: 26.w,
-                color: isDark
-                    ? theme.colorScheme.onPrimaryContainer
-                    : AppTheme.actionBase,
-              ),
-            ),
-            SizedBox(height: 14.h),
+              SizedBox(height: 14.h),
+            ],
             Text(
               title,
               textAlign: TextAlign.center,

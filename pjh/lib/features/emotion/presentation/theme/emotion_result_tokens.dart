@@ -1,5 +1,4 @@
-// v2-review: 결과 페이지 로컬 토큰(베이지 리디자인) — AppTheme v2 지시서 3장
-// '분석 결과 리포트 톤 별도 기획' 대상. 전역 토큰 치환 보류.
+// 결과 카드의 신호색은 유지하되 페이지 캔버스는 앱 전역 중립 배경을 따른다.
 import 'package:flutter/material.dart';
 import '../../../../shared/themes/app_theme.dart';
 
@@ -14,7 +13,7 @@ class EmotionResultTokens {
   EmotionResultTokens._();
 
   // ============ 배경 ============
-  static const Color background = AppTheme.surfaceWarm;      // 베이지
+  static const Color background = AppTheme.backgroundColor;
   static const Color cardSurface = Colors.white;
   static const Color dividerLight = Color(0xFFF2EAD3);
 
@@ -37,10 +36,10 @@ class EmotionResultTokens {
   static const Color amberSoft = Color(0xFFFAEEDA);
 
   // ============ 그레이 (보조 정보) ============
-  static const Color grayInactive = Color(0xFFDCD7D0);  // 0% 감정 도트
+  static const Color grayInactive = Color(0xFFDCD7D0); // 0% 감정 도트
   static const Color grayText = Color(0xFF888780);
   static const Color grayDark = Color(0xFF5F5E5A);
-  static const Color grayBar = Color(0xFFF4F2EC);       // 막대 그래프 배경
+  static const Color grayBar = Color(0xFFF4F2EC); // 막대 그래프 배경
 
   // ============ 텍스트 ============
   static const Color textPrimary = Color(0xFF2C2C2A);

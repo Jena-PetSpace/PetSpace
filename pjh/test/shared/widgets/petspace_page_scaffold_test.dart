@@ -24,7 +24,7 @@ Widget _wrap(Widget child, {bool dark = false, double textScale = 1}) {
 }
 
 void main() {
-  testWidgets('uses warm canvas, white app bar, and a quiet divider', (
+  testWidgets('uses neutral canvas, white app bar, and a quiet divider', (
     tester,
   ) async {
     await tester.pumpWidget(

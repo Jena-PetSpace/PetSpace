@@ -356,12 +356,6 @@ class _UserPostsListState extends State<UserPostsList> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.grid_on_outlined,
-              size: 48.w,
-              color: AppTheme.lightTextColor,
-            ),
-            SizedBox(height: 16.h),
             Text(
               widget.isMyProfile ? '아직 게시글이 없어요\n첫 이야기를 공유해보세요' : '게시글이 없습니다',
               textAlign: TextAlign.center,

@@ -60,6 +60,13 @@ class _CreatePostPageState extends State<CreatePostPage>
   Timer? _autosaveTimer;
   LocationResult? _location;
 
+  bool get _canSubmit {
+    if (_isSubmitting) return false;
+    final hasText = _contentController.text.trim().isNotEmpty;
+    if (_isEditMode) return hasText;
+    return hasText || _selectedImages.isNotEmpty || _imageUrl != null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -291,7 +298,7 @@ class _CreatePostPageState extends State<CreatePostPage>
       key: const Key('create_post_bottom_action'),
       child: FilledButton(
         key: const Key('create_post_submit_button'),
-        onPressed: _isSubmitting ? null : (_isEditMode ? _updatePost : _submit),
+        onPressed: _canSubmit ? (_isEditMode ? _updatePost : _submit) : null,
         child: _isSubmitting
             ? const SizedBox.square(
                 dimension: 20,
@@ -456,9 +463,7 @@ class _CreatePostPageState extends State<CreatePostPage>
           controller: _contentController,
           enabled: !_isSubmitting,
           onChanged: (_) {
-            if (_submissionError != null) {
-              setState(() => _submissionError = null);
-            }
+            setState(() => _submissionError = null);
           },
           style: TextStyle(
             fontSize: AppTheme.fontBody.sp,
@@ -503,15 +508,25 @@ class _CreatePostPageState extends State<CreatePostPage>
             ),
             ActionChip(
               key: const Key('create_post_add_hashtag'),
+              avatar: Icon(
+                Icons.add_rounded,
+                size: 16.w,
+                color: AppTheme.actionBase,
+              ),
               label: Text(
-                '+ 추가',
+                '태그 추가',
                 style: TextStyle(
-                  fontSize: 12.sp,
-                  color: theme.colorScheme.onSurface,
+                  fontSize: AppTheme.fontCaption.sp,
+                  color: AppTheme.actionBase,
                 ),
               ),
               onPressed: _showAddHashtagDialog,
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+              backgroundColor: theme.colorScheme.surface,
+              side: BorderSide(
+                color: theme.brightness == Brightness.dark
+                    ? theme.colorScheme.outlineVariant
+                    : AppTheme.border,
+              ),
             ),
           ],
         ),

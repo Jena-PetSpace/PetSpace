@@ -9,8 +9,8 @@ class EmptyStateWidget extends StatelessWidget {
   final String subtitle;
   final String? actionLabel;
   final VoidCallback? onAction;
-  // 확장 파라미터 — v2: 이모지 일러스트 제거, 아이콘 단일 체계
-  final String? secondaryLabel;  // 보조 버튼 레이블
+  // 호출부 호환을 위해 icon 값은 유지하지만 빈 상태에는 장식 아이콘을 노출하지 않는다.
+  final String? secondaryLabel; // 보조 버튼 레이블
   final VoidCallback? onSecondary;
 
   const EmptyStateWidget({
@@ -80,21 +80,6 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 일러스트 영역 — v2: 아이콘 단일 체계 (이모지 제거)
-            Container(
-              width: 100.w,
-              height: 100.w,
-              decoration: const BoxDecoration(
-                color: AppTheme.actionContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 48.w,
-                color: isDark ? AppTheme.infoSky : AppTheme.actionBase,
-              ),
-            ),
-            SizedBox(height: 24.h),
             Text(
               title,
               style: TextStyle(
@@ -124,13 +109,25 @@ class EmptyStateWidget extends StatelessWidget {
                       onPressed: onSecondary,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primaryColor,
-                        side: const BorderSide(color: AppTheme.primaryColor, width: 1.5),
-                        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
+                        side: const BorderSide(
+                          color: AppTheme.primaryColor,
+                          width: 1.5,
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 18.w,
+                          vertical: 10.h,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20.r),
                         ),
                       ),
-                      child: Text(secondaryLabel!, style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                      child: Text(
+                        secondaryLabel!,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     SizedBox(width: 10.w),
                   ],
@@ -140,13 +137,20 @@ class EmptyStateWidget extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.actionBase,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 20.w, vertical: 10.h),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20.r),
                         ),
                         elevation: 0,
                       ),
-                      child: Text(actionLabel!, style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700)),
+                      child: Text(
+                        actionLabel!,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                 ],
               ),

@@ -8,6 +8,10 @@
 > 외부 검토: Claude·Anthropic 전송 제외
 > 상위 승인: Set A~D 목업 및 아래 사용자 결정 승인
 
+> 2026-07-23 후속 실행: 아래 원래 제외 조건과 별도의 사용자 승인으로
+> `20260723042242_m1_selected_pet_contract.sql`만 원격 DB에 적용했다.
+> 다른 migration·Edge·APNs·배포는 적용하지 않았다.
+
 이 문서는 승인 전 초안 `docs/work-orders/2026-07-22-post-merge-upgrade-master.md`를 대체하는 구현 정본이다.
 
 ## 1. 목적과 범위
@@ -247,7 +251,7 @@
 - `pjh/lib/features/profile/presentation/pages/notification_settings_page.dart`
 - `pjh/lib/features/profile/presentation/pages/privacy_settings_page.dart`
 - `pjh/lib/features/profile/presentation/pages/profile_edit_page.dart`
-- 신규 `supabase/migrations/M1_selected_pet_contract.sql`
+- 신규 `supabase/migrations/20260723042242_m1_selected_pet_contract.sql`
 - `supabase/petspace_setup.sql`
 
 ### M1 데이터 계약
@@ -818,5 +822,5 @@ Claude·Anthropic 외부 전송은 사용자 지시에 따라 제외했다. 원�
 | `pjh/test/shared/widgets/petspace_page_scaffold_test.dart` | `0816cc1f3f08af698b1841f0aee83769a3c487d57623671d43670c8cf0251aef` |
 | `pjh/test/shared/widgets/petspace_settings_components_test.dart` | `ae027267a0f749cfcef324cca19ff1aec64744e9d648f92402014ecab51da577` |
 | `pjh/test/shared/widgets/petspace_state_view_test.dart` | `6bc62d16400c67fcbed777ae355fe2b88baca67163dc9fe9ee94895a7a5e1878` |
-| `supabase/migrations/M1_selected_pet_contract.sql` | `5010f1dea6d5930b417a80263ea898ad0f3fdd9640460d4445fc880d2ba1f8c6` |
+| `supabase/migrations/20260723042242_m1_selected_pet_contract.sql` | `5010f1dea6d5930b417a80263ea898ad0f3fdd9640460d4445fc880d2ba1f8c6` |
 | `supabase/petspace_setup.sql` | `bf50af1d1df80b07ae28d3ea271c0433ba5bd9ed0cf02966e2c36919566848ac` |

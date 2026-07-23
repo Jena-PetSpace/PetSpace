@@ -76,55 +76,55 @@ class _CommentsPageState extends State<CommentsPage> {
         await _handleBackPress();
       },
       child: Scaffold(
-      appBar: AppBar(
-        title: const Text('댓글'),
-        elevation: 1,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: BlocConsumer<CommentBloc, CommentState>(
-              listener: (context, state) {
-                if (state is CommentError) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.message),
-                      backgroundColor: AppTheme.errorColor,
-                    ),
-                  );
-                }
-                // Reset submitting state when comments are loaded
-                if (state is CommentLoaded && _isSubmitting) {
-                  setState(() {
-                    _isSubmitting = false;
-                  });
-                }
-              },
-              builder: (context, state) {
-                if (state is CommentLoading) {
-                  return const CommentShimmerLoading();
-                } else if (state is CommentLoaded) {
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      context.read<CommentBloc>().add(
-                            LoadComments(postId: widget.postId),
-                          );
-                    },
-                    child: _buildCommentsList(state),
-                  );
-                } else if (state is CommentError) {
-                  return _buildErrorState(state.message);
-                }
+        appBar: AppBar(
+          title: const Text('댓글'),
+          elevation: 1,
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: BlocConsumer<CommentBloc, CommentState>(
+                listener: (context, state) {
+                  if (state is CommentError) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(state.message),
+                        backgroundColor: AppTheme.errorColor,
+                      ),
+                    );
+                  }
+                  // Reset submitting state when comments are loaded
+                  if (state is CommentLoaded && _isSubmitting) {
+                    setState(() {
+                      _isSubmitting = false;
+                    });
+                  }
+                },
+                builder: (context, state) {
+                  if (state is CommentLoading) {
+                    return const CommentShimmerLoading();
+                  } else if (state is CommentLoaded) {
+                    return RefreshIndicator(
+                      onRefresh: () async {
+                        context.read<CommentBloc>().add(
+                              LoadComments(postId: widget.postId),
+                            );
+                      },
+                      child: _buildCommentsList(state),
+                    );
+                  } else if (state is CommentError) {
+                    return _buildErrorState(state.message);
+                  }
 
-                return const SizedBox.shrink();
-              },
+                  return const SizedBox.shrink();
+                },
+              ),
             ),
-          ),
-          _buildCommentInput(),
-        ],
-      ),
-      ),   // Scaffold
-    );     // PopScope
+            _buildCommentInput(),
+          ],
+        ),
+      ), // Scaffold
+    ); // PopScope
   }
 
   Widget _buildCommentsList(CommentLoaded state) {
@@ -166,12 +166,6 @@ class _CommentsPageState extends State<CommentsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.comment_outlined,
-            size: 64.w,
-            color: AppTheme.neutral400,
-          ),
-          SizedBox(height: 16.h),
           Text(
             '아직 댓글이 없습니다',
             style: TextStyle(

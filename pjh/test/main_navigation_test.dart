@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meong_nyang_diary/shared/models/navigation_item.dart';
 
@@ -15,6 +16,8 @@ void main() {
         rootNavigationItems.map((item) => item.route),
         rootNavigationPaths,
       );
+      expect(rootNavigationItems[2].icon, Icons.pets_outlined);
+      expect(rootNavigationItems[2].selectedIcon, Icons.pets);
     });
 
     test('shows the root bar only on the five exact root routes', () {

@@ -124,89 +124,136 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
         final isDark = theme.brightness == Brightness.dark;
         final selectedColor =
             isDark ? theme.colorScheme.primary : AppTheme.actionBase;
+        final headerBackground =
+            isDark ? theme.scaffoldBackgroundColor : AppTheme.primaryColor;
         return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
+          backgroundColor:
+              isDark ? theme.scaffoldBackgroundColor : AppTheme.backgroundColor,
           body: SafeArea(
             bottom: false,
-            child: Column(
-              children: [
-                // 헤더 (스크롤 안 됨 - 고정)
-                MyProfileHeader(
-                  user: user,
-                  onPostsTapped: () => _tabController.animateTo(0),
-                  statsRefreshKey: _statsRefreshKey,
-                  beforeStats: MyPetSummarySection(
-                    userId: user.uid,
-                    embedded: true,
+            child: NestedScrollView(
+              key: const Key('my_nested_scroll_view'),
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverAppBar(
+                  key: const Key('my_top_app_bar'),
+                  pinned: true,
+                  floating: false,
+                  automaticallyImplyLeading: false,
+                  toolbarHeight: 48.h,
+                  elevation: 0,
+                  scrolledUnderElevation: 1,
+                  backgroundColor: headerBackground,
+                  surfaceTintColor: Colors.transparent,
+                  centerTitle: false,
+                  titleSpacing: 20.w,
+                  title: Text(
+                    'MY',
+                    style: TextStyle(
+                      fontSize: AppTheme.fontTitle.sp,
+                      fontWeight: FontWeight.w700,
+                      color:
+                          isDark ? theme.colorScheme.onSurface : Colors.white,
+                    ),
+                  ),
+                  actions: [
+                    IconButton(
+                      key: const Key('my_settings_button'),
+                      onPressed: () => context.push('/settings/my'),
+                      tooltip: '설정',
+                      icon: Icon(
+                        Icons.settings_outlined,
+                        color:
+                            isDark ? theme.colorScheme.onSurface : Colors.white,
+                        size: 22.w,
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                  ],
+                ),
+                SliverToBoxAdapter(
+                  child: MyProfileHeader(
+                    user: user,
+                    showTopBar: false,
+                    onPostsTapped: () => _tabController.animateTo(0),
+                    statsRefreshKey: _statsRefreshKey,
+                    beforeStats: MyPetSummarySection(
+                      userId: user.uid,
+                      embedded: true,
+                    ),
                   ),
                 ),
                 // 실제 사용자 계약이 확정되지 않은 잠긴 뱃지 목록은 노출하지 않는다.
                 // MBTI 성격 유형 뱃지 (결과 있는 pet 만, 없으면 자동 숨김)
                 // (세션6 A) 임시 숨김 — 위젯/BLoC/데이터 유지, 노출만 끔.
-                if (_kShowMyMbtiSection) const MyMbtiBadgeSection(),
-                // 탭 바 (고정)
-                Container(
-                  key: const Key('my_content_tabs_surface'),
-                  color: theme.colorScheme.surface,
-                  child: TabBar(
-                    controller: _tabController,
-                    tabs: const [
-                      Tab(text: '내 게시글'),
-                      Tab(text: '저장'),
-                    ],
-                    indicatorColor: selectedColor,
-                    indicatorWeight: 2,
-                    indicatorSize: TabBarIndicatorSize.label,
-                    labelColor: selectedColor,
-                    unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                if (_kShowMyMbtiSection)
+                  const SliverToBoxAdapter(child: MyMbtiBadgeSection()),
+                SliverToBoxAdapter(child: SizedBox(height: 8.h)),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _MyTabBarHeaderDelegate(
+                    backgroundColor: theme.colorScheme.surface,
                     dividerColor: isDark
                         ? theme.colorScheme.outlineVariant
                         : AppTheme.dividerColor,
-                  ),
-                ),
-                // 그리드 (스크롤 영역)
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildLazyGrid(
-                        onLoadInitial: _loadMyPostsInitial,
-                        onLoadMore: _loadMyPostsMore,
-                        isMyPosts: true,
-                      ),
-                      SavedPostsGrid(
-                        key: ValueKey(_savedGridRefreshKey),
-                        repository: sl<SocialRepository>(),
-                        userId: user.uid,
-                        scope: const SavedPostsScope.all(),
-                        onCountChanged: (count) {
-                          if (mounted &&
-                              (count != _savedCount || _savedCountError)) {
-                            setState(() {
-                              _savedCount = count;
-                              _savedCountError = false;
-                            });
-                          }
-                        },
-                        onCountError: () {
-                          if (mounted && !_savedCountError) {
-                            setState(() => _savedCountError = true);
-                          }
-                        },
-                        header: _SavedTabHeader(
-                          count: _savedCount,
-                          countError: _savedCountError,
-                          onRetry: () => setState(() {
-                            _savedGridRefreshKey++;
-                            _savedCountError = false;
-                          }),
-                          onOpenCollections: () => context.push('/my/saved'),
-                        ),
-                      ),
-                    ],
+                    tabBar: TabBar(
+                      controller: _tabController,
+                      tabs: const [
+                        Tab(text: '내 게시글'),
+                        Tab(text: '저장'),
+                      ],
+                      indicatorColor: selectedColor,
+                      indicatorWeight: 2,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      labelColor: selectedColor,
+                      unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                      dividerColor: Colors.transparent,
+                    ),
                   ),
                 ),
               ],
+              body: ColoredBox(
+                color: theme.colorScheme.surface,
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildLazyGrid(
+                      onLoadInitial: _loadMyPostsInitial,
+                      onLoadMore: _loadMyPostsMore,
+                      isMyPosts: true,
+                    ),
+                    SavedPostsGrid(
+                      key: ValueKey(_savedGridRefreshKey),
+                      repository: sl<SocialRepository>(),
+                      userId: user.uid,
+                      scope: const SavedPostsScope.all(),
+                      usePrimaryScrollController: true,
+                      onCountChanged: (count) {
+                        if (mounted &&
+                            (count != _savedCount || _savedCountError)) {
+                          setState(() {
+                            _savedCount = count;
+                            _savedCountError = false;
+                          });
+                        }
+                      },
+                      onCountError: () {
+                        if (mounted && !_savedCountError) {
+                          setState(() => _savedCountError = true);
+                        }
+                      },
+                      header: _SavedTabHeader(
+                        count: _savedCount,
+                        countError: _savedCountError,
+                        onRetry: () => setState(() {
+                          _savedGridRefreshKey++;
+                          _savedCountError = false;
+                        }),
+                        onOpenCollections: () => context.push('/my/saved'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         );
@@ -228,6 +275,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
       crossAxisSpacing: 1.5,
       childAspectRatio: 1.0,
       padding: EdgeInsets.zero,
+      usePrimaryScrollController: true,
       header: header,
       emptyWidget: _buildEmptyState(isMyPosts),
       errorWidget: (retry) => PetSpaceStateView.error(
@@ -356,6 +404,49 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   }
 }
 
+class _MyTabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  final Color backgroundColor;
+  final Color dividerColor;
+
+  const _MyTabBarHeaderDelegate({
+    required this.tabBar,
+    required this.backgroundColor,
+    required this.dividerColor,
+  });
+
+  @override
+  double get minExtent => 48;
+
+  @override
+  double get maxExtent => 48;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      key: const Key('my_content_tabs_surface'),
+      color: backgroundColor,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: dividerColor)),
+        ),
+        child: tabBar,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _MyTabBarHeaderDelegate oldDelegate) {
+    return oldDelegate.tabBar != tabBar ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.dividerColor != dividerColor;
+  }
+}
+
 class _SavedTabHeader extends StatelessWidget {
   final int? count;
   final bool countError;
@@ -412,10 +503,20 @@ class _SavedTabHeader extends StatelessWidget {
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
             ),
-          TextButton.icon(
+          OutlinedButton.icon(
             key: const Key('open_saved_collections'),
             onPressed: onOpenCollections,
-            icon: const Icon(Icons.folder_outlined),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 40),
+              foregroundColor: AppTheme.actionBase,
+              side: BorderSide(
+                color: AppTheme.actionBase.withValues(alpha: 0.35),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+              ),
+            ),
+            icon: Icon(Icons.folder_outlined, size: 18.w),
             label: const Text('컬렉션 보기'),
           ),
         ],

@@ -8,6 +8,7 @@ import 'package:meong_nyang_diary/features/quiz/data/datasources/quiz_content_da
 import 'package:meong_nyang_diary/features/quiz/data/datasources/quiz_local_data_source.dart';
 import 'package:meong_nyang_diary/features/quiz/domain/services/quiz_session_builder.dart';
 import 'package:meong_nyang_diary/features/quiz/presentation/pages/quiz_play_page.dart';
+import 'package:meong_nyang_diary/features/quiz/presentation/theme/quiz_theme.dart';
 import 'package:meong_nyang_diary/features/quiz/presentation/widgets/quiz_feedback_banner.dart';
 import 'package:meong_nyang_diary/features/quiz/presentation/widgets/quiz_ox_button.dart';
 
@@ -15,7 +16,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({'quiz_seed': 12345, 'quiz_cursor': 0});
+    SharedPreferences.setMockInitialValues(
+        {'quiz_seed': 12345, 'quiz_cursor': 0});
     final prefs = await SharedPreferences.getInstance();
 
     await sl.reset();
@@ -64,6 +66,18 @@ void main() {
     // 답 선택 전엔 해설 배너 없음, 하단은 안내 문구.
     expect(find.byType(QuizFeedbackBanner), findsNothing);
     expect(find.text('O 또는 X를 선택하세요'), findsOneWidget);
+  });
+
+  testWidgets('하단 액션은 본문과 같은 배경이며 구분선을 만들지 않는다', (tester) async {
+    await pump(tester);
+
+    final container = tester.widget<Container>(
+      find.byKey(const ValueKey('quiz-play-bottom-action')),
+    );
+    final decoration = container.decoration! as BoxDecoration;
+
+    expect(decoration.color, QuizTheme.bg);
+    expect(decoration.border, isNull);
   });
 
   testWidgets('O/X 선택 → 즉시 정오+해설 배너 등장 → [다음] 활성', (tester) async {

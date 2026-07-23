@@ -148,7 +148,7 @@ Apple 로그인은 iOS에서만 노출하며 nonce·Supabase OAuth·callback 계
   부속: community-guidelines · privacy-policy
 ```
 
-대표 반려동물 선택은 계정 단위 M1 계약으로 복원되고 MY 카드에 다음 건강 일정을 연결한다. migration은 저장소에만 있으며 운영 DB 적용은 별도 승인 대상이다.
+대표 반려동물 선택은 계정 단위 M1 계약으로 복원되고 MY 카드에 다음 건강 일정을 연결한다. M1은 2026-07-23 승인 후 원격 DB에 단독 적용했으며, `auth.uid()` 기반 소유권 검증과 재시작 복원 계약을 유지한다.
 
 ---
 

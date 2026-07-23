@@ -671,8 +671,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search, size: 40.w, color: Colors.grey[300]),
-            SizedBox(height: 10.h),
             Text(
               '위치를 검색해 추가하세요',
               style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),

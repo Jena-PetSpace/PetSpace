@@ -245,6 +245,58 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('MY 상단은 홈 네이비 캔버스와 카드 경계를 사용하고 제목을 왼쪽에 둔다', (
+    tester,
+  ) async {
+    await pumpPage(
+      tester,
+      myInitial: () async => <Map<String, dynamic>>[],
+    );
+
+    final profileCanvas = tester.widget<Container>(
+      find.byKey(const Key('my_profile_header')),
+    );
+    final identityCard = tester.widget<Container>(
+      find.byKey(const Key('my_identity_card')),
+    );
+    final petCard = tester.widget<Container>(
+      find.byKey(const Key('my_pet_summary_section')),
+    );
+    final statsCard = tester.widget<Container>(
+      find.byKey(const Key('my_stats_bar')),
+    );
+    final appBar = tester.widget<SliverAppBar>(
+      find.byKey(const Key('my_top_app_bar')),
+    );
+
+    expect(appBar.centerTitle, isFalse);
+    expect(appBar.toolbarHeight, 48.h);
+    expect(appBar.backgroundColor, AppTheme.primaryColor);
+    expect(profileCanvas.color, AppTheme.primaryColor);
+    expect(
+      profileCanvas.padding,
+      EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 10.h),
+    );
+    final title = tester.widget<Text>(find.text('MY'));
+    expect(title.style?.color, Colors.white);
+    final identityDecoration = identityCard.decoration! as BoxDecoration;
+    expect(identityDecoration.color, AppTheme.brandPanelSurface);
+    expect(identityDecoration.border, isNotNull);
+    final petDecoration = petCard.decoration! as BoxDecoration;
+    expect(petDecoration.color, AppTheme.brandPanelSurface);
+    expect(petDecoration.border, isNotNull);
+    expect(statsCard.decoration, isNull);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('my_identity_card')),
+        matching: find.byKey(const Key('my_stats_bar')),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('활동'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('저장 탭 조회 실패도 저장 empty와 구분한다', (tester) async {
     await pumpPage(
       tester,
@@ -252,12 +304,45 @@ void main() {
       savedResult: const Left(ServerFailure(message: 'saved-secret')),
     );
 
+    await tester.ensureVisible(find.text('저장'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('saved_posts_error')), findsOneWidget);
     expect(find.text('저장한 게시글이 없어요'), findsNothing);
     expect(find.textContaining('saved-secret'), findsNothing);
+  });
+
+  testWidgets('저장 빈 상태는 작은 화면에서도 넘치지 않고 프로필 영역과 함께 스크롤된다', (
+    tester,
+  ) async {
+    await pumpPage(
+      tester,
+      myInitial: () async => <Map<String, dynamic>>[],
+      surface: const Size(360, 800),
+      textScale: 1.5,
+    );
+
+    await tester.ensureVisible(find.text('저장'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('saved_posts_empty')), findsOneWidget);
+    expect(find.byType(NestedScrollView), findsOneWidget);
+    expect(
+      tester.widget<OutlinedButton>(
+        find.byKey(const Key('open_saved_collections')),
+      ),
+      isNotNull,
+    );
+    expect(tester.takeException(), isNull);
+
+    expect(find.byKey(const Key('my_profile_header')), findsNothing);
+    expect(find.byKey(const Key('my_top_app_bar')), findsOneWidget);
+    expect(find.byKey(const Key('my_content_tabs_surface')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('다크 테마에서 탭과 텍스트 썸네일이 테마 surface를 사용한다', (tester) async {
