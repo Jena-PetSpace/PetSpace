@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../../../shared/widgets/petspace_state_view.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -213,6 +214,7 @@ class _CreateChatPageState extends State<CreateChatPage> {
       canPop: !_isCreatingChat,
       child: PetSpacePageScaffold(
         title: '새 채팅',
+        seamlessCanvas: true,
         body: BlocListener<ChatRoomsBloc, ChatRoomsState>(
           listener: (context, state) {
             if (state is ChatRoomCreated) {
@@ -493,45 +495,33 @@ class _CreateChatPageState extends State<CreateChatPage> {
     final label = _selectedUsers.length >= 2
         ? '그룹 만들기'
         : '${selectedName?.isNotEmpty == true ? selectedName : '선택한 사용자'}와 채팅 시작';
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).colorScheme.outlineVariant
-                  : AppTheme.border,
-            ),
-          ),
+    return PetSpaceBottomActionBar(
+      key: const Key('chat_create_bottom_action'),
+      minimum: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
+      child: ElevatedButton(
+        key: const Key('chat_create_primary_action'),
+        onPressed: _isCreatingChat ? null : _createChat,
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size.fromHeight(48),
+          backgroundColor: AppTheme.actionBase,
+          foregroundColor: Colors.white,
         ),
-        child: ElevatedButton(
-          key: const Key('chat_create_primary_action'),
-          onPressed: _isCreatingChat ? null : _createChat,
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-            backgroundColor: AppTheme.actionBase,
-            foregroundColor: Colors.white,
-          ),
-          child: _isCreatingChat
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: AppTheme.fontBody.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
+        child: _isCreatingChat
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
                 ),
-        ),
+              )
+            : Text(
+                label,
+                style: TextStyle(
+                  fontSize: AppTheme.fontBody.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
     );
   }

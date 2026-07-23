@@ -79,7 +79,7 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
       backgroundColor: AppTheme.backgroundColor,
       appBar: PetSpaceAppBar.page(
         title: '비밀번호 찾기',
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: AppTheme.backgroundColor,
         onBack: () => context.go('/onboarding/login'),
       ),
       body: SafeArea(

@@ -122,7 +122,7 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
         title: '약관 동의',
         step: 1,
         totalSteps: 3,
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: AppTheme.backgroundColor,
         onBack: () => context.go('/onboarding/login'),
       ),
       body: SafeArea(

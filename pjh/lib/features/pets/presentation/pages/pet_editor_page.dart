@@ -11,6 +11,7 @@ import '../../../../core/services/image_upload_service.dart';
 import '../../../../shared/constants/pet_constants.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
+import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../domain/entities/pet.dart';
 import '../bloc/pet_bloc.dart';
 import '../bloc/pet_event.dart';
@@ -207,7 +208,7 @@ class _PetEditorPageState extends State<PetEditorPage> {
         child: Scaffold(
           key: const Key('pet_editor_page'),
           resizeToAvoidBottomInset: true,
-          backgroundColor: Theme.of(context).colorScheme.surface,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: _buildAppBar(),
           body: _isEditing
               ? _buildEditBody()
@@ -267,7 +268,7 @@ class _PetEditorPageState extends State<PetEditorPage> {
     return AppBar(
       automaticallyImplyLeading: false,
       centerTitle: true,
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       leadingWidth: 56,
       leading: IconButton(
@@ -923,39 +924,33 @@ class _PetEditorPageState extends State<PetEditorPage> {
 
   Widget _buildBottomActions() {
     final colorScheme = Theme.of(context).colorScheme;
-    return SafeArea(
-      top: false,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          border: Border(top: BorderSide(color: colorScheme.outlineVariant)),
-        ),
-        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 14.h),
-        child: _isEditing
-            ? _buildPrimaryButton(label: '변경사항 저장', onPressed: _submit)
-            : _registrationStep == 0
-                ? _buildPrimaryButton(label: '다음', onPressed: _goToStepTwo)
-                : Row(
-                    children: [
-                      TextButton(
-                        key: const Key('pet_editor_skip_button'),
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size(88, 52),
-                          foregroundColor: colorScheme.onSurfaceVariant,
-                        ),
-                        onPressed: _isSubmitting ? null : _submit,
-                        child: Text('건너뛰기', style: TextStyle(fontSize: 15.sp)),
+    return PetSpaceBottomActionBar(
+      key: const Key('pet_editor_bottom_action'),
+      minimum: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 14.h),
+      child: _isEditing
+          ? _buildPrimaryButton(label: '변경사항 저장', onPressed: _submit)
+          : _registrationStep == 0
+              ? _buildPrimaryButton(label: '다음', onPressed: _goToStepTwo)
+              : Row(
+                  children: [
+                    TextButton(
+                      key: const Key('pet_editor_skip_button'),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(88, 52),
+                        foregroundColor: colorScheme.onSurfaceVariant,
                       ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: _buildPrimaryButton(
-                          label: '등록 완료',
-                          onPressed: _submit,
-                        ),
+                      onPressed: _isSubmitting ? null : _submit,
+                      child: Text('건너뛰기', style: TextStyle(fontSize: 15.sp)),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: _buildPrimaryButton(
+                        label: '등록 완료',
+                        onPressed: _submit,
                       ),
-                    ],
-                  ),
-      ),
+                    ),
+                  ],
+                ),
     );
   }
 
@@ -1219,9 +1214,10 @@ class _PassportEditorPageState extends State<_PassportEditorPage> {
     return Scaffold(
       key: const Key('pet_passport_editor_page'),
       resizeToAvoidBottomInset: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: colorScheme.surface,
+        backgroundColor: theme.scaffoldBackgroundColor,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
@@ -1325,37 +1321,31 @@ class _PassportEditorPageState extends State<_PassportEditorPage> {
           ),
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 14.h),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            border: Border(top: BorderSide(color: colorScheme.outlineVariant)),
+      bottomNavigationBar: PetSpaceBottomActionBar(
+        key: const Key('pet_passport_bottom_action'),
+        minimum: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 14.h),
+        child: ElevatedButton(
+          key: const Key('pet_passport_save_button'),
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 48),
+            backgroundColor: AppTheme.actionBase,
+            foregroundColor: Colors.white,
+            overlayColor: AppTheme.actionPressed,
+            elevation: 0,
           ),
-          child: ElevatedButton(
-            key: const Key('pet_passport_save_button'),
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 48),
-              backgroundColor: AppTheme.actionBase,
-              foregroundColor: Colors.white,
-              overlayColor: AppTheme.actionPressed,
-              elevation: 0,
-            ),
-            onPressed: () {
-              Navigator.of(context).pop(
-                _PassportDraft(
-                  surname: _surnameController.text,
-                  givenName: _givenNameController.text,
-                  nameHanguel: _nameHanguelController.text,
-                  countryCode: _countryCode,
-                ),
-              );
-            },
-            child: Text(
-              '여권 정보 저장',
-              style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700),
-            ),
+          onPressed: () {
+            Navigator.of(context).pop(
+              _PassportDraft(
+                surname: _surnameController.text,
+                givenName: _givenNameController.text,
+                nameHanguel: _nameHanguelController.text,
+                countryCode: _countryCode,
+              ),
+            );
+          },
+          child: Text(
+            '여권 정보 저장',
+            style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w700),
           ),
         ),
       ),

@@ -16,26 +16,29 @@ class CommunityGuidelinesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: Text(
           '커뮤니티 가이드라인',
           style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryTextColor,
-        elevation: 0.5,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
+            _buildHeader(theme),
             for (final section in LegalDocuments.communityGuidelineSections)
-              _buildSection(section.title, section.items),
-            _buildContactSection(),
+              _buildSection(theme, section.title, section.items),
+            _buildContactSection(theme),
             SizedBox(height: 30.h),
           ],
         ),
@@ -43,7 +46,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ThemeData theme) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -77,14 +80,21 @@ class CommunityGuidelinesPage extends StatelessWidget {
             '시행일: ${LegalDocuments.communityGuidelinesEffectiveDate}\n'
             '승인자: ${LegalDocuments.communityGuidelinesApprover}',
             key: const Key('community_guidelines_metadata'),
-            style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSection(String title, List<String> items) {
+  Widget _buildSection(
+    ThemeData theme,
+    String title,
+    List<String> items,
+  ) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 12.h),
       child: Column(
@@ -95,7 +105,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 15.sp,
               fontWeight: FontWeight.bold,
-              color: AppTheme.primaryTextColor,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           SizedBox(height: 8.h),
@@ -122,7 +132,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13.sp,
                         height: 1.5,
-                        color: AppTheme.primaryTextColor,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -135,12 +145,12 @@ class CommunityGuidelinesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContactSection() {
+  Widget _buildContactSection(ThemeData theme) {
     return Container(
       margin: EdgeInsets.only(top: 20.h),
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(10.r),
       ),
       child: Column(
@@ -156,7 +166,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
             key: const Key('community_guidelines_contact'),
             style: TextStyle(
               fontSize: 12.sp,
-              color: Colors.grey[700],
+              color: theme.colorScheme.onSurfaceVariant,
               height: 1.5,
             ),
           ),

@@ -60,6 +60,45 @@ void main() {
     expect(tester.widget<AppBar>(find.byType(AppBar)).centerTitle, isFalse);
   });
 
+  testWidgets('seamless task mode connects the app bar to the page canvas', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        const PetSpacePageScaffold(
+          title: '프로필 편집',
+          seamlessCanvas: true,
+          body: SizedBox(),
+        ),
+      ),
+    );
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(appBar.backgroundColor, scaffold.backgroundColor);
+    expect(appBar.shape, isNull);
+  });
+
+  testWidgets('seamless task mode stays continuous in dark mode', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        const PetSpacePageScaffold(
+          title: '채팅방 정보',
+          seamlessCanvas: true,
+          body: SizedBox(),
+        ),
+        dark: true,
+      ),
+    );
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(appBar.backgroundColor, scaffold.backgroundColor);
+    expect(appBar.shape, isNull);
+  });
+
   testWidgets('has no overflow at 320x568 with 200 percent text', (
     tester,
   ) async {

@@ -211,7 +211,7 @@ class _OnboardingEmailVerificationPageState
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PetSpaceAppBar.page(
         title: '이메일 인증',
-        backgroundColor: theme.colorScheme.surface,
+        backgroundColor: theme.scaffoldBackgroundColor,
         onBack: () async {
           // 미완료 인증 상태의 session을 정리한 뒤 로그인 페이지로 이동
           try {

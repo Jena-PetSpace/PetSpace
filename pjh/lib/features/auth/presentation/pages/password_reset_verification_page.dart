@@ -197,7 +197,7 @@ class _PasswordResetVerificationPageState
       backgroundColor: AppTheme.backgroundColor,
       appBar: PetSpaceAppBar.page(
         title: '인증 코드 확인',
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: AppTheme.backgroundColor,
         onBack: () async {
           // 로그아웃 후 비밀번호 찾기 페이지로 이동
           await Supabase.instance.client.auth.signOut();

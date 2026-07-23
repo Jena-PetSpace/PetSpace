@@ -8,6 +8,7 @@ import '../../../../core/utils/back_press_handler.dart';
 import '../../../../shared/constants/community_categories.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/category_chip.dart';
+import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/entities/post.dart';
 import '../../../social/domain/repositories/social_repository.dart';
@@ -132,6 +133,8 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          surfaceTintColor: Colors.transparent,
           leadingWidth: 68.w,
           leading: TextButton(
             key: const Key('community_close_button'),
@@ -271,32 +274,20 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
             ),
           ),
         ),
-        bottomNavigationBar: Material(
-          color: theme.colorScheme.surface,
-          surfaceTintColor: Colors.transparent,
-          child: SafeArea(
-            top: false,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 12.h),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: theme.colorScheme.outlineVariant),
-                ),
-              ),
-              child: FilledButton(
-                key: const Key('community_submit_button'),
-                onPressed: _isSubmitting ? null : _submit,
-                child: _isSubmitting
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('등록하기'),
-              ),
-            ),
+        bottomNavigationBar: PetSpaceBottomActionBar(
+          key: const Key('community_bottom_action'),
+          child: FilledButton(
+            key: const Key('community_submit_button'),
+            onPressed: _isSubmitting ? null : _submit,
+            child: _isSubmitting
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('등록하기'),
           ),
         ),
       ),

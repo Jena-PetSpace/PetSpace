@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../domain/entities/health_record.dart';
 import '../bloc/health_bloc.dart';
@@ -73,7 +74,10 @@ class _HealthRecordEditorPageState extends State<HealthRecordEditorPage> {
       child: PopScope(
         canPop: !_submitting,
         child: Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            surfaceTintColor: Colors.transparent,
             leadingWidth: 68.w,
             leading: TextButton(
               key: const Key('health_editor_close'),
@@ -92,6 +96,7 @@ class _HealthRecordEditorPageState extends State<HealthRecordEditorPage> {
           ),
           body: SafeArea(
             top: false,
+            bottom: false,
             child: Column(
               children: [
                 Expanded(
@@ -256,12 +261,9 @@ class _HealthRecordEditorPageState extends State<HealthRecordEditorPage> {
   }
 
   Widget _buildStickySubmit(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: const Border(top: BorderSide(color: AppTheme.border)),
-      ),
+    return PetSpaceBottomActionBar(
+      key: const Key('health_editor_bottom_action'),
+      minimum: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

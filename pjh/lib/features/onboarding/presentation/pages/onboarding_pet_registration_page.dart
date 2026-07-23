@@ -9,6 +9,7 @@ import '../../../../config/injection_container.dart' as di;
 import '../../../../core/services/image_upload_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
+import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../pets/domain/entities/pet.dart' as pets;
@@ -51,14 +52,13 @@ class _OnboardingPetRegistrationPageState
 
   Widget _buildPage(BuildContext pageContext) {
     final theme = Theme.of(pageContext);
-    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PetSpaceAppBar.steps(
         title: '반려동물 등록',
         step: 3,
         totalSteps: 3,
-        backgroundColor: theme.colorScheme.surface,
+        backgroundColor: theme.scaffoldBackgroundColor,
         onBack: () {
           if (_isSaving) return;
           if (pageContext.canPop()) {
@@ -70,6 +70,7 @@ class _OnboardingPetRegistrationPageState
       ),
       body: SafeArea(
         top: false,
+        bottom: false,
         child: Column(
           children: [
             Expanded(
@@ -162,23 +163,9 @@ class _OnboardingPetRegistrationPageState
                 ),
               ),
             ),
-            Container(
-              padding: EdgeInsets.fromLTRB(
-                24.w,
-                12.h,
-                24.w,
-                12.h + MediaQuery.paddingOf(pageContext).bottom,
-              ),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                border: Border(
-                  top: BorderSide(
-                    color: isDark
-                        ? theme.colorScheme.outlineVariant
-                        : AppTheme.border,
-                  ),
-                ),
-              ),
+            PetSpaceBottomActionBar(
+              key: const Key('first_pet_bottom_action'),
+              minimum: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 12.h),
               child: SizedBox(
                 width: double.infinity,
                 height: 52,

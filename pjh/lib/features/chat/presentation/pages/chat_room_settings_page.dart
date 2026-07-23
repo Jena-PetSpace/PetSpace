@@ -10,6 +10,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/services/block_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
+import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../../../shared/widgets/petspace_settings_components.dart';
 import '../../../../shared/widgets/petspace_state_view.dart';
@@ -399,6 +400,7 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   Widget build(BuildContext context) {
     return PetSpacePageScaffold(
       title: '채팅방 정보',
+      seamlessCanvas: true,
       body: _isLoading
           ? const PetSpaceStateView.loading(
               key: Key('chat_room_settings_loading'),
@@ -624,40 +626,27 @@ class _ChatRoomSettingsPageState extends State<ChatRoomSettingsPage> {
   }
 
   Widget _buildSaveBar() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          border: Border(
-            top: BorderSide(
-              color:
-                  isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
-            ),
-          ),
+    return PetSpaceBottomActionBar(
+      key: const Key('chat_room_bottom_action'),
+      minimum: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
+      child: ElevatedButton(
+        key: const Key('chat_room_save_button'),
+        onPressed: _hasSaveableChanges ? _saveChanges : null,
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size.fromHeight(48),
+          backgroundColor: AppTheme.actionBase,
+          foregroundColor: Colors.white,
         ),
-        child: ElevatedButton(
-          key: const Key('chat_room_save_button'),
-          onPressed: _hasSaveableChanges ? _saveChanges : null,
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-            backgroundColor: AppTheme.actionBase,
-            foregroundColor: Colors.white,
-          ),
-          child: _isSaving
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text('변경사항 저장'),
-        ),
+        child: _isSaving
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Text('변경사항 저장'),
       ),
     );
   }

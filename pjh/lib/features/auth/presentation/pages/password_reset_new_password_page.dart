@@ -169,7 +169,7 @@ class _PasswordResetNewPasswordPageState
       backgroundColor: AppTheme.backgroundColor,
       appBar: PetSpaceAppBar.page(
         title: '새 비밀번호 설정',
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: AppTheme.backgroundColor,
         onBack: () async {
           // 로그아웃 후 로그인 페이지로 이동
           await Supabase.instance.client.auth.signOut();

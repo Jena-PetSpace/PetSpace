@@ -106,8 +106,11 @@ void main() {
     expect(nameField.controller!.text, '정현');
     expect(bioField.controller!.text, '흰둥이 보호자입니다');
     expect(find.byKey(const Key('profile_edit_save_button')), findsOneWidget);
+    final saveActionBar = find.byKey(
+      const Key('profile_edit_save_safe_area'),
+    );
     final saveSafeArea = tester.widget<SafeArea>(
-      find.byKey(const Key('profile_edit_save_safe_area')),
+      find.descendant(of: saveActionBar, matching: find.byType(SafeArea)),
     );
     expect(saveSafeArea.minimum.bottom, greaterThanOrEqualTo(60));
     expect(

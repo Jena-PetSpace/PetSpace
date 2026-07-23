@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../config/injection_container.dart' as di;
 import '../../../../core/services/profile_service.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../../../shared/widgets/petspace_state_view.dart';
 import '../../../../shared/widgets/profile_image_picker.dart';
@@ -104,6 +105,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       },
       child: PetSpacePageScaffold(
         title: '프로필 편집',
+        seamlessCanvas: true,
         body: _buildBody(),
         bottomNavigationBar:
             _isInitialLoading || _hasLoadError ? null : _buildSaveBar(),
@@ -352,52 +354,45 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   }
 
   Widget _buildSaveBar() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Material(
-      color: isDark ? theme.colorScheme.surface : AppTheme.surfaceColor,
-      elevation: 8,
-      child: SafeArea(
-        key: const Key('profile_edit_save_safe_area'),
-        top: false,
-        minimum: EdgeInsets.fromLTRB(
-          20.w,
-          12.h,
-          20.w,
-          _navigationOverlapClearance.h,
-        ),
-        child: SizedBox(
-          height: 52.h,
-          child: ElevatedButton(
-            key: const Key('profile_edit_save_button'),
-            onPressed: _isSaving ? null : _saveProfile,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.actionBase,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: AppTheme.actionBase.withValues(
-                alpha: 0.5,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
-              ),
+    return PetSpaceBottomActionBar(
+      key: const Key('profile_edit_save_safe_area'),
+      minimum: EdgeInsets.fromLTRB(
+        20.w,
+        12.h,
+        20.w,
+        _navigationOverlapClearance.h,
+      ),
+      child: SizedBox(
+        height: 52.h,
+        child: ElevatedButton(
+          key: const Key('profile_edit_save_button'),
+          onPressed: _isSaving ? null : _saveProfile,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.actionBase,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: AppTheme.actionBase.withValues(
+              alpha: 0.5,
             ),
-            child: _isSaving
-                ? SizedBox(
-                    width: 22.w,
-                    height: 22.w,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    '변경사항 저장',
-                    style: TextStyle(
-                      fontSize: AppTheme.fontBody.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+            ),
           ),
+          child: _isSaving
+              ? SizedBox(
+                  width: 22.w,
+                  height: 22.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  '변경사항 저장',
+                  style: TextStyle(
+                    fontSize: AppTheme.fontBody.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
         ),
       ),
     );

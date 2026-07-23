@@ -12,6 +12,7 @@ import '../../../../core/services/content_filter.dart';
 import '../../../../core/utils/back_press_handler.dart';
 import '../../../../core/utils/hashtag_utils.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../../../shared/widgets/multi_image_picker.dart';
 import '../../../emotion/domain/entities/emotion_analysis.dart';
 import '../../../emotion/presentation/widgets/emotion_chart_widget.dart';
@@ -189,6 +190,8 @@ class _CreatePostPageState extends State<CreatePostPage>
         child: Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            surfaceTintColor: Colors.transparent,
             leadingWidth: 68.w,
             leading: TextButton(
               key: const Key('create_post_close_button'),
@@ -284,34 +287,20 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 
   Widget _buildSubmitBar() {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surface,
-      surfaceTintColor: Colors.transparent,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 12.h),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: theme.colorScheme.outlineVariant),
-            ),
-          ),
-          child: FilledButton(
-            key: const Key('create_post_submit_button'),
-            onPressed:
-                _isSubmitting ? null : (_isEditMode ? _updatePost : _submit),
-            child: _isSubmitting
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(_isEditMode ? '수정하기' : '게시하기'),
-          ),
-        ),
+    return PetSpaceBottomActionBar(
+      key: const Key('create_post_bottom_action'),
+      child: FilledButton(
+        key: const Key('create_post_submit_button'),
+        onPressed: _isSubmitting ? null : (_isEditMode ? _updatePost : _submit),
+        child: _isSubmitting
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(_isEditMode ? '수정하기' : '게시하기'),
       ),
     );
   }

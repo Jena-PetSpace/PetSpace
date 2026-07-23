@@ -14,6 +14,7 @@ class PetSpacePageScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
   final bool? resizeToAvoidBottomInset;
   final bool centerTitle;
+  final bool seamlessCanvas;
 
   const PetSpacePageScaffold({
     super.key,
@@ -25,6 +26,7 @@ class PetSpacePageScaffold extends StatelessWidget {
     this.floatingActionButton,
     this.resizeToAvoidBottomInset,
     this.centerTitle = true,
+    this.seamlessCanvas = false,
   });
 
   @override
@@ -35,8 +37,9 @@ class PetSpacePageScaffold extends StatelessWidget {
     final bool isDark = theme.brightness == Brightness.dark;
     final Color background =
         isDark ? theme.scaffoldBackgroundColor : AppTheme.backgroundColor;
-    final Color barSurface =
-        isDark ? theme.colorScheme.surface : AppTheme.surfaceColor;
+    final Color barSurface = seamlessCanvas
+        ? background
+        : (isDark ? theme.colorScheme.surface : AppTheme.surfaceColor);
     final Color barContent =
         isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
     final Color titleColor =
@@ -51,7 +54,9 @@ class PetSpacePageScaffold extends StatelessWidget {
         centerTitle: centerTitle,
         scrolledUnderElevation: 0,
         surfaceTintColor: barSurface,
-        shape: Border(bottom: BorderSide(color: theme.dividerColor)),
+        shape: seamlessCanvas
+            ? null
+            : Border(bottom: BorderSide(color: theme.dividerColor)),
         leading: leading,
         iconTheme: IconThemeData(color: barContent),
         title: Text(

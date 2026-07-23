@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../shared/themes/app_theme.dart';
 import '../../../../core/constants/legal_documents.dart';
 
 /// 설정 메뉴 열람용 개인정보처리방침 화면.
@@ -12,16 +11,19 @@ class PrivacyPolicyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: Text(
           '개인정보처리방침',
           style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryTextColor,
-        elevation: 0.5,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.w),
@@ -30,7 +32,7 @@ class PrivacyPolicyPage extends StatelessWidget {
           style: TextStyle(
             fontSize: 13.sp,
             height: 1.6,
-            color: AppTheme.primaryTextColor,
+            color: theme.colorScheme.onSurface,
           ),
         ),
       ),

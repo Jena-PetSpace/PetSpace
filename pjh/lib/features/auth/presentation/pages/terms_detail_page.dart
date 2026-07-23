@@ -17,11 +17,12 @@ class TermsDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surface,
       appBar: PetSpaceAppBar.page(
         title: title,
-        backgroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.surface,
         onBack: () => Navigator.of(context).pop(),
       ),
       body: SafeArea(
@@ -32,9 +33,9 @@ class TermsDetailPage extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 child: Text(
                   content,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.neutral800,
+                    color: theme.colorScheme.onSurface,
                     height: 1.6,
                   ),
                 ),
@@ -49,7 +50,7 @@ class TermsDetailPage extends StatelessWidget {
                   bottom: 20 + MediaQuery.of(context).padding.bottom,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.colorScheme.surface,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),

@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
 import '../../../../shared/widgets/info_box.dart';
@@ -53,6 +54,7 @@ class _OnboardingProfileSetupPageState
       ),
       body: SafeArea(
         top: false,
+        bottom: false,
         child: Column(
           children: [
             Expanded(
@@ -237,19 +239,9 @@ class _OnboardingProfileSetupPageState
   }
 
   Widget _buildBottomAction() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
+    return PetSpaceBottomActionBar(
       key: const Key('onboarding_profile_bottom_action'),
-      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 12.h),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
-          ),
-        ),
-      ),
+      minimum: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 12.h),
       child: SizedBox(
         width: double.infinity,
         height: 52,
