@@ -124,8 +124,12 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   }
 
   Widget _buildProviderEntry() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = theme.colorScheme.surface;
+    final muted = theme.colorScheme.onSurfaceVariant;
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(24.w, 28.h, 24.w, 24.h),
@@ -149,9 +153,9 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
               SocialLoginButton(
                 icon: Icons.g_mobiledata_rounded,
                 text: 'Google로 계속하기',
-                backgroundColor: AppTheme.surfaceColor,
+                backgroundColor: isDark ? Colors.white : surface,
                 textColor: AppTheme.primaryTextColor,
-                borderColor: AppTheme.border,
+                borderColor: isDark ? AppTheme.neutral300 : AppTheme.border,
                 isLoading: _pendingProvider == 'Google',
                 onPressed: _isPending ? null : () => _beginProvider('Google'),
               ),
@@ -168,15 +172,20 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
               _buildDivider(),
               SizedBox(height: 24.h),
               SizedBox(
-                height: 52.h,
+                height: 52,
                 child: OutlinedButton(
                   onPressed: _isPending
                       ? null
                       : () => setState(() => _showEmailAuth = true),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.brandDeep,
-                    backgroundColor: AppTheme.surfaceColor,
-                    side: const BorderSide(color: AppTheme.border),
+                    foregroundColor:
+                        isDark ? theme.colorScheme.primary : AppTheme.brandDeep,
+                    backgroundColor: surface,
+                    side: BorderSide(
+                      color: isDark
+                          ? theme.colorScheme.outlineVariant
+                          : AppTheme.border,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
                     ),
@@ -195,7 +204,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                 '가입 과정에서 이용약관과 개인정보 처리방침을 확인하고 선택할 수 있어요.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppTheme.textMuted,
+                  color: muted,
                   fontSize: AppTheme.fontMicro.sp,
                   height: 1.5,
                 ),
@@ -208,6 +217,11 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   }
 
   Widget _buildBrandStory() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final titleColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.brandDeep;
+    final muted = theme.colorScheme.onSurfaceVariant;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -218,13 +232,13 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
             color: AppTheme.actionContainer,
             borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
           ),
-          child: Icon(Icons.pets, color: AppTheme.brandDeep, size: 28.w),
+          child: Icon(Icons.pets, color: titleColor, size: 28.w),
         ),
         SizedBox(height: 24.h),
         Text(
           '함께한 하루가\n더 오래 기억되도록',
           style: TextStyle(
-            color: AppTheme.brandDeep,
+            color: titleColor,
             fontSize: 28.sp,
             fontWeight: FontWeight.w700,
             height: 1.28,
@@ -234,7 +248,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         Text(
           '반려동물의 일상과 건강을 한곳에서 기록하고, 믿을 수 있는 이웃과 나눠보세요.',
           style: TextStyle(
-            color: AppTheme.textMuted,
+            color: muted,
             fontSize: AppTheme.fontBody.sp,
             height: 1.55,
           ),
@@ -244,30 +258,36 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   }
 
   Widget _buildDivider() {
+    final theme = Theme.of(context);
+    final divider = theme.brightness == Brightness.dark
+        ? theme.colorScheme.outlineVariant
+        : AppTheme.border;
     return Row(
       children: [
-        const Expanded(child: Divider(color: AppTheme.border)),
+        Expanded(child: Divider(color: divider)),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Text(
             '또는',
             style: TextStyle(
-              color: AppTheme.textMuted,
+              color: theme.colorScheme.onSurfaceVariant,
               fontSize: AppTheme.fontCaption.sp,
             ),
           ),
         ),
-        const Expanded(child: Divider(color: AppTheme.border)),
+        Expanded(child: Divider(color: divider)),
       ],
     );
   }
 
   Widget _buildEmailAuth() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PetSpaceAppBar.page(
         title: '이메일로 계속하기',
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: theme.colorScheme.surface,
         onBack:
             _isPending ? null : () => setState(() => _showEmailAuth = false),
       ),
@@ -276,7 +296,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         child: Column(
           children: [
             Container(
-              color: AppTheme.surfaceColor,
+              color: theme.colorScheme.surface,
               padding: EdgeInsets.fromLTRB(24.w, 10.h, 24.w, 14.h),
               child: _buildAuthModeSelector(),
             ),
@@ -291,7 +311,9 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                       Text(
                         _isLogin ? '다시 만나 반가워요' : 'PetSpace를 시작해요',
                         style: TextStyle(
-                          color: AppTheme.brandDeep,
+                          color: isDark
+                              ? theme.colorScheme.onSurface
+                              : AppTheme.brandDeep,
                           fontSize: AppTheme.fontTitle.sp,
                           fontWeight: FontWeight.w700,
                         ),
@@ -302,7 +324,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                             ? '가입한 이메일과 비밀번호를 입력해주세요.'
                             : '자주 확인하는 이메일을 사용해주세요.',
                         style: TextStyle(
-                          color: AppTheme.textMuted,
+                          color: theme.colorScheme.onSurfaceVariant,
                           fontSize: AppTheme.fontBody.sp,
                         ),
                       ),
@@ -336,7 +358,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                         Text(
                           '영문과 숫자를 포함해 8자 이상 입력해주세요.',
                           style: TextStyle(
-                            color: AppTheme.textMuted,
+                            color: theme.colorScheme.onSurfaceVariant,
                             fontSize: AppTheme.fontCaption.sp,
                           ),
                         ),
@@ -385,13 +407,19 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                 24.w,
                 12.h + MediaQuery.paddingOf(context).bottom,
               ),
-              decoration: const BoxDecoration(
-                color: AppTheme.surfaceColor,
-                border: Border(top: BorderSide(color: AppTheme.border)),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? theme.colorScheme.outlineVariant
+                        : AppTheme.border,
+                  ),
+                ),
               ),
               child: SizedBox(
                 width: double.infinity,
-                height: 52.h,
+                height: 52,
                 child: ElevatedButton(
                   key: const ValueKey('email-auth-submit'),
                   onPressed: _isPending ? null : _submitEmail,
@@ -414,11 +442,14 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   }
 
   Widget _buildAuthModeSelector() {
+    final theme = Theme.of(context);
     return Container(
-      height: 44.h,
+      height: 44,
       padding: EdgeInsets.all(3.w),
       decoration: BoxDecoration(
-        color: AppTheme.subtleBackground,
+        color: theme.brightness == Brightness.dark
+            ? theme.colorScheme.surfaceContainerHighest
+            : AppTheme.subtleBackground,
         borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
       ),
       child: Row(
@@ -432,11 +463,13 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
 
   Widget _buildModeButton(String label, bool loginMode) {
     final selected = _isLogin == loginMode;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Semantics(
       selected: selected,
       button: true,
       child: Material(
-        color: selected ? AppTheme.surfaceColor : Colors.transparent,
+        color: selected ? theme.colorScheme.surface : Colors.transparent,
         borderRadius: BorderRadius.circular(6.r),
         child: InkWell(
           onTap: _isPending
@@ -450,7 +483,11 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
             child: Text(
               label,
               style: TextStyle(
-                color: selected ? AppTheme.brandDeep : AppTheme.textMuted,
+                color: selected
+                    ? (isDark
+                        ? theme.colorScheme.onSurface
+                        : AppTheme.brandDeep)
+                    : theme.colorScheme.onSurfaceVariant,
                 fontSize: AppTheme.fontBody.sp,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),

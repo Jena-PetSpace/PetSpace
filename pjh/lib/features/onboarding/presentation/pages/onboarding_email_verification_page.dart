@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -100,8 +101,8 @@ class _OnboardingEmailVerificationPageState
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('인증 코드가 이메일로 재발송되었습니다'),
-            backgroundColor: Colors.green,
+            content: Text('인증 코드를 다시 보냈어요.'),
+            backgroundColor: AppTheme.successColor,
           ),
         );
       }
@@ -144,8 +145,8 @@ class _OnboardingEmailVerificationPageState
           // 인증 성공 - 로그아웃 후 로그인 페이지로 이동
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('이메일 인증이 완료되었습니다!\n이제 로그인할 수 있습니다.'),
-              backgroundColor: Colors.green,
+              content: Text('이메일 인증이 완료됐어요. 이제 로그인해주세요.'),
+              backgroundColor: AppTheme.successColor,
               duration: Duration(seconds: 2),
             ),
           );
@@ -205,11 +206,12 @@ class _OnboardingEmailVerificationPageState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PetSpaceAppBar.page(
         title: '이메일 인증',
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: theme.colorScheme.surface,
         onBack: () async {
           // 미완료 인증 상태의 session을 정리한 뒤 로그인 페이지로 이동
           try {
@@ -223,7 +225,7 @@ class _OnboardingEmailVerificationPageState
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+          padding: EdgeInsets.fromLTRB(24.w, 32.h, 24.w, 24.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -235,95 +237,42 @@ class _OnboardingEmailVerificationPageState
                   tone: BadgeTone.feature,
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
 
               // 제목
-              const Text(
+              Text(
                 '이메일 인증',
                 style: TextStyle(
-                  fontSize: AppTheme.fontTitle,
+                  fontSize: AppTheme.fontTitle.sp,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.brandDeep,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10.h),
 
               // 설명
               Text(
                 '${widget.email}로\n발송된 6자리 인증 코드를 입력해주세요',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textMuted,
+                style: TextStyle(
+                  fontSize: AppTheme.fontBody.sp,
+                  color: theme.colorScheme.onSurfaceVariant,
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
 
               // 6자리 OTP 입력 필드
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(6, (index) {
-                  return SizedBox(
-                    width: 48,
-                    height: 60,
-                    child: KeyboardListener(
-                      focusNode: _keyboardListenerNodes[index],
-                      onKeyEvent: (event) => _onKeyPressed(index, event),
-                      child: TextField(
-                        controller: _controllers[index],
-                        focusNode: _focusNodes[index],
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        maxLength: 1,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                        decoration: InputDecoration(
-                          counterText: '',
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 16),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppTheme.neutral300,
-                              width: 2,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppTheme.neutral300,
-                              width: 2,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppTheme.accentColor,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        onChanged: (value) => _onCodeChanged(index, value),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 24),
+              _buildCodeFields(),
+              SizedBox(height: 24.h),
 
               // 에러 메시지
               if (_errorMessage != null)
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  key: const Key('email_verification_error'),
+                  padding: EdgeInsets.all(12.w),
                   decoration: BoxDecoration(
-                    color: AppTheme.tilePastelRose,
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppTheme.errorColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
                     border: Border.all(
                         color: AppTheme.errorColor.withValues(alpha: 0.35)),
                   ),
@@ -331,31 +280,28 @@ class _OnboardingEmailVerificationPageState
                     children: [
                       const Icon(Icons.error_outline,
                           color: AppTheme.errorColor, size: 20),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppTheme.errorColor,
-                            fontSize: 14,
+                            fontSize: AppTheme.fontCaption.sp,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              if (_errorMessage != null) const SizedBox(height: 24),
+              if (_errorMessage != null) SizedBox(height: 24.h),
 
               // 인증 버튼
               SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: ElevatedButton(
+                child: FilledButton(
+                  key: const Key('email_verification_submit'),
                   onPressed: _isVerifying ? null : _verifyOtp,
-                  style: ElevatedButton.styleFrom(
-                    // 버튼 주색은 테마 기본(navy/primary) 상속 — accent는 강조/링크용 (STEP 2-0)
-                    foregroundColor: Colors.white,
-                  ),
                   child: _isVerifying
                       ? const SizedBox(
                           width: 20,
@@ -366,29 +312,24 @@ class _OnboardingEmailVerificationPageState
                                 AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          '인증하기',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      : const Text('인증하기'),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
 
               // 재발송 버튼
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 4.w,
                 children: [
-                  const Text(
+                  Text(
                     '인증 코드를 받지 못하셨나요?',
                     style: TextStyle(
-                      color: AppTheme.neutral600,
-                      fontSize: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: AppTheme.fontCaption.sp,
                     ),
                   ),
-                  const SizedBox(width: 8),
                   TextButton(
                     onPressed: (_isResending || _resendCountdown > 0)
                         ? null
@@ -397,15 +338,17 @@ class _OnboardingEmailVerificationPageState
                       _resendCountdown > 0 ? '재발송 ($_resendCountdown초)' : '재발송',
                       style: TextStyle(
                         color: (_isResending || _resendCountdown > 0)
-                            ? AppTheme.neutral500
-                            : AppTheme.accentColor,
+                            ? theme.colorScheme.onSurfaceVariant
+                            : (theme.brightness == Brightness.dark
+                                ? theme.colorScheme.primary
+                                : AppTheme.actionBase),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
 
               // 안내 사항
               const InfoBox(
@@ -420,6 +363,79 @@ class _OnboardingEmailVerificationPageState
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCodeFields() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor =
+        isDark ? theme.colorScheme.outlineVariant : AppTheme.border;
+    final focusColor = isDark ? theme.colorScheme.primary : AppTheme.actionBase;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final gap = 6.w;
+        final available = constraints.maxWidth - (gap * 5);
+        final fieldWidth = (available / 6).clamp(36.0, 48.0);
+        return Row(
+          key: const Key('email_verification_code_row'),
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(6, (index) {
+            return Semantics(
+              label: '인증 코드 ${index + 1}번째 자리',
+              textField: true,
+              child: SizedBox(
+                width: fieldWidth,
+                height: 56,
+                child: KeyboardListener(
+                  focusNode: _keyboardListenerNodes[index],
+                  onKeyEvent: (event) => _onKeyPressed(index, event),
+                  child: TextField(
+                    key: ValueKey('email-verification-digit-$index'),
+                    controller: _controllers[index],
+                    focusNode: _focusNodes[index],
+                    enabled: !_isVerifying,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    textInputAction: index == 5
+                        ? TextInputAction.done
+                        : TextInputAction.next,
+                    maxLength: 1,
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      contentPadding: EdgeInsets.symmetric(vertical: 14.h),
+                      filled: true,
+                      fillColor: theme.colorScheme.surface,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusSm.r),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusSm.r),
+                        borderSide: BorderSide(color: focusColor, width: 1.5),
+                      ),
+                      disabledBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppTheme.radiusSm.r),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                    ),
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (value) => _onCodeChanged(index, value),
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }

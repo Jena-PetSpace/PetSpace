@@ -21,11 +21,17 @@ void main() {
     when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
   });
 
-  Widget host() => ScreenUtilInit(
+  Widget host({ThemeData? theme, double textScale = 1}) => ScreenUtilInit(
         designSize: const Size(390, 844),
         minTextAdapt: true,
         builder: (_, __) => MaterialApp(
-          theme: AppTheme.lightTheme,
+          theme: theme ?? AppTheme.lightTheme,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(textScale),
+            ),
+            child: child!,
+          ),
           home: BlocProvider<AuthBloc>.value(
             value: authBloc,
             child: const OnboardingLoginPage(showAppleButton: true),
@@ -72,5 +78,37 @@ void main() {
       hasLength(2),
     );
     expect(onboardingRoutes, contains('const OnboardingLoginPage()'));
+  });
+
+  testWidgets('320 너비·200% 글자에서도 provider와 이메일 인증 CTA가 잘리지 않는다', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      host(theme: AppTheme.darkTheme, textScale: 2),
+    );
+    await tester.pump();
+
+    for (final label in [
+      'Apple로 계속하기',
+      'Google로 계속하기',
+      '카카오로 계속하기',
+    ]) {
+      expect(find.text(label), findsOneWidget);
+      expect(tester.getSize(find.text(label)).height, greaterThan(0));
+    }
+    expect(tester.takeException(), isNull);
+
+    await tester.ensureVisible(find.text('이메일로 계속하기'));
+    await tester.tap(find.text('이메일로 계속하기'));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('email-auth-submit')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('email-auth-submit'))).height,
+      greaterThanOrEqualTo(48),
+    );
+    expect(tester.takeException(), isNull);
   });
 }

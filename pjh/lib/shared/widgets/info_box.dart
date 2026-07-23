@@ -63,15 +63,18 @@ class InfoBox extends StatelessWidget {
         children: [
           if (title != null) ...[
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.info_outline, size: 18.w, color: accent),
                 SizedBox(width: 6.w),
-                Text(
-                  title!,
-                  style: TextStyle(
-                    color: accent,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
+                Expanded(
+                  child: Text(
+                    title!,
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
+                    ),
                   ),
                 ),
               ],
@@ -84,10 +87,18 @@ class InfoBox extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '•  ',
-                    style: TextStyle(color: accent, fontSize: 13.sp),
+                  Padding(
+                    padding: EdgeInsets.only(top: 7.h),
+                    child: Container(
+                      width: 5.w,
+                      height: 5.w,
+                      decoration: BoxDecoration(
+                        color: accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                   ),
+                  SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
                       t,

@@ -101,15 +101,22 @@ class PetSpaceAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         if (_isSteps)
-          Padding(
-            padding: EdgeInsets.only(right: 16.w),
-            child: Center(
-              child: Text(
-                '$step / $totalSteps',
-                style: TextStyle(
-                  color: AppTheme.primaryColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
+          SizedBox(
+            width: 56,
+            child: Padding(
+              padding: EdgeInsets.only(right: 8.w),
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '$step / $totalSteps',
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.sp,
+                    ),
+                  ),
                 ),
               ),
             ),

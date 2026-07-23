@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 import '../../../../shared/widgets/image_source_picker.dart';
+import '../../../../shared/widgets/info_box.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../config/injection_container.dart' as di;
 
@@ -34,8 +36,9 @@ class _OnboardingProfileSetupPageState
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PetSpaceAppBar.steps(
         title: '프로필 설정',
         step: 2,
@@ -49,49 +52,54 @@ class _OnboardingProfileSetupPageState
         },
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 20),
-                  _buildHeader(),
-                  const SizedBox(height: 40),
-                  _buildAvatarSection(),
-                  const SizedBox(height: 32),
-                  _buildFormFields(),
-                  const SizedBox(height: 24),
-                  _buildContinueButton(),
-                  const SizedBox(height: 24),
-                ],
+        top: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 28.h),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildHeader(),
+                      SizedBox(height: 32.h),
+                      _buildAvatarSection(),
+                      SizedBox(height: 28.h),
+                      _buildFormFields(),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+            _buildBottomAction(),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    return const Column(
+    final theme = Theme.of(context);
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '어떻게 불러드릴까요?',
           style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+            fontSize: AppTheme.fontTitle.sp,
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurface,
           ),
         ),
-        SizedBox(height: 8),
+        SizedBox(height: 8.h),
         Text(
           '커뮤니티에서 사용할 이름과 사진만 먼저 설정해주세요.',
           style: TextStyle(
-            fontSize: 16,
-            color: AppTheme.neutral600,
+            fontSize: AppTheme.fontBody.sp,
+            color: theme.colorScheme.onSurfaceVariant,
+            height: 1.5,
           ),
         ),
       ],
@@ -99,94 +107,109 @@ class _OnboardingProfileSetupPageState
   }
 
   Widget _buildAvatarSection() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = isDark ? theme.colorScheme.primary : AppTheme.actionBase;
     return Center(
-      child: Semantics(
-        label: '프로필 사진 선택',
-        button: true,
-        child: GestureDetector(
-          onTap: _pickProfileImage,
-          child: Stack(
-            children: [
-              Container(
-                width: 96,
-                height: 96,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  border: Border.all(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                    width: 1,
+      child: Column(
+        children: [
+          Semantics(
+            label: '프로필 사진 선택',
+            button: true,
+            enabled: !_isLoading,
+            child: InkWell(
+              key: const Key('onboarding_profile_photo'),
+              onTap: _isLoading ? null : _pickProfileImage,
+              customBorder: const CircleBorder(),
+              child: Stack(
+                children: [
+                  Container(
+                    width: 104.w,
+                    height: 104.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark
+                          ? theme.colorScheme.surfaceContainerHighest
+                          : AppTheme.actionContainer,
+                      border: Border.all(
+                        color: isDark
+                            ? theme.colorScheme.outlineVariant
+                            : AppTheme.border,
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: _selectedImageFile != null
+                        ? Image.file(_selectedImageFile!, fit: BoxFit.cover)
+                        : _avatarUrl != null
+                            ? Image.network(
+                                _avatarUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _buildAvatarPlaceholder(accent),
+                              )
+                            : _buildAvatarPlaceholder(accent),
                   ),
-                ),
-                child: _selectedImageFile != null
-                    ? ClipOval(
-                        child: Image.file(
-                          _selectedImageFile!,
-                          width: 96,
-                          height: 96,
-                          fit: BoxFit.cover,
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 36.w,
+                      height: 36.w,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: accent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: theme.colorScheme.surface,
+                          width: 2,
                         ),
-                      )
-                    : _avatarUrl != null
-                        ? ClipOval(
-                            child: Image.network(
-                              _avatarUrl!,
-                              width: 96,
-                              height: 96,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildAvatarPlaceholder();
-                              },
-                            ),
-                          )
-                        : _buildAvatarPlaceholder(),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_outlined,
+                        size: 18.w,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                  padding: const EdgeInsets.all(7),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          SizedBox(height: 10.h),
+          Text(
+            '프로필 사진 · 선택',
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: AppTheme.fontCaption.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildAvatarPlaceholder() {
-    // 원형(120px) 안에 텍스트를 넣으면 곡면 가장자리/카메라 배지와 겹쳐 잘리므로
-    // 아이콘만 중앙 배치한다. '사진 추가' 의도는 우하단 카메라 배지로 전달.
-    return const Center(
-      child: Icon(
-        Icons.add_a_photo,
-        size: 40,
-        color: AppTheme.primaryColor,
-      ),
+  Widget _buildAvatarPlaceholder(Color accent) {
+    return Center(
+      child: Icon(Icons.person_outline_rounded, size: 40.w, color: accent),
     );
   }
 
   Widget _buildFormFields() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextFormField(
+          key: const Key('onboarding_profile_name'),
           controller: _displayNameController,
+          enabled: !_isLoading,
+          textInputAction: TextInputAction.done,
+          maxLength: 20,
           decoration: const InputDecoration(
             labelText: '닉네임 *',
-            hintText: '사용하실 닉네임을 입력해주세요',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.person, color: AppTheme.secondaryTextColor),
+            hintText: '예: 보리 보호자',
+            helperText: '필수 · 2~20자',
+            prefixIcon: Icon(Icons.person_outline_rounded),
           ),
           validator: (value) {
             if (value == null || value.trim().isEmpty) {
@@ -201,55 +224,48 @@ class _OnboardingProfileSetupPageState
             return null;
           },
         ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.actionContainer,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            border: Border.all(color: AppTheme.border),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.info_outline, color: AppTheme.accentColor),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '닉네임과 프로필 사진은 다른 사용자에게 공개됩니다. 이메일과 로그인 정보는 공개되지 않아요.',
-                  style: TextStyle(
-                    color: AppTheme.secondaryColor,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        SizedBox(height: 20.h),
+        const InfoBox(
+          title: '공개 정보 안내',
+          items: [
+            '닉네임과 프로필 사진은 다른 사용자에게 공개됩니다.',
+            '이메일과 로그인 정보는 공개되지 않아요.',
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildContinueButton() {
-    return SizedBox(
-      height: 52,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _continue,
-        child: _isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Text(
-                '다음',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+  Widget _buildBottomAction() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      key: const Key('onboarding_profile_bottom_action'),
+      padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 12.h),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+          ),
+        ),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: FilledButton(
+          key: const Key('onboarding_profile_continue'),
+          onPressed: _isLoading ? null : _continue,
+          child: _isLoading
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('다음'),
+        ),
       ),
     );
   }

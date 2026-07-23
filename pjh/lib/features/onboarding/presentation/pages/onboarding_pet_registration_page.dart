@@ -50,13 +50,15 @@ class _OnboardingPetRegistrationPageState
   }
 
   Widget _buildPage(BuildContext pageContext) {
+    final theme = Theme.of(pageContext);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: PetSpaceAppBar.steps(
         title: '반려동물 등록',
         step: 3,
         totalSteps: 3,
-        backgroundColor: AppTheme.surfaceColor,
+        backgroundColor: theme.colorScheme.surface,
         onBack: () {
           if (_isSaving) return;
           if (pageContext.canPop()) {
@@ -110,7 +112,7 @@ class _OnboardingPetRegistrationPageState
                       Text(
                         '종류',
                         style: TextStyle(
-                          color: AppTheme.primaryTextColor,
+                          color: theme.colorScheme.onSurface,
                           fontSize: AppTheme.fontBody.sp,
                           fontWeight: FontWeight.w700,
                         ),
@@ -139,7 +141,7 @@ class _OnboardingPetRegistrationPageState
                       Text(
                         '생년월일',
                         style: TextStyle(
-                          color: AppTheme.primaryTextColor,
+                          color: theme.colorScheme.onSurface,
                           fontSize: AppTheme.fontBody.sp,
                           fontWeight: FontWeight.w700,
                         ),
@@ -150,7 +152,7 @@ class _OnboardingPetRegistrationPageState
                       Text(
                         '품종, 성별, 중성화 여부 같은 자세한 정보는 MY에서 나중에 추가할 수 있어요.',
                         style: TextStyle(
-                          color: AppTheme.textMuted,
+                          color: theme.colorScheme.onSurfaceVariant,
                           fontSize: AppTheme.fontCaption.sp,
                           height: 1.5,
                         ),
@@ -167,14 +169,20 @@ class _OnboardingPetRegistrationPageState
                 24.w,
                 12.h + MediaQuery.paddingOf(pageContext).bottom,
               ),
-              decoration: const BoxDecoration(
-                color: AppTheme.surfaceColor,
-                border: Border(top: BorderSide(color: AppTheme.border)),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? theme.colorScheme.outlineVariant
+                        : AppTheme.border,
+                  ),
+                ),
               ),
               child: SizedBox(
                 width: double.infinity,
-                height: 52.h,
-                child: ElevatedButton(
+                height: 52,
+                child: FilledButton(
                   key: const ValueKey('save-first-pet'),
                   onPressed: _isSaving ? null : () => _savePet(pageContext),
                   child: _isSaving
@@ -196,13 +204,15 @@ class _OnboardingPetRegistrationPageState
   }
 
   Widget _buildHeader() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '가장 먼저 누구를 기록할까요?',
           style: TextStyle(
-            color: AppTheme.brandDeep,
+            color: isDark ? theme.colorScheme.onSurface : AppTheme.brandDeep,
             fontSize: AppTheme.fontTitle.sp,
             fontWeight: FontWeight.w700,
           ),
@@ -211,7 +221,7 @@ class _OnboardingPetRegistrationPageState
         Text(
           '이름과 종류만 등록해도 시작할 수 있어요. 자세한 정보는 나중에 추가할 수 있습니다.',
           style: TextStyle(
-            color: AppTheme.textMuted,
+            color: theme.colorScheme.onSurfaceVariant,
             fontSize: AppTheme.fontBody.sp,
             height: 1.5,
           ),
@@ -221,6 +231,9 @@ class _OnboardingPetRegistrationPageState
   }
 
   Widget _buildPetPhoto() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = isDark ? theme.colorScheme.primary : AppTheme.actionBase;
     return Center(
       child: Semantics(
         label: '반려동물 사진 선택',
@@ -232,9 +245,14 @@ class _OnboardingPetRegistrationPageState
             width: 96.w,
             height: 96.w,
             decoration: BoxDecoration(
-              color: AppTheme.actionContainer,
+              color: isDark
+                  ? theme.colorScheme.surfaceContainerHighest
+                  : AppTheme.actionContainer,
               shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.border),
+              border: Border.all(
+                color:
+                    isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+              ),
             ),
             clipBehavior: Clip.antiAlias,
             child: _selectedImageFile == null
@@ -243,14 +261,14 @@ class _OnboardingPetRegistrationPageState
                     children: [
                       Icon(
                         Icons.add_a_photo_outlined,
-                        color: AppTheme.actionBase,
+                        color: accent,
                         size: 26.w,
                       ),
                       SizedBox(height: 4.h),
                       Text(
                         '사진 추가',
                         style: TextStyle(
-                          color: AppTheme.actionBase,
+                          color: accent,
                           fontSize: AppTheme.fontMicro.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -270,16 +288,25 @@ class _OnboardingPetRegistrationPageState
     required IconData icon,
   }) {
     final selected = _selectedType == type;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = isDark ? theme.colorScheme.primary : AppTheme.actionBase;
     return Semantics(
       label: label,
       button: true,
       selected: selected,
       child: Material(
-        color: selected ? AppTheme.actionContainer : AppTheme.surfaceColor,
+        color: selected
+            ? (isDark
+                ? theme.colorScheme.primaryContainer
+                : AppTheme.actionContainer)
+            : theme.colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
           side: BorderSide(
-            color: selected ? AppTheme.actionBase : AppTheme.border,
+            color: selected
+                ? accent
+                : (isDark ? theme.colorScheme.outlineVariant : AppTheme.border),
           ),
         ),
         child: InkWell(
@@ -293,14 +320,22 @@ class _OnboardingPetRegistrationPageState
               children: [
                 Icon(
                   icon,
-                  color: selected ? AppTheme.brandDeep : AppTheme.textMuted,
+                  color: selected
+                      ? (isDark
+                          ? theme.colorScheme.onPrimaryContainer
+                          : AppTheme.brandDeep)
+                      : theme.colorScheme.onSurfaceVariant,
                   size: 26.w,
                 ),
                 SizedBox(height: 6.h),
                 Text(
                   label,
                   style: TextStyle(
-                    color: selected ? AppTheme.brandDeep : AppTheme.textBody,
+                    color: selected
+                        ? (isDark
+                            ? theme.colorScheme.onPrimaryContainer
+                            : AppTheme.brandDeep)
+                        : theme.colorScheme.onSurface,
                     fontSize: AppTheme.fontBody.sp,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   ),
@@ -314,11 +349,15 @@ class _OnboardingPetRegistrationPageState
   }
 
   Widget _buildBirthDate() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Material(
-      color: AppTheme.surfaceColor,
+      color: theme.colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
-        side: const BorderSide(color: AppTheme.border),
+        side: BorderSide(
+          color: isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+        ),
       ),
       child: InkWell(
         key: const ValueKey('first-pet-birth-date'),
@@ -333,7 +372,7 @@ class _OnboardingPetRegistrationPageState
                 Icon(
                   Icons.calendar_today_outlined,
                   size: 20.w,
-                  color: AppTheme.textMuted,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
@@ -343,15 +382,15 @@ class _OnboardingPetRegistrationPageState
                         : '${_birthDate!.year}.${_birthDate!.month.toString().padLeft(2, '0')}.${_birthDate!.day.toString().padLeft(2, '0')}',
                     style: TextStyle(
                       color: _birthDate == null
-                          ? AppTheme.textMuted
-                          : AppTheme.textBody,
+                          ? theme.colorScheme.onSurfaceVariant
+                          : theme.colorScheme.onSurface,
                       fontSize: AppTheme.fontBody.sp,
                     ),
                   ),
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: AppTheme.textMuted,
+                  color: theme.colorScheme.onSurfaceVariant,
                   size: 20.w,
                 ),
               ],
