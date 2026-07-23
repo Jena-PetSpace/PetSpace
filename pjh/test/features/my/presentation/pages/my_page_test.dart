@@ -112,6 +112,7 @@ void main() {
     Either<Failure, SavedPostsPage>? savedResult,
     double textScale = 1,
     Size surface = const Size(390, 844),
+    ThemeData? theme,
   }) async {
     tester.view.physicalSize = surface;
     tester.view.devicePixelRatio = 1;
@@ -161,7 +162,7 @@ void main() {
         designSize: const Size(390, 844),
         minTextAdapt: true,
         builder: (context, _) => MaterialApp.router(
-          theme: AppTheme.lightTheme,
+          theme: theme ?? AppTheme.lightTheme,
           routerConfig: router,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(
@@ -237,6 +238,7 @@ void main() {
     );
 
     expect(find.text('아직 게시글이 없어요'), findsOneWidget);
+    expect(find.text('반려동물의 첫 일상을\n피드에 공유해보세요.'), findsOneWidget);
     expect(find.text('활동한 뱃지'), findsNothing);
     expect(find.textContaining('레벨 1'), findsNothing);
     expect(find.textContaining('0 P'), findsNothing);
@@ -256,5 +258,34 @@ void main() {
     expect(find.byKey(const Key('saved_posts_error')), findsOneWidget);
     expect(find.text('저장한 게시글이 없어요'), findsNothing);
     expect(find.textContaining('saved-secret'), findsNothing);
+  });
+
+  testWidgets('다크 테마에서 탭과 텍스트 썸네일이 테마 surface를 사용한다', (tester) async {
+    await pumpPage(
+      tester,
+      myInitial: () async => [
+        {
+          'id': 'post-dark',
+          'caption': '저녁 산책 기록',
+          'post_type': 'text',
+          'image_urls': null,
+          'image_url': null,
+        },
+      ],
+      theme: AppTheme.darkTheme,
+    );
+
+    final tabs = tester.widget<Container>(
+      find.byKey(const Key('my_content_tabs_surface')),
+    );
+    final preview = tester.widget<Container>(
+      find.byKey(const Key('my_post_preview_post-dark')),
+    );
+    expect(tabs.color, AppTheme.darkTheme.colorScheme.surface);
+    expect(
+      preview.color,
+      AppTheme.darkTheme.colorScheme.surfaceContainerHighest,
+    );
+    expect(tester.takeException(), isNull);
   });
 }

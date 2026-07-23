@@ -96,7 +96,9 @@ class _MyProfileHeaderState extends State<MyProfileHeader> {
                   style: TextStyle(
                     fontSize: AppTheme.fontTitle.sp,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.brandDeep,
+                    color: isDark
+                        ? theme.colorScheme.onSurface
+                        : AppTheme.brandDeep,
                   ),
                 ),
                 const Spacer(),

@@ -47,6 +47,7 @@ void main() {
   Future<GoRouter> pumpHeader(
     WidgetTester tester, {
     double textScale = 1,
+    ThemeData? theme,
   }) async {
     final router = GoRouter(
       routes: [
@@ -80,7 +81,7 @@ void main() {
         designSize: const Size(390, 844),
         minTextAdapt: true,
         builder: (context, _) => MaterialApp.router(
-          theme: AppTheme.lightTheme,
+          theme: theme ?? AppTheme.lightTheme,
           routerConfig: router,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context)
@@ -179,5 +180,23 @@ void main() {
 
     verify(() => service.getProfile()).called(2);
     verify(() => service.getProfileStats()).called(2);
+  });
+
+  testWidgets('다크 테마에서 MY 제목과 프로필 표면이 읽기 가능한 색을 사용한다', (tester) async {
+    when(() => service.getProfile()).thenAnswer(
+      (_) async => {'display_name': '정현', 'bio': '', 'photo_url': null},
+    );
+    when(() => service.getProfileStats()).thenAnswer(
+      (_) async => {'posts': 0, 'followers': 0, 'following': 0},
+    );
+
+    await pumpHeader(tester, theme: AppTheme.darkTheme);
+
+    final title = tester.widget<Text>(find.text('MY'));
+    final header = tester.widget<Container>(
+      find.byKey(const Key('my_profile_header')),
+    );
+    expect(title.style?.color, AppTheme.darkTheme.colorScheme.onSurface);
+    expect(header.color, AppTheme.darkTheme.colorScheme.surface);
   });
 }

@@ -120,8 +120,12 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
           );
         }
         final user = state.user;
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final selectedColor =
+            isDark ? theme.colorScheme.primary : AppTheme.actionBase;
         return Scaffold(
-          backgroundColor: AppTheme.backgroundColor,
+          backgroundColor: theme.scaffoldBackgroundColor,
           body: SafeArea(
             bottom: false,
             child: Column(
@@ -142,18 +146,22 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                 if (_kShowMyMbtiSection) const MyMbtiBadgeSection(),
                 // 탭 바 (고정)
                 Container(
-                  color: AppTheme.surfaceColor,
+                  key: const Key('my_content_tabs_surface'),
+                  color: theme.colorScheme.surface,
                   child: TabBar(
                     controller: _tabController,
                     tabs: const [
                       Tab(text: '내 게시글'),
                       Tab(text: '저장'),
                     ],
-                    indicatorColor: AppTheme.primaryColor,
+                    indicatorColor: selectedColor,
                     indicatorWeight: 2,
-                    labelColor: AppTheme.primaryColor,
-                    unselectedLabelColor: AppTheme.lightTextColor,
-                    dividerColor: AppTheme.dividerColor,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    labelColor: selectedColor,
+                    unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                    dividerColor: isDark
+                        ? theme.colorScheme.outlineVariant
+                        : AppTheme.dividerColor,
                   ),
                 ),
                 // 그리드 (스크롤 영역)
@@ -303,9 +311,13 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
 
   Widget _buildNeutralPreview(String postId, String caption) {
     final text = caption.trim();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       key: Key('my_post_preview_$postId'),
-      color: AppTheme.subtleBackground,
+      color: isDark
+          ? theme.colorScheme.surfaceContainerHighest
+          : AppTheme.subtleBackground,
       padding: EdgeInsets.all(12.w),
       child: Center(
         child: text.isNotEmpty
@@ -317,13 +329,13 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
                 style: TextStyle(
                   fontSize: 12.sp,
                   height: 1.4,
-                  color: AppTheme.secondaryTextColor,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               )
             : Icon(
                 Icons.notes_rounded,
                 size: 26.w,
-                color: AppTheme.lightTextColor,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
       ),
     );
@@ -334,7 +346,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
       icon: isMyPosts ? Icons.grid_on_outlined : Icons.bookmark_outline_rounded,
       title: isMyPosts ? '아직 게시글이 없어요' : '저장한 게시글이 없어요',
       subtitle: isMyPosts
-          ? '반려동물의 일상을 첫 번째로\n커뮤니티에 공유해보세요!'
+          ? '반려동물의 첫 일상을\n피드에 공유해보세요.'
           : '마음에 드는 게시글을\n저장해두면 여기서 볼 수 있어요.',
       actionLabel: isMyPosts ? '첫 게시글 작성' : '피드 탐색',
       onAction: isMyPosts
@@ -359,8 +371,10 @@ class _SavedTabHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      color: AppTheme.surfaceColor,
+      key: const Key('saved_tab_header'),
+      color: theme.colorScheme.surface,
       padding: EdgeInsets.fromLTRB(18.w, 16.h, 14.w, 14.h),
       child: Row(
         children: [
@@ -377,7 +391,7 @@ class _SavedTabHeader extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.primaryTextColor,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 SizedBox(height: 3.h),
@@ -385,7 +399,7 @@ class _SavedTabHeader extends StatelessWidget {
                   '저장한 글을 한곳에서 확인해요.',
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: AppTheme.secondaryTextColor,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

@@ -74,16 +74,22 @@ class MyPetSummarySection extends StatelessWidget {
   }
 
   Widget _buildState(BuildContext context, PetState state) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     if (state is PetInitial || state is PetLoading) {
       return Container(
         key: const Key('my_pet_summary_loading'),
         height: 116.h,
         decoration: BoxDecoration(
-          color: AppTheme.subtleBackground,
+          color: isDark
+              ? theme.colorScheme.surfaceContainerHighest
+              : AppTheme.subtleBackground,
           borderRadius: BorderRadius.circular(AppTheme.radiusLg.r),
         ),
         alignment: Alignment.center,
-        child: const CircularProgressIndicator(),
+        child: CircularProgressIndicator(
+          color: isDark ? theme.colorScheme.primary : AppTheme.actionBase,
+        ),
       );
     }
 
