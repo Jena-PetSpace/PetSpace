@@ -11,6 +11,7 @@ import 'package:meong_nyang_diary/features/social/domain/entities/social_user.da
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
 import 'package:meong_nyang_diary/features/social/presentation/bloc/profile_bloc.dart';
 import 'package:meong_nyang_diary/features/social/presentation/pages/profile_page.dart';
+import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _MockProfileBloc extends MockBloc<ProfileEvent, ProfileState>
     implements ProfileBloc {}
@@ -105,5 +106,39 @@ void main() {
     await tester.tap(find.byKey(const Key('profile_stat_followers')));
     await tester.pumpAndSettle();
     expect(find.text('FOLLOWERS user-2'), findsOneWidget);
+  });
+
+  testWidgets('dark theme keeps profile identity on the theme surface', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        builder: (_, __) => MaterialApp(
+          theme: AppTheme.darkTheme,
+          home: BlocProvider<ProfileBloc>.value(
+            value: profileBloc,
+            child: ProfilePage(
+              userId: 'user-2',
+              currentUserId: 'viewer',
+              socialRepository: repository,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(
+        scaffold.backgroundColor, AppTheme.darkTheme.scaffoldBackgroundColor);
+    expect(appBar.backgroundColor, AppTheme.darkTheme.colorScheme.surface);
+    expect(tester.takeException(), isNull);
   });
 }

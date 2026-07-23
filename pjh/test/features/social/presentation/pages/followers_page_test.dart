@@ -8,6 +8,7 @@ import 'package:meong_nyang_diary/core/error/failures.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/follow.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
 import 'package:meong_nyang_diary/features/social/presentation/pages/followers_page.dart';
+import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _MockSocialRepository extends Mock implements SocialRepository {}
 
@@ -63,11 +64,12 @@ void main() {
     );
   });
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {ThemeData? theme}) async {
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(390, 844),
         builder: (_, __) => MaterialApp(
+          theme: theme,
           home: FollowersPage(
             userId: 'owner',
             userName: 'Owner',
@@ -149,5 +151,22 @@ void main() {
     expect(find.byKey(const Key('followers_error')), findsOneWidget);
     expect(find.byKey(const Key('followers_empty')), findsNothing);
     expect(find.textContaining('internal-secret'), findsNothing);
+  });
+
+  testWidgets('dark theme uses surface colors for header and search', (
+    tester,
+  ) async {
+    await pumpPage(tester, theme: AppTheme.darkTheme);
+
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    final search = tester.widget<TextField>(
+      find.byKey(const Key('follow_search_field')),
+    );
+    expect(appBar.backgroundColor, AppTheme.darkTheme.colorScheme.surface);
+    expect(
+      search.decoration?.fillColor,
+      AppTheme.darkTheme.colorScheme.surfaceContainerHighest,
+    );
+    expect(tester.takeException(), isNull);
   });
 }

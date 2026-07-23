@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 import '../../../../config/injection_container.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_state_view.dart';
+import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../chat/domain/repositories/chat_repository.dart';
 import '../../../pets/domain/entities/pet.dart';
@@ -54,11 +56,11 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     context.read<ProfileBloc>().add(
-      LoadUserProfileRequested(
-        userId: widget.userId,
-        currentUserId: widget.currentUserId,
-      ),
-    );
+          LoadUserProfileRequested(
+            userId: widget.userId,
+            currentUserId: widget.currentUserId,
+          ),
+        );
     if (_isOwnProfile) {
       _loadPets();
     }
@@ -74,13 +76,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('프로필'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryTextColor,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         actions: _isOwnProfile
             ? [
@@ -107,7 +111,7 @@ class _ProfilePageState extends State<ProfilePage> {
         },
         builder: (context, state) {
           if (state is ProfileLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const ProfileShimmerLoading();
           }
           if (state is ProfileLoaded) {
             return _buildProfileContent(state);
@@ -122,6 +126,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileContent(ProfileLoaded state) {
+    final theme = Theme.of(context);
     final user = state.user;
     final isOwn = _isOwnProfile || widget.currentUserId == user.id;
     return Column(
@@ -130,7 +135,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (isOwn && _pets.isNotEmpty) _buildPetSwitcher(),
         Expanded(
           child: Container(
-            color: Colors.white,
+            color: theme.colorScheme.surface,
             child: UserPostsList(
               userId: user.id,
               isMyProfile: isOwn,
@@ -148,6 +153,15 @@ class _ProfilePageState extends State<ProfilePage> {
     bool isFollowing,
     bool isOwnProfile,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final identityColor =
+        isDark ? theme.colorScheme.onSurface : AppTheme.primaryTextColor;
+    final mutedColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
+    final accentColor =
+        isDark ? theme.colorScheme.primary : AppTheme.actionBase;
     final profileImage = user.profileImageUrl?.trim();
     final hasProfileImage = profileImage != null && profileImage.isNotEmpty;
     return Column(
@@ -158,18 +172,17 @@ class _ProfilePageState extends State<ProfilePage> {
             coverImageUrl: user.coverImageUrl,
             canEdit: true,
             onImagePicked: (file) {
-              final userId =
-                  widget.currentUserId ??
+              final userId = widget.currentUserId ??
                   Supabase.instance.client.auth.currentUser?.id;
               if (userId == null) return;
               context.read<ProfileBloc>().add(
-                UpdateCoverImageRequested(userId: userId, file: file),
-              );
+                    UpdateCoverImageRequested(userId: userId, file: file),
+                  );
             },
           ),
         Container(
           width: double.infinity,
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 16.h),
           child: Column(
             children: [
@@ -181,7 +194,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     label: '${user.displayName} 프로필 사진',
                     child: CircleAvatar(
                       radius: 36.r,
-                      backgroundColor: AppTheme.subtleBackground,
+                      backgroundColor: isDark
+                          ? theme.colorScheme.surfaceContainerHighest
+                          : AppTheme.subtleBackground,
                       backgroundImage: hasProfileImage
                           ? CachedNetworkImageProvider(profileImage)
                           : null,
@@ -194,7 +209,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               style: TextStyle(
                                 fontSize: 24.sp,
                                 fontWeight: FontWeight.w800,
-                                color: AppTheme.primaryColor,
+                                color: accentColor,
                               ),
                             ),
                     ),
@@ -211,7 +226,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           style: TextStyle(
                             fontSize: 20.sp,
                             fontWeight: FontWeight.w800,
-                            color: AppTheme.primaryTextColor,
+                            color: identityColor,
                           ),
                         ),
                         if (user.username?.trim().isNotEmpty == true) ...[
@@ -222,7 +237,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 13.sp,
-                              color: AppTheme.primaryColor,
+                              color: accentColor,
                             ),
                           ),
                         ],
@@ -235,7 +250,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             style: TextStyle(
                               fontSize: 13.sp,
                               height: 1.45,
-                              color: AppTheme.secondaryTextColor,
+                              color: mutedColor,
                             ),
                           ),
                         ],
@@ -273,6 +288,10 @@ class _ProfilePageState extends State<ProfilePage> {
     bool isFollowing,
     bool isOwnProfile,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor =
+        isDark ? theme.colorScheme.primary : AppTheme.actionBase;
     if (isOwnProfile) {
       return Row(
         children: [
@@ -303,7 +322,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Row(
       children: [
         Expanded(
-          child: ElevatedButton.icon(
+          child: FilledButton.icon(
             key: const Key('profile_follow_button'),
             onPressed: _isFollowPending
                 ? null
@@ -322,16 +341,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     size: 19.w,
                   ),
             label: Text(isFollowing ? '팔로우 중' : '팔로우'),
-            style: ElevatedButton.styleFrom(
+            style: FilledButton.styleFrom(
               minimumSize: Size.fromHeight(48.h),
-              elevation: 0,
               backgroundColor: isFollowing
-                  ? AppTheme.subtleBackground
-                  : AppTheme.primaryColor,
-              foregroundColor: isFollowing
-                  ? AppTheme.primaryColor
-                  : Colors.white,
-              disabledBackgroundColor: AppTheme.primaryColor.withValues(
+                  ? theme.colorScheme.surfaceContainerHighest
+                  : accentColor,
+              foregroundColor: isFollowing ? accentColor : Colors.white,
+              disabledBackgroundColor: accentColor.withValues(
                 alpha: 0.7,
               ),
               disabledForegroundColor: Colors.white,
@@ -360,8 +376,15 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPetSwitcher() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accentColor =
+        isDark ? theme.colorScheme.primary : AppTheme.actionBase;
+    final mutedColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
     return Container(
-      color: Colors.white,
+      color: theme.colorScheme.surface,
       padding: EdgeInsets.only(bottom: 10.h),
       child: Row(
         children: [
@@ -390,21 +413,24 @@ class _ProfilePageState extends State<ProfilePage> {
                       onTap: () => setState(
                         () => _selectedPetId = isAll ? null : pet!.id,
                       ),
-                      onLongPress: isAll
-                          ? null
-                          : () => _openEmotionTimeline(pet!),
+                      onLongPress:
+                          isAll ? null : () => _openEmotionTimeline(pet!),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         padding: EdgeInsets.symmetric(horizontal: 12.w),
                         decoration: BoxDecoration(
                           color: selected
-                              ? AppTheme.primaryColor
-                              : AppTheme.subtleBackground,
+                              ? accentColor
+                              : (isDark
+                                  ? theme.colorScheme.surfaceContainerHighest
+                                  : AppTheme.subtleBackground),
                           borderRadius: BorderRadius.circular(19.r),
                           border: Border.all(
                             color: selected
-                                ? AppTheme.primaryColor
-                                : AppTheme.dividerColor,
+                                ? accentColor
+                                : (isDark
+                                    ? theme.colorScheme.outlineVariant
+                                    : AppTheme.dividerColor),
                           ),
                         ),
                         child: Row(
@@ -426,7 +452,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                         size: 12.w,
                                         color: selected
                                             ? Colors.white
-                                            : AppTheme.primaryColor,
+                                            : accentColor,
                                       ),
                               ),
                             if (!isAll) SizedBox(width: 6.w),
@@ -435,9 +461,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w600,
-                                color: selected
-                                    ? Colors.white
-                                    : AppTheme.secondaryTextColor,
+                                color: selected ? Colors.white : mutedColor,
                               ),
                             ),
                           ],
@@ -453,13 +477,12 @@ class _ProfilePageState extends State<ProfilePage> {
             IconButton(
               tooltip: '선택한 반려동물 감정 타임라인',
               onPressed: () {
-                final matches = _pets
-                    .where((pet) => pet.id == _selectedPetId)
-                    .toList();
+                final matches =
+                    _pets.where((pet) => pet.id == _selectedPetId).toList();
                 if (matches.isNotEmpty) _openEmotionTimeline(matches.first);
               },
               icon: const Icon(Icons.analytics_outlined),
-              color: AppTheme.primaryColor,
+              color: accentColor,
             ),
         ],
       ),
@@ -478,52 +501,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildErrorState() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(32.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.cloud_off_outlined,
-              size: 48.w,
-              color: AppTheme.lightTextColor,
-            ),
-            SizedBox(height: 14.h),
-            Text(
-              '프로필을 불러오지 못했어요',
-              style: TextStyle(
-                fontSize: 17.sp,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.primaryTextColor,
+    return PetSpaceStateView.error(
+      key: const Key('profile_error_state'),
+      icon: Icons.cloud_off_outlined,
+      title: '프로필을 불러오지 못했어요',
+      message: '연결 상태를 확인하고 다시 시도해주세요.',
+      actionLabel: '다시 시도',
+      onAction: () {
+        context.read<ProfileBloc>().add(
+              LoadUserProfileRequested(
+                userId: widget.userId,
+                currentUserId: widget.currentUserId,
               ),
-            ),
-            SizedBox(height: 6.h),
-            Text(
-              '연결 상태를 확인하고 다시 시도해주세요.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13.sp,
-                color: AppTheme.secondaryTextColor,
-              ),
-            ),
-            SizedBox(height: 16.h),
-            OutlinedButton.icon(
-              key: const Key('profile_retry_button'),
-              onPressed: () {
-                context.read<ProfileBloc>().add(
-                  LoadUserProfileRequested(
-                    userId: widget.userId,
-                    currentUserId: widget.currentUserId,
-                  ),
-                );
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('다시 시도'),
-            ),
-          ],
-        ),
-      ),
+            );
+      },
     );
   }
 
@@ -535,20 +526,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (isCurrentlyFollowing) {
       context.read<ProfileBloc>().add(
-        UnfollowUserRequested(followerId: currentUserId, followingId: userId),
-      );
+            UnfollowUserRequested(
+                followerId: currentUserId, followingId: userId),
+          );
     } else {
       final authState = context.read<AuthBloc>().state;
-      final myName = authState is AuthAuthenticated
-          ? authState.user.displayName
-          : '사용자';
+      final myName =
+          authState is AuthAuthenticated ? authState.user.displayName : '사용자';
       context.read<ProfileBloc>().add(
-        FollowUserRequested(
-          followerId: currentUserId,
-          followingId: userId,
-          followerName: myName,
-        ),
-      );
+            FollowUserRequested(
+              followerId: currentUserId,
+              followingId: userId,
+              followerName: myName,
+            ),
+          );
     }
   }
 
@@ -556,11 +547,11 @@ class _ProfilePageState extends State<ProfilePage> {
     final updated = await context.push<bool>('/my/edit-profile');
     if (updated == true && mounted) {
       context.read<ProfileBloc>().add(
-        LoadUserProfileRequested(
-          userId: widget.userId,
-          currentUserId: widget.currentUserId,
-        ),
-      );
+            LoadUserProfileRequested(
+              userId: widget.userId,
+              currentUserId: widget.currentUserId,
+            ),
+          );
     }
   }
 

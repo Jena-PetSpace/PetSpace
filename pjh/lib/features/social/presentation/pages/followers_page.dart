@@ -150,9 +150,8 @@ class _FollowersPageState extends State<FollowersPage>
       },
       (page) {
         final nextItems = reset ? <Follow>[] : List<Follow>.from(data.items);
-        final seen = nextItems
-            .map((follow) => _userId(follow, isFollowers))
-            .toSet();
+        final seen =
+            nextItems.map((follow) => _userId(follow, isFollowers)).toSet();
         for (final follow in page) {
           if (seen.add(_userId(follow, isFollowers))) {
             nextItems.add(follow);
@@ -187,27 +186,34 @@ class _FollowersPageState extends State<FollowersPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final selectedColor =
+        isDark ? theme.colorScheme.primary : AppTheme.actionBase;
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('팔로워 · 팔로잉'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.primaryTextColor,
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
       ),
       body: Column(
         children: [
           Container(
-            color: Colors.white,
+            color: theme.colorScheme.surface,
             padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 12.h),
             child: Column(
               children: [
                 TabBar(
                   controller: _tabController,
-                  labelColor: AppTheme.primaryColor,
-                  unselectedLabelColor: AppTheme.secondaryTextColor,
-                  indicatorColor: AppTheme.primaryColor,
+                  labelColor: selectedColor,
+                  unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                  indicatorColor: selectedColor,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  indicatorWeight: 3,
                   tabs: const [
                     Tab(text: '팔로워'),
                     Tab(text: '팔로잉'),
@@ -230,10 +236,28 @@ class _FollowersPageState extends State<FollowersPage>
                             icon: const Icon(Icons.close),
                           ),
                     filled: true,
-                    fillColor: AppTheme.subtleBackground,
+                    fillColor: isDark
+                        ? theme.colorScheme.surfaceContainerHighest
+                        : AppTheme.subtleBackground,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14.r),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? theme.colorScheme.outlineVariant
+                            : AppTheme.border,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                      borderSide: BorderSide(
+                        color: isDark
+                            ? theme.colorScheme.outlineVariant
+                            : AppTheme.border,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                      borderSide: BorderSide(color: selectedColor, width: 1.5),
                     ),
                   ),
                 ),
@@ -277,13 +301,13 @@ class _FollowersPageState extends State<FollowersPage>
         title: hasQuery
             ? '검색 결과가 없어요'
             : isFollowers
-            ? '아직 팔로워가 없어요'
-            : '아직 팔로잉이 없어요',
+                ? '아직 팔로워가 없어요'
+                : '아직 팔로잉이 없어요',
         description: hasQuery
             ? '다른 이름이나 사용자 아이디로 검색해보세요.'
             : isFollowers
-            ? '새로운 팔로워가 생기면 여기에 표시됩니다.'
-            : '관심 있는 사용자를 팔로우하면 여기에 표시됩니다.',
+                ? '새로운 팔로워가 생기면 여기에 표시됩니다.'
+                : '관심 있는 사용자를 팔로우하면 여기에 표시됩니다.',
       );
     }
 
@@ -311,9 +335,8 @@ class _FollowersPageState extends State<FollowersPage>
               userId: _userId(follow, isFollowers),
               userName: _userName(follow, isFollowers),
               userProfileImage: _profileImage(follow, isFollowers),
-              subtitle: username == null || username.isEmpty
-                  ? null
-                  : '@$username',
+              subtitle:
+                  username == null || username.isEmpty ? null : '@$username',
               onTap: () =>
                   context.push('/user-profile/${_userId(follow, isFollowers)}'),
             );
@@ -378,13 +401,31 @@ class _FollowStateView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Center(
       child: Padding(
         padding: EdgeInsets.all(32.w),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 44.w, color: AppTheme.lightTextColor),
+            Container(
+              width: 56.w,
+              height: 56.w,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? theme.colorScheme.primaryContainer
+                    : AppTheme.actionContainer,
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+              ),
+              child: Icon(
+                icon,
+                size: 26.w,
+                color: isDark
+                    ? theme.colorScheme.onPrimaryContainer
+                    : AppTheme.actionBase,
+              ),
+            ),
             SizedBox(height: 14.h),
             Text(
               title,
@@ -392,7 +433,9 @@ class _FollowStateView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.primaryTextColor,
+                color: isDark
+                    ? theme.colorScheme.onSurface
+                    : AppTheme.primaryTextColor,
               ),
             ),
             SizedBox(height: 6.h),
@@ -402,7 +445,9 @@ class _FollowStateView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13.sp,
                 height: 1.45,
-                color: AppTheme.secondaryTextColor,
+                color: isDark
+                    ? theme.colorScheme.onSurfaceVariant
+                    : AppTheme.secondaryTextColor,
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
