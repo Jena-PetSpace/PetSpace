@@ -15,6 +15,8 @@ Post _post({
   bool liked = false,
   int count = 0,
   String? location,
+  String? content,
+  List<String> tags = const [],
 }) =>
     Post(
       id: 'post-1',
@@ -22,6 +24,8 @@ Post _post({
       authorName: 'Mina',
       type: PostType.image,
       imageUrls: const ['https://example.com/pet.jpg'],
+      content: content,
+      tags: tags,
       likesCount: count,
       isLikedByCurrentUser: liked,
       location: location,
@@ -46,6 +50,7 @@ void main() {
     required VoidCallback onLike,
     Size size = const Size(390, 844),
     double textScale = 1,
+    void Function(String hashtag)? onHashtagTap,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -70,6 +75,7 @@ void main() {
                 onLike: onLike,
                 onComment: () {},
                 onShare: () {},
+                onHashtagTap: onHashtagTap,
                 repository: repository,
               ),
             ),
@@ -172,5 +178,51 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('hashtags use quiet text actions with accessible targets', (
+    tester,
+  ) async {
+    String? selectedTag;
+    await pumpCard(
+      tester,
+      post: _post(content: '오늘의 산책', tags: const ['산책', '반려생활']),
+      onLike: () {},
+      onHashtagTap: (tag) => selectedTag = tag,
+    );
+
+    final firstTag = find.byKey(const Key('post_card_tag_산책'));
+    expect(firstTag, findsOneWidget);
+    expect(tester.getSize(firstTag).height, greaterThanOrEqualTo(44));
+    expect(find.byType(Chip), findsNothing);
+
+    await tester.tap(firstTag);
+    await tester.pump();
+    expect(selectedTag, '산책');
+  });
+
+  testWidgets('long caption exposes a 44dp expand action', (tester) async {
+    final content = List.filled(40, '반려생활 ').join();
+    await pumpCard(
+      tester,
+      post: _post(content: content),
+      onLike: () {},
+    );
+
+    final expand = find.byKey(const Key('post_card_expand_content'));
+    expect(expand, findsOneWidget);
+    expect(tester.getSize(expand).height, greaterThanOrEqualTo(44));
+
+    await tester.tap(expand);
+    await tester.pump();
+    expect(expand, findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is RichText &&
+            widget.text.toPlainText().contains(content.trim()),
+      ),
+      findsOneWidget,
+    );
   });
 }

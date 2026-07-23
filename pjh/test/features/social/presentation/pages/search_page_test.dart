@@ -9,6 +9,7 @@ import 'package:meong_nyang_diary/features/social/domain/entities/social_user.da
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
 import 'package:meong_nyang_diary/features/social/presentation/bloc/search_bloc.dart';
 import 'package:meong_nyang_diary/features/social/presentation/pages/search_page.dart';
+import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _MockSearchBloc extends MockBloc<SearchEvent, SearchState>
     implements SearchBloc {}
@@ -33,6 +34,7 @@ void main() {
     WidgetTester tester, {
     SearchState state = const SearchState(),
     String? initialQuery,
+    ThemeData? theme,
   }) async {
     when(() => bloc.state).thenReturn(state);
     whenListen(
@@ -47,6 +49,7 @@ void main() {
         builder: (_, __) => BlocProvider<SearchBloc>.value(
           value: bloc,
           child: MaterialApp(
+            theme: theme,
             home: SearchPage(
               initialQuery: initialQuery,
               repository: repository,
@@ -83,6 +86,26 @@ void main() {
     expect(find.text('사용자'), findsWidgets);
     expect(find.text('해시태그'), findsOneWidget);
     expect(find.byKey(const Key('search_all_results')), findsOneWidget);
+    expect(tester.widget<TabBar>(find.byType(TabBar)).isScrollable, isFalse);
+  });
+
+  testWidgets('dark theme uses one consistent surface for search and tabs', (
+    tester,
+  ) async {
+    await pumpPage(
+      tester,
+      initialQuery: 'pet',
+      state: const SearchState(query: 'pet'),
+      theme: AppTheme.darkTheme,
+    );
+
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    final tabMaterial = tester.widget<Material>(
+      find.byKey(const Key('search_result_tabs_surface')),
+    );
+    expect(appBar.backgroundColor, AppTheme.darkTheme.colorScheme.surface);
+    expect(tabMaterial.color, AppTheme.darkTheme.colorScheme.surface);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('debounces query changes for 300 milliseconds', (tester) async {

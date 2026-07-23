@@ -104,6 +104,12 @@ class _PostCardState extends State<PostCard> {
 
   String get currentUserId => widget.currentUserId;
   String get visibleContent => publicAiText(post.content ?? '');
+  Color get _interactiveColor {
+    final theme = Theme.of(context);
+    return theme.brightness == Brightness.dark
+        ? theme.colorScheme.primary
+        : AppTheme.actionBase;
+  }
 
   void _openDetail() {
     final callback = widget.onOpenDetail;
@@ -160,7 +166,7 @@ class _PostCardState extends State<PostCard> {
     final content = visibleContent;
     final isLong = content.length > _contentTruncateThreshold;
     final displayText = (!_isContentExpanded && isLong)
-        ? content.substring(0, _contentTruncateThreshold)
+        ? '${content.substring(0, _contentTruncateThreshold).trimRight()}…'
         : content;
 
     return Padding(
@@ -170,20 +176,31 @@ class _PostCardState extends State<PostCard> {
         children: [
           _buildTextWithHashtags(displayText),
           if (isLong && !_isContentExpanded)
-            GestureDetector(
-              onTap: () => setState(() => _isContentExpanded = true),
+            TextButton(
+              key: const Key('post_card_expand_content'),
+              onPressed: () => setState(() => _isContentExpanded = true),
+              style: TextButton.styleFrom(
+                foregroundColor: _interactiveColor,
+                minimumSize: const Size(44, 44),
+                padding: EdgeInsets.zero,
+                alignment: Alignment.centerLeft,
+                tapTargetSize: MaterialTapTargetSize.padded,
+              ),
               child: Text(
-                '... 더보기',
-                style: TextStyle(fontSize: 14.sp, color: AppTheme.primaryColor),
+                '더보기',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           if (post.tags.isNotEmpty) ...[
-            SizedBox(height: 8.h),
+            SizedBox(height: 4.h),
             Wrap(
-              spacing: 8.w,
-              runSpacing: 4.h,
+              spacing: 4.w,
+              runSpacing: 0,
               children: post.tags.map((tag) {
-                return _buildHashtagChip(tag);
+                return _buildHashtagLink(tag);
               }).toList(),
             ),
           ],
@@ -224,7 +241,7 @@ class _PostCardState extends State<PostCard> {
                   segment['text'],
                   style: TextStyle(
                     fontSize: 14.sp,
-                    color: AppTheme.primaryColor,
+                    color: _interactiveColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -238,31 +255,25 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  Widget _buildHashtagChip(String tag) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        if (widget.onHashtagTap != null) {
-          widget.onHashtagTap!(tag);
-        }
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-        decoration: BoxDecoration(
-          color: AppTheme.primaryColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: AppTheme.primaryColor.withValues(alpha: 0.3),
-            width: 1,
-          ),
+  Widget _buildHashtagLink(String tag) {
+    return Semantics(
+      label: '$tag 해시태그 게시물 보기',
+      button: true,
+      child: TextButton(
+        key: Key('post_card_tag_$tag'),
+        onPressed: widget.onHashtagTap == null
+            ? null
+            : () => widget.onHashtagTap!(tag),
+        style: TextButton.styleFrom(
+          foregroundColor: _interactiveColor,
+          disabledForegroundColor: _interactiveColor,
+          minimumSize: const Size(44, 44),
+          padding: EdgeInsets.symmetric(horizontal: 2.w),
+          tapTargetSize: MaterialTapTargetSize.padded,
         ),
         child: Text(
           '#$tag',
-          style: TextStyle(
-            fontSize: 13.sp,
-            color: AppTheme.primaryColor,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
         ),
       ),
     );

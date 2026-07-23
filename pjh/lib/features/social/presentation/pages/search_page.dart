@@ -163,11 +163,24 @@ class _SearchPageState extends State<SearchPage>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surface = theme.colorScheme.surface;
+    final inputSurface = isDark
+        ? theme.colorScheme.surfaceContainerHighest
+        : AppTheme.subtleBackground;
+    final selectedColor =
+        isDark ? theme.colorScheme.primary : AppTheme.brandDeep;
+    final unselectedColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppTheme.secondaryTextColor;
     return Scaffold(
-      backgroundColor: AppTheme.subtleBackground,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        toolbarHeight: 68.h,
+        backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
+        titleSpacing: 4.w,
         title: TextField(
           key: const Key('search_query_field'),
           controller: _searchController,
@@ -190,13 +203,25 @@ class _SearchPageState extends State<SearchPage>
                     icon: const Icon(Icons.close),
                   ),
             filled: true,
-            fillColor: AppTheme.subtleBackground,
+            fillColor: inputSurface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(22.r),
+              borderRadius: BorderRadius.circular(14.r),
               borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14.r),
+              borderSide: BorderSide(
+                color:
+                    isDark ? theme.colorScheme.outlineVariant : AppTheme.border,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14.r),
+              borderSide: BorderSide(color: selectedColor, width: 1.5),
             ),
           ),
         ),
+        actions: [SizedBox(width: 12.w)],
       ),
       body: BlocBuilder<SearchBloc, SearchState>(
         builder: (context, state) {
@@ -204,14 +229,16 @@ class _SearchPageState extends State<SearchPage>
           return Column(
             children: [
               Material(
-                color: Colors.white,
+                key: const Key('search_result_tabs_surface'),
+                color: surface,
                 child: TabBar(
                   controller: _tabs,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  labelColor: AppTheme.brandDeep,
-                  unselectedLabelColor: AppTheme.secondaryTextColor,
-                  indicatorColor: AppTheme.actionBase,
+                  isScrollable: false,
+                  labelColor: selectedColor,
+                  unselectedLabelColor: unselectedColor,
+                  indicatorColor: selectedColor,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  indicatorWeight: 3,
                   tabs: const [
                     Tab(text: '전체'),
                     Tab(text: '게시물'),
