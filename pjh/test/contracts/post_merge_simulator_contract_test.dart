@@ -7,7 +7,7 @@ void main() {
       () {
     final home = File(
       'lib/features/social/presentation/pages/home_page.dart',
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll('\r\n', '\n');
     final dispose = home.substring(
       home.indexOf('void dispose()'),
       home.indexOf('@override\n  Widget build'),
