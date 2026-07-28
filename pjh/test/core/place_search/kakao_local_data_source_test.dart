@@ -76,6 +76,34 @@ void main() {
     expect((await source.search(query())).items, isEmpty);
   });
 
+  test('omits radius for unbounded location-picker searches', () async {
+    late Uri requestedUri;
+    final source = KakaoLocalDataSource(
+      client: MockClient((request) async {
+        requestedUri = request.url;
+        return http.Response(
+          '{"documents":[],"meta":{"is_end":true,"pageable_count":0}}',
+          200,
+        );
+      }),
+      apiKey: apiKey,
+    );
+
+    await source.search(
+      PlaceSearchQuery(
+        originType: PlaceSearchOriginType.device,
+        latitude: 37.5,
+        longitude: 127,
+        radiusM: null,
+        category: 'location_picker',
+        keyword: '부산역',
+      ),
+    );
+
+    expect(requestedUri.queryParameters, isNot(contains('radius')));
+    expect(requestedUri.queryParameters['sort'], 'distance');
+  });
+
   test('decodes UTF-8 even when the response omits a charset', () async {
     final source = KakaoLocalDataSource(
       client: MockClient(

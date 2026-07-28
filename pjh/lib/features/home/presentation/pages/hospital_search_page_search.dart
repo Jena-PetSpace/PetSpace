@@ -285,6 +285,7 @@ extension _HospitalSearch on _HospitalSearchPageState {
     final origin = originOverride ?? _searchOrigin;
     setState(() {
       _selectedCategory = index;
+      _manualResultsActive = false;
       _manualSearchKeyword = null;
       _selectedPlace = null;
       _showDetail = false;
@@ -318,6 +319,10 @@ extension _HospitalSearch on _HospitalSearchPageState {
     _searchFocusNode.unfocus();
     final token = _searchGeneration.begin();
     final origin = _searchOrigin.copyWith(type: PlaceSearchOriginType.manual);
+    final categoryIndex = manualSearchCategoryIndex(
+      currentCategoryIndex: _selectedCategory,
+      currentIsFavoriteTab: _categories[_selectedCategory].isFavoriteTab,
+    );
     setState(() {
       _searching = true;
       _searchUiState = _PlaceSearchUiState.loading;
@@ -333,7 +338,7 @@ extension _HospitalSearch on _HospitalSearchPageState {
       primaryKeyword: trimmed,
       supplementalKeywords: const <String>[],
       manualKeyword: trimmed,
-      categoryIndex: 1,
+      categoryIndex: categoryIndex,
     );
   }
 
@@ -439,6 +444,7 @@ extension _HospitalSearch on _HospitalSearchPageState {
       setState(() {
         _searchOrigin = origin;
         _selectedCategory = categoryIndex;
+        _manualResultsActive = manualKeyword != null;
         _manualSearchKeyword = manualKeyword;
         _resultCategory = categoryIndex;
         _resultManualSearchKeyword = manualKeyword;

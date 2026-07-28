@@ -40,7 +40,7 @@ class PlaceSearchQuery {
     this.size = 15,
   }) {
     _validateCoordinates(latitude, longitude);
-    if (radiusM < 1 || radiusM > 20000) {
+    if (radiusM != null && (radiusM! < 1 || radiusM! > 20000)) {
       throw ArgumentError.value(radiusM, 'radiusM', 'must be 1..20000');
     }
     if (size < 1 || size > 15) {
@@ -61,7 +61,7 @@ class PlaceSearchQuery {
   final PlaceSearchOriginType originType;
   final double latitude;
   final double longitude;
-  final int radiusM;
+  final int? radiusM;
   final String category;
   final String keyword;
   final int page;
@@ -78,6 +78,7 @@ class PlaceSearchQuery {
     double? latitude,
     double? longitude,
     int? radiusM,
+    bool clearRadius = false,
     String? category,
     String? keyword,
     int? page,
@@ -87,7 +88,7 @@ class PlaceSearchQuery {
       originType: originType ?? this.originType,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-      radiusM: radiusM ?? this.radiusM,
+      radiusM: clearRadius ? null : radiusM ?? this.radiusM,
       category: category ?? this.category,
       keyword: keyword ?? this.keyword,
       page: page ?? this.page,
@@ -162,6 +163,14 @@ class PlaceSearchGeneration {
   int begin() => ++_value;
 
   bool isCurrent(int token) => token == _value;
+}
+
+int manualSearchCategoryIndex({
+  required int currentCategoryIndex,
+  required bool currentIsFavoriteTab,
+  int fallbackCategoryIndex = 1,
+}) {
+  return currentIsFavoriteTab ? fallbackCategoryIndex : currentCategoryIndex;
 }
 
 enum CameraMoveDisposition { programmatic, user }

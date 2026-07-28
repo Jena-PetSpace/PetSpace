@@ -658,7 +658,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
           longitude: lng,
           keyword: normalized,
           category: 'location_picker',
-          radiusM: 20000,
+          radiusM: null,
           page: 1,
           size: 15,
         ),

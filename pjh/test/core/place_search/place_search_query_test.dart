@@ -25,6 +25,7 @@ void main() {
       () => valid().copyWith(radiusM: 20001),
       throwsArgumentError,
     );
+    expect(valid().copyWith(clearRadius: true).radiusM, isNull);
   });
 
   test('retains origin across category and radius changes', () {
@@ -342,5 +343,22 @@ void main() {
     expect(query.originType, PlaceSearchOriginType.manual);
     expect(query.category, isEmpty);
     expect(query.keyword, '24시 응급');
+  });
+
+  test('manual search preserves category unless favorites is active', () {
+    expect(
+      manualSearchCategoryIndex(
+        currentCategoryIndex: 3,
+        currentIsFavoriteTab: false,
+      ),
+      3,
+    );
+    expect(
+      manualSearchCategoryIndex(
+        currentCategoryIndex: 0,
+        currentIsFavoriteTab: true,
+      ),
+      1,
+    );
   });
 }

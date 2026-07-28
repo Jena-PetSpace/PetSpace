@@ -227,6 +227,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
   List<HospitalPlace> _searchResults = <HospitalPlace>[];
   List<HospitalPlace> _savedPlaceView = <HospitalPlace>[];
   SavedPlaceCatalog? _savedCatalog;
+  bool _manualResultsActive = false;
   String? _manualSearchKeyword;
   String? _resultManualSearchKeyword;
   _PlaceSearchUiState _searchUiState = _PlaceSearchUiState.idle;
@@ -243,7 +244,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
   final Set<String> _markerCleanupIds = <String>{};
 
   List<HospitalPlace> get _places =>
-      _categories[_selectedCategory].isFavoriteTab
+      _categories[_selectedCategory].isFavoriteTab && !_manualResultsActive
           ? _savedPlaceView
           : _searchResults;
 

@@ -44,16 +44,20 @@ class KakaoLocalDataSource {
   final Duration timeout;
 
   Future<PlaceSearchPage> search(PlaceSearchQuery query) async {
+    final queryParameters = <String, String>{
+      'query': query.keyword.trim(),
+      'x': query.longitude.toString(),
+      'y': query.latitude.toString(),
+      'sort': 'distance',
+      'page': query.page.toString(),
+      'size': query.size.toString(),
+    };
+    final radiusM = query.radiusM;
+    if (radiusM != null) {
+      queryParameters['radius'] = radiusM.toString();
+    }
     final uri = _endpoint.replace(
-      queryParameters: <String, String>{
-        'query': query.keyword.trim(),
-        'x': query.longitude.toString(),
-        'y': query.latitude.toString(),
-        'radius': query.radiusM.toString(),
-        'sort': 'distance',
-        'page': query.page.toString(),
-        'size': query.size.toString(),
-      },
+      queryParameters: queryParameters,
     );
 
     late final http.Response response;
