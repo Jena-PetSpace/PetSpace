@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:kakao_maps_flutter/kakao_maps_flutter.dart';
 
-import '../../../../config/api_config.dart';
+import '../../../../config/injection_container.dart';
+import '../../../../core/place_search/kakao_local_data_source.dart';
+import '../../../../core/place_search/place_search_query.dart';
 import '../../../../shared/themes/app_theme.dart';
 
 class LocationPickResult {
@@ -38,7 +38,25 @@ class _Place {
     required this.lat,
     required this.lng,
   });
+
+  factory _Place.fromSearchItem(PlaceSearchItem item) => _Place(
+        id: item.providerPlaceId,
+        name: item.name,
+        address: item.address,
+        lat: item.latitude,
+        lng: item.longitude,
+      );
+
   LatLng get latLng => LatLng(latitude: lat, longitude: lng);
+}
+
+enum _PickerLocationState {
+  checking,
+  ready,
+  denied,
+  deniedForever,
+  serviceDisabled,
+  unavailable,
 }
 
 class LocationPickerPage extends StatefulWidget {
@@ -62,14 +80,24 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   static const String _selStyleId = 'sel';
   static const String _myLocMarkerId = 'my_location';
 
+  final KakaoLocalDataSource _localSearch = sl<KakaoLocalDataSource>();
+  final PlaceSearchGeneration _searchGeneration = PlaceSearchGeneration();
+
   KakaoMapController? _mapCtrl;
   bool _mapReady = false;
-  bool _suppressCam = false;
+  bool _mapInitFailed = false;
+  bool _markerLayerAdded = false;
   StreamSubscription<LabelClickEvent>? _labelSub;
   StreamSubscription<CameraMoveEndEvent>? _camSub;
+  int _programmaticMoveToken = 0;
+  PendingProgrammaticMove? _pendingProgrammaticMove;
+  LatLng? _initialMapPosition;
+  Future<void> _markerQueue = Future<void>.value();
+  int _markerGeneration = 0;
 
   Position? _position;
   bool _locLoading = true;
+  _PickerLocationState _locationState = _PickerLocationState.checking;
 
   final _searchCtrl = TextEditingController();
   final _searchFocus = FocusNode();
@@ -79,6 +107,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   bool _searching = false;
   _Place? _selected;
   List<String> _markerIds = [];
+  final Set<String> _markerCleanupIds = <String>{};
 
   final DraggableScrollableController _sheetCtrl =
       DraggableScrollableController();
@@ -86,7 +115,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   @override
   void initState() {
     super.initState();
-    _getLocation();
+    _initializeLocationWithoutPrompt();
   }
 
   @override
@@ -97,285 +126,594 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _searchFocus.dispose();
     _debounce?.cancel();
     _sheetCtrl.dispose();
+    _mapCtrl?.dispose();
     super.dispose();
   }
 
   // ── 위치 ──────────────────────────────────────────────────────────────────────
 
-  Future<void> _getLocation() async {
+  Future<void> _initializeLocationWithoutPrompt() async {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        if (mounted) setState(() => _locLoading = false);
+        if (mounted) {
+          setState(() {
+            _locationState = _PickerLocationState.serviceDisabled;
+            _locLoading = false;
+          });
+        }
         return;
       }
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.deniedForever) {
-        if (mounted) setState(() => _locLoading = false);
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          setState(() {
+            _locationState = _PickerLocationState.denied;
+            _locLoading = false;
+          });
+        }
         return;
       }
-      final pos = await Geolocator.getLastKnownPosition() ??
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          setState(() {
+            _locationState = _PickerLocationState.deniedForever;
+            _locLoading = false;
+          });
+        }
+        return;
+      }
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        if (mounted) {
+          setState(() {
+            _locationState = _PickerLocationState.unavailable;
+            _locLoading = false;
+          });
+        }
+        return;
+      }
+      await _readLocation(forceCurrent: false);
+    } catch (_) {
+      dev.log('현재 위치 확인 실패', name: 'LocationPicker');
+      if (mounted) {
+        setState(() {
+          _locationState = _PickerLocationState.unavailable;
+          _locLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _requestLocation() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        if (mounted) {
+          setState(() {
+            _locationState = _PickerLocationState.serviceDisabled;
+            _locLoading = false;
+          });
+          _showLocationSettingsPrompt(appSettings: false);
+        }
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          setState(() => _locationState = _PickerLocationState.denied);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('현재 위치 권한이 허용되지 않았어요.')),
+          );
+        }
+        return;
+      }
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          setState(() => _locationState = _PickerLocationState.deniedForever);
+          _showLocationSettingsPrompt(appSettings: true);
+        }
+        return;
+      }
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        if (mounted) {
+          setState(() => _locationState = _PickerLocationState.unavailable);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('현재 위치를 사용할 수 없어요. 잠시 후 다시 시도해 주세요.')),
+          );
+        }
+        return;
+      }
+      await _readLocation(forceCurrent: true);
+    } catch (_) {
+      dev.log('현재 위치 요청 실패', name: 'LocationPicker');
+      if (mounted) {
+        setState(() => _locationState = _PickerLocationState.unavailable);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('현재 위치를 불러오지 못했어요.')),
+        );
+      }
+    }
+  }
+
+  void _showLocationSettingsPrompt({required bool appSettings}) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          appSettings ? '설정에서 위치 권한을 허용해주세요.' : '현재 위치를 사용하려면 위치 서비스를 켜주세요.',
+        ),
+        action: SnackBarAction(
+          label: '설정 열기',
+          onPressed: () {
+            unawaited(
+              appSettings
+                  ? Geolocator.openAppSettings()
+                  : Geolocator.openLocationSettings(),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _readLocation({required bool forceCurrent}) async {
+    try {
+      final cached =
+          forceCurrent ? null : await Geolocator.getLastKnownPosition();
+      final position = cached ??
           await Geolocator.getCurrentPosition(
             locationSettings: const LocationSettings(
               accuracy: LocationAccuracy.low,
               timeLimit: Duration(seconds: 8),
             ),
           );
-      if (mounted) {
-        setState(() {
-          _position = pos;
-          _locLoading = false;
-        });
+      if (!mounted) return;
+      setState(() {
+        _position = position;
+        _locationState = _PickerLocationState.ready;
+        _locLoading = false;
+      });
+      if (_mapReady) {
+        await _moveCameraProgrammatically(
+          target: LatLng(
+            latitude: position.latitude,
+            longitude: position.longitude,
+          ),
+          zoomLevel: 15,
+        );
+        await _enqueueMarkerApply(_searchGeneration.current);
       }
     } catch (_) {
       dev.log('현재 위치 확인 실패', name: 'LocationPicker');
-      if (mounted) setState(() => _locLoading = false);
+      if (mounted) {
+        setState(() {
+          _locationState = _PickerLocationState.unavailable;
+          _locLoading = false;
+        });
+        if (forceCurrent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('현재 위치를 불러오지 못했어요.')),
+          );
+        }
+      }
     }
   }
 
   // ── 지도 초기화 ────────────────────────────────────────────────────────────────
 
   Future<void> _onMapReady(KakaoMapController ctrl) async {
-    if (!mounted) return;
+    if (!mounted || !identical(_mapCtrl, ctrl)) return;
+    setState(() => _mapInitFailed = false);
     try {
-      await ctrl.addMarkerLayer(
-          layerId: KakaoMapController.defaultLabelLayerId);
-      await ctrl.setPoiClickable(isClickable: false);
-      await _registerStyles(ctrl);
-      _mapReady = true;
-      if (_position != null) {
-        _suppressCam = true;
-        await ctrl.moveCamera(
-            cameraUpdate: CameraUpdate(
-          position: LatLng(
-              latitude: _position!.latitude, longitude: _position!.longitude),
-          zoomLevel: 15,
-          type: -1,
-        ));
+      await ctrl.ready;
+      if (!mounted || !identical(_mapCtrl, ctrl)) return;
+      if (!_markerLayerAdded) {
+        await ctrl.addMarkerLayer(
+          layerId: KakaoMapController.defaultLabelLayerId,
+        );
+        if (!mounted || !identical(_mapCtrl, ctrl)) return;
+        _markerLayerAdded = true;
       }
-      await _addMyLocMarker();
+      if (!mounted || !identical(_mapCtrl, ctrl)) return;
+      try {
+        await ctrl.setPoiClickable(isClickable: false);
+      } catch (_) {
+        dev.log('기본 POI 클릭 비활성화 실패', name: 'LocationPicker');
+      }
+      if (!mounted || !identical(_mapCtrl, ctrl)) return;
+      await _registerStyles(ctrl);
+      if (!mounted || !identical(_mapCtrl, ctrl)) return;
+      setState(() {
+        _mapReady = true;
+        _mapInitFailed = false;
+      });
+      if (_position != null) {
+        final moved = await _moveCameraProgrammatically(
+          target: LatLng(
+            latitude: _position!.latitude,
+            longitude: _position!.longitude,
+          ),
+          zoomLevel: 15,
+        );
+        if (!moved) throw StateError('initial camera move failed');
+      }
+      if (!mounted || !identical(_mapCtrl, ctrl)) return;
+      await _enqueueMarkerApply(_searchGeneration.current);
     } catch (_) {
       dev.log('지도 초기화 실패', name: 'LocationPicker');
-      _mapReady = true;
+      if (!mounted || !identical(_mapCtrl, ctrl)) return;
+      setState(() {
+        _mapReady = false;
+        _mapInitFailed = true;
+      });
     }
   }
 
   Future<void> _registerStyles(KakaoMapController ctrl) async {
+    final myBytes =
+        (await rootBundle.load('assets/icons/map/my_location_dot.png'))
+            .buffer
+            .asUint8List();
+    if (!mounted || !identical(_mapCtrl, ctrl)) return;
+    final placeBytes =
+        (await rootBundle.load('assets/icons/map/place_marker.png'))
+            .buffer
+            .asUint8List();
+    if (!mounted || !identical(_mapCtrl, ctrl)) return;
+    await ctrl.registerMarkerStyles(styles: [
+      MarkerStyle(
+        styleId: _myLocStyleId,
+        perLevels: [
+          MarkerPerLevelStyle.fromBytes(
+            bytes: myBytes,
+            textStyle: const MarkerTextStyle(
+              fontSize: 16,
+              fontColorArgb: 0xFF3478F6,
+              strokeThickness: 2,
+              strokeColorArgb: 0xFFFFFFFF,
+            ),
+          )
+        ],
+      ),
+      MarkerStyle(
+        styleId: _placeStyleId,
+        perLevels: [
+          MarkerPerLevelStyle.fromBytes(
+            bytes: placeBytes,
+            textStyle: const MarkerTextStyle(
+              fontSize: 28,
+              fontColorArgb: 0xFFFFFFFF,
+              strokeThickness: 3,
+              strokeColorArgb: 0xFF1E3A5F,
+            ),
+          )
+        ],
+      ),
+      MarkerStyle(
+        styleId: _selStyleId,
+        perLevels: [
+          MarkerPerLevelStyle.fromBytes(
+            bytes: placeBytes,
+            textStyle: const MarkerTextStyle(
+              fontSize: 34,
+              fontColorArgb: 0xFFFFFFFF,
+              strokeThickness: 4,
+              strokeColorArgb: 0xFF1E3A5F,
+            ),
+          )
+        ],
+      ),
+    ]);
+  }
+
+  Future<bool> _moveCameraProgrammatically({
+    required LatLng target,
+    required int zoomLevel,
+  }) async {
+    final controller = _mapCtrl;
+    if (controller == null || !_mapReady) return false;
+    final token = ++_programmaticMoveToken;
+    _pendingProgrammaticMove = PendingProgrammaticMove(
+      token: token,
+      latitude: target.latitude,
+      longitude: target.longitude,
+      issuedAt: DateTime.now(),
+    );
     try {
-      final myBytes =
-          (await rootBundle.load('assets/icons/map/my_location_dot.png'))
-              .buffer
-              .asUint8List();
-      final placeBytes =
-          (await rootBundle.load('assets/icons/map/place_marker.png'))
-              .buffer
-              .asUint8List();
-      await ctrl.registerMarkerStyles(styles: [
-        MarkerStyle(
-          styleId: _myLocStyleId,
-          perLevels: [
-            MarkerPerLevelStyle.fromBytes(
-              bytes: myBytes,
-              textStyle: const MarkerTextStyle(
-                fontSize: 16,
-                fontColorArgb: 0xFF3478F6,
-                strokeThickness: 2,
-                strokeColorArgb: 0xFFFFFFFF,
-              ),
-            )
-          ],
+      await controller.moveCamera(
+        cameraUpdate: CameraUpdate(
+          position: target,
+          zoomLevel: zoomLevel,
+          type: -1,
         ),
-        MarkerStyle(
-          styleId: _placeStyleId,
-          perLevels: [
-            MarkerPerLevelStyle.fromBytes(
-              bytes: placeBytes,
-              textStyle: const MarkerTextStyle(
-                fontSize: 28,
-                fontColorArgb: 0xFFFFFFFF,
-                strokeThickness: 3,
-                strokeColorArgb: 0xFF1E3A5F,
-              ),
-            )
-          ],
-        ),
-        MarkerStyle(
-          styleId: _selStyleId,
-          perLevels: [
-            MarkerPerLevelStyle.fromBytes(
-              bytes: placeBytes,
-              textStyle: const MarkerTextStyle(
-                fontSize: 34,
-                fontColorArgb: 0xFFFFFFFF,
-                strokeThickness: 4,
-                strokeColorArgb: 0xFFFF4C2C,
-              ),
-            )
-          ],
-        ),
-      ]);
+      );
+      return true;
     } catch (_) {
-      dev.log('지도 마커 스타일 등록 실패', name: 'LocationPicker');
+      if (_pendingProgrammaticMove?.token == token) {
+        _pendingProgrammaticMove = null;
+      }
+      return false;
     }
   }
 
   // ── 마커 ──────────────────────────────────────────────────────────────────────
 
-  Future<void> _addMyLocMarker() async {
-    if (_mapCtrl == null || !_mapReady || _position == null) return;
-    try {
-      await _mapCtrl!.removeMarker(id: _myLocMarkerId);
-    } catch (_) {}
-    try {
-      await _mapCtrl!.addMarker(
-          markerOption: MarkerOption(
-        id: _myLocMarkerId,
-        latLng: LatLng(
-            latitude: _position!.latitude, longitude: _position!.longitude),
-        styleId: _myLocStyleId,
-        text: '내 위치',
-        rank: 999,
-      ));
-    } catch (_) {
-      dev.log('현재 위치 마커 표시 실패', name: 'LocationPicker');
-    }
+  Future<void> _enqueueMarkerApply(int generation) {
+    final applyToken = ++_markerGeneration;
+    final controller = _mapCtrl;
+    final visible = List<_Place>.of(_places);
+    final selectedId = _selected?.id;
+    _markerQueue = _markerQueue.catchError((Object _) {}).then(
+          (_) => _applyMarkers(
+            controller: controller,
+            generation: generation,
+            applyToken: applyToken,
+            visible: visible,
+            selectedId: selectedId,
+          ),
+        );
+    return _markerQueue;
   }
 
-  Future<void> _updateMarkers() async {
-    if (_mapCtrl == null || !_mapReady) return;
-    if (_markerIds.isNotEmpty) {
+  bool _canApplyMarkers({
+    required KakaoMapController controller,
+    required int generation,
+    required int applyToken,
+  }) {
+    return mounted &&
+        _mapReady &&
+        identical(_mapCtrl, controller) &&
+        _searchGeneration.isCurrent(generation) &&
+        _markerGeneration == applyToken;
+  }
+
+  Future<void> _applyMarkers({
+    required KakaoMapController? controller,
+    required int generation,
+    required int applyToken,
+    required List<_Place> visible,
+    required String? selectedId,
+  }) async {
+    if (controller == null ||
+        !_canApplyMarkers(
+          controller: controller,
+          generation: generation,
+          applyToken: applyToken,
+        )) {
+      return;
+    }
+
+    final removing = <String>{
+      ..._markerIds,
+      ..._markerCleanupIds,
+    }.toList(growable: false);
+    if (removing.isNotEmpty) {
       try {
-        await _mapCtrl!.removeMarkers(ids: _markerIds);
+        await controller.removeMarkers(ids: removing);
+        _markerIds = <String>[];
+        _markerCleanupIds.clear();
       } catch (_) {
-        dev.log('장소 마커 정리 실패', name: 'LocationPicker');
+        for (final id in removing) {
+          try {
+            await controller.removeMarker(id: id);
+            _markerIds.remove(id);
+            _markerCleanupIds.remove(id);
+          } catch (_) {}
+        }
+        if (_markerIds.any(removing.contains) ||
+            _markerCleanupIds.any(removing.contains)) {
+          return;
+        }
       }
+    }
+    if (!_canApplyMarkers(
+      controller: controller,
+      generation: generation,
+      applyToken: applyToken,
+    )) {
+      return;
+    }
+
+    try {
+      await controller.removeMarker(id: _myLocMarkerId);
+    } catch (_) {}
+    if (!_canApplyMarkers(
+      controller: controller,
+      generation: generation,
+      applyToken: applyToken,
+    )) {
+      return;
+    }
+
+    final markerOptions = visible.asMap().entries.map((entry) {
+      final place = entry.value;
+      return MarkerOption(
+        id: place.id,
+        latLng: place.latLng,
+        styleId: selectedId == place.id ? _selStyleId : _placeStyleId,
+        text: '${entry.key + 1}',
+        rank: selectedId == place.id ? 800 : 100,
+      );
+    }).toList(growable: false);
+
+    if (markerOptions.isNotEmpty) {
+      final attemptedIds =
+          markerOptions.map((option) => option.id).toList(growable: false);
+      _markerCleanupIds.addAll(attemptedIds);
+      try {
+        await controller.addMarkers(markerOptions: markerOptions);
+        if (_canApplyMarkers(
+          controller: controller,
+          generation: generation,
+          applyToken: applyToken,
+        )) {
+          _markerIds = List<String>.of(attemptedIds);
+          _markerCleanupIds.clear();
+        }
+      } catch (_) {
+        _markerIds = <String>[];
+        try {
+          await controller.removeMarkers(ids: attemptedIds);
+          _markerCleanupIds.removeAll(attemptedIds);
+        } catch (_) {}
+        if (_canApplyMarkers(
+          controller: controller,
+          generation: generation,
+          applyToken: applyToken,
+        )) {
+          await _addMyLocationMarker(controller);
+        }
+        return;
+      }
+    }
+    if (!_canApplyMarkers(
+      controller: controller,
+      generation: generation,
+      applyToken: applyToken,
+    )) {
+      return;
+    }
+    await _addMyLocationMarker(controller);
+  }
+
+  Future<void> _addMyLocationMarker(KakaoMapController controller) async {
+    final position = _position;
+    if (position == null ||
+        !mounted ||
+        !_mapReady ||
+        !identical(_mapCtrl, controller)) {
+      return;
     }
     try {
-      await _mapCtrl!.removeMarker(id: _myLocMarkerId);
+      await controller.addMarker(
+        markerOption: MarkerOption(
+          id: _myLocMarkerId,
+          latLng: LatLng(
+            latitude: position.latitude,
+            longitude: position.longitude,
+          ),
+          styleId: _myLocStyleId,
+          text: '내 위치',
+          rank: 999,
+        ),
+      );
     } catch (_) {}
-
-    final opts = _places
-        .asMap()
-        .entries
-        .map((e) => MarkerOption(
-              id: e.value.id,
-              latLng: e.value.latLng,
-              styleId:
-                  _selected?.id == e.value.id ? _selStyleId : _placeStyleId,
-              text: '${e.key + 1}',
-              rank: 100,
-            ))
-        .toList();
-
-    if (opts.isNotEmpty) {
-      try {
-        await _mapCtrl!.addMarkers(markerOptions: opts);
-        _markerIds = _places.map((p) => p.id).toList();
-      } catch (_) {
-        dev.log('장소 마커 표시 실패', name: 'LocationPicker');
-        _markerIds = [];
-      }
-    } else {
-      _markerIds = [];
-    }
-    await _addMyLocMarker();
   }
 
   // ── 검색 ──────────────────────────────────────────────────────────────────────
 
   void _onSearchChanged(String q) {
     _debounce?.cancel();
-    if (q.trim().isEmpty) {
+    final query = q.trim();
+    if (query.isEmpty) {
+      final generation = _searchGeneration.begin();
       setState(() {
         _places = [];
         _selected = null;
+        _searching = false;
       });
+      unawaited(_enqueueMarkerApply(generation));
       return;
     }
-    _debounce =
-        Timer(const Duration(milliseconds: 500), () => _search(q.trim()));
+    if (query.length < 2) {
+      final generation = _searchGeneration.begin();
+      setState(() {
+        _places = <_Place>[];
+        _selected = null;
+        _searching = false;
+      });
+      unawaited(_enqueueMarkerApply(generation));
+      return;
+    }
+    setState(() {});
+    _debounce = Timer(
+      const Duration(milliseconds: 350),
+      () => _search(query),
+    );
   }
 
   Future<void> _search(String query) async {
+    final normalized = query.trim();
+    if (normalized.length < 2) return;
+    final generation = _searchGeneration.begin();
     setState(() {
       _searching = true;
       _selected = null;
     });
+    unawaited(_enqueueMarkerApply(generation));
     try {
       final lat = _position?.latitude ?? _defaultLat;
       final lng = _position?.longitude ?? _defaultLng;
-      final uri = Uri.parse(
-        'https://dapi.kakao.com/v2/local/search/keyword.json'
-        '?query=${Uri.encodeComponent(query)}'
-        '&x=$lng&y=$lat&sort=distance&size=15',
+      final page = await _localSearch.search(
+        PlaceSearchQuery(
+          originType: _position == null
+              ? PlaceSearchOriginType.fallback
+              : PlaceSearchOriginType.device,
+          latitude: lat,
+          longitude: lng,
+          keyword: normalized,
+          category: 'location_picker',
+          radiusM: 20000,
+          page: 1,
+          size: 15,
+        ),
       );
-      final res = await http.get(uri, headers: {
-        'Authorization': 'KakaoAK ${ApiConfig.kakaoRestApiKey}'
-      }).timeout(const Duration(seconds: 10));
-      if (!mounted) return;
-      if (res.statusCode == 200) {
-        final docs = (jsonDecode(res.body)['documents'] as List<dynamic>);
-        final places = docs
-            .map((d) => _Place(
-                  id: d['id'] as String? ?? UniqueKey().toString(),
-                  name: d['place_name'] as String? ?? '',
-                  address:
-                      (d['road_address_name'] as String?)?.isNotEmpty == true
-                          ? d['road_address_name'] as String
-                          : d['address_name'] as String? ?? '',
-                  lat: double.tryParse(d['y'] as String? ?? '') ?? 0,
-                  lng: double.tryParse(d['x'] as String? ?? '') ?? 0,
-                ))
-            .toList();
-        setState(() {
-          _places = places;
-          _searching = false;
-        });
-        await _updateMarkers();
-        if (places.isNotEmpty && _mapReady) {
-          _suppressCam = true;
-          await _mapCtrl?.moveCamera(
-              cameraUpdate: CameraUpdate(
-            position: places.first.latLng,
-            zoomLevel: 14,
-            type: -1,
-          ));
-        }
-        // 결과 있으면 시트 올리기
-        if (places.isNotEmpty) {
-          try {
-            await _sheetCtrl.animateTo(
-              0.35,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
-          } catch (_) {}
-        }
-      } else {
-        setState(() => _searching = false);
+      if (!mounted || !_searchGeneration.isCurrent(generation)) return;
+      final places = page.items.map(_Place.fromSearchItem).toList();
+      setState(() {
+        _places = places;
+        _searching = false;
+      });
+      await _enqueueMarkerApply(generation);
+      if (!mounted || !_searchGeneration.isCurrent(generation)) return;
+      if (places.isNotEmpty) {
+        await _moveCameraProgrammatically(
+          target: places.first.latLng,
+          zoomLevel: 14,
+        );
+        if (!mounted || !_searchGeneration.isCurrent(generation)) return;
+        try {
+          await _sheetCtrl.animateTo(
+            0.35,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        } catch (_) {}
       }
-    } on TimeoutException {
-      if (mounted) setState(() => _searching = false);
+    } on KakaoLocalSearchException catch (error) {
+      if (!mounted || !_searchGeneration.isCurrent(generation)) return;
+      setState(() => _searching = false);
+      final message = switch (error.kind) {
+        KakaoLocalFailureKind.timeout => '검색 시간이 초과됐어요.',
+        KakaoLocalFailureKind.offline => '네트워크 연결을 확인해 주세요.',
+        _ => '장소를 검색하지 못했어요.',
+      };
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     } catch (_) {
       dev.log('장소 검색 실패', name: 'LocationPicker');
-      if (mounted) setState(() => _searching = false);
+      if (mounted && _searchGeneration.isCurrent(generation)) {
+        setState(() => _searching = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('장소를 검색하지 못했어요.')),
+        );
+      }
     }
   }
 
   Future<void> _selectPlace(_Place place) async {
     setState(() => _selected = place);
-    await _updateMarkers();
-    if (_mapReady) {
-      _suppressCam = true;
-      await _mapCtrl?.moveCamera(
-          cameraUpdate: CameraUpdate(
-        position: place.latLng,
-        zoomLevel: 16,
-        type: -1,
-      ));
-    }
+    await _enqueueMarkerApply(_searchGeneration.current);
+    await _moveCameraProgrammatically(
+      target: place.latLng,
+      zoomLevel: 16,
+    );
   }
 
   void _confirm() {
@@ -447,6 +785,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         onChanged: _onSearchChanged,
         textInputAction: TextInputAction.search,
         onSubmitted: (v) {
+          _debounce?.cancel();
           if (v.trim().isNotEmpty) _search(v.trim());
         },
         decoration: InputDecoration(
@@ -470,11 +809,15 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                       icon: Icon(Icons.clear,
                           size: 18.w, color: AppTheme.secondaryTextColor),
                       onPressed: () {
+                        _debounce?.cancel();
                         _searchCtrl.clear();
+                        final generation = _searchGeneration.begin();
                         setState(() {
                           _places = [];
                           _selected = null;
+                          _searching = false;
                         });
+                        unawaited(_enqueueMarkerApply(generation));
                       },
                     )
                   : null,
@@ -508,36 +851,93 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
             child: CircularProgressIndicator(color: AppTheme.primaryColor)),
       );
     }
-    final initialPos = _position != null
+    final initialPos = _initialMapPosition ??= _position != null
         ? LatLng(latitude: _position!.latitude, longitude: _position!.longitude)
         : const LatLng(latitude: _defaultLat, longitude: _defaultLng);
 
-    return KakaoMap(
-      initialPosition: initialPos,
-      onMapCreated: (ctrl) {
-        _mapCtrl = ctrl;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        KakaoMap(
+          initialPosition: initialPos,
+          onMapCreated: (ctrl) async {
+            await _labelSub?.cancel();
+            await _camSub?.cancel();
+            if (!mounted) {
+              ctrl.dispose();
+              return;
+            }
+            _mapCtrl = ctrl;
+            _mapReady = false;
+            _mapInitFailed = false;
+            _markerLayerAdded = false;
+            _markerIds = <String>[];
+            _markerCleanupIds.clear();
 
-        _labelSub = ctrl.onLabelClickedStream.listen((e) {
-          final place = _places.firstWhere(
-            (p) => p.id == e.labelId,
-            orElse: () =>
-                const _Place(id: '', name: '', address: '', lat: 0, lng: 0),
-          );
-          if (place.id.isNotEmpty && mounted) _selectPlace(place);
-        });
+            _labelSub = ctrl.onLabelClickedStream.listen((event) {
+              _Place? place;
+              for (final candidate in _places) {
+                if (candidate.id == event.labelId) {
+                  place = candidate;
+                  break;
+                }
+              }
+              if (place != null && mounted) {
+                unawaited(_selectPlace(place));
+              }
+            });
 
-        _camSub = ctrl.onCameraMoveEndStream.listen((e) {
-          if (!mounted) return;
-          if (_suppressCam) {
-            _suppressCam = false;
-            return;
-          }
-        });
+            _camSub = ctrl.onCameraMoveEndStream.listen((event) {
+              if (!mounted || !identical(_mapCtrl, ctrl)) return;
+              final resolution = resolveCameraMove(
+                movedBy: event.movedBy,
+                latitude: event.latitude,
+                longitude: event.longitude,
+                now: DateTime.now(),
+                latestMoveToken: _programmaticMoveToken,
+                pending: _pendingProgrammaticMove,
+              );
+              if (resolution.consumePending) {
+                _pendingProgrammaticMove = null;
+              }
+            });
 
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) _onMapReady(ctrl);
-        });
-      },
+            unawaited(_onMapReady(ctrl));
+          },
+        ),
+        if (_mapInitFailed)
+          ColoredBox(
+            color: Colors.white.withValues(alpha: 0.92),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.map_outlined,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    '지도를 불러오지 못했어요.',
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: AppTheme.primaryTextColor,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      final controller = _mapCtrl;
+                      if (controller != null) {
+                        unawaited(_onMapReady(controller));
+                      }
+                    },
+                    child: const Text('다시 시도'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -547,19 +947,26 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       bottom: 300.h,
       child: GestureDetector(
         onTap: () async {
+          if (_locationState == _PickerLocationState.serviceDisabled) {
+            _showLocationSettingsPrompt(appSettings: false);
+            return;
+          }
+          if (_locationState == _PickerLocationState.deniedForever) {
+            _showLocationSettingsPrompt(appSettings: true);
+            return;
+          }
           if (_position == null) {
-            await _getLocation();
+            await _requestLocation();
             return;
           }
           if (!_mapReady) return;
-          _suppressCam = true;
-          await _mapCtrl?.moveCamera(
-              cameraUpdate: CameraUpdate(
-            position: LatLng(
-                latitude: _position!.latitude, longitude: _position!.longitude),
+          await _moveCameraProgrammatically(
+            target: LatLng(
+              latitude: _position!.latitude,
+              longitude: _position!.longitude,
+            ),
             zoomLevel: 15,
-            type: -1,
-          ));
+          );
         },
         child: Container(
           width: 44.w,
@@ -628,7 +1035,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                     Text(
                       _places.isEmpty
                           ? '장소를 검색하세요'
-                          : '검색 결과 ${_places.length}개',
+                          : _position == null
+                              ? '서울시청 주변 검색 결과 ${_places.length}개'
+                              : '검색 결과 ${_places.length}개',
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w600,
@@ -681,7 +1090,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
     return Center(
       child: Text(
-        '검색 결과가 없습니다',
+        _position == null
+            ? '현재 위치를 사용할 수 없어\n서울시청 주변에서 검색했지만 결과가 없어요'
+            : '검색 결과가 없습니다',
+        textAlign: TextAlign.center,
         style: TextStyle(fontSize: 14.sp, color: AppTheme.secondaryTextColor),
       ),
     );

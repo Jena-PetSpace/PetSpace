@@ -9,13 +9,9 @@ extension _HospitalActions on _HospitalSearchPageState {
     });
     await _syncMapPaddingToSheet();
     if (_mapReady) {
-      _suppressCameraMoveEvent = true;
-      _mapController!.moveCamera(
-        cameraUpdate: CameraUpdate(
-          position: LatLng(latitude: place.lat, longitude: place.lng),
-          zoomLevel: 15,
-          type: -1,
-        ),
+      await _moveCameraProgrammatically(
+        target: LatLng(latitude: place.lat, longitude: place.lng),
+        zoomLevel: 15,
       );
       await _highlightSelectedMarker(place);
     }
@@ -23,25 +19,50 @@ extension _HospitalActions on _HospitalSearchPageState {
 
   void _closeDetail() {
     final prev = _selectedPlace;
-    setState(() { _showDetail = false; _sheetSize = _SheetSize.half; });
+    setState(() {
+      _showDetail = false;
+      _selectedPlace = null;
+      _sheetSize = _SheetSize.half;
+    });
     _syncMapPaddingToSheet();
     if (_mapReady && prev != null) {
       _restoreDefaultMarker(prev);
     }
   }
 
-  void _toggleFavorite(HospitalPlace place) {
-    setState(() {
-      if (_favoriteIds.contains(place.id)) {
-        _favoriteIds.remove(place.id);
-      } else {
-        _favoriteIds.add(place.id);
+  Future<void> _toggleFavorite(HospitalPlace place) {
+    return _serializeSavedPlaceMutation(() async {
+      final catalog = _savedCatalog;
+      if (catalog == null) {
+        _showSnack('저장한 장소 정보를 불러오지 못했어요.');
+        return;
+      }
+      try {
+        final next = _isFavorite(place.id)
+            ? await _savedPlaceStore.remove(catalog, place.id)
+            : await _savedPlaceStore.save(catalog, place.toSearchItem());
+        if (!mounted) return;
+        setState(() {
+          _refreshSavedPlaceView(next);
+          if (_categories[_selectedCategory].isFavoriteTab &&
+              !_isFavorite(place.id)) {
+            if (_selectedPlace?.id == place.id) {
+              _selectedPlace = null;
+              _showDetail = false;
+            }
+          }
+        });
+        if (_categories[_selectedCategory].isFavoriteTab) {
+          await _enqueueVisibleMarkerApply(_searchGeneration.current);
+        }
+      } on SavedPlaceWriteException {
+        _showSnack('저장하지 못했어요. 잠시 후 다시 시도해주세요.');
       }
     });
-    _persistFavorites();
   }
 
-  bool _isFavorite(String id) => _favoriteIds.contains(id);
+  bool _isFavorite(String id) =>
+      _savedCatalog?.favoriteIds.contains(id) ?? false;
 
   Future<void> _callPhone(String phone) async {
     if (phone.isEmpty) return;

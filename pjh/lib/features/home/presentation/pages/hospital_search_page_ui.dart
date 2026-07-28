@@ -30,23 +30,24 @@ extension _HospitalUI on _HospitalSearchPageState {
       return Padding(
         padding: EdgeInsets.only(bottom: i < _radii.length - 1 ? 4.h : 0),
         child: GestureDetector(
-          onTap: () {
+          onTap: () async {
             if (_selectedRadiusIndex == i) return;
             setState(() => _selectedRadiusIndex = i);
             if (_mapReady) {
-              _suppressCameraMoveEvent = true;
-              _mapController!.moveCamera(
-                cameraUpdate: CameraUpdate(
-                  position: LatLng(
-                    latitude: _position?.latitude ?? _defaultLat,
-                    longitude: _position?.longitude ?? _defaultLng,
-                  ),
-                  zoomLevel: _radiusZoomLevels[i],
-                  type: -1,
+              await _moveCameraProgrammatically(
+                target: LatLng(
+                  latitude: _searchOrigin.latitude,
+                  longitude: _searchOrigin.longitude,
                 ),
+                zoomLevel: _radiusZoomLevels[i],
               );
             }
-            _searchCategory(_selectedCategory);
+            final manualKeyword = _manualSearchKeyword;
+            if (manualKeyword == null) {
+              await _searchCategory(_selectedCategory);
+            } else {
+              await _searchByKeyword(manualKeyword);
+            }
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
@@ -240,20 +241,17 @@ extension _HospitalUI on _HospitalSearchPageState {
               ),
               Expanded(
                 child: Text(
-                  _places.isEmpty
-                      ? '${_categories[_selectedCategory].label} 검색 중...'
-                      : '${_categories[_selectedCategory].label} ${_places.length}개',
+                  _searching && _places.isEmpty
+                      ? '$_resultHeaderLabel 검색 중...'
+                      : '$_resultHeaderLabel ${_places.length}개',
                   style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w700,
                       color: AppTheme.primaryTextColor),
                 ),
               ),
-              if (_places.isNotEmpty) ...[
-                Text(_radiiLabel[_selectedRadiusIndex],
-                    style: TextStyle(
-                        fontSize: 11.sp, color: AppTheme.secondaryTextColor)),
-                Text(' 이내',
+              if (_places.any((place) => place.distanceM != null)) ...[
+                Text(_distanceOriginLabel,
                     style: TextStyle(
                         fontSize: 11.sp, color: AppTheme.secondaryTextColor)),
                 SizedBox(width: 8.w),
@@ -526,23 +524,53 @@ extension _HospitalUI on _HospitalSearchPageState {
   }
 
   Widget _buildLocationBanner() {
-    if (_locationError == null) return const SizedBox.shrink();
+    if (_locationState == _LocationAccessState.checking ||
+        _locationState == _LocationAccessState.ready) {
+      return const SizedBox.shrink();
+    }
+    final isNeutral = _locationState == _LocationAccessState.denied;
+    final message = switch (_locationState) {
+      _LocationAccessState.denied => '내 주변 장소를 보려면 위치 권한이 필요해요.',
+      _LocationAccessState.deniedForever => '설정에서 위치 권한을 허용해주세요.',
+      _LocationAccessState.serviceDisabled => '현재 위치를 사용하려면 위치 서비스를 켜주세요.',
+      _ => '현재 위치를 확인할 수 없어 서울시청 주변을 보여드려요.',
+    };
+    final action = switch (_locationState) {
+      _LocationAccessState.denied => '위치 권한 허용',
+      _LocationAccessState.deniedForever ||
+      _LocationAccessState.serviceDisabled =>
+        '설정 열기',
+      _ => '다시 시도',
+    };
+    final foreground = isNeutral ? AppTheme.primaryColor : AppTheme.errorColor;
     return Container(
-      color: AppTheme.tilePastelRose, // v2-review: FFF3F3 근사
+      color: isNeutral
+          ? AppTheme.primaryColor.withValues(alpha: 0.08)
+          : AppTheme.tilePastelRose,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(children: [
-        Icon(Icons.location_off, size: 16.w, color: AppTheme.errorColor),
+        Icon(
+          isNeutral ? Icons.location_on_outlined : Icons.location_off,
+          size: 16.w,
+          color: foreground,
+        ),
         SizedBox(width: 8.w),
         Expanded(
-            child: Text(_locationError!,
-                style: TextStyle(fontSize: 11.sp, color: AppTheme.errorColor))),
+          child: Text(
+            message,
+            style: TextStyle(fontSize: 11.sp, color: foreground),
+          ),
+        ),
         GestureDetector(
-          onTap: _getLocation,
-          child: Text('재시도',
-              style: TextStyle(
-                  fontSize: 11.sp,
-                  color: AppTheme.errorColor,
-                  fontWeight: FontWeight.w700)),
+          onTap: _handleLocationAction,
+          child: Text(
+            action,
+            style: TextStyle(
+              fontSize: 11.sp,
+              color: foreground,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ]),
     );
@@ -730,10 +758,50 @@ extension _HospitalUI on _HospitalSearchPageState {
 
   Widget _buildEmptyState() {
     if (_searching) return const SizedBox.shrink();
+    if (_categories[_selectedCategory].isFavoriteTab) {
+      final hasLegacy = _hasUnresolvedLegacyPlaces;
+      return Center(
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Text(
+            hasLegacy ? '기존에 저장한 장소를 다시 찾고 있어요.' : '저장한 장소가 없어요.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
+          SizedBox(height: 6.h),
+          Text(
+            hasLegacy ? '카테고리에서 장소를 다시 검색하면 복원됩니다.' : '자주 찾는 장소를 저장해보세요.',
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+        ]),
+      );
+    }
+    if (_searchUiState != _PlaceSearchUiState.idle &&
+        _searchUiState != _PlaceSearchUiState.empty) {
+      return Center(
+        child: Text(
+          _messageForSearchState(_searchUiState),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13.sp,
+            color: AppTheme.secondaryTextColor,
+          ),
+        ),
+      );
+    }
     return Center(
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Text(
-          '${_radiiLabel[_selectedRadiusIndex]} 이내에\n${_categories[_selectedCategory].label}이 없어요',
+          _manualSearchKeyword == null
+              ? '${_radiiLabel[_selectedRadiusIndex]} 이내에\n'
+                  '${_categories[_selectedCategory].label}이 없어요'
+              : '“$_manualSearchKeyword” 검색 결과가 없어요',
           textAlign: TextAlign.center,
           style: TextStyle(
               fontSize: 14.sp,
@@ -746,5 +814,28 @@ extension _HospitalUI on _HospitalSearchPageState {
                 TextStyle(fontSize: 12.sp, color: AppTheme.secondaryTextColor)),
       ]),
     );
+  }
+
+  String get _distanceOriginLabel {
+    return switch (_searchOrigin.type) {
+      PlaceSearchOriginType.device => '현재 위치 기준',
+      PlaceSearchOriginType.mapCenter => '지도 중심 기준',
+      PlaceSearchOriginType.manual => '검색 기준',
+      PlaceSearchOriginType.fallback => '서울시청 주변 결과',
+    };
+  }
+
+  String get _resultHeaderLabel {
+    if (_categories[_selectedCategory].isFavoriteTab) {
+      return _categories[_selectedCategory].label;
+    }
+    final hasAppliedResults = _searchResults.isNotEmpty;
+    final keyword =
+        hasAppliedResults ? _resultManualSearchKeyword : _manualSearchKeyword;
+    final categoryIndex =
+        hasAppliedResults ? _resultCategory : _selectedCategory;
+    return keyword == null
+        ? _categories[categoryIndex].label
+        : '“$keyword” 검색 결과';
   }
 }

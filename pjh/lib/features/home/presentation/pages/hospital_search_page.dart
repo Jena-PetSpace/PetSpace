@@ -1,18 +1,18 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:kakao_maps_flutter/kakao_maps_flutter.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../config/api_config.dart';
+import '../../../../config/injection_container.dart';
+import '../../../../core/place_search/kakao_local_data_source.dart';
+import '../../../../core/place_search/place_search_query.dart';
+import '../../../../core/place_search/saved_place_local_data_source.dart';
 import '../../../../core/utils/share_origin.dart';
 import '../../../../shared/themes/app_theme.dart';
 
@@ -48,29 +48,46 @@ class HospitalPlace {
     this.placeUrl = '',
   });
 
-  factory HospitalPlace.fromJson(Map<String, dynamic> json) {
+  factory HospitalPlace.fromSearchItem(PlaceSearchItem item) {
     return HospitalPlace(
-      id: json['id'] as String? ?? '',
-      name: json['place_name'] as String? ?? '',
-      address: json['road_address_name'] as String? ??
-          json['address_name'] as String? ?? '',
-      phone: json['phone'] as String? ?? '',
-      lat: double.tryParse(json['y'] as String? ?? '0') ?? 0,
-      lng: double.tryParse(json['x'] as String? ?? '0') ?? 0,
-      category: json['category_name'] as String? ?? '',
-      distanceM: int.tryParse(json['distance'] as String? ?? ''),
-      placeUrl: json['place_url'] as String? ?? '',
+      id: item.providerPlaceId,
+      name: item.name,
+      address: item.address,
+      phone: item.phone,
+      lat: item.latitude,
+      lng: item.longitude,
+      category: item.category,
+      distanceM: item.distanceM,
+      placeUrl: item.placeUrl,
     );
   }
 
   HospitalPlace copyWith({bool? isFavorite}) => HospitalPlace(
-        id: id, name: name, address: address, phone: phone,
-        lat: lat, lng: lng, category: category,
-        distanceM: distanceM, isFavorite: isFavorite ?? this.isFavorite,
+        id: id,
+        name: name,
+        address: address,
+        phone: phone,
+        lat: lat,
+        lng: lng,
+        category: category,
+        distanceM: distanceM,
+        isFavorite: isFavorite ?? this.isFavorite,
         placeUrl: placeUrl,
       );
 
   LatLng get latLng => LatLng(latitude: lat, longitude: lng);
+
+  PlaceSearchItem toSearchItem() => PlaceSearchItem(
+        providerPlaceId: id,
+        name: name,
+        category: category,
+        address: address,
+        phone: phone,
+        latitude: lat,
+        longitude: lng,
+        placeUrl: placeUrl,
+        distanceM: distanceM,
+      );
 }
 
 // ── 카테고리 ────────────────────────────────────────────────────────────────────
@@ -78,17 +95,48 @@ class HospitalPlace {
 class _Category {
   final String iconAsset;
   final String label;
-  final String query;
+  final String primaryQuery;
+  final List<String> supplementalQueries;
   final bool isFavoriteTab;
-  const _Category({required this.iconAsset, required this.label, required this.query, this.isFavoriteTab = false});
+  const _Category({
+    required this.iconAsset,
+    required this.label,
+    required this.primaryQuery,
+    this.supplementalQueries = const <String>[],
+    this.isFavoriteTab = false,
+  });
 }
 
 const _categories = [
-  _Category(iconAsset: 'assets/icons/category/cat_my_place.png', label: '내 장소', query: '', isFavoriteTab: true),
-  _Category(iconAsset: 'assets/icons/category/cat_hospital.png', label: '동물병원', query: '동물병원'),
-  _Category(iconAsset: 'assets/icons/category/cat_pharmacy.png', label: '약국', query: '동물약품 동물약국'),
-  _Category(iconAsset: 'assets/icons/category/cat_cafe.png', label: '카페', query: '반려동물카페 펫카페'),
-  _Category(iconAsset: 'assets/icons/category/cat_grooming.png', label: '미용실', query: '반려동물미용 애견미용'),
+  _Category(
+    iconAsset: 'assets/icons/category/cat_my_place.png',
+    label: '내 장소',
+    primaryQuery: '',
+    isFavoriteTab: true,
+  ),
+  _Category(
+    iconAsset: 'assets/icons/category/cat_hospital.png',
+    label: '동물병원',
+    primaryQuery: '동물병원',
+  ),
+  _Category(
+    iconAsset: 'assets/icons/category/cat_pharmacy.png',
+    label: '약국',
+    primaryQuery: '동물약국',
+    supplementalQueries: <String>['동물약품'],
+  ),
+  _Category(
+    iconAsset: 'assets/icons/category/cat_cafe.png',
+    label: '카페',
+    primaryQuery: '반려동물카페',
+    supplementalQueries: <String>['애견카페'],
+  ),
+  _Category(
+    iconAsset: 'assets/icons/category/cat_grooming.png',
+    label: '미용실',
+    primaryQuery: '반려동물미용',
+    supplementalQueries: <String>['애견미용'],
+  ),
 ];
 
 const _radii = [1000, 3000, 5000];
@@ -98,6 +146,27 @@ const _radiusZoomLevels = [15, 13, 12];
 
 enum _SheetSize { collapsed, half, full }
 
+enum _LocationAccessState {
+  checking,
+  ready,
+  denied,
+  deniedForever,
+  serviceDisabled,
+  unavailable,
+}
+
+enum _PlaceSearchUiState {
+  idle,
+  loading,
+  empty,
+  timeout,
+  offline,
+  unauthorized,
+  rateLimit,
+  server,
+  invalidPayload,
+}
+
 // ── 마커/위치 상수 (part 파일에서 공유) ────────────────────────────────────────────
 const double _defaultLat = 37.5665;
 const double _defaultLng = 126.9780;
@@ -105,7 +174,6 @@ const String _myLocationMarkerId = 'my_location';
 const String _myLocationStyleId = 'my_location_style';
 const String _placeStyleId = 'place_style';
 const String _selectedPlaceStyleId = 'selected_place_style';
-const String _favoritesPrefKey = 'hospital_search_favorites';
 
 // ── 메인 페이지 ──────────────────────────────────────────────────────────────────
 
@@ -116,29 +184,52 @@ class HospitalSearchPage extends StatefulWidget {
   State<HospitalSearchPage> createState() => _HospitalSearchPageState();
 }
 
-class _HospitalSearchPageState extends State<HospitalSearchPage> {
+class _HospitalSearchPageState extends State<HospitalSearchPage>
+    with WidgetsBindingObserver {
+  final KakaoLocalDataSource _localSearch = sl<KakaoLocalDataSource>();
+  final SavedPlaceLocalDataSource _savedPlaceStore =
+      sl<SavedPlaceLocalDataSource>();
+  final PlaceSearchGeneration _searchGeneration = PlaceSearchGeneration();
+
   // ── 지도 ──
   KakaoMapController? _mapController;
   StreamSubscription<LabelClickEvent>? _labelClickSub;
   StreamSubscription<CameraMoveEndEvent>? _cameraMoveEndSub;
 
   bool _mapReady = false;
+  bool _mapInitFailed = false;
+  bool _markerLayerAdded = false;
+  Future<void> _markerQueue = Future<void>.value();
+  Future<void> _savedPlaceMutationQueue = Future<void>.value();
+  int _markerGeneration = 0;
+  int _programmaticMoveToken = 0;
+  PendingProgrammaticMove? _pendingProgrammaticMove;
+  LatLng? _initialMapPosition;
 
   // ── 위치 ──
   double _cameraLat = _defaultLat;
   double _cameraLng = _defaultLng;
   Position? _position;
-  String? _locationError;
+  _LocationAccessState _locationState = _LocationAccessState.checking;
+  PlaceSearchOrigin _searchOrigin = PlaceSearchOrigin(
+    type: PlaceSearchOriginType.fallback,
+    latitude: _defaultLat,
+    longitude: _defaultLng,
+  );
 
   // ── UI 상태 ──
   bool _searching = false;
   bool _isFollowingLocation = true;
   bool _showReSearchButton = false;
-  bool _suppressCameraMoveEvent = false;
   int _selectedCategory = 0;
   int _selectedRadiusIndex = 0;
-  List<HospitalPlace> _places = [];
-  final Set<String> _favoriteIds = {};
+  int _resultCategory = 0;
+  List<HospitalPlace> _searchResults = <HospitalPlace>[];
+  List<HospitalPlace> _savedPlaceView = <HospitalPlace>[];
+  SavedPlaceCatalog? _savedCatalog;
+  String? _manualSearchKeyword;
+  String? _resultManualSearchKeyword;
+  _PlaceSearchUiState _searchUiState = _PlaceSearchUiState.idle;
   HospitalPlace? _selectedPlace;
   bool _showDetail = false;
   _SheetSize _sheetSize = _SheetSize.collapsed;
@@ -149,12 +240,22 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
   final FocusNode _searchFocusNode = FocusNode();
 
   List<String> _currentMarkerIds = [];
+  final Set<String> _markerCleanupIds = <String>{};
+
+  List<HospitalPlace> get _places =>
+      _categories[_selectedCategory].isFavoriteTab
+          ? _savedPlaceView
+          : _searchResults;
+
+  bool get _hasUnresolvedLegacyPlaces =>
+      _savedCatalog?.unresolvedLegacyIds.isNotEmpty ?? false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadFavorites();
-    _getLocation();
+    _initializeLocationWithoutPrompt();
     _searchFocusNode.addListener(() {
       if (!mounted) return;
       if (_searchFocusNode.hasFocus) {
@@ -167,12 +268,21 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _labelClickSub?.cancel();
     _cameraMoveEndSub?.cancel();
+    _mapController?.dispose();
     _listScrollController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_initializeLocationWithoutPrompt(refreshSearch: false));
+    }
   }
 
   double _sheetHeight(BuildContext context) {
@@ -193,10 +303,21 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
     if (_mapController == null || !_mapReady) return;
     final sheetPx = _sheetHeight(context).toInt();
     try {
-      await _mapController!.setPadding(left: 0, top: 0, right: 0, bottom: sheetPx);
-    } catch (e) {
-      dev.log('[HS] setPadding 실패: $e', name: 'HospitalSearch');
+      await _mapController!
+          .setPadding(left: 0, top: 0, right: 0, bottom: sheetPx);
+    } catch (_) {
+      dev.log('[HS] setPadding 실패', name: 'HospitalSearch');
     }
+  }
+
+  Future<void> _serializeSavedPlaceMutation(
+    Future<void> Function() mutation,
+  ) {
+    final next = _savedPlaceMutationQueue
+        .catchError((Object _) {})
+        .then((_) => mutation());
+    _savedPlaceMutationQueue = next;
+    return next;
   }
 
   void _showSnack(String message) {
@@ -228,22 +349,6 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
       }
     }
     if (changed) _syncMapPaddingToSheet();
-  }
-
-  bool _isValidCategoryForSelected(String category) {
-    const whitelist = <List<String>>[
-      [],
-      ['동물병원', '의원'],
-      ['동물약국', '동물약품', '약국'],
-      ['카페', '펫카페', '반려동물카페', '애견카페'],
-      ['미용', '애견미용', '반려동물미용', '펫샵', '펫숍', '그루밍'],
-    ];
-    if (_selectedCategory < 0 || _selectedCategory >= whitelist.length) {
-      return true;
-    }
-    final keywords = whitelist[_selectedCategory];
-    if (keywords.isEmpty) return true;
-    return keywords.any((kw) => category.contains(kw));
   }
 
   String _formatDistance(int meters) {
@@ -279,7 +384,8 @@ class _HospitalSearchPageState extends State<HospitalSearchPage> {
                     Positioned.fill(child: _buildMap()),
                     _buildMapOverlayButtons(),
                     if (_searching) _buildSearchingIndicator(),
-                    if (_showReSearchButton && !_showDetail) _buildReSearchButton(),
+                    if (_showReSearchButton && !_showDetail)
+                      _buildReSearchButton(),
                     _buildBottomSheet(),
                   ],
                 ),
