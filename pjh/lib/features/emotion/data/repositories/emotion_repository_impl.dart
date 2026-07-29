@@ -5,10 +5,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/network_info.dart';
+import '../../domain/entities/ai_history.dart';
 import '../../domain/entities/emotion_analysis.dart';
+import '../../domain/entities/health_analysis.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../domain/repositories/emotion_repository.dart';
 import '../models/emotion_analysis_model.dart';
+import '../models/health_analysis_model.dart';
 import '../datasources/emotion_ai_service.dart';
 import '../datasources/image_service.dart';
 
@@ -58,22 +61,32 @@ class EmotionRepositoryImpl implements EmotionRepository {
         processedImages,
         petType: petType,
         breed: breed,
-        additionalContext:
-            (trimmedContext != null && trimmedContext.isNotEmpty)
-                ? trimmedContext
-                : null,
+        additionalContext: (trimmedContext != null && trimmedContext.isNotEmpty)
+            ? trimmedContext
+            : null,
       );
 
       // 대표 이미지(첫 번째)를 Supabase Storage에 업로드
-      final imageUrlResult =
-          await uploadImage(processedImages.first, 'emotions/${user.id}');
-      final resolvedImageUrl = imageUrlResult.fold((l) {
-        log('[DEBUG] analyzeEmotion - upload FAILED: ${l.message}', name: 'EmotionRepo');
-        return '';
-      }, (r) {
-        log('[DEBUG] analyzeEmotion - upload SUCCESS: $r', name: 'EmotionRepo');
-        return r;
-      });
+      final imageUrlResult = await uploadImage(
+        processedImages.first,
+        'emotions/${user.id}',
+      );
+      final resolvedImageUrl = imageUrlResult.fold(
+        (l) {
+          log(
+            '[DEBUG] analyzeEmotion - upload FAILED: ${l.message}',
+            name: 'EmotionRepo',
+          );
+          return '';
+        },
+        (r) {
+          log(
+            '[DEBUG] analyzeEmotion - upload SUCCESS: $r',
+            name: 'EmotionRepo',
+          );
+          return r;
+        },
+      );
       final localImagePath = await imageService.saveImageToLocal(
         processedImages.first,
         'emotion_${DateTime.now().millisecondsSinceEpoch}.jpg',
@@ -93,16 +106,16 @@ class EmotionRepositoryImpl implements EmotionRepository {
         memo: null,
         tags: const [],
         isSleepy: emotionScores.isSleepy,
-        contextNote:
-            (trimmedContext != null && trimmedContext.isNotEmpty)
-                ? trimmedContext
-                : null,
+        contextNote: (trimmedContext != null && trimmedContext.isNotEmpty)
+            ? trimmedContext
+            : null,
       );
 
       return Right(analysis);
     } catch (e) {
       return Left(
-          AnalysisFailure(message: '감정 분석 중 오류가 발생했습니다: ${e.toString()}'));
+        AnalysisFailure(message: '감정 분석 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -116,27 +129,46 @@ class EmotionRepositoryImpl implements EmotionRepository {
       final user = supabaseClient.auth.currentUser;
       String imageUrl = analysis.imageUrl;
 
-      log('[DEBUG] saveAnalysis - initial imageUrl="$imageUrl" localPath="${analysis.localImagePath}"', name: 'EmotionRepo');
+      log(
+        '[DEBUG] saveAnalysis - initial imageUrl="$imageUrl" localPath="${analysis.localImagePath}"',
+        name: 'EmotionRepo',
+      );
 
       // imageUrl이 비어있고 localImagePath가 있으면 저장 시점에 재업로드
       if (imageUrl.isEmpty && analysis.localImagePath.isNotEmpty) {
         final localFile = File(analysis.localImagePath);
         if (localFile.existsSync()) {
-          log('[DEBUG] saveAnalysis - re-uploading from localPath', name: 'EmotionRepo');
-          final uploadResult =
-              await uploadImage(localFile, 'emotions/${user?.id ?? 'unknown'}');
+          log(
+            '[DEBUG] saveAnalysis - re-uploading from localPath',
+            name: 'EmotionRepo',
+          );
+          final uploadResult = await uploadImage(
+            localFile,
+            'emotions/${user?.id ?? 'unknown'}',
+          );
           imageUrl = uploadResult.fold((_) => '', (url) => url);
-          log('[DEBUG] saveAnalysis - re-upload result imageUrl="$imageUrl"', name: 'EmotionRepo');
+          log(
+            '[DEBUG] saveAnalysis - re-upload result imageUrl="$imageUrl"',
+            name: 'EmotionRepo',
+          );
         } else {
-          log('[DEBUG] saveAnalysis - localFile does NOT exist: ${analysis.localImagePath}', name: 'EmotionRepo');
+          log(
+            '[DEBUG] saveAnalysis - localFile does NOT exist: ${analysis.localImagePath}',
+            name: 'EmotionRepo',
+          );
         }
       }
 
-      log('[DEBUG] saveAnalysis - final imageUrl="$imageUrl"', name: 'EmotionRepo');
+      log(
+        '[DEBUG] saveAnalysis - final imageUrl="$imageUrl"',
+        name: 'EmotionRepo',
+      );
 
       final analysisModel = (analysis is EmotionAnalysisModel)
           ? analysis.copyWith(imageUrl: imageUrl)
-          : EmotionAnalysisModel.fromEntity(analysis).copyWith(imageUrl: imageUrl);
+          : EmotionAnalysisModel.fromEntity(
+              analysis,
+            ).copyWith(imageUrl: imageUrl);
 
       await supabaseClient
           .from('emotion_history')
@@ -146,7 +178,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
     } catch (e) {
       log('[DEBUG] saveAnalysis - ERROR: $e', name: 'EmotionRepo');
       return Left(
-          ServerFailure(message: '분석 결과 저장 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '분석 결과 저장 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -189,7 +222,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return Right(analyses);
     } catch (e) {
       return Left(
-          ServerFailure(message: '히스토리 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '히스토리 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -203,14 +237,222 @@ class EmotionRepositoryImpl implements EmotionRepository {
           .maybeSingle();
 
       if (response == null) {
-        return const Left(ServerFailure(message: '분석 결과를 찾을 수 없습니다.'));
+        return const Left(NotFoundFailure(message: '이 기록을 열 수 없어요.'));
       }
 
       final analysis = EmotionAnalysisModel.fromJson(response);
       return Right(analysis);
     } catch (e) {
       return Left(
-          ServerFailure(message: '분석 결과 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '분석 결과 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, HealthAnalysis>> getHealthAnalysisById(
+    String id,
+  ) async {
+    final userId = supabaseClient.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      return const Left(UnauthorizedFailure(message: '로그인이 필요합니다.'));
+    }
+    try {
+      final response = await supabaseClient
+          .from('health_history')
+          .select()
+          .eq('id', id)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (response == null) {
+        return const Left(NotFoundFailure(message: '건강 기록을 찾을 수 없습니다.'));
+      }
+      return Right(HealthAnalysisModel.fromSupabaseRow(response));
+    } catch (e) {
+      return Left(ServerFailure(message: '건강 기록 조회 중 오류가 발생했습니다: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, EmotionAnalysis>> updateAnalysisMemo({
+    required String analysisId,
+    required String memo,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+    }
+    final userId = supabaseClient.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      return const Left(UnauthorizedFailure(message: '로그인이 필요합니다.'));
+    }
+
+    try {
+      final response = await supabaseClient
+          .from('emotion_history')
+          .update({'memo': memo.trim().isEmpty ? null : memo.trim()})
+          .eq('id', analysisId)
+          .eq('user_id', userId)
+          .select()
+          .maybeSingle();
+      if (response == null) {
+        return const Left(NotFoundFailure(message: '수정할 기록을 찾을 수 없습니다.'));
+      }
+      return Right(EmotionAnalysisModel.fromJson(response));
+    } catch (e) {
+      return Left(ServerFailure(message: '메모 저장 중 오류가 발생했습니다: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AiHistoryPageBatch>> getAiHistoryPage({
+    required String userId,
+    required AiHistoryPetScope petScope,
+    required List<String> activePetIds,
+    AiHistoryTypeFilter typeFilter = AiHistoryTypeFilter.all,
+    AiHistoryDateRange dateRange = AiHistoryDateRange.all,
+    bool healthAttentionOnly = false,
+    AiHistoryCursor cursor = const AiHistoryCursor.initial(),
+    int pageSize = 20,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
+    }
+
+    try {
+      final start = _historyRangeStart(dateRange);
+      final sourceLimit =
+          petScope.kind == AiHistoryPetScopeKind.unlinked ? 250 : pageSize + 1;
+      var emotionRows = <Map<String, dynamic>>[];
+      var healthRows = <Map<String, dynamic>>[];
+
+      final loadEmotion =
+          typeFilter != AiHistoryTypeFilter.health && !cursor.emotionExhausted;
+      final loadHealth =
+          typeFilter != AiHistoryTypeFilter.emotion && !cursor.healthExhausted;
+
+      if (loadEmotion) {
+        dynamic query = supabaseClient
+            .from('emotion_history')
+            .select()
+            .eq('user_id', userId);
+        if (petScope.kind == AiHistoryPetScopeKind.registered) {
+          query = query.eq('pet_id', petScope.petId!);
+        }
+        if (start != null) {
+          query = query.gte('created_at', start.toUtc().toIso8601String());
+        }
+        if (cursor.emotionBefore != null) {
+          query = query.lt(
+            'created_at',
+            cursor.emotionBefore!.toUtc().toIso8601String(),
+          );
+        }
+        final response = await query
+            .order('created_at', ascending: false)
+            .limit(sourceLimit);
+        emotionRows = (response as List).cast<Map<String, dynamic>>();
+      }
+
+      if (loadHealth) {
+        dynamic query = supabaseClient
+            .from('health_history')
+            .select()
+            .eq('user_id', userId);
+        if (petScope.kind == AiHistoryPetScopeKind.registered) {
+          query = query.eq('pet_id', petScope.petId!);
+        }
+        if (start != null) {
+          query = query.gte('created_at', start.toUtc().toIso8601String());
+        }
+        if (cursor.healthBefore != null) {
+          query = query.lt(
+            'created_at',
+            cursor.healthBefore!.toUtc().toIso8601String(),
+          );
+        }
+        final response = await query
+            .order('created_at', ascending: false)
+            .limit(sourceLimit);
+        healthRows = (response as List).cast<Map<String, dynamic>>();
+      }
+
+      var emotionRecords = emotionRows
+          .map(EmotionAnalysisModel.fromJson)
+          .where((analysis) {
+            if (petScope.kind != AiHistoryPetScopeKind.unlinked) return true;
+            final petId = analysis.petId;
+            return petId == null ||
+                petId.isEmpty ||
+                !activePetIds.contains(petId);
+          })
+          .map(AiHistoryRecord.emotion)
+          .toList();
+      var healthRecords = healthRows
+          .map(HealthAnalysisModel.fromSupabaseRow)
+          .where((analysis) {
+            if (petScope.kind != AiHistoryPetScopeKind.unlinked) return true;
+            final petId = analysis.petId;
+            return petId == null ||
+                petId.isEmpty ||
+                !activePetIds.contains(petId);
+          })
+          .where(
+            (analysis) => !healthAttentionOnly || _isAttentionHealth(analysis),
+          )
+          .map(AiHistoryRecord.health)
+          .toList();
+
+      final merged = [...emotionRecords, ...healthRecords]
+        ..sort((a, b) => b.analyzedAt.compareTo(a.analyzedAt));
+      final records = merged.take(pageSize).toList(growable: false);
+      final consumedEmotion = records
+          .where((record) => record.kind == AiHistoryKind.emotion)
+          .toList();
+      final consumedHealth = records
+          .where((record) => record.kind == AiHistoryKind.health)
+          .toList();
+
+      DateTime? emotionBefore = cursor.emotionBefore;
+      if (consumedEmotion.isNotEmpty) {
+        emotionBefore = consumedEmotion.last.analyzedAt;
+      } else if (emotionRecords.isEmpty && emotionRows.isNotEmpty) {
+        emotionBefore = _rowCreatedAt(emotionRows.last);
+      }
+
+      DateTime? healthBefore = cursor.healthBefore;
+      if (consumedHealth.isNotEmpty) {
+        healthBefore = consumedHealth.last.analyzedAt;
+      } else if (healthRecords.isEmpty && healthRows.isNotEmpty) {
+        healthBefore = _rowCreatedAt(healthRows.last);
+      }
+
+      final emotionExhausted = !loadEmotion ||
+          (emotionRows.length < sourceLimit &&
+              consumedEmotion.length == emotionRecords.length);
+      final healthExhausted = !loadHealth ||
+          (healthRows.length < sourceLimit &&
+              consumedHealth.length == healthRecords.length);
+      final reachedScanLimit =
+          petScope.kind == AiHistoryPetScopeKind.unlinked &&
+              (emotionRows.length == sourceLimit ||
+                  healthRows.length == sourceLimit);
+
+      return Right(
+        AiHistoryPageBatch(
+          records: records,
+          nextCursor: AiHistoryCursor(
+            emotionBefore: emotionBefore,
+            healthBefore: healthBefore,
+            emotionExhausted: emotionExhausted,
+            healthExhausted: healthExhausted,
+          ),
+          hasMore: !emotionExhausted || !healthExhausted,
+          reachedUnlinkedScanLimit: reachedScanLimit,
+        ),
+      );
+    } catch (e) {
+      return Left(ServerFailure(message: 'AI 분석 기록 조회 중 오류가 발생했습니다: $e'));
     }
   }
 
@@ -225,7 +467,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '분석 결과 삭제 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '분석 결과 삭제 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -254,7 +497,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return Right(savedPet);
     } catch (e) {
       return Left(
-          ServerFailure(message: '반려동물 등록 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '반려동물 등록 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -273,7 +517,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return Right(pets);
     } catch (e) {
       return Left(
-          ServerFailure(message: '반려동물 목록 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '반려동물 목록 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -294,7 +539,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return Right(pet);
     } catch (e) {
       return Left(
-          ServerFailure(message: '반려동물 정보 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '반려동물 정보 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -320,7 +566,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return Right(pet);
     } catch (e) {
       return Left(
-          ServerFailure(message: '반려동물 정보 업데이트 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '반려동물 정보 업데이트 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -335,13 +582,16 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return const Right(null);
     } catch (e) {
       return Left(
-          ServerFailure(message: '반려동물 삭제 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '반려동물 삭제 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
   @override
   Future<Either<Failure, String>> uploadImage(
-      File imageFile, String path) async {
+    File imageFile,
+    String path,
+  ) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure(message: '인터넷 연결을 확인해주세요.'));
     }
@@ -350,7 +600,10 @@ class EmotionRepositoryImpl implements EmotionRepository {
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final filePath = '$path/$fileName';
 
-      log('[DEBUG] uploadImage - uploading to bucket=images path=$filePath size=${imageFile.lengthSync()}bytes', name: 'EmotionRepo');
+      log(
+        '[DEBUG] uploadImage - uploading to bucket=images path=$filePath size=${imageFile.lengthSync()}bytes',
+        name: 'EmotionRepo',
+      );
       await supabaseClient.storage.from('images').upload(filePath, imageFile);
 
       final publicUrl =
@@ -361,7 +614,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
     } catch (e) {
       log('[DEBUG] uploadImage - FAILED: $e', name: 'EmotionRepo');
       return Left(
-          ServerFailure(message: '이미지 업로드 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '이미지 업로드 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -372,7 +626,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return Right(processedImage);
     } catch (e) {
       return Left(
-          ImageFailure(message: '이미지 처리 중 오류가 발생했습니다: ${e.toString()}'));
+        ImageFailure(message: '이미지 처리 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -392,16 +647,14 @@ class EmotionRepositoryImpl implements EmotionRepository {
         limit: 1000, // 통계를 위해 더 많은 데이터 조회
       );
 
-      return historyResult.fold(
-        (failure) => Left(failure),
-        (analyses) {
-          final statistics = _calculateStatistics(analyses);
-          return Right(statistics);
-        },
-      );
+      return historyResult.fold((failure) => Left(failure), (analyses) {
+        final statistics = _calculateStatistics(analyses);
+        return Right(statistics);
+      });
     } catch (e) {
       return Left(
-          ServerFailure(message: '통계 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '통계 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
 
@@ -437,13 +690,13 @@ class EmotionRepositoryImpl implements EmotionRepository {
     }
 
     final emotionSums = {
-      'happiness':  0.0,
-      'calm':       0.0,
+      'happiness': 0.0,
+      'calm': 0.0,
       'excitement': 0.0,
-      'curiosity':  0.0,
-      'anxiety':    0.0,
-      'fear':       0.0,
-      'sadness':    0.0,
+      'curiosity': 0.0,
+      'anxiety': 0.0,
+      'fear': 0.0,
+      'sadness': 0.0,
       'discomfort': 0.0,
     };
 
@@ -454,14 +707,20 @@ class EmotionRepositoryImpl implements EmotionRepository {
 
     // 감정별 합산
     for (final analysis in analyses) {
-      emotionSums['happiness']  = emotionSums['happiness']!  + analysis.emotions.happiness;
-      emotionSums['calm']       = emotionSums['calm']!       + analysis.emotions.calm;
-      emotionSums['excitement'] = emotionSums['excitement']! + analysis.emotions.excitement;
-      emotionSums['curiosity']  = emotionSums['curiosity']!  + analysis.emotions.curiosity;
-      emotionSums['anxiety']    = emotionSums['anxiety']!    + analysis.emotions.anxiety;
-      emotionSums['fear']       = emotionSums['fear']!       + analysis.emotions.fear;
-      emotionSums['sadness']    = emotionSums['sadness']!    + analysis.emotions.sadness;
-      emotionSums['discomfort'] = emotionSums['discomfort']! + analysis.emotions.discomfort;
+      emotionSums['happiness'] =
+          emotionSums['happiness']! + analysis.emotions.happiness;
+      emotionSums['calm'] = emotionSums['calm']! + analysis.emotions.calm;
+      emotionSums['excitement'] =
+          emotionSums['excitement']! + analysis.emotions.excitement;
+      emotionSums['curiosity'] =
+          emotionSums['curiosity']! + analysis.emotions.curiosity;
+      emotionSums['anxiety'] =
+          emotionSums['anxiety']! + analysis.emotions.anxiety;
+      emotionSums['fear'] = emotionSums['fear']! + analysis.emotions.fear;
+      emotionSums['sadness'] =
+          emotionSums['sadness']! + analysis.emotions.sadness;
+      emotionSums['discomfort'] =
+          emotionSums['discomfort']! + analysis.emotions.discomfort;
 
       // 주요 감정 카운트
       final dominantEmotion = analysis.emotions.dominantEmotion;
@@ -486,8 +745,10 @@ class EmotionRepositoryImpl implements EmotionRepository {
       final dayEnd = dayStart.add(const Duration(days: 1));
 
       final dayAnalyses = analyses
-          .where((a) =>
-              a.analyzedAt.isAfter(dayStart) && a.analyzedAt.isBefore(dayEnd))
+          .where(
+            (a) =>
+                a.analyzedAt.isAfter(dayStart) && a.analyzedAt.isBefore(dayEnd),
+          )
           .toList();
 
       if (dayAnalyses.isNotEmpty) {
@@ -495,13 +756,13 @@ class EmotionRepositoryImpl implements EmotionRepository {
             dayAnalyses.map(f).reduce((a, b) => a + b) / dayAnalyses.length;
 
         final dayAverage = {
-          'happiness':  avg((a) => a.emotions.happiness),
-          'calm':       avg((a) => a.emotions.calm),
+          'happiness': avg((a) => a.emotions.happiness),
+          'calm': avg((a) => a.emotions.calm),
           'excitement': avg((a) => a.emotions.excitement),
-          'curiosity':  avg((a) => a.emotions.curiosity),
-          'anxiety':    avg((a) => a.emotions.anxiety),
-          'fear':       avg((a) => a.emotions.fear),
-          'sadness':    avg((a) => a.emotions.sadness),
+          'curiosity': avg((a) => a.emotions.curiosity),
+          'anxiety': avg((a) => a.emotions.anxiety),
+          'fear': avg((a) => a.emotions.fear),
+          'sadness': avg((a) => a.emotions.sadness),
           'discomfort': avg((a) => a.emotions.discomfort),
         };
 
@@ -605,7 +866,8 @@ class EmotionRepositoryImpl implements EmotionRepository {
 
   @override
   Future<Either<Failure, List<Map<String, dynamic>>>> getHealthHistory(
-      String userId) async {
+    String userId,
+  ) async {
     try {
       if (!await networkInfo.isConnected) {
         return const Left(NetworkFailure(message: '네트워크 연결을 확인해주세요'));
@@ -637,6 +899,27 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return Right((response as List).cast<Map<String, dynamic>>());
     } catch (e) {
       return Left(ServerFailure(message: '감정 타임라인 조회 중 오류: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> canAccessOwnedPet(String petId) async {
+    final userId = supabaseClient.auth.currentUser?.id;
+    if (userId == null || userId.isEmpty) {
+      return const Left(UnauthorizedFailure(message: '로그인이 필요합니다.'));
+    }
+    if (petId.isEmpty) return const Right(false);
+
+    try {
+      final row = await supabaseClient
+          .from('pets')
+          .select('id')
+          .eq('id', petId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      return Right(row != null);
+    } catch (e) {
+      return Left(ServerFailure(message: '반려동물 접근 권한 확인 중 오류가 발생했습니다: $e'));
     }
   }
 
@@ -737,7 +1020,32 @@ class EmotionRepositoryImpl implements EmotionRepository {
       return Right('지난 7일 평균보다 ${diff.abs()}% 낮아요');
     } catch (e) {
       return Left(
-          ServerFailure(message: '감정 비교 조회 중 오류가 발생했습니다: ${e.toString()}'));
+        ServerFailure(message: '감정 비교 조회 중 오류가 발생했습니다: ${e.toString()}'),
+      );
     }
   }
+}
+
+DateTime? _historyRangeStart(AiHistoryDateRange range) {
+  if (range == AiHistoryDateRange.all) return null;
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final days = switch (range) {
+    AiHistoryDateRange.last7Days => 7,
+    AiHistoryDateRange.last30Days => 30,
+    AiHistoryDateRange.last90Days => 90,
+    AiHistoryDateRange.all => 0,
+  };
+  return today.subtract(Duration(days: days - 1));
+}
+
+DateTime _rowCreatedAt(Map<String, dynamic> row) {
+  final value = row['created_at'];
+  if (value is DateTime) return value.toLocal();
+  if (value is String) return DateTime.parse(value).toLocal();
+  return DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+bool _isAttentionHealth(HealthAnalysis analysis) {
+  return analysis.requiresReview;
 }

@@ -13,8 +13,13 @@ import '../../theme/emotion_result_tokens.dart';
 /// - 하단: 분석 일시 · 펫 정보 메타 행
 class HealthScoreCard extends StatelessWidget {
   final HealthAnalysis analysis;
+  final String? areaLabelOverride;
 
-  const HealthScoreCard({super.key, required this.analysis});
+  const HealthScoreCard({
+    super.key,
+    required this.analysis,
+    this.areaLabelOverride,
+  });
 
   int get _score => analysis.overallScore;
 
@@ -72,8 +77,10 @@ class HealthScoreCard extends StatelessWidget {
   }
 
   Widget _buildAreaLabel() {
+    final areaLabel =
+        areaLabelOverride ?? EmotionResultTokens.areaHeroLabel(analysis.area);
     return Text(
-      '선택 부위 · ${EmotionResultTokens.areaHeroLabel(analysis.area)}',
+      '선택 부위 · $areaLabel',
       style: TextStyle(
         fontSize: 10.sp,
         fontWeight: FontWeight.w500,
@@ -208,7 +215,7 @@ class HealthScoreCard extends StatelessWidget {
 }
 
 class _DonutPainter extends CustomPainter {
-  final int score;       // 0~100
+  final int score; // 0~100
   final Color fillColor;
   final Color trackColor;
   final double strokeWidth;

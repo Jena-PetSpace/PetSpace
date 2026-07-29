@@ -88,10 +88,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
             child: Center(
               child: Text(
                 '게시물 작성',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -106,10 +103,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
             ),
             child: Text(
               '게시',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14.sp,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
             ),
           ),
         ],
@@ -166,11 +160,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
                       shape: BoxShape.circle,
                     ),
                     padding: EdgeInsets.all(4.w),
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 16.w,
-                    ),
+                    child: Icon(Icons.close, color: Colors.white, size: 16.w),
                   ),
                 ),
               ),
@@ -235,20 +225,13 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 16.w,
-              color: foreground,
-            ),
+            Icon(icon, size: 16.w, color: foreground),
             SizedBox(width: 4.w),
             Flexible(
               child: Text(
                 label,
                 softWrap: true,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: foreground,
-                ),
+                style: TextStyle(fontSize: 12.sp, color: foreground),
               ),
             ),
           ],
@@ -336,7 +319,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
                 ),
                 Text(
                   // 라벨만 — 퍼센트 수치 노출 금지 (P0 정책)
-                  '${emotion.petName ?? '반려동물'} · ${emotionNames[dominant] ?? dominant}',
+                  '${emotion.petName ?? '반려동물 정보 없음'} · ${emotionNames[dominant] ?? dominant}',
                   style: TextStyle(
                     fontSize: 11.sp,
                     color: colorScheme.onSurfaceVariant,
@@ -385,9 +368,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
     if (widget.currentUserId.isEmpty) return;
     final result = await Navigator.push<EmotionAnalysis>(
       context,
-      MaterialPageRoute(
-        builder: (_) => const AiHistoryPage(selectMode: true),
-      ),
+      MaterialPageRoute(builder: (_) => const AiHistoryPage(selectMode: true)),
     );
     if (result != null && mounted) {
       setState(() {
@@ -406,9 +387,7 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
           title: const Text('위치 추가'),
           content: TextField(
             controller: locationController,
-            decoration: const InputDecoration(
-              hintText: '위치를 입력하세요',
-            ),
+            decoration: const InputDecoration(hintText: '위치를 입력하세요'),
           ),
           actions: [
             TextButton(
@@ -437,9 +416,9 @@ class _CreatePostBottomSheetState extends State<CreatePostBottomSheet> {
     if (content.isEmpty &&
         _selectedImages.isEmpty &&
         _attachedEmotion == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('내용을 입력하거나 이미지를 추가해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('내용을 입력하거나 이미지를 추가해주세요.')));
       return;
     }
 

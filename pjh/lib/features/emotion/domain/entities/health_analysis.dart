@@ -17,9 +17,14 @@ enum HealthArea {
         HealthArea.overall: '종합(전체)',
       }[this]!;
 
-  static HealthArea fromDisplayName(String name) => HealthArea.values
-      .firstWhere((e) => e.displayName == name, orElse: () => HealthArea.overall);
+  static HealthArea fromDisplayName(String name) =>
+      HealthArea.values.firstWhere(
+        (e) => e.displayName == name,
+        orElse: () => HealthArea.overall,
+      );
 }
+
+enum HealthObservationState { stable, watch, needsAttention, unknown }
 
 class HealthFinding extends Equatable {
   final String item;
@@ -51,6 +56,9 @@ class HealthAnalysis extends Equatable {
   final String? petId;
   final String? petName;
   final HealthArea area;
+
+  /// 저장된 원본 부위명. 과거/미상 값을 `overall`로 오분류하지 않기 위해 보존한다.
+  final String? sourceAreaName;
   final List<String> imageUrls;
   final int overallScore;
   final String status; // '양호' | '주의' | '위험' | '확인불가'
@@ -69,6 +77,7 @@ class HealthAnalysis extends Equatable {
     this.petId,
     this.petName,
     required this.area,
+    this.sourceAreaName,
     required this.imageUrls,
     required this.overallScore,
     required this.status,
@@ -82,6 +91,34 @@ class HealthAnalysis extends Equatable {
     required this.analyzedAt,
   });
 
+  bool get hasKnownArea =>
+      sourceAreaName == null ||
+      HealthArea.values.any((area) => area.displayName == sourceAreaName);
+
+  HealthObservationState get observationState {
+    if (riskAlert) return HealthObservationState.needsAttention;
+    return switch (status.trim().toLowerCase()) {
+      '양호' || 'normal' || 'good' || 'stable' => HealthObservationState.stable,
+      '주의' || 'caution' || 'watch' => HealthObservationState.watch,
+      '위험' ||
+      'warning' ||
+      'danger' ||
+      'critical' =>
+        HealthObservationState.needsAttention,
+      _ => HealthObservationState.unknown,
+    };
+  }
+
+  bool get requiresReview => observationState != HealthObservationState.stable;
+
   @override
-  List<Object?> get props => [id, userId, area, overallScore, riskAlert, analyzedAt];
+  List<Object?> get props => [
+        id,
+        userId,
+        area,
+        sourceAreaName,
+        overallScore,
+        riskAlert,
+        analyzedAt,
+      ];
 }

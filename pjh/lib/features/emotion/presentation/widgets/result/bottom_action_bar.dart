@@ -10,14 +10,14 @@ import '../../theme/emotion_result_tokens.dart';
 /// - 감정/건강 페이지 모두 "분석 기록 모아보기"로 통일
 class BottomActionBar extends StatelessWidget {
   final VoidCallback onShare;
-  final VoidCallback onSave;
+  final VoidCallback? onSave;
   final VoidCallback onHistory;
   final bool fromHistory;
 
   const BottomActionBar({
     super.key,
     required this.onShare,
-    required this.onSave,
+    this.onSave,
     required this.onHistory,
     this.fromHistory = false,
   });
@@ -43,11 +43,7 @@ class BottomActionBar extends StatelessWidget {
           child: SizedBox(
             width: 40.r,
             height: 40.r,
-            child: Icon(
-              icon,
-              size: 18.r,
-              color: EmotionResultTokens.grayDark,
-            ),
+            child: Icon(icon, size: 18.r, color: EmotionResultTokens.grayDark),
           ),
         ),
       ),
@@ -57,9 +53,7 @@ class BottomActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: EmotionResultTokens.background,
-      ),
+      decoration: const BoxDecoration(color: EmotionResultTokens.background),
       child: SafeArea(
         top: false,
         child: Padding(
@@ -72,12 +66,14 @@ class BottomActionBar extends StatelessWidget {
                 tooltip: '공유하기',
               ),
               SizedBox(width: 8.w),
-              _iconButton(
-                icon: Icons.bookmark_outline,
-                onTap: onSave,
-                tooltip: '메모 남기기',
-              ),
-              SizedBox(width: 8.w),
+              if (onSave != null) ...[
+                _iconButton(
+                  icon: Icons.bookmark_outline,
+                  onTap: onSave!,
+                  tooltip: '메모 남기기',
+                ),
+                SizedBox(width: 8.w),
+              ],
               Expanded(
                 child: Material(
                   color: EmotionResultTokens.coral,
