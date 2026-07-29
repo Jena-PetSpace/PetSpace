@@ -67,7 +67,11 @@ extension _HospitalActions on _HospitalSearchPageState {
   Future<void> _callPhone(String phone) async {
     if (phone.isEmpty) return;
     final uri = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      _showSnack('전화 앱을 열 수 없습니다');
+    }
   }
 
   Future<void> _openKakaoMapDetail(HospitalPlace place) async {

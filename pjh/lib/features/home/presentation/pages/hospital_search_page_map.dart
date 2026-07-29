@@ -2,6 +2,9 @@ part of 'hospital_search_page.dart';
 
 extension _HospitalMap on _HospitalSearchPageState {
   Widget _buildMap() {
+    final mapBuilder = widget.mapBuilder;
+    if (mapBuilder != null) return mapBuilder(context);
+
     if (_locationState == _LocationAccessState.checking) {
       return Container(
         color: AppTheme.neutral100,
@@ -55,13 +58,15 @@ extension _HospitalMap on _HospitalSearchPageState {
                   event.longitude > 180) {
                 return;
               }
+              final now = DateTime.now();
+              if (_isCameraMoveSuppressed(now)) return;
               _cameraLat = event.latitude;
               _cameraLng = event.longitude;
               final resolution = resolveCameraMove(
                 movedBy: event.movedBy,
                 latitude: event.latitude,
                 longitude: event.longitude,
-                now: DateTime.now(),
+                now: now,
                 latestMoveToken: _programmaticMoveToken,
                 pending: _pendingProgrammaticMove,
               );
@@ -127,7 +132,7 @@ extension _HospitalMap on _HospitalSearchPageState {
 
   Future<void> _initializeMap(KakaoMapController controller) async {
     if (!mounted || !identical(_mapController, controller)) return;
-    final bottomPadding = _sheetHeight(context).toInt();
+    final bottomPadding = 24.h.round();
     setState(() => _mapInitFailed = false);
     try {
       await controller.ready;
@@ -148,12 +153,14 @@ extension _HospitalMap on _HospitalSearchPageState {
       if (!_isCurrentController(controller)) return;
       await _registerMarkerStyles(controller);
       if (!_isCurrentController(controller)) return;
+      _suppressCameraMoveForViewportMutation();
       await controller.setPadding(
         left: 0,
         top: 0,
         right: 0,
         bottom: bottomPadding,
       );
+      _suppressCameraMoveForViewportMutation();
       if (!_isCurrentController(controller)) return;
       setState(() {
         _mapReady = true;
@@ -188,10 +195,10 @@ extension _HospitalMap on _HospitalSearchPageState {
             .buffer
             .asUint8List();
     if (!_isCurrentController(controller)) return;
-    final placeBytes =
-        (await rootBundle.load('assets/icons/map/place_marker.png'))
-            .buffer
-            .asUint8List();
+    final placeBytes = _defaultPlaceMarkerBytes ??=
+        await _createPlaceMarkerBytes(selected: false);
+    final selectedPlaceBytes = _selectedPlaceMarkerBytes ??=
+        await _createPlaceMarkerBytes(selected: true);
     if (!_isCurrentController(controller)) return;
 
     await controller.registerMarkerStyles(
@@ -216,10 +223,10 @@ extension _HospitalMap on _HospitalSearchPageState {
             MarkerPerLevelStyle.fromBytes(
               bytes: placeBytes,
               textStyle: const MarkerTextStyle(
-                fontSize: 28,
+                fontSize: 22,
                 fontColorArgb: 0xFFFFFFFF,
-                strokeThickness: 3,
-                strokeColorArgb: 0xFF1E3A5F,
+                strokeThickness: 1,
+                strokeColorArgb: 0xFF3C79B6,
               ),
             ),
           ],
@@ -228,11 +235,11 @@ extension _HospitalMap on _HospitalSearchPageState {
           styleId: _selectedPlaceStyleId,
           perLevels: [
             MarkerPerLevelStyle.fromBytes(
-              bytes: placeBytes,
+              bytes: selectedPlaceBytes,
               textStyle: const MarkerTextStyle(
-                fontSize: 34,
+                fontSize: 24,
                 fontColorArgb: 0xFFFFFFFF,
-                strokeThickness: 4,
+                strokeThickness: 2,
                 strokeColorArgb: 0xFF1E3A5F,
               ),
             ),
@@ -240,6 +247,52 @@ extension _HospitalMap on _HospitalSearchPageState {
         ),
       ],
     );
+  }
+
+  Future<Uint8List> _createPlaceMarkerBytes({
+    required bool selected,
+  }) async {
+    final devicePixelRatio =
+        MediaQuery.devicePixelRatioOf(context).clamp(1.0, 4.0);
+    final logicalSize = selected ? 52.0 : 48.0;
+    final pixelSize = (logicalSize * devicePixelRatio).round();
+    final center = pixelSize / 2;
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    if (selected) {
+      canvas.drawCircle(
+        ui.Offset(center, center),
+        center - (1 * devicePixelRatio),
+        ui.Paint()
+          ..color = const ui.Color(0x33203F67)
+          ..style = ui.PaintingStyle.fill,
+      );
+    }
+    canvas.drawCircle(
+      ui.Offset(center, center),
+      center - ((selected ? 6 : 4) * devicePixelRatio),
+      ui.Paint()
+        ..color =
+            selected ? const ui.Color(0xFF203F67) : const ui.Color(0xFF3C79B6)
+        ..style = ui.PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      ui.Offset(center, center),
+      center - ((selected ? 6 : 4) * devicePixelRatio),
+      ui.Paint()
+        ..color = const ui.Color(0xFFFFFFFF)
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2 * devicePixelRatio,
+    );
+
+    final image = await recorder.endRecording().toImage(pixelSize, pixelSize);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    if (data == null) {
+      throw StateError('장소 마커 이미지를 생성하지 못했습니다.');
+    }
+    return data.buffer.asUint8List();
   }
 
   Future<bool> _moveCameraProgrammatically({
@@ -276,14 +329,23 @@ extension _HospitalMap on _HospitalSearchPageState {
     final applyToken = ++_markerGeneration;
     final controller = _mapController;
     final visible = List<HospitalPlace>.of(_places);
+    final selectedPlace = _selectedPlace;
     _markerQueue = _markerQueue.catchError((Object _) {}).then(
-          (_) => _applyVisibleMarkers(
-            controller: controller,
-            generation: generation,
-            applyToken: applyToken,
-            visible: visible,
-          ),
+      (_) async {
+        await _applyVisibleMarkers(
+          controller: controller,
+          generation: generation,
+          applyToken: applyToken,
+          visible: visible,
         );
+        await _syncSelectedInfoWindow(
+          controller: controller,
+          generation: generation,
+          selectedPlace: selectedPlace,
+          visible: visible,
+        );
+      },
+    );
     return _markerQueue;
   }
 
@@ -356,18 +418,10 @@ extension _HospitalMap on _HospitalSearchPageState {
       return;
     }
 
-    final markerOptions = visible.asMap().entries.map((entry) {
-      final place = entry.value;
-      return MarkerOption(
-        id: place.id,
-        latLng: place.latLng,
-        styleId: place.id == _selectedPlace?.id
-            ? _selectedPlaceStyleId
-            : _placeStyleId,
-        text: '${entry.key + 1}',
-        rank: place.id == _selectedPlace?.id ? 800 : 100,
-      );
-    }).toList(growable: false);
+    final markerOptions = buildPlaceMarkerOptions(
+      places: visible,
+      selectedPlaceId: _selectedPlace?.id,
+    );
 
     if (markerOptions.isNotEmpty) {
       final attemptedIds =
@@ -407,6 +461,45 @@ extension _HospitalMap on _HospitalSearchPageState {
       return;
     }
     await _addMyLocationMarker(controller);
+  }
+
+  Future<void> _syncSelectedInfoWindow({
+    required KakaoMapController? controller,
+    required int generation,
+    required HospitalPlace? selectedPlace,
+    required List<HospitalPlace> visible,
+  }) async {
+    if (controller == null ||
+        !mounted ||
+        !identical(_mapController, controller)) {
+      return;
+    }
+    try {
+      await controller.removeInfoWindow(id: _selectedPlaceInfoWindowId);
+    } catch (_) {}
+
+    final canShow = selectedPlace != null &&
+        _searchGeneration.isCurrent(generation) &&
+        _selectedPlace?.id == selectedPlace.id &&
+        visible.any((place) => place.id == selectedPlace.id);
+    if (!canShow || !mounted || !identical(_mapController, controller)) return;
+
+    try {
+      await controller.addInfoWindow(
+        infoWindowOption: InfoWindowOption.text(
+          id: _selectedPlaceInfoWindowId,
+          latLng: selectedPlace.latLng,
+          title: selectedPlace.name,
+          zOrder: 900,
+        ),
+      );
+    } catch (error) {
+      dev.log(
+        '장소 InfoWindow 표시 실패',
+        name: 'HospitalSearch',
+        error: error,
+      );
+    }
   }
 
   Future<void> _addMyLocationMarker(KakaoMapController controller) async {
