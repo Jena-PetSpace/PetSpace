@@ -20,9 +20,10 @@ import '../../domain/repositories/emotion_repository.dart';
 import '../bloc/ai_history_bloc.dart';
 import '../models/ai_history_presentation.dart';
 import '../widgets/analysis_input/analysis_sub_tab.dart';
+import '../widgets/history/ai_history_filter_bar.dart';
 import '../widgets/history/ai_history_filter_sheet.dart';
+import '../widgets/history/ai_history_pet_inline_dropdown.dart';
 import '../widgets/history/ai_history_record_card.dart';
-import '../widgets/pet_selection_primitives.dart';
 import 'health_result_page.dart';
 
 class AiHistoryPage extends StatelessWidget {
@@ -146,63 +147,7 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
         padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
         child: Column(
           children: [
-            SizedBox(
-              width: double.infinity,
-              height: 64.h,
-              child: OutlinedButton(
-                onPressed: state.petsFailed
-                    ? null
-                    : () => _showPetScopePicker(state),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppTheme.border),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
-                  alignment: Alignment.centerLeft,
-                  padding: EdgeInsets.symmetric(horizontal: 14.w),
-                ),
-                child: Row(
-                  children: [
-                    _scopeAvatar(state),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _scopeLabel(state),
-                            style: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.primaryTextColor,
-                            ),
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            _scopeSubtitle(state),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppTheme.secondaryTextColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      state.petsFailed
-                          ? Icons.error_outline
-                          : Icons.keyboard_arrow_down,
-                      color: AppTheme.secondaryTextColor,
-                    ),
-                  ],
-                ),
-              ),
-            ),
             if (!widget.selectMode) ...[
-              SizedBox(height: 10.h),
               Container(
                 decoration: BoxDecoration(
                   color: AppTheme.dividerColor,
@@ -234,7 +179,18 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
                   ],
                 ),
               ),
+              SizedBox(height: 10.h),
             ],
+            AiHistoryPetInlineDropdown(
+              pets: state.pets,
+              scope: state.scope,
+              flowMode:
+                  !widget.selectMode && state.segment == AiHistorySegment.flow,
+              enabled: !state.petsFailed,
+              onChanged: (scope) => context.read<AiHistoryBloc>().add(
+                AiHistoryScopeChanged(scope),
+              ),
+            ),
           ],
         ),
       ),
@@ -364,93 +320,12 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
   }
 
   Widget _buildRecordFilters(AiHistoryState state) {
-    final typeLabel = switch (state.typeFilter) {
-      AiHistoryTypeFilter.all => '전체',
-      AiHistoryTypeFilter.emotion => '감정',
-      AiHistoryTypeFilter.health => '건강',
-    };
-    final rangeLabel = switch (state.dateRange) {
-      AiHistoryDateRange.all => '전체 기간',
-      AiHistoryDateRange.last7Days => '최근 7일',
-      AiHistoryDateRange.last30Days => '최근 30일',
-      AiHistoryDateRange.last90Days => '최근 90일',
-    };
-    return Row(
-      children: [
-        if (!widget.selectMode) ...[
-          _filterChip(
-            label: typeLabel,
-            selected: state.typeFilter != AiHistoryTypeFilter.all,
-            onTap: () => _showFilters(state),
-          ),
-          SizedBox(width: 8.w),
-        ],
-        _filterChip(
-          label: rangeLabel,
-          selected: state.dateRange != AiHistoryDateRange.all,
-          onTap: () => _showFilters(state),
-        ),
-        SizedBox(width: 8.w),
-        if (!widget.selectMode)
-          Expanded(
-            child: _filterChip(
-              label: '확인할 건강 기록',
-              selected: state.healthAttentionOnly,
-              onTap: () => context.read<AiHistoryBloc>().add(
-                AiHistoryAttentionChanged(!state.healthAttentionOnly),
-              ),
-            ),
-          ),
-        IconButton(
-          onPressed: () => _showFilters(state),
-          tooltip: '필터 열기',
-          icon: const Icon(Icons.tune_rounded),
-          color: AppTheme.primaryColor,
-        ),
-      ],
-    );
-  }
-
-  Widget _filterChip({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '$label 필터',
-      onTap: onTap,
-      excludeSemantics: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22.r),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 44),
-          padding: EdgeInsets.symmetric(horizontal: 13.w),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppTheme.primaryColor.withValues(alpha: 0.09)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(22.r),
-            border: Border.all(
-              color: selected ? AppTheme.primaryColor : AppTheme.dividerColor,
-            ),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w700,
-              color: selected
-                  ? AppTheme.primaryColor
-                  : AppTheme.primaryTextColor,
-            ),
-          ),
-        ),
-      ),
+    return AiHistoryFilterBar(
+      type: state.typeFilter,
+      dateRange: state.dateRange,
+      healthAttentionOnly: state.healthAttentionOnly,
+      emotionOnly: widget.selectMode,
+      onTap: () => _showFilters(state),
     );
   }
 
@@ -634,7 +509,7 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
     if (state.petsFailed) {
       return _errorState('반려동물 목록을 불러오지 못했어요', _syncContext);
     }
-    if (state.scope.kind == AiHistoryPetScopeKind.all) {
+    if (state.scope.kind != AiHistoryPetScopeKind.registered) {
       return _buildPetFlowPrompt(state);
     }
     if (state.flowStatus == AiHistoryLoadStatus.loading ||
@@ -649,10 +524,6 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
         ),
       );
     }
-    if (state.scope.kind == AiHistoryPetScopeKind.unlinked) {
-      return _buildUnlinkedFlow(state);
-    }
-
     return RefreshIndicator(
       onRefresh: () async {
         context.read<AiHistoryBloc>().add(const AiHistoryRefreshRequested());
@@ -688,7 +559,7 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
         Text(
           state.pets.isEmpty
               ? '반려동물을 등록하면 기록 흐름을 볼 수 있어요'
-              : '반려동물을 선택하면 흐름을 볼 수 있어요',
+              : '위에서 반려동물을 선택해 주세요',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 18.sp,
@@ -700,7 +571,7 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
         Text(
           state.pets.isEmpty
               ? '기존 연결 안 된 감정 기록은 새 반려동물에 자동으로 연결되지 않아요.'
-              : '서로 다른 반려동물의 신호를 하나의 흐름으로 합치지 않아요.',
+              : '반려동물 선택 영역을 열어 아이 한 마리를 선택하면 흐름을 보여드려요.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 13.sp,
@@ -708,105 +579,6 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
             color: AppTheme.secondaryTextColor,
           ),
         ),
-        SizedBox(height: 26.h),
-        if (state.pets.isEmpty)
-          FilledButton(
-            onPressed: () => context.push('/pets'),
-            style: FilledButton.styleFrom(
-              minimumSize: Size(double.infinity, 50.h),
-              backgroundColor: AppTheme.primaryColor,
-            ),
-            child: const Text('반려동물 등록하기'),
-          )
-        else
-          Wrap(
-            spacing: 10.w,
-            runSpacing: 10.h,
-            alignment: WrapAlignment.center,
-            children: state.pets
-                .map(
-                  (pet) => ActionChip(
-                    avatar: CircleAvatar(
-                      backgroundColor: AppTheme.primaryColor.withValues(
-                        alpha: 0.1,
-                      ),
-                      child: const Icon(Icons.pets, size: 18),
-                    ),
-                    label: Text(pet.name),
-                    onPressed: () => context.read<AiHistoryBloc>().add(
-                      AiHistoryScopeChanged(
-                        AiHistoryPetScope.registered(pet.id),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildUnlinkedFlow(AiHistoryState state) {
-    final health = state.recentHealth;
-    return ListView(
-      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 32.h),
-      children: [
-        Container(
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16.r),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '연결 안 된 기록',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.primaryTextColor,
-                ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                '연결되지 않은 감정 기록은 서로 다른 아이의 기록일 수 있어 흐름으로 합치지 않아요. 과거 기록을 새 반려동물에 자동 연결하지도 않아요.',
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  height: 1.55,
-                  color: AppTheme.secondaryTextColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: 14.h),
-        Text(
-          '연결 안 된 최근 건강 기록',
-          style: TextStyle(
-            fontSize: 15.sp,
-            fontWeight: FontWeight.w800,
-            color: AppTheme.primaryTextColor,
-          ),
-        ),
-        SizedBox(height: 10.h),
-        if (health.isEmpty)
-          _smallEmpty('최근 기록에서는 연결 안 된 건강 항목을 찾지 못했어요')
-        else
-          ...health
-              .take(5)
-              .map(
-                (record) => Padding(
-                  padding: EdgeInsets.only(bottom: 10.h),
-                  child: AiHistoryRecordCard(
-                    record: record,
-                    petLabel: _recordPetLabel(state, record),
-                    onTap: () => _openRecord(state, record),
-                  ),
-                ),
-              ),
-        SizedBox(height: 10.h),
-        _buildSafetyNotice(),
       ],
     );
   }
@@ -1192,94 +964,6 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
     );
   }
 
-  Future<void> _showPetScopePicker(AiHistoryState state) async {
-    final scope = await showModalBottomSheet<AiHistoryPetScope>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          top: false,
-          minimum: EdgeInsets.only(bottom: 12.h),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
-            ),
-            child: ListView(
-              shrinkWrap: true,
-              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(4.w, 2.h, 4.w, 12.h),
-                  child: Text(
-                    '기록을 볼 반려동물',
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.primaryTextColor,
-                    ),
-                  ),
-                ),
-                _petScopeTile(
-                  avatar: PetSelectionAvatar(
-                    pet: null,
-                    size: 44.w,
-                    fallbackIcon: Icons.apps_rounded,
-                    backgroundColor: AppTheme.actionContainer,
-                  ),
-                  title: '전체 기록',
-                  subtitle: '모든 반려동물의 분석 기록',
-                  selected: state.scope.kind == AiHistoryPetScopeKind.all,
-                  onTap: () => Navigator.pop(
-                    sheetContext,
-                    const AiHistoryPetScope.all(),
-                  ),
-                ),
-                ...state.pets.map(
-                  (pet) => _petScopeTile(
-                    avatar: PetSelectionAvatar(pet: pet, size: 44.w),
-                    title: pet.name,
-                    subtitle: petSelectionMeta(pet),
-                    selected: state.scope.petId == pet.id,
-                    onTap: () => Navigator.pop(
-                      sheetContext,
-                      AiHistoryPetScope.registered(pet.id),
-                    ),
-                  ),
-                ),
-                _petScopeTile(
-                  avatar: PetSelectionAvatar(
-                    pet: null,
-                    size: 44.w,
-                    fallbackIcon: Icons.link_off_rounded,
-                    backgroundColor: AppTheme.actionContainer,
-                  ),
-                  title: '연결 안 된 기록',
-                  subtitle: state.petsFailed
-                      ? '반려동물 목록을 불러온 뒤 확인할 수 있어요'
-                      : '현재 반려동물 목록과 연결되지 않은 분석 기록',
-                  selected: state.scope.kind == AiHistoryPetScopeKind.unlinked,
-                  enabled: !state.petsFailed,
-                  onTap: () => Navigator.pop(
-                    sheetContext,
-                    const AiHistoryPetScope.unlinked(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-    if (!mounted || scope == null) return;
-    context.read<AiHistoryBloc>().add(AiHistoryScopeChanged(scope));
-  }
-
   void _openRecord(AiHistoryState state, AiHistoryRecord record) {
     if (widget.selectMode) {
       if (record.emotion == null) return;
@@ -1300,106 +984,6 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
           builder: (_) => _HealthHistoryLoaderPage(
             record: record,
             petLabel: _recordPetLabel(state, record),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _scopeLabel(AiHistoryState state) {
-    return switch (state.scope.kind) {
-      AiHistoryPetScopeKind.all => '전체 기록',
-      AiHistoryPetScopeKind.unlinked => '연결 안 된 기록',
-      AiHistoryPetScopeKind.registered => state.selectedPet?.name ?? '반려동물 선택',
-    };
-  }
-
-  String _scopeSubtitle(AiHistoryState state) {
-    return switch (state.scope.kind) {
-      AiHistoryPetScopeKind.all => '모든 반려동물의 분석 기록',
-      AiHistoryPetScopeKind.unlinked => '현재 목록과 연결되지 않은 분석 기록',
-      AiHistoryPetScopeKind.registered =>
-        state.selectedPet == null
-            ? '반려동물 정보를 확인할 수 없어요'
-            : petSelectionMeta(state.selectedPet!),
-    };
-  }
-
-  Widget _scopeAvatar(AiHistoryState state) {
-    final pet = state.selectedPet;
-    return PetSelectionAvatar(
-      pet: pet,
-      size: 36.w,
-      fallbackIcon: switch (state.scope.kind) {
-        AiHistoryPetScopeKind.all => Icons.apps_rounded,
-        AiHistoryPetScopeKind.unlinked => Icons.link_off_rounded,
-        AiHistoryPetScopeKind.registered => Icons.pets,
-      },
-      backgroundColor: AppTheme.actionContainer,
-    );
-  }
-
-  Widget _petScopeTile({
-    required Widget avatar,
-    required String title,
-    required String subtitle,
-    required bool selected,
-    required VoidCallback onTap,
-    bool enabled = true,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 4.h),
-      child: Material(
-        color: selected
-            ? AppTheme.primaryColor.withValues(alpha: 0.05)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(12.r),
-        child: InkWell(
-          onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(12.r),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-            child: Row(
-              children: [
-                Opacity(opacity: enabled ? 1 : 0.45, child: avatar),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w600,
-                          color: enabled
-                              ? AppTheme.primaryTextColor
-                              : AppTheme.disabledColor,
-                        ),
-                      ),
-                      SizedBox(height: 2.h),
-                      Text(
-                        subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: enabled
-                              ? AppTheme.secondaryTextColor
-                              : AppTheme.disabledColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (selected)
-                  Icon(
-                    Icons.check_circle,
-                    color: AppTheme.primaryColor,
-                    size: 20.w,
-                  ),
-              ],
-            ),
           ),
         ),
       ),

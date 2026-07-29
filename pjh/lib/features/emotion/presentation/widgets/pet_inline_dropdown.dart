@@ -124,40 +124,44 @@ class _PetInlineDropdownState extends State<PetInlineDropdown> {
                 ? CrossFadeState.showSecond
                 : CrossFadeState.showFirst,
             firstChild: const SizedBox.shrink(),
-            secondChild: Column(
-              children: [
-                const Divider(height: 1),
-                ...widget.pets.map((pet) {
-                  final isSelected =
-                      !widget.showUnregistered &&
-                      widget.selectedPet?.id == pet.id;
-                  return _optionTile(
-                    avatar: PetSelectionAvatar(pet: pet, size: 44.w),
-                    title: pet.name,
-                    subtitle: petSelectionMeta(pet),
-                    isSelected: isSelected,
+            secondChild: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: 320.h),
+              child: ListView(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                children: [
+                  const Divider(height: 1, color: AppTheme.dividerColor),
+                  for (final pet in widget.pets) ...[
+                    _optionTile(
+                      avatar: PetSelectionAvatar(pet: pet, size: 44.w),
+                      title: pet.name,
+                      subtitle: petSelectionMeta(pet),
+                      isSelected:
+                          !widget.showUnregistered &&
+                          widget.selectedPet?.id == pet.id,
+                      onTap: () {
+                        setState(() => _expanded = false);
+                        widget.onPetSelected(pet);
+                      },
+                    ),
+                    const Divider(height: 1, color: AppTheme.dividerColor),
+                  ],
+                  _optionTile(
+                    avatar: PetSelectionAvatar(
+                      pet: null,
+                      size: 44.w,
+                      fallbackIcon: Icons.pets_outlined,
+                    ),
+                    title: '등록된 반려동물 없이 분석',
+                    subtitle: '특정 반려동물을 선택하지 않고 분석한 경우',
+                    isSelected: widget.showUnregistered,
                     onTap: () {
                       setState(() => _expanded = false);
-                      widget.onPetSelected(pet);
+                      widget.onUnregisteredChanged(true);
                     },
-                  );
-                }),
-                const Divider(height: 1),
-                _optionTile(
-                  avatar: PetSelectionAvatar(
-                    pet: null,
-                    size: 44.w,
-                    fallbackIcon: Icons.pets_outlined,
                   ),
-                  title: '등록된 반려동물 없이 분석',
-                  subtitle: '특정 반려동물을 선택하지 않고 분석한 경우',
-                  isSelected: widget.showUnregistered,
-                  onTap: () {
-                    setState(() => _expanded = false);
-                    widget.onUnregisteredChanged(true);
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
