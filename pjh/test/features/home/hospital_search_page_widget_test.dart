@@ -186,9 +186,46 @@ void main() {
       selectedPlaceId: 'b',
     );
 
-    expect(markers[0].text, '${placeOrdinal(0)}');
-    expect(markers[1].text, '${placeOrdinal(1)}');
+    expect(markers[0].text, isNull);
+    expect(markers[1].text, isNull);
+    expect(markers[0].styleId, 'place_style_${placeOrdinal(0)}');
+    expect(markers[1].styleId, 'selected_place_style_${placeOrdinal(1)}');
     expect(markers[0].styleId, isNot(markers[1].styleId));
+
+    final overflowMarkers = buildPlaceMarkerOptions(
+      places: List<HospitalPlace>.generate(
+        40,
+        (index) => HospitalPlace(
+          id: 'overflow-$index',
+          name: '장소 $index',
+          address: '',
+          phone: '',
+          lat: 37.5,
+          lng: 127,
+          category: '동물병원',
+        ),
+      ),
+    );
+    expect(overflowMarkers.last.styleId, 'place_style_40');
+    expect(overflowMarkers.last.text, isNull);
+
+    final selectedOverflowMarkers = buildPlaceMarkerOptions(
+      places: overflowMarkers
+          .asMap()
+          .entries
+          .map((entry) => HospitalPlace(
+                id: entry.value.id,
+                name: '장소 ${entry.key}',
+                address: '',
+                phone: '',
+                lat: 37.5,
+                lng: 127,
+                category: '동물병원',
+              ))
+          .toList(growable: false),
+      selectedPlaceId: 'overflow-39',
+    );
+    expect(selectedOverflowMarkers.last.styleId, 'selected_place_style_40');
   });
 
   testWidgets('보호된 검색·5개 카테고리와 단일 스크롤 시트를 유지한다', (tester) async {

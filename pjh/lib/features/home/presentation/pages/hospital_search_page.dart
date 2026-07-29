@@ -199,9 +199,14 @@ const double _defaultLat = 37.5665;
 const double _defaultLng = 126.9780;
 const String _myLocationMarkerId = 'my_location';
 const String _myLocationStyleId = 'my_location_style';
-const String _placeStyleId = 'place_style';
-const String _selectedPlaceStyleId = 'selected_place_style';
+const String _placeStyleIdPrefix = 'place_style';
+const String _selectedPlaceStyleIdPrefix = 'selected_place_style';
 const String _selectedPlaceInfoWindowId = 'selected_place_info_window';
+
+String _placeMarkerStyleId(int ordinal, {required bool selected}) {
+  final prefix = selected ? _selectedPlaceStyleIdPrefix : _placeStyleIdPrefix;
+  return '${prefix}_$ordinal';
+}
 
 @visibleForTesting
 List<MarkerOption> buildPlaceMarkerOptions({
@@ -211,11 +216,11 @@ List<MarkerOption> buildPlaceMarkerOptions({
   return places.asMap().entries.map((entry) {
     final place = entry.value;
     final isSelected = place.id == selectedPlaceId;
+    final ordinal = placeOrdinal(entry.key);
     return MarkerOption(
       id: place.id,
       latLng: place.latLng,
-      styleId: isSelected ? _selectedPlaceStyleId : _placeStyleId,
-      text: '${placeOrdinal(entry.key)}',
+      styleId: _placeMarkerStyleId(ordinal, selected: isSelected),
       rank: isSelected ? 800 : 100,
     );
   }).toList(growable: false);
@@ -247,6 +252,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
   bool _mapReady = false;
   bool _mapInitFailed = false;
   bool _markerLayerAdded = false;
+  int _registeredPlaceMarkerOrdinalCount = 0;
   Future<void> _markerQueue = Future<void>.value();
   Future<void> _savedPlaceMutationQueue = Future<void>.value();
   int _markerGeneration = 0;
@@ -254,8 +260,8 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
   PendingProgrammaticMove? _pendingProgrammaticMove;
   DateTime? _suppressCameraMoveUntil;
   LatLng? _initialMapPosition;
-  Uint8List? _defaultPlaceMarkerBytes;
-  Uint8List? _selectedPlaceMarkerBytes;
+  final Map<int, Uint8List> _defaultPlaceMarkerBytes = <int, Uint8List>{};
+  final Map<int, Uint8List> _selectedPlaceMarkerBytes = <int, Uint8List>{};
 
   // ── 위치 ──
   double _cameraLat = _defaultLat;
