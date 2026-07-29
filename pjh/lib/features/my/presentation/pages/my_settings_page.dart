@@ -92,7 +92,7 @@ class _MySettingsPageState extends State<MySettingsPage> {
               ),
               PetSpaceSettingsTile(
                 icon: Icons.bar_chart_outlined,
-                title: 'AI 분석 히스토리',
+                title: 'AI 분석 기록',
                 onTap: () => context.push('/ai-history-page'),
               ),
             ],

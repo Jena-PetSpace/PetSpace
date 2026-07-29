@@ -1,20 +1,29 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../config/injection_container.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/emotion_analysis.dart';
 import '../../domain/repositories/emotion_repository.dart';
 import '../../domain/usecases/get_previous_analysis.dart';
+import '../bloc/emotion_memo_cubit.dart';
 import 'emotion_result_page.dart';
 
 /// analysisId로 분석 결과를 로드한 후 EmotionResultPage를 표시하는 래퍼 페이지
 class EmotionResultLoaderPage extends StatefulWidget {
   final String analysisId;
+  final EmotionRepository repository;
+  final GetPreviousAnalysis getPreviousAnalysis;
 
-  const EmotionResultLoaderPage({super.key, required this.analysisId});
+  const EmotionResultLoaderPage({
+    super.key,
+    required this.analysisId,
+    required this.repository,
+    required this.getPreviousAnalysis,
+  });
 
   @override
   State<EmotionResultLoaderPage> createState() =>
@@ -26,6 +35,7 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
   EmotionAnalysis? _previousAnalysis;
   String? _error;
   bool _loading = true;
+  bool _canRetry = true;
 
   @override
   void initState() {
@@ -34,8 +44,7 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
   }
 
   Future<void> _loadAnalysis() async {
-    final repository = sl<EmotionRepository>();
-    final result = await repository.getAnalysisById(widget.analysisId);
+    final result = await widget.repository.getAnalysisById(widget.analysisId);
 
     if (!mounted) return;
 
@@ -43,6 +52,8 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
       (failure) => setState(() {
         _error = failure.message;
         _loading = false;
+        _canRetry =
+            failure is! NotFoundFailure && failure is! UnauthorizedFailure;
       }),
       // fold는 동기 — 비동기 후속(직전 분석 조회+setState)은 fire-and-forget.
       // 내부에서 자체 try-catch·mounted 가드하므로 의도적으로 unawaited.
@@ -53,7 +64,10 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
   Future<void> _onAnalysisLoaded(EmotionAnalysis analysis) async {
     EmotionAnalysis? previous;
     try {
-      previous = await sl<GetPreviousAnalysis>()(current: analysis)
+      previous = await widget
+          .getPreviousAnalysis(
+            current: analysis,
+          )
           .timeout(const Duration(milliseconds: 300));
     } catch (_) {
       previous = null;
@@ -72,7 +86,7 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
       return Scaffold(
         appBar: AppBar(
           title: Text(
-            '감정분석 결과',
+            '저장된 감정 기록',
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
@@ -89,7 +103,7 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
       return Scaffold(
         appBar: AppBar(
           title: Text(
-            '감정분석 결과',
+            '저장된 감정 기록',
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
@@ -107,28 +121,39 @@ class _EmotionResultLoaderPageState extends State<EmotionResultLoaderPage> {
               Text(
                 _error ?? '분석 결과를 불러올 수 없습니다',
                 style: TextStyle(
-                    fontSize: 14.sp, color: AppTheme.secondaryTextColor),
+                  fontSize: 14.sp,
+                  color: AppTheme.secondaryTextColor,
+                ),
               ),
-              SizedBox(height: 16.h),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _loading = true;
-                    _error = null;
-                  });
-                  _loadAnalysis();
-                },
-                child: const Text('다시 시도'),
-              ),
+              if (_canRetry) ...[
+                SizedBox(height: 16.h),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _loading = true;
+                      _error = null;
+                    });
+                    _loadAnalysis();
+                  },
+                  child: const Text('다시 시도'),
+                ),
+              ],
             ],
           ),
         ),
       );
     }
 
-    return EmotionResultPage(
-      analysis: _analysis!,
-      previousAnalysis: _previousAnalysis,
+    return BlocProvider(
+      create: (_) => EmotionMemoCubit(
+        repository: widget.repository,
+        analysis: _analysis!,
+      ),
+      child: EmotionResultPage(
+        analysis: _analysis!,
+        previousAnalysis: _previousAnalysis,
+        fromHistory: true,
+      ),
     );
   }
 }

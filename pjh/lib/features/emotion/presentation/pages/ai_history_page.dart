@@ -1,1188 +1,1450 @@
 import 'dart:async';
-import 'dart:developer';
+
 import 'package:flutter/material.dart';
-import '../../../../config/injection_container.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../../config/injection_container.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../shared/themes/app_theme.dart';
-import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 import '../../data/models/health_analysis_model.dart';
-import '../../domain/entities/emotion_analysis.dart';
+import '../../domain/entities/ai_history.dart';
 import '../../domain/entities/health_analysis.dart';
 import '../../domain/repositories/emotion_repository.dart';
-import '../../domain/usecases/get_previous_analysis.dart';
-import '../bloc/emotion_analysis_bloc.dart';
-import '../widgets/pet_inline_dropdown.dart';
-import '../theme/emotion_result_tokens.dart';
-import 'emotion_result_page.dart';
+import '../bloc/ai_history_bloc.dart';
+import '../models/ai_history_presentation.dart';
+import '../widgets/history/ai_history_filter_sheet.dart';
+import '../widgets/history/ai_history_record_card.dart';
 import 'health_result_page.dart';
 
-// ── 통합 히스토리 아이템 모델 ──────────────────────────────────
-class _HistoryItem {
-  final bool isEmotion;
-  final DateTime date;
-  final String? petName;
-  final String title;
-  final String subtitle;
-  final String badge;
-  final String badgeType; // 'emot' | 'good' | 'warn' | 'bad'
-  final String? thumbnailUrl; // 대표 이미지 URL
-  final EmotionAnalysis? emotionData;
-  final HealthAnalysisModel? healthData;
-
-  const _HistoryItem({
-    required this.isEmotion,
-    required this.date,
-    this.petName,
-    required this.title,
-    required this.subtitle,
-    required this.badge,
-    required this.badgeType,
-    this.thumbnailUrl,
-    this.emotionData,
-    this.healthData,
-  });
-}
-
-// ── 부위별 최신 건강 상태 모델 ────────────────────────────────
-class _AreaStatus {
-  final HealthArea area;
-  final int? score;
-  final String? status;
-  final bool? riskAlert;
-  final DateTime? date;
-
-  _AreaStatus({
-    required this.area,
-    this.score,
-    this.status,
-    this.riskAlert,
-    this.date,
-  });
-
-  bool get hasData => status != null;
-}
-
-class AiHistoryPage extends StatefulWidget {
-  /// 게시글 작성 등에서 분석 결과를 골라 반환받기 위한 모드.
-  /// true 일 때:
-  ///   - 3-tab 헤더 숨김. "전체이력" 탭 본문만 표시
-  ///   - 헤더 타이틀이 "감정 분석 선택"
-  ///   - 감정 카드 탭 시 Navigator.pop(context, emotionAnalysis) 반환
-  ///   - 건강 카드는 비활성 (게시글 첨부 호환을 위해 감정만)
+class AiHistoryPage extends StatelessWidget {
   final bool selectMode;
 
   const AiHistoryPage({super.key, this.selectMode = false});
 
   @override
-  State<AiHistoryPage> createState() => _AiHistoryPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AiHistoryBloc(
+        repository: sl<EmotionRepository>(),
+        preferences: sl<SharedPreferences>(),
+        emotionOnly: selectMode,
+      ),
+      child: _AiHistoryView(selectMode: selectMode),
+    );
+  }
 }
 
-class _AiHistoryPageState extends State<AiHistoryPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
+class _AiHistoryView extends StatefulWidget {
+  final bool selectMode;
 
-  Pet? _selectedPet;
-  bool _showUnregistered = false;
+  const _AiHistoryView({required this.selectMode});
 
-  List<_AreaStatus> _areaStatuses = [];
-  bool _dashboardLoading = false;
+  @override
+  State<_AiHistoryView> createState() => _AiHistoryViewState();
+}
 
-  List<HealthAnalysisModel> _healthHistory = [];
-  bool _healthHistoryLoading = false;
-
-  String _filterType = '전체';
+class _AiHistoryViewState extends State<_AiHistoryView> {
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    // selectMode 에서는 "전체이력" 한 탭만 표시. 일반 모드는 3-tab.
-    _tabCtrl = TabController(
-      length: widget.selectMode ? 1 : 3,
-      vsync: this,
-    );
-    _tabCtrl.addListener(() => setState(() {}));
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initSelectedPet();
-      // selectMode 에서는 히스토리만 필요. 대시보드 로딩 스킵.
-      if (!widget.selectMode) {
-        _loadDashboard();
-        _loadHealthHistory();
-      }
-      _loadEmotionHistory();
-    });
-  }
-
-  void _loadEmotionHistory() {
-    final auth = context.read<AuthBloc>().state;
-    if (auth is AuthAuthenticated) {
-      context.read<EmotionAnalysisBloc>().add(
-        LoadAnalysisHistory(userId: auth.user.uid),
-      );
-    }
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncContext());
   }
 
   @override
   void dispose() {
-    _tabCtrl.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
   }
 
-  void _initSelectedPet() {
-    final petState = context.read<PetBloc>().state;
-    if (petState is PetLoaded && petState.pets.isNotEmpty) {
-      setState(() => _selectedPet = petState.pets.first);
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.extentAfter < 360) {
+      context.read<AiHistoryBloc>().add(const AiHistoryNextPageRequested());
     }
   }
 
-  Future<void> _loadDashboard() async {
-    setState(() => _dashboardLoading = true);
-    final auth = context.read<AuthBloc>().state;
-    if (auth is! AuthAuthenticated) {
-      if (mounted) setState(() => _dashboardLoading = false);
-      return;
-    }
-    final result = await sl<EmotionRepository>().getLatestHealthByArea(
-      userId: auth.user.uid,
-      petId: _showUnregistered ? null : _selectedPet?.id,
-    );
+  void _syncContext() {
     if (!mounted) return;
-    result.fold(
-      (failure) {
-        log('Dashboard load error: ${failure.message}', name: 'AiHistory');
-        setState(() => _dashboardLoading = false);
-      },
-      (rows) {
-        final statuses = HealthArea.values.map((area) {
-          final found =
-              rows.where((r) => r['area'] == area.displayName).firstOrNull;
-          return _AreaStatus(
-            area: area,
-            score: found?['overall_score'] as int?,
-            status: found?['status'] as String?,
-            riskAlert: found?['risk_alert'] as bool?,
-            date: found != null
-                ? DateTime.parse(found['created_at'] as String)
-                : null,
-          );
-        }).toList();
-        setState(() {
-          _areaStatuses = statuses;
-          _dashboardLoading = false;
-        });
-      },
-    );
-  }
-
-  Future<void> _loadHealthHistory() async {
-    setState(() => _healthHistoryLoading = true);
-    try {
-      final auth = context.read<AuthBloc>().state;
-      if (auth is! AuthAuthenticated) return;
-
-      final result =
-          await sl<EmotionRepository>().getHealthHistory(auth.user.uid);
-      final rows = result.fold((_) => <Map<String, dynamic>>[], (r) => r);
-      final models = rows.map(HealthAnalysisModel.fromSupabaseRow).toList();
-      if (mounted) setState(() => _healthHistory = models);
-    } catch (e) {
-      log('Health history load error: $e', name: 'AiHistory');
-    } finally {
-      if (mounted) setState(() => _healthHistoryLoading = false);
-    }
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) return;
+    final petState = context.read<PetBloc>().state;
+    final pets = switch (petState) {
+      PetLoaded(:final pets) => pets,
+      PetOperationSuccess(:final pets) => pets,
+      _ => const <Pet>[],
+    };
+    context.read<AiHistoryBloc>().add(
+          AiHistoryContextChanged(
+            userId: authState.user.uid,
+            pets: pets,
+            petsFailed: petState is PetError,
+          ),
+        );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: Column(children: [
-        // ── 딥블루 AppBar ──────────────────────────────────────
-        Container(
-          color: AppTheme.primaryColor,
-          child: SafeArea(
-            bottom: false,
-            child: Column(children: [
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-                child: Row(children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => context.pop(),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(listener: (_, __) => _syncContext()),
+        BlocListener<PetBloc, PetState>(listener: (_, __) => _syncContext()),
+      ],
+      child: BlocBuilder<AiHistoryBloc, AiHistoryState>(
+        builder: (context, state) {
+          return Scaffold(
+            backgroundColor: AppTheme.subtleBackground,
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              title: Text(
+                widget.selectMode ? '감정 분석 선택' : 'AI 분석 기록',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+              centerTitle: true,
+            ),
+            body: Column(
+              children: [
+                _buildControls(state),
+                Expanded(
+                  child: widget.selectMode ||
+                          state.segment == AiHistorySegment.records
+                      ? _buildRecords(state)
+                      : _buildFlow(state),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildControls(AiHistoryState state) {
+    return ColoredBox(
+      color: Colors.white,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 12.h),
+        child: Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 48.h,
+              child: OutlinedButton(
+                onPressed:
+                    state.petsFailed ? null : () => _showPetScopePicker(state),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppTheme.dividerColor),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14.r),
                   ),
-                  Expanded(
-                    child: Text(
-                      widget.selectMode ? '감정 분석 선택' : 'AI분석 히스토리',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.symmetric(horizontal: 14.w),
+                ),
+                child: Row(
+                  children: [
+                    _scopeAvatar(state),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Text(
+                        _scopeLabel(state),
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primaryTextColor,
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 48.w),
-                ]),
-              ),
-              // selectMode 에서는 TabBar 숨김 (탭 1개라 의미 없음)
-              if (!widget.selectMode)
-                TabBar(
-                  controller: _tabCtrl,
-                  indicatorColor: AppTheme.highlightColor,
-                  indicatorWeight: 2.5,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white54,
-                  labelStyle: TextStyle(
-                      fontSize: 13.sp, fontWeight: FontWeight.w600),
-                  unselectedLabelStyle: TextStyle(
-                      fontSize: 13.sp, fontWeight: FontWeight.w400),
-                  tabs: const [
-                    Tab(text: '현황'),
-                    Tab(text: '리포트'),
-                    Tab(text: '전체이력'),
+                    Icon(
+                      state.petsFailed
+                          ? Icons.error_outline
+                          : Icons.keyboard_arrow_down,
+                      color: AppTheme.secondaryTextColor,
+                    ),
                   ],
                 ),
-            ]),
-          ),
-        ),
-        // ── 탭 본문 ──────────────────────────────────────────
-        Expanded(
-          child: TabBarView(
-            controller: _tabCtrl,
-            children: widget.selectMode
-                ? [_buildHistoryTab()]
-                : [
-                    _buildStatusTab(),
-                    _buildReportTab(),
-                    _buildHistoryTab(),
+              ),
+            ),
+            if (!widget.selectMode) ...[
+              SizedBox(height: 10.h),
+              Container(
+                height: 44.h,
+                padding: EdgeInsets.all(4.w),
+                decoration: BoxDecoration(
+                  color: AppTheme.subtleBackground,
+                  borderRadius: BorderRadius.circular(13.r),
+                ),
+                child: Row(
+                  children: [
+                    _segmentButton(
+                      label: '기록',
+                      selected: state.segment == AiHistorySegment.records,
+                      onTap: () => context.read<AiHistoryBloc>().add(
+                            const AiHistorySegmentChanged(
+                                AiHistorySegment.records),
+                          ),
+                    ),
+                    _segmentButton(
+                      label: '흐름',
+                      selected: state.segment == AiHistorySegment.flow,
+                      onTap: () => context.read<AiHistoryBloc>().add(
+                            const AiHistorySegmentChanged(
+                                AiHistorySegment.flow),
+                          ),
+                    ),
                   ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _segmentButton({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: Semantics(
+        selected: selected,
+        button: true,
+        label: '$label 탭',
+        onTap: onTap,
+        excludeSemantics: true,
+        child: Material(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10.r),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10.r),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? AppTheme.primaryColor
+                      : AppTheme.secondaryTextColor,
+                ),
+              ),
+            ),
           ),
         ),
-      ]),
-    );
-  }
-
-  // ────────────────────────────────────────────────────────
-  // 현황 탭
-  // ────────────────────────────────────────────────────────
-  Widget _buildStatusTab() {
-    final petState = context.read<PetBloc>().state;
-    final pets = petState is PetLoaded ? petState.pets : <Pet>[];
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(14.w),
-      child: Column(children: [
-        PetInlineDropdown(
-          pets: pets,
-          selectedPet: _selectedPet,
-          showUnregistered: _showUnregistered,
-          onPetSelected: (pet) {
-            setState(() {
-              _selectedPet = pet;
-              _showUnregistered = false;
-            });
-            _loadDashboard();
-            _loadHealthHistory();
-          },
-          onUnregisteredChanged: (val) {
-            setState(() {
-              _showUnregistered = val;
-              if (val) _selectedPet = null;
-            });
-            _loadDashboard();
-            _loadHealthHistory();
-          },
-        ),
-        SizedBox(height: 10.h),
-        _buildEmotionChart(),
-        SizedBox(height: 10.h),
-        _showUnregistered
-            ? _buildUnregisteredGuide()
-            : _buildHealthDashboard(),
-      ]),
-    );
-  }
-
-  Widget _buildUnregisteredGuide() {
-    return Container(
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14.r),
-        border: Border.all(color: AppTheme.dividerColor),
       ),
-      child: Column(children: [
-        Icon(Icons.pets,
-            size: 36.w,
-            color: AppTheme.primaryColor.withValues(alpha: 0.3)),
-        SizedBox(height: 10.h),
+    );
+  }
+
+  Widget _buildRecords(AiHistoryState state) {
+    if (state.userId.isEmpty || state.status == AiHistoryLoadStatus.initial) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state.status == AiHistoryLoadStatus.loading && state.records.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state.status == AiHistoryLoadStatus.failure && state.records.isEmpty) {
+      return _errorState(
+        state.errorMessage ?? '기록을 불러오지 못했어요',
+        () => context.read<AiHistoryBloc>().add(
+              const AiHistoryRefreshRequested(),
+            ),
+      );
+    }
+
+    final children = <Widget>[
+      _buildRecordFilters(state),
+      if (!widget.selectMode) _buildSafetyNotice(),
+      if (!widget.selectMode && _hasAttentionRecord(state))
+        _buildAttentionBanner(),
+      if (state.errorMessage != null && state.records.isNotEmpty)
+        _inlineError(state.errorMessage!),
+    ];
+    if (state.records.isEmpty) {
+      children.add(_buildEmptyState(state));
+      if (state.reachedUnlinkedScanLimit) {
+        children.add(_scanLimitNotice());
+      }
+      if (state.isLoadingMore) {
+        children.add(
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 20.h),
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+        );
+      } else if (state.hasMore) {
+        children.add(
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 12.h),
+            child: OutlinedButton(
+              onPressed: () => context.read<AiHistoryBloc>().add(
+                    const AiHistoryNextPageRequested(),
+                  ),
+              child: const Text('다음 기록 범위 확인'),
+            ),
+          ),
+        );
+      }
+    } else {
+      String? currentGroup;
+      for (final record in state.records) {
+        final group = _dateGroup(record.analyzedAt);
+        if (group != currentGroup) {
+          currentGroup = group;
+          children.add(
+            Padding(
+              padding: EdgeInsets.only(top: 18.h, bottom: 10.h),
+              child: Text(
+                group,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+            ),
+          );
+        }
+        children.add(
+          Padding(
+            padding: EdgeInsets.only(bottom: 10.h),
+            child: AiHistoryRecordCard(
+              record: record,
+              petLabel: _recordPetLabel(state, record),
+              selectionMode: widget.selectMode,
+              onTap: () => _openRecord(state, record),
+            ),
+          ),
+        );
+      }
+      if (state.reachedUnlinkedScanLimit) {
+        children.add(_scanLimitNotice());
+      }
+      if (state.isLoadingMore) {
+        children.add(
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 20.h),
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+        );
+      } else if (state.hasMore) {
+        children.add(
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 12.h),
+            child: OutlinedButton(
+              onPressed: () => context.read<AiHistoryBloc>().add(
+                    const AiHistoryNextPageRequested(),
+                  ),
+              child: const Text('기록 더 보기'),
+            ),
+          ),
+        );
+      }
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        context.read<AiHistoryBloc>().add(const AiHistoryRefreshRequested());
+        await context.read<AiHistoryBloc>().stream.firstWhere(
+              (value) => !value.isRefreshing,
+            );
+      },
+      child: ListView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 32.h),
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildRecordFilters(AiHistoryState state) {
+    final typeLabel = switch (state.typeFilter) {
+      AiHistoryTypeFilter.all => '전체',
+      AiHistoryTypeFilter.emotion => '감정',
+      AiHistoryTypeFilter.health => '건강',
+    };
+    final rangeLabel = switch (state.dateRange) {
+      AiHistoryDateRange.all => '전체 기간',
+      AiHistoryDateRange.last7Days => '최근 7일',
+      AiHistoryDateRange.last30Days => '최근 30일',
+      AiHistoryDateRange.last90Days => '최근 90일',
+    };
+    return Row(
+      children: [
+        if (!widget.selectMode) ...[
+          _filterChip(
+            label: typeLabel,
+            selected: state.typeFilter != AiHistoryTypeFilter.all,
+            onTap: () => _showFilters(state),
+          ),
+          SizedBox(width: 8.w),
+        ],
+        _filterChip(
+          label: rangeLabel,
+          selected: state.dateRange != AiHistoryDateRange.all,
+          onTap: () => _showFilters(state),
+        ),
+        SizedBox(width: 8.w),
+        if (!widget.selectMode)
+          Expanded(
+            child: _filterChip(
+              label: '확인할 건강 기록',
+              selected: state.healthAttentionOnly,
+              onTap: () => context.read<AiHistoryBloc>().add(
+                    AiHistoryAttentionChanged(!state.healthAttentionOnly),
+                  ),
+            ),
+          ),
+        IconButton(
+          onPressed: () => _showFilters(state),
+          tooltip: '필터 열기',
+          icon: const Icon(Icons.tune_rounded),
+          color: AppTheme.primaryColor,
+        ),
+      ],
+    );
+  }
+
+  Widget _filterChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label 필터',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22.r),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: EdgeInsets.symmetric(horizontal: 13.w),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppTheme.primaryColor.withValues(alpha: 0.09)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(22.r),
+            border: Border.all(
+              color: selected ? AppTheme.primaryColor : AppTheme.dividerColor,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+              color:
+                  selected ? AppTheme.primaryColor : AppTheme.primaryTextColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSafetyNotice() {
+    return Container(
+      margin: EdgeInsets.only(top: 12.h),
+      padding: EdgeInsets.all(13.w),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 20.sp, color: AppTheme.primaryColor),
+          SizedBox(width: 9.w),
+          Expanded(
+            child: Text(
+              AiHistoryPresentation.safetyCopy,
+              style: TextStyle(
+                fontSize: 12.sp,
+                height: 1.5,
+                color: AppTheme.secondaryTextColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttentionBanner() {
+    void openAttentionRecords() => context.read<AiHistoryBloc>().add(
+          const AiHistoryAttentionChanged(true),
+        );
+    return Semantics(
+      button: true,
+      label: '확인할 건강 기록 보기',
+      onTap: openAttentionRecords,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: openAttentionRecords,
+        borderRadius: BorderRadius.circular(12.r),
+        child: Container(
+          margin: EdgeInsets.only(top: 10.h),
+          padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 12.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF3DD),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.schedule_outlined, color: Color(0xFF8B5A12)),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  '현재 목록 기준 · 확인하거나 지켜볼 건강 기록이 있어요',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    height: 1.4,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF6F4A14),
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Color(0xFF8B5A12)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(AiHistoryState state) {
+    final scoped = state.scope.kind != AiHistoryPetScopeKind.all;
+    final filtered = state.dateRange != AiHistoryDateRange.all ||
+        (!widget.selectMode &&
+            (state.typeFilter != AiHistoryTypeFilter.all ||
+                state.healthAttentionOnly));
+    final title = state.hasMore
+        ? '조건에 맞는 기록을 더 확인할 수 있어요'
+        : filtered
+            ? '현재 필터에 맞는 기록이 없어요'
+            : scoped
+                ? '이 범위에 연결된 기록이 없어요'
+                : '아직 저장된 분석 기록이 없어요';
+    final description = state.hasMore
+        ? '앞선 저장 구간에는 일치하는 항목이 없었어요. 아래 버튼으로 다음 기록 범위를 이어서 확인해 주세요.'
+        : filtered
+            ? '필터를 초기화하거나 다른 기간과 유형을 선택해 보세요.'
+            : scoped
+                ? '전체 기록이나 다른 반려동물 범위를 확인해 보세요.'
+                : 'AI 분석 후 저장된 결과를 여기에서 다시 볼 수 있어요.';
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 72.h, horizontal: 20.w),
+      child: Column(
+        children: [
+          Icon(
+            Icons.history_toggle_off_rounded,
+            size: 52.sp,
+            color: AppTheme.neutral400,
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 17.sp,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.sp,
+              height: 1.5,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+          SizedBox(height: 22.h),
+          if (filtered) ...[
+            OutlinedButton(
+              onPressed: () => context.read<AiHistoryBloc>().add(
+                    AiHistoryFiltersApplied(
+                      type: widget.selectMode
+                          ? AiHistoryTypeFilter.emotion
+                          : AiHistoryTypeFilter.all,
+                      dateRange: AiHistoryDateRange.all,
+                      healthAttentionOnly: false,
+                    ),
+                  ),
+              child: const Text('필터 초기화'),
+            ),
+            SizedBox(height: 10.h),
+          ],
+          if (scoped && !state.hasMore)
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              alignment: WrapAlignment.center,
+              children: [
+                OutlinedButton(
+                  onPressed: () => context.read<AiHistoryBloc>().add(
+                        const AiHistoryScopeChanged(AiHistoryPetScope.all()),
+                      ),
+                  child: const Text('전체 기록 보기'),
+                ),
+                OutlinedButton(
+                  onPressed: () => context.read<AiHistoryBloc>().add(
+                        const AiHistoryScopeChanged(
+                            AiHistoryPetScope.unlinked()),
+                      ),
+                  child: const Text('연결 안 된 기록 보기'),
+                ),
+              ],
+            ),
+          if (!filtered && !scoped && !widget.selectMode && !state.hasMore)
+            FilledButton(
+              onPressed: () => context.push('/emotion'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+              ),
+              child: const Text('AI 분석 시작'),
+            ),
+          if (widget.selectMode) ...[
+            SizedBox(height: 12.h),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('게시물 작성으로 돌아가기'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFlow(AiHistoryState state) {
+    if (state.petsFailed) {
+      return _errorState('반려동물 목록을 불러오지 못했어요', _syncContext);
+    }
+    if (state.scope.kind == AiHistoryPetScopeKind.all) {
+      return _buildPetFlowPrompt(state);
+    }
+    if (state.flowStatus == AiHistoryLoadStatus.loading ||
+        state.flowStatus == AiHistoryLoadStatus.initial) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state.flowStatus == AiHistoryLoadStatus.failure) {
+      return _errorState(
+        state.flowErrorMessage ?? '흐름을 불러오지 못했어요',
+        () => context.read<AiHistoryBloc>().add(
+              const AiHistoryRefreshRequested(),
+            ),
+      );
+    }
+    if (state.scope.kind == AiHistoryPetScopeKind.unlinked) {
+      return _buildUnlinkedFlow(state);
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        context.read<AiHistoryBloc>().add(const AiHistoryRefreshRequested());
+        await context.read<AiHistoryBloc>().stream.firstWhere(
+              (value) => value.flowStatus != AiHistoryLoadStatus.loading,
+            );
+      },
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 32.h),
+        children: [
+          _flowPeriodSelector(state),
+          SizedBox(height: 14.h),
+          _flowSummaryCard(state),
+          SizedBox(height: 12.h),
+          _daySignalsCard(state),
+          SizedBox(height: 12.h),
+          _recentHealthCard(state),
+          SizedBox(height: 12.h),
+          _buildSafetyNotice(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPetFlowPrompt(AiHistoryState state) {
+    return ListView(
+      padding: EdgeInsets.all(24.w),
+      children: [
+        SizedBox(height: 54.h),
+        Icon(Icons.timeline_rounded, size: 56.sp, color: AppTheme.primaryColor),
+        SizedBox(height: 18.h),
         Text(
-          '반려동물을 등록하면\n부위별 건강 현황을 볼 수 있어요',
+          state.pets.isEmpty
+              ? '반려동물을 등록하면 기록 흐름을 볼 수 있어요'
+              : '반려동물을 선택하면 흐름을 볼 수 있어요',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+        SizedBox(height: 9.h),
+        Text(
+          state.pets.isEmpty
+              ? '기존 연결 안 된 감정 기록은 새 반려동물에 자동으로 연결되지 않아요.'
+              : '서로 다른 반려동물의 신호를 하나의 흐름으로 합치지 않아요.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 13.sp,
+            height: 1.55,
             color: AppTheme.secondaryTextColor,
-            height: 1.5,
+          ),
+        ),
+        SizedBox(height: 26.h),
+        if (state.pets.isEmpty)
+          FilledButton(
+            onPressed: () => context.push('/pets'),
+            style: FilledButton.styleFrom(
+              minimumSize: Size(double.infinity, 50.h),
+              backgroundColor: AppTheme.primaryColor,
+            ),
+            child: const Text('반려동물 등록하기'),
+          )
+        else
+          Wrap(
+            spacing: 10.w,
+            runSpacing: 10.h,
+            alignment: WrapAlignment.center,
+            children: state.pets
+                .map(
+                  (pet) => ActionChip(
+                    avatar: CircleAvatar(
+                      backgroundColor: AppTheme.primaryColor.withValues(
+                        alpha: 0.1,
+                      ),
+                      child: const Icon(Icons.pets, size: 18),
+                    ),
+                    label: Text(pet.name),
+                    onPressed: () => context.read<AiHistoryBloc>().add(
+                          AiHistoryScopeChanged(
+                            AiHistoryPetScope.registered(pet.id),
+                          ),
+                        ),
+                  ),
+                )
+                .toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildUnlinkedFlow(AiHistoryState state) {
+    final health = state.recentHealth;
+    return ListView(
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 32.h),
+      children: [
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '연결 안 된 기록',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                '연결되지 않은 감정 기록은 서로 다른 아이의 기록일 수 있어 흐름으로 합치지 않아요. 과거 기록을 새 반려동물에 자동 연결하지도 않아요.',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  height: 1.55,
+                  color: AppTheme.secondaryTextColor,
+                ),
+              ),
+            ],
           ),
         ),
         SizedBox(height: 14.h),
-        ElevatedButton(
-          onPressed: () => context.push('/pets'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.actionBase,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r)),
-            elevation: 0,
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+        Text(
+          '연결 안 된 최근 건강 기록',
+          style: TextStyle(
+            fontSize: 15.sp,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.primaryTextColor,
           ),
-          child: Text('반려동물 등록하기',
-              style: TextStyle(
-                  fontSize: 13.sp, fontWeight: FontWeight.w600)),
         ),
-      ]),
+        SizedBox(height: 10.h),
+        if (health.isEmpty)
+          _smallEmpty('최근 기록에서는 연결 안 된 건강 항목을 찾지 못했어요')
+        else
+          ...health.take(5).map(
+                (record) => Padding(
+                  padding: EdgeInsets.only(bottom: 10.h),
+                  child: AiHistoryRecordCard(
+                    record: record,
+                    petLabel: _recordPetLabel(state, record),
+                    onTap: () => _openRecord(state, record),
+                  ),
+                ),
+              ),
+        SizedBox(height: 10.h),
+        _buildSafetyNotice(),
+      ],
     );
   }
 
-  Widget _buildHealthDashboard() {
-    if (_dashboardLoading) {
-      return SizedBox(
-        height: 160.h,
-        child: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final areas = _areaStatuses.isEmpty
-        ? HealthArea.values.map((a) => _AreaStatus(area: a)).toList()
-        : _areaStatuses;
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('최근 건강 현황',
-          style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.secondaryTextColor)),
-      SizedBox(height: 8.h),
-      GridView.count(
-        crossAxisCount: 3,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 8.w,
-        mainAxisSpacing: 8.h,
-        childAspectRatio: 0.9,
-        children: areas.map((a) => _buildAreaCard(a)).toList(),
-      ),
-    ]);
-  }
-
-  Widget _buildAreaCard(_AreaStatus s) {
-    Color borderColor;
-    Color bgColor = Colors.white;
-    Color iconColor;
-    Widget statusWidget;
-
-    if (!s.hasData) {
-      borderColor = AppTheme.dividerColor;
-      bgColor = AppTheme.subtleBackground;
-      iconColor = AppTheme.neutral300;
-      statusWidget = Text('미분석',
-          style:
-              TextStyle(fontSize: 8.5.sp, color: AppTheme.neutral400));
-    } else if (s.status == '양호') {
-      borderColor = AppTheme.successColor;
-      iconColor = AppTheme.successColor;
-      statusWidget = Text('양호',
-          style: TextStyle(
-              fontSize: 8.5.sp,
-              color: AppTheme.successColor,
-              fontWeight: FontWeight.w500));
-    } else if (s.status == '주의') {
-      borderColor = AppTheme.warningColor; // v2-review: EF9F27 근사
-      iconColor = AppTheme.warningColor; // v2-review: EF9F27 근사
-      statusWidget = Text('주의',
-          style: TextStyle(
-              fontSize: 8.5.sp,
-              color: EmotionResultTokens.amberDark,
-              fontWeight: FontWeight.w500));
-    } else if (s.status == '위험') {
-      borderColor = AppTheme.highlightColor;
-      bgColor = AppTheme.tilePastelRose; // v2-review: FFF5F4 근사
-      iconColor = AppTheme.errorColor;
-      statusWidget = Text('위험',
-          style: TextStyle(
-              fontSize: 8.5.sp,
-              color: AppTheme.errorColor,
-              fontWeight: FontWeight.w600));
-    } else {
-      borderColor = AppTheme.dividerColor;
-      iconColor = AppTheme.secondaryTextColor;
-      statusWidget = Text(s.status ?? '',
-          style: TextStyle(
-              fontSize: 8.5.sp, color: AppTheme.secondaryTextColor));
-    }
-
-    return GestureDetector(
-      onTap: !s.hasData
-          ? () => showModalBottomSheet(
-                context: context,
-                shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(16.r))),
-                builder: (_) => SafeArea(
-                  child: Padding(
-                    padding: EdgeInsets.all(20.w),
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text('${s.area.displayName} 분석 기록 없음',
-                          style: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w600)),
-                      SizedBox(height: 8.h),
-                      Text('아직 분석하지 않은 부위예요.',
-                          style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppTheme.secondaryTextColor)),
-                      SizedBox(height: 16.h),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            context.go('/emotion');
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.actionBase,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(10.r)),
-                            elevation: 0,
-                          ),
-                          child: Text('AI 건강분석 하러 가기',
-                              style: TextStyle(
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w600)),
-                        ),
+  Widget _flowPeriodSelector(AiHistoryState state) {
+    return Row(
+      children: [7, 30, 90]
+          .map(
+            (days) => Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: days == 90 ? 0 : 8.w),
+                child: ChoiceChip(
+                  label: SizedBox(
+                    width: double.infinity,
+                    child: Text('$days일', textAlign: TextAlign.center),
+                  ),
+                  selected: state.flowDays == days,
+                  showCheckmark: false,
+                  onSelected: (_) => context.read<AiHistoryBloc>().add(
+                        AiHistoryFlowPeriodChanged(days),
                       ),
-                    ]),
-                  ),
-                ),
-              )
-          : null,
-      child: Container(
-        padding: EdgeInsets.all(8.w),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-              color: borderColor,
-              width: s.status == '위험' ? 1.5 : 0.8),
-        ),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(_areaIcon(s.area), size: 20.w, color: iconColor),
-          SizedBox(height: 4.h),
-          Text(s.area.displayName,
-              style: TextStyle(
-                  fontSize: 9.sp,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.primaryTextColor),
-              textAlign: TextAlign.center),
-          SizedBox(height: 2.h),
-          statusWidget,
-          if (s.date != null)
-            Text('${s.date!.month}/${s.date!.day}',
-                style: TextStyle(
-                    fontSize: 7.5.sp, color: AppTheme.neutral400)),
-        ]),
-      ),
-    );
-  }
-
-  IconData _areaIcon(HealthArea area) {
-    switch (area) {
-      case HealthArea.eyes:    return Icons.visibility_outlined;
-      case HealthArea.nose:    return Icons.face_outlined;
-      case HealthArea.skin:    return Icons.texture;
-      case HealthArea.body:    return Icons.monitor_weight_outlined;
-      case HealthArea.posture: return Icons.accessibility_new_outlined;
-      case HealthArea.overall: return Icons.health_and_safety_outlined;
-    }
-  }
-
-  Widget _buildEmotionChart() {
-    return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
-      builder: (context, state) {
-        if (state is! EmotionAnalysisHistoryLoaded) {
-          return const SizedBox.shrink();
-        }
-        final history = state.history;
-        if (history.isEmpty) return const SizedBox.shrink();
-
-        final recent = history.take(7).toList().reversed.toList();
-        final maxIdx = recent.length - 1;
-
-        return Container(
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(color: AppTheme.dividerColor),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // ── 헤더 ──
-            Row(children: [
-              Text('최근 감정 현황',
-                  style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primaryTextColor)),
-              const Spacer(),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text(
-                  '${_dominantLabel(history)} 이 많았어요',
-                  style: TextStyle(
-                      fontSize: 9.5.sp,
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w600),
-                ),
-              ),
-            ]),
-            SizedBox(height: 4.h),
-            Text('최근 ${recent.length}회 기준 · 오래된 순 →',
-                style: TextStyle(
-                    fontSize: 9.sp, color: AppTheme.secondaryTextColor)),
-            SizedBox(height: 12.h),
-
-            // ── 이모지 타임라인 ──
-            Row(
-              children: recent.asMap().entries.map((e) {
-                final isLast = e.key == maxIdx;
-                final isNeg = _isNegative(e.value.emotions.dominantEmotion);
-                final emotion = e.value.emotions.dominantEmotion;
-                final score = _positiveScore(e.value);
-                final barColor = isNeg
-                    ? AppTheme.highlightColor
-                    : AppTheme.primaryColor;
-                final bgColor = isNeg
-                    ? AppTheme.highlightColor.withValues(alpha: isLast ? 0.15 : 0.07)
-                    : AppTheme.primaryColor.withValues(alpha: isLast ? 0.13 : 0.06);
-
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 2.5.w),
-                    child: Column(
-                      children: [
-                        // 이모지 버블
-                        Container(
-                          width: 34.w,
-                          height: 34.w,
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            shape: BoxShape.circle,
-                            border: isLast
-                                ? Border.all(
-                                    color: barColor.withValues(alpha: 0.6),
-                                    width: 1.5)
-                                : null,
-                          ),
-                          child: Center(
-                            child: Icon(
-                              AppTheme.getEmotionIcon(emotion),
-                              size: isLast ? 16.sp : 14.sp,
-                              color: AppTheme.getEmotionColor(emotion),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 4.h),
-                        // 점수 바
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(3.r),
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 4.h,
-                            child: LinearProgressIndicator(
-                              value: score,
-                              backgroundColor: AppTheme.neutral100,
-                              color: barColor.withValues(
-                                  alpha: isLast ? 1.0 : 0.5),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 3.h),
-                        // 회차
-                        Text(
-                          '${e.key + 1}회',
-                          style: TextStyle(
-                              fontSize: 7.sp,
-                              fontWeight: isLast
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                              color: isLast
-                                  ? AppTheme.primaryTextColor
-                                  : AppTheme.secondaryTextColor),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-
-            SizedBox(height: 10.h),
-            // ── 범례 ──
-            Row(children: [
-              _chartLegend(AppTheme.primaryColor, '긍정'),
-              SizedBox(width: 10.w),
-              _chartLegend(AppTheme.highlightColor, '부정'),
-              const Spacer(),
-              Text('바 길이 = 긍정 비율',
-                  style: TextStyle(
-                      fontSize: 8.5.sp, color: AppTheme.neutral400)),
-            ]),
-          ]),
-        );
-      },
-    );
-  }
-
-  Widget _chartLegend(Color c, String label) => Row(children: [
-        Container(
-          width: 8.w,
-          height: 8.w,
-          decoration: BoxDecoration(
-              color: c, shape: BoxShape.circle),
-        ),
-        SizedBox(width: 4.w),
-        Text(label,
-            style: TextStyle(
-                fontSize: 9.sp, color: AppTheme.secondaryTextColor)),
-      ]);
-
-  String _dominantEmotion(List<EmotionAnalysis> history) {
-    final counts = <String, int>{};
-    for (final a in history) {
-      final d = a.emotions.dominantEmotion;
-      counts[d] = (counts[d] ?? 0) + 1;
-    }
-    if (counts.isEmpty) return '';
-    return counts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
-  }
-
-  String _dominantLabel(List<EmotionAnalysis> history) {
-    return AppTheme.getEmotionLabel(_dominantEmotion(history));
-  }
-
-  double _positiveScore(EmotionAnalysis a) {
-    final e = a.emotions;
-    final pos =
-        e.happiness + e.calm + e.excitement + e.curiosity;
-    final neg =
-        e.anxiety + e.fear + e.sadness + e.discomfort;
-    final total = pos + neg;
-    return total > 0 ? pos / total : 0.5;
-  }
-
-  bool _isNegative(String emotion) =>
-      ['anxiety', 'fear', 'sadness', 'discomfort'].contains(emotion);
-
-  // ────────────────────────────────────────────────────────
-  // 리포트 탭
-  // ────────────────────────────────────────────────────────
-  Widget _buildReportTab() {
-    return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
-      builder: (context, state) {
-        final emotionHistory = state is EmotionAnalysisHistoryLoaded
-            ? state.history
-            : <EmotionAnalysis>[];
-
-        final emotionMonths = _groupByMonth(emotionHistory);
-        final healthMonths = _groupHealthByMonth(_healthHistory);
-
-        // 두 맵의 키를 합쳐서 정렬
-        final allKeys = {
-          ...emotionMonths.keys,
-          ...healthMonths.keys,
-        }.toList()
-          ..sort((a, b) => b.compareTo(a));
-
-        if (allKeys.isEmpty) {
-          return _buildEmptyState('분석 기록이 없어요');
-        }
-
-        return ListView.builder(
-          padding: EdgeInsets.all(14.w),
-          itemCount: allKeys.length,
-          itemBuilder: (_, i) {
-            final isFirst = i == 0;
-            final month = allKeys[i];
-            final analyses = emotionMonths[month] ?? [];
-            final healthItems = healthMonths[month] ?? [];
-            final dominant = analyses.isNotEmpty
-                ? _dominantLabelFromList(analyses)
-                : null;
-
-            return Container(
-              margin: EdgeInsets.only(bottom: 10.h),
-              padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14.r),
-                border: Border.all(
-                  color: isFirst
-                      ? AppTheme.primaryColor
-                      : AppTheme.dividerColor,
-                  width: isFirst ? 1.5 : 0.5,
-                ),
-              ),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Text(month,
-                          style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.primaryColor)),
-                      if (isFirst) ...[
-                        SizedBox(width: 6.w),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 6.w, vertical: 2.h),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor
-                                .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6.r),
-                          ),
-                          child: Text('이번달',
-                              style: TextStyle(
-                                  fontSize: 8.5.sp,
-                                  color: AppTheme.primaryColor,
-                                  fontWeight: FontWeight.w500)),
-                        ),
-                      ],
-                      const Spacer(),
-                      Text('${analyses.length + healthItems.length}회 분석',
-                          style: TextStyle(
-                              fontSize: 9.sp,
-                              color: AppTheme.secondaryTextColor)),
-                    ]),
-                    SizedBox(height: 10.h),
-                    Row(children: [
-                      if (analyses.isNotEmpty)
-                        _reportStat('${analyses.length}', '감정분석',
-                            AppTheme.primaryColor),
-                      if (analyses.isNotEmpty && healthItems.isNotEmpty)
-                        SizedBox(width: 8.w),
-                      if (healthItems.isNotEmpty)
-                        _reportStat('${healthItems.length}', '건강분석',
-                            AppTheme.successColor),
-                    ]),
-                    if (dominant != null) ...[
-                      SizedBox(height: 8.h),
-                      Text('$dominant 감정이 많았어요',
-                          style: TextStyle(
-                              fontSize: 11.sp,
-                              color: AppTheme.primaryTextColor,
-                              height: 1.4)),
-                    ],
-                  ]),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Map<String, List<HealthAnalysisModel>> _groupHealthByMonth(
-      List<HealthAnalysisModel> list) {
-    final result = <String, List<HealthAnalysisModel>>{};
-    for (final a in list) {
-      final key = '${a.analyzedAt.year}년 ${a.analyzedAt.month}월';
-      result.putIfAbsent(key, () => []).add(a);
-    }
-    return result;
-  }
-
-  Widget _reportStat(String num, String label, Color color) => Expanded(
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 8.h),
-          decoration: BoxDecoration(
-            color: AppTheme.subtleBackground,
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          child: Column(children: [
-            Text(num,
-                style: TextStyle(
-                    fontSize: 18.sp,
+                  selectedColor: AppTheme.primaryColor,
+                  backgroundColor: Colors.white,
+                  labelStyle: TextStyle(
+                    fontSize: 13.sp,
                     fontWeight: FontWeight.w700,
-                    color: color)),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 8.5.sp,
-                    color: AppTheme.secondaryTextColor)),
-          ]),
-        ),
-      );
-
-  Map<String, List<EmotionAnalysis>> _groupByMonth(
-      List<EmotionAnalysis> list) {
-    final result = <String, List<EmotionAnalysis>>{};
-    for (final a in list) {
-      final key = '${a.analyzedAt.year}년 ${a.analyzedAt.month}월';
-      result.putIfAbsent(key, () => []).add(a);
-    }
-    return result;
-  }
-
-  String _dominantLabelFromList(List<EmotionAnalysis> list) {
-    final counts = <String, int>{};
-    for (final a in list) {
-      final d = a.emotions.dominantEmotion;
-      counts[d] = (counts[d] ?? 0) + 1;
-    }
-    if (counts.isEmpty) return '';
-    final top = counts.entries
-        .reduce((a, b) => a.value > b.value ? a : b)
-        .key;
-    return AppTheme.getEmotionLabel(top);
-  }
-
-  // ────────────────────────────────────────────────────────
-  // 전체이력 탭
-  // ────────────────────────────────────────────────────────
-  Widget _buildHistoryTab() {
-    return BlocBuilder<EmotionAnalysisBloc, EmotionAnalysisState>(
-      buildWhen: (prev, curr) => curr is EmotionAnalysisHistoryLoaded || curr is EmotionAnalysisHistoryLoading,
-      builder: (context, state) {
-        final emotionHistory = state is EmotionAnalysisHistoryLoaded
-            ? state.history
-            : <EmotionAnalysis>[];
-        final items = _mergeHistory(emotionHistory, _healthHistory);
-        final filtered = _applyFilter(items);
-        final monthGroups = _groupItemsByMonth(filtered);
-
-        return Column(children: [
-          // 필터 칩 (줄에 꽉 차게 균등 분배)
-          Container(
-            color: Colors.white,
-            padding:
-                EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-            child: Row(
-              children: ['전체', '감정분석', '건강분석', '주의만'].map((f) {
-                final isOn = _filterType == f;
-                final isWarn = f == '주의만';
-                final isLast = f == '주의만';
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _filterType = f),
-                    child: Container(
-                      margin: EdgeInsets.only(right: isLast ? 0 : 6.w),
-                      padding: EdgeInsets.symmetric(vertical: 7.h),
-                      decoration: BoxDecoration(
-                        color: isOn
-                            ? (isWarn
-                                ? AppTheme.highlightColor
-                                : AppTheme.primaryColor)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(
-                          color: isOn
-                              ? (isWarn
-                                  ? AppTheme.highlightColor
-                                  : AppTheme.primaryColor)
-                              : AppTheme.dividerColor,
-                        ),
-                      ),
-                      child: Text(
-                        f,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          fontWeight: isOn
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                          color: isOn
-                              ? Colors.white
-                              : AppTheme.secondaryTextColor,
-                        ),
-                      ),
-                    ),
+                    color: state.flowDays == days
+                        ? Colors.white
+                        : AppTheme.primaryTextColor,
                   ),
-                );
-              }).toList(),
-            ),
-          ),
-          const Divider(height: 0.5, thickness: 0.5),
-          Expanded(
-            child: (_healthHistoryLoading && _healthHistory.isEmpty)
-                ? const Center(child: CircularProgressIndicator())
-                : filtered.isEmpty
-                    ? _buildEmptyState('해당하는 기록이 없어요')
-                    : ListView(
-                        padding: EdgeInsets.all(12.w),
-                        children: monthGroups.entries.expand((entry) => [
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: 6.h,
-                                  top: entry.key ==
-                                          monthGroups.keys.first
-                                      ? 0
-                                      : 8.h,
-                                ),
-                                child: Text(entry.key,
-                                    style: TextStyle(
-                                        fontSize: 10.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color:
-                                            AppTheme.secondaryTextColor)),
-                              ),
-                              ...entry.value
-                                  .map((item) => _buildHistoryCard(item)),
-                            ]).toList(),
-                      ),
-          ),
-        ]);
-      },
-    );
-  }
-
-  List<_HistoryItem> _mergeHistory(
-    List<EmotionAnalysis> emotions,
-    List<HealthAnalysisModel> healths,
-  ) {
-    final emotionItems = emotions.map((a) {
-      final label = AppTheme.getEmotionLabel(a.emotions.dominantEmotion);
-      final thumb = a.imageUrl.isNotEmpty ? a.imageUrl : null;
-      return _HistoryItem(
-        isEmotion: true,
-        date: a.analyzedAt,
-        petName: a.petName,
-        title: '감정분석${a.petName != null ? " · ${a.petName}" : ""}',
-        subtitle: '${a.analyzedAt.month}/${a.analyzedAt.day} · $label',
-        badge: label,
-        badgeType: 'emot',
-        thumbnailUrl: thumb,
-        emotionData: a,
-      );
-    });
-
-    final healthItems = healths.map((h) {
-      String badgeType;
-      if (h.status == '양호') {
-        badgeType = 'good';
-      } else if (h.status == '주의') {
-        badgeType = 'warn';
-      } else if (h.status == '위험') {
-        badgeType = 'bad';
-      } else {
-        badgeType = 'good';
-      }
-      final thumb = h.imageUrls.isNotEmpty ? h.imageUrls.first : null;
-      return _HistoryItem(
-        isEmotion: false,
-        date: h.analyzedAt,
-        petName: h.petName,
-        title: '건강분석 · ${h.area.displayName}'
-            '${h.petName != null ? " · ${h.petName}" : ""}',
-        subtitle: '${h.analyzedAt.month}/${h.analyzedAt.day} · ${h.status}',
-        badge: h.status,
-        badgeType: badgeType,
-        thumbnailUrl: thumb,
-        healthData: h,
-      );
-    });
-
-    return [...emotionItems, ...healthItems]
-      ..sort((a, b) => b.date.compareTo(a.date));
-  }
-
-  List<_HistoryItem> _applyFilter(List<_HistoryItem> items) {
-    switch (_filterType) {
-      case '감정분석':
-        return items.where((i) => i.isEmotion).toList();
-      case '건강분석':
-        return items.where((i) => !i.isEmotion).toList();
-      case '주의만':
-        return items
-            .where((i) =>
-                i.badgeType == 'warn' || i.badgeType == 'bad')
-            .toList();
-      default:
-        return items;
-    }
-  }
-
-  Map<String, List<_HistoryItem>> _groupItemsByMonth(
-      List<_HistoryItem> items) {
-    final result = <String, List<_HistoryItem>>{};
-    for (final item in items) {
-      final key =
-          '${item.date.year}년 ${item.date.month}월';
-      result.putIfAbsent(key, () => []).add(item);
-    }
-    return result;
-  }
-
-  Widget _buildHistoryCard(_HistoryItem item) {
-    final colors = <String, (Color, Color)>{
-      'emot': (AppTheme.primaryColor.withValues(alpha: 0.1),
-          AppTheme.primaryColor),
-      'good': (AppTheme.successColor.withValues(alpha: 0.1),
-          AppTheme.successColor),
-      'warn': (AppTheme.warningColor.withValues(alpha: 0.1), // v2-review: EF9F27 근사
-          EmotionResultTokens.amberDark),
-      'bad': (AppTheme.errorColor.withValues(alpha: 0.1),
-          AppTheme.errorColor),
-    };
-    final (bgColor, textColor) =
-        colors[item.badgeType] ?? (AppTheme.neutral100, AppTheme.neutral500);
-
-    final isDisabledInSelectMode = widget.selectMode && !item.isEmotion;
-    return Opacity(
-      opacity: isDisabledInSelectMode ? 0.4 : 1.0,
-      child: GestureDetector(
-        onTap: () async {
-          // selectMode: 감정 카드만 선택 가능. 건강 카드는 안내.
-          if (widget.selectMode) {
-            if (item.isEmotion && item.emotionData != null) {
-              Navigator.of(context).pop(item.emotionData);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('감정 분석만 선택할 수 있어요')),
-              );
-            }
-            return;
-          }
-          // 일반 모드: 결과 페이지로 진입
-          if (item.isEmotion && item.emotionData != null) {
-            final analysis = item.emotionData!;
-            // 직전 분석 1건 조회 (과거 열람 맥락 — delta 비교가 자연스러움).
-            // 비교 UI는 부가 기능이라 300ms 타임아웃, 실패·지연 시 null로 진행.
-            EmotionAnalysis? previous;
-            try {
-              previous = await sl<GetPreviousAnalysis>()(current: analysis)
-                  .timeout(const Duration(milliseconds: 300));
-            } catch (_) {
-              previous = null;
-            }
-            if (!mounted) return;
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => BlocProvider(
-                create: (_) => sl<EmotionAnalysisBloc>(),
-                child: EmotionResultPage(
-                  analysis: analysis,
-                  previousAnalysis: previous,
-                  fromHistory: true,
                 ),
               ),
-            ));
-          } else if (!item.isEmotion && item.healthData != null) {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) =>
-                  HealthResultPage(result: item.healthData!, fromHistory: true),
-            ));
-          }
-        },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 7.h),
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: AppTheme.dividerColor),
-        ),
-        child: Row(children: [
-          // 썸네일
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8.r),
-            child: SizedBox(
-              width: 44.w,
-              height: 44.w,
-              child: item.thumbnailUrl != null && item.thumbnailUrl!.isNotEmpty
-                  ? Image.network(
-                      item.thumbnailUrl!,
-                      width: 44.w,
-                      height: 44.w,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, progress) =>
-                          progress == null ? child : _thumbFallback(item),
-                      errorBuilder: (_, __, ___) => _thumbFallback(item),
-                    )
-                  : _thumbFallback(item),
             ),
-          ),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.title,
-                      style: TextStyle(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppTheme.primaryTextColor)),
-                  Text(item.subtitle,
-                      style: TextStyle(
-                          fontSize: 9.sp,
-                          color: AppTheme.secondaryTextColor,
-                          height: 1.4)),
-                ]),
-          ),
-          SizedBox(width: 6.w),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Text(item.badge,
-                style: TextStyle(
-                    fontSize: 9.sp,
-                    fontWeight: FontWeight.w600,
-                    color: textColor)),
-          ),
-          SizedBox(width: 4.w),
-          Icon(Icons.chevron_right,
-              size: 14.w, color: AppTheme.secondaryTextColor),
-        ]),
-      ),
-      ),
+          )
+          .toList(),
     );
   }
 
-  Widget _thumbFallback(_HistoryItem item) {
-    return Container(
-      color: item.isEmotion
-          ? AppTheme.primaryColor.withValues(alpha: 0.08)
-          : AppTheme.successColor.withValues(alpha: 0.08),
-      child: Center(
-        child: Icon(
-          item.isEmotion
-              ? Icons.psychology_outlined
-              : Icons.health_and_safety_outlined,
-          size: 22.w,
-          color: item.isEmotion
-              ? AppTheme.primaryColor.withValues(alpha: 0.5)
-              : AppTheme.successColor.withValues(alpha: 0.5),
-        ),
-      ),
+  Widget _flowSummaryCard(AiHistoryState state) {
+    final count = state.daySignals.fold<int>(
+      0,
+      (sum, signal) => sum + signal.analysisCount,
     );
-  }
-
-  Widget _buildEmptyState(String msg) => EmptyStateWidget(
-        icon: Icons.history,
-        title: msg,
-        subtitle: '반려동물의 감정과 건강을 AI로 분석하고\n변화를 추적해보세요!',
-        actionLabel: '첫 분석 시작',
-        onAction: () => context.go('/emotion'),
+    final dominantCounts = <String, int>{};
+    for (final signal in state.daySignals) {
+      dominantCounts.update(
+        signal.dominantEmotion,
+        (value) => value + 1,
+        ifAbsent: () => 1,
       );
+    }
+    final dominant = dominantCounts.entries.isEmpty
+        ? null
+        : (dominantCounts.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value)))
+            .first
+            .key;
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '최근 ${state.flowDays}일 기록을 날짜별로 모아봤어요',
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+          SizedBox(height: 7.h),
+          Text(
+            dominant == null
+                ? '아직 흐름을 만들 기록이 부족해요'
+                : '${AiHistoryPresentation.emotionLabel(dominant)} 신호가 자주 관찰됐어요',
+            style: TextStyle(
+              fontSize: 17.sp,
+              height: 1.4,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
+          SizedBox(height: 7.h),
+          Text(
+            '최근 ${state.flowDays}일 기록 $count건',
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: AppTheme.primaryColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _daySignalsCard(AiHistoryState state) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '감정 흐름',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            '기록이 있는 날만 표시해요',
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+          SizedBox(height: 14.h),
+          if (state.daySignals.length < 2)
+            _smallEmpty('기록이 다른 날에 1건 더 쌓이면 흐름을 볼 수 있어요')
+          else
+            SizedBox(
+              height: 118.h,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: state.daySignals.length,
+                separatorBuilder: (_, __) => SizedBox(width: 10.w),
+                itemBuilder: (_, index) {
+                  final signal = state.daySignals[index];
+                  return Container(
+                    width: 108.w,
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: AppTheme.subtleBackground,
+                      borderRadius: BorderRadius.circular(14.r),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${signal.day.month}/${signal.day.day}',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          signal.hasMixedSignals
+                              ? Icons.blur_circular_rounded
+                              : AppTheme.getEmotionIcon(signal.dominantEmotion),
+                          color: AppTheme.getEmotionColor(
+                            signal.dominantEmotion,
+                          ),
+                        ),
+                        SizedBox(height: 5.h),
+                        Text(
+                          signal.hasMixedSignals
+                              ? '여러 신호 함께'
+                              : AiHistoryPresentation.emotionLabel(
+                                  signal.dominantEmotion,
+                                ),
+                          maxLines: 2,
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryTextColor,
+                          ),
+                        ),
+                        if (signal.analysisCount > 1)
+                          Text(
+                            '${signal.analysisCount}건 평균',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _recentHealthCard(AiHistoryState state) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '건강 최근 상태 · 연결된 기록 기준',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          if (state.recentHealth.isEmpty)
+            _smallEmpty('연결된 건강 기록이 아직 없어요')
+          else
+            ...state.recentHealth.map((record) {
+              final health = record.health!;
+              return InkWell(
+                onTap: () => _openRecord(state, record),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 9.h),
+                  child: Row(
+                    children: [
+                      Icon(
+                        AiHistoryPresentation.healthStateIcon(health),
+                        color: AiHistoryPresentation.healthStateColor(health),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text(
+                          AiHistoryPresentation.healthAreaLabel(health),
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryTextColor,
+                          ),
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            AiHistoryPresentation.healthStateLabel(health),
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AiHistoryPresentation.healthStateColor(
+                                health,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${health.analyzedAt.toLocal().month}/${health.analyzedAt.toLocal().day}',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _smallEmpty(String message) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(18.w),
+      decoration: BoxDecoration(
+        color: AppTheme.subtleBackground,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 13.sp,
+          height: 1.5,
+          color: AppTheme.secondaryTextColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _errorState(String message, VoidCallback retry) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(28.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 48.sp,
+              color: AppTheme.neutral400,
+            ),
+            SizedBox(height: 14.h),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                height: 1.5,
+                color: AppTheme.primaryTextColor,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            OutlinedButton(onPressed: retry, child: const Text('다시 시도')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _inlineError(String message) {
+    return Container(
+      margin: EdgeInsets.only(top: 10.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppTheme.subtleBackground,
+        borderRadius: BorderRadius.circular(10.r),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 20.sp),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(message, style: TextStyle(fontSize: 12.sp)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scanLimitNotice() {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 10.h),
+      child: Text(
+        '최근 250건에서 찾은 기록이에요. 더 오래된 기록은 다음 기록 범위 확인을 이용해 주세요.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 12.sp,
+          height: 1.45,
+          color: AppTheme.secondaryTextColor,
+        ),
+      ),
+    );
+  }
+
+  bool _hasAttentionRecord(AiHistoryState state) => state.records.any(
+        (record) =>
+            record.health != null &&
+            AiHistoryPresentation.healthState(record.health!) !=
+                HealthObservationState.stable,
+      );
+
+  Future<void> _showFilters(AiHistoryState state) async {
+    final value = await AiHistoryFilterSheet.show(
+      context,
+      emotionOnly: widget.selectMode,
+      initial: AiHistoryFilterSelection(
+        type: state.typeFilter,
+        dateRange: state.dateRange,
+        healthAttentionOnly: state.healthAttentionOnly,
+      ),
+    );
+    if (!mounted || value == null) return;
+    context.read<AiHistoryBloc>().add(
+          AiHistoryFiltersApplied(
+            type: value.type,
+            dateRange: value.dateRange,
+            healthAttentionOnly: value.healthAttentionOnly,
+          ),
+        );
+  }
+
+  Future<void> _showPetScopePicker(AiHistoryState state) async {
+    final scope = await showModalBottomSheet<AiHistoryPetScope>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 22.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                minTileHeight: 52,
+                leading: const CircleAvatar(child: Icon(Icons.apps)),
+                title: const Text('전체'),
+                trailing: state.scope.kind == AiHistoryPetScopeKind.all
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () =>
+                    Navigator.pop(sheetContext, const AiHistoryPetScope.all()),
+              ),
+              ...state.pets.map(
+                (pet) => ListTile(
+                  minTileHeight: 52,
+                  leading: CircleAvatar(
+                    backgroundColor: AppTheme.primaryColor.withValues(
+                      alpha: 0.1,
+                    ),
+                    child: const Icon(Icons.pets),
+                  ),
+                  title: Text(pet.name),
+                  trailing: state.scope.petId == pet.id
+                      ? const Icon(Icons.check)
+                      : null,
+                  onTap: () => Navigator.pop(
+                    sheetContext,
+                    AiHistoryPetScope.registered(pet.id),
+                  ),
+                ),
+              ),
+              ListTile(
+                minTileHeight: 52,
+                leading: const CircleAvatar(
+                  child: Icon(Icons.link_off_rounded),
+                ),
+                title: const Text('연결 안 된 기록'),
+                subtitle: Text(
+                  state.petsFailed
+                      ? '반려동물 목록을 불러온 뒤 확인할 수 있어요'
+                      : '반려동물 정보가 없거나 현재 목록과 연결되지 않은 기록',
+                ),
+                trailing: state.scope.kind == AiHistoryPetScopeKind.unlinked
+                    ? const Icon(Icons.check)
+                    : null,
+                enabled: !state.petsFailed,
+                onTap: state.petsFailed
+                    ? null
+                    : () => Navigator.pop(
+                          sheetContext,
+                          const AiHistoryPetScope.unlinked(),
+                        ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (!mounted || scope == null) return;
+    context.read<AiHistoryBloc>().add(AiHistoryScopeChanged(scope));
+  }
+
+  void _openRecord(AiHistoryState state, AiHistoryRecord record) {
+    if (widget.selectMode) {
+      if (record.emotion == null) return;
+      Navigator.of(context).pop(
+        record.emotion!.copyWith(
+          petName: _resolvedPetName(state, record.petId),
+        ),
+      );
+      return;
+    }
+    if (record.kind == AiHistoryKind.emotion) {
+      context.push('/emotion/result/${record.id}');
+      return;
+    }
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => _HealthHistoryLoaderPage(
+            record: record,
+            petLabel: _recordPetLabel(state, record),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _scopeLabel(AiHistoryState state) {
+    return switch (state.scope.kind) {
+      AiHistoryPetScopeKind.all => '전체 기록',
+      AiHistoryPetScopeKind.unlinked => '연결 안 된 기록',
+      AiHistoryPetScopeKind.registered => state.selectedPet?.name ?? '반려동물 선택',
+    };
+  }
+
+  Widget _scopeAvatar(AiHistoryState state) {
+    final pet = state.selectedPet;
+    return CircleAvatar(
+      radius: 15.r,
+      backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+      backgroundImage: pet?.avatarUrl != null && pet!.avatarUrl!.isNotEmpty
+          ? NetworkImage(pet.avatarUrl!)
+          : null,
+      child: pet?.avatarUrl == null || pet!.avatarUrl!.isEmpty
+          ? Icon(
+              state.scope.kind == AiHistoryPetScopeKind.unlinked
+                  ? Icons.link_off_rounded
+                  : Icons.pets,
+              size: 17.sp,
+              color: AppTheme.primaryColor,
+            )
+          : null,
+    );
+  }
+
+  String _recordPetLabel(AiHistoryState state, AiHistoryRecord record) {
+    return _resolvedPetName(state, record.petId) ??
+        (record.petName?.trim().isNotEmpty == true
+            ? record.petName!.trim()
+            : '반려동물 정보 없음');
+  }
+
+  String? _resolvedPetName(AiHistoryState state, String? petId) {
+    if (petId == null || petId.isEmpty) return null;
+    for (final pet in state.pets) {
+      if (pet.id == petId) return pet.name;
+    }
+    return null;
+  }
+
+  String _dateGroup(DateTime value) {
+    final date = value.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(date.year, date.month, date.day);
+    final difference = today.difference(day).inDays;
+    if (difference == 0) return '오늘';
+    if (difference == 1) return '어제';
+    if (difference >= 2 && difference <= 6) {
+      return '${date.month}월 ${date.day}일';
+    }
+    return '${date.year}년 ${date.month}월';
+  }
+}
+
+class _HealthHistoryLoaderPage extends StatefulWidget {
+  final AiHistoryRecord record;
+  final String petLabel;
+
+  const _HealthHistoryLoaderPage({
+    required this.record,
+    required this.petLabel,
+  });
+
+  @override
+  State<_HealthHistoryLoaderPage> createState() =>
+      _HealthHistoryLoaderPageState();
+}
+
+class _HealthHistoryLoaderPageState extends State<_HealthHistoryLoaderPage> {
+  HealthAnalysisModel? _analysis;
+  String? _error;
+  bool _canRetry = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final result = await sl<EmotionRepository>().getHealthAnalysisById(
+      widget.record.id,
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) => setState(() {
+        _error = failure.message;
+        _canRetry =
+            failure is! NotFoundFailure && failure is! UnauthorizedFailure;
+      }),
+      (analysis) => setState(() {
+        if (analysis is HealthAnalysisModel) {
+          _analysis = analysis;
+        } else {
+          _error = '저장된 건강 기록 형식을 확인할 수 없어요.';
+          _canRetry = false;
+        }
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_analysis != null) {
+      return HealthResultPage(result: _analysis!, fromHistory: true);
+    }
+    return Scaffold(
+      backgroundColor: AppTheme.subtleBackground,
+      appBar: AppBar(title: const Text('저장된 건강 기록'), centerTitle: true),
+      body: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          children: [
+            AiHistoryRecordCard(
+              record: widget.record,
+              petLabel: widget.petLabel,
+              onTap: () {},
+            ),
+            SizedBox(height: 28.h),
+            if (_error == null)
+              const CircularProgressIndicator()
+            else ...[
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14.sp),
+              ),
+              if (_canRetry) ...[
+                SizedBox(height: 14.h),
+                OutlinedButton(
+                  onPressed: () {
+                    setState(() => _error = null);
+                    _load();
+                  },
+                  child: const Text('다시 시도'),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }

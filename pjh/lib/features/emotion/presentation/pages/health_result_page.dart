@@ -20,6 +20,7 @@ import '../widgets/result/health_disclaimer_card.dart';
 import '../widgets/result/health_findings_card.dart';
 import '../widgets/result/health_next_action_card.dart';
 import '../widgets/result/health_score_card.dart';
+import '../widgets/result/history_result_banner.dart';
 import '../widgets/result/memo_save_modal.dart';
 import '../widgets/result/photo_slider.dart';
 import '../widgets/result/vet_consult_card.dart';
@@ -80,15 +81,12 @@ class _HealthResultPageState extends State<HealthResultPage> {
 
   Future<void> _onShare() async {
     try {
-      await HealthShareHelper.shareAsCard(
-        context,
-        analysis: widget.result,
-      );
+      await HealthShareHelper.shareAsCard(context, analysis: widget.result);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('공유 중 오류가 발생했어요: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('공유 중 오류가 발생했어요: $e')));
     }
   }
 
@@ -97,9 +95,9 @@ class _HealthResultPageState extends State<HealthResultPage> {
     if (!mounted || memo == null) return;
     // 건강 분석은 메모를 별도 컬럼이 아니라 분석 결과 JSON 안에 저장하지 않음 (현재 스키마).
     // 임시: SnackBar로 안내만. v1.1에서 health_history.memo 컬럼 추가 후 연결.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('메모는 다음 업데이트에서 저장됩니다')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('메모는 다음 업데이트에서 저장됩니다')));
   }
 
   void _onHistoryOrClose() {
@@ -118,9 +116,9 @@ class _HealthResultPageState extends State<HealthResultPage> {
     try {
       context.push('/emotion?tab=emotion');
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('감정 분석 페이지로 이동할 수 없어요')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('감정 분석 페이지로 이동할 수 없어요')));
     }
   }
 
@@ -130,9 +128,9 @@ class _HealthResultPageState extends State<HealthResultPage> {
     try {
       context.push('/emotion?tab=health');
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('분석 페이지로 이동할 수 없어요')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('분석 페이지로 이동할 수 없어요')));
     }
   }
 
@@ -140,9 +138,9 @@ class _HealthResultPageState extends State<HealthResultPage> {
     try {
       context.push('/hospital');
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('병원 찾기 페이지로 이동할 수 없어요')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('병원 찾기 페이지로 이동할 수 없어요')));
     }
   }
 
@@ -160,7 +158,7 @@ class _HealthResultPageState extends State<HealthResultPage> {
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
-        '건강 분석 결과',
+        widget.fromHistory ? '저장된 건강 기록' : '건강 분석 결과',
         style: TextStyle(
           fontSize: 14.sp,
           fontWeight: FontWeight.w500,
@@ -212,40 +210,79 @@ class _HealthResultPageState extends State<HealthResultPage> {
         child: Column(
           children: [
             PhotoSlider(imagePaths: analysis.imageUrls),
+            if (widget.fromHistory)
+              HistoryResultBanner(
+                label: '저장된 건강 기록',
+                petName: analysis.petName,
+              ),
             SizedBox(height: 12.h),
-            _section(HealthScoreCard(analysis: analysis)),
+            _section(
+              HealthScoreCard(
+                analysis: analysis,
+                areaLabelOverride: analysis.hasKnownArea ? null : '기타 부위',
+              ),
+            ),
             if (showContext) ...[
               _gap(),
-              _section(ContextCard(
-                contextNote: analysis.additionalContext!.trim(),
-              )),
+              _section(
+                ContextCard(contextNote: analysis.additionalContext!.trim()),
+              ),
             ],
             if (showInsight) ...[
               _gap(),
-              _section(AiInsightCard.health(
-                basisText: analysis.summary.trim().isNotEmpty
-                    ? analysis.summary.trim()
-                    : null,
-                actionText: _resolveActionText(),
-              )),
+              _section(
+                AiInsightCard.health(
+                  basisText: analysis.summary.trim().isNotEmpty
+                      ? analysis.summary.trim()
+                      : null,
+                  actionText: _resolveActionText(),
+                ),
+              ),
             ],
             if (showFindings) ...[
               _gap(),
-              _section(HealthFindingsCard(
-                area: analysis.area,
-                findings: analysis.findings,
-              )),
-              _gap(),
-              _section(DiagnosisFindingsCard(findings: analysis.findings)),
+              _section(
+                HealthFindingsCard(
+                  area: analysis.area,
+                  findings: analysis.findings,
+                ),
+              ),
+              if (!widget.fromHistory) ...[
+                _gap(),
+                _section(DiagnosisFindingsCard(findings: analysis.findings)),
+              ],
             ],
             _gap(),
-            _section(HealthNextActionCard(
-              onEmotionAnalysis: _onEmotionAnalysis,
-              onOtherArea: _onOtherArea,
-              onMemo: _onSave,
-              // 종합(overall) 분석한 경우엔 "다른 부위" 슬롯 hide.
-              showOtherArea: analysis.area != HealthArea.overall,
-            )),
+            _section(
+              HealthNextActionCard(
+                onEmotionAnalysis: _onEmotionAnalysis,
+                onOtherArea: _onOtherArea,
+                onMemo: widget.fromHistory ? null : _onSave,
+                // 종합(overall) 분석한 경우엔 "다른 부위" 슬롯 hide.
+                showOtherArea: !analysis.hasKnownArea ||
+                    analysis.area != HealthArea.overall,
+              ),
+            ),
+            if (widget.fromHistory) ...[
+              _gap(),
+              _section(
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(14.w),
+                  decoration: BoxDecoration(
+                    color: EmotionResultTokens.cardSurface,
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Text(
+                    '건강 분석 메모 저장은 아직 지원하지 않아요.',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: EmotionResultTokens.grayText,
+                    ),
+                  ),
+                ),
+              ),
+            ],
             _gap(),
             // TODO(breed): pets 테이블에서 breed/ageMonths 조회 후 주입 — 별도 PR
             _section(const BreedGuideCard()),
@@ -253,17 +290,19 @@ class _HealthResultPageState extends State<HealthResultPage> {
             _section(const HealthDisclaimerCard()),
             if (showVet) ...[
               _gap(),
-              _section(VetConsultCard(
-                mode: VetConsultMode.health,
-                onFindVet: _onFindVet,
-              )),
+              _section(
+                VetConsultCard(
+                  mode: VetConsultMode.health,
+                  onFindVet: _onFindVet,
+                ),
+              ),
             ],
           ],
         ),
       ),
       bottomNavigationBar: BottomActionBar(
         onShare: _onShare,
-        onSave: _onSave,
+        onSave: widget.fromHistory ? null : _onSave,
         onHistory: _onHistoryOrClose,
         fromHistory: widget.fromHistory,
       ),

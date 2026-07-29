@@ -46,6 +46,8 @@ import '../../features/emotion/presentation/pages/emotion_timeline_page.dart';
 import '../../features/emotion/presentation/pages/emotion_loading_page.dart';
 import '../../features/emotion/presentation/pages/emotion_result_page.dart';
 import '../../features/emotion/domain/entities/emotion_analysis.dart';
+import '../../features/emotion/domain/repositories/emotion_repository.dart';
+import '../../features/emotion/domain/usecases/get_previous_analysis.dart';
 import '../../features/emotion/presentation/widgets/ai_analysis_loading_widget.dart';
 import '../../features/emotion/presentation/bloc/emotion_analysis_bloc.dart';
 import '../../features/health/presentation/pages/health_alert_settings_page.dart';
@@ -137,8 +139,9 @@ class AppRouter {
           },
         ),
         GoRoute(
-            path: '/channels',
-            builder: (_, __) => const ChannelSubscriptionPage()),
+          path: '/channels',
+          builder: (_, __) => const ChannelSubscriptionPage(),
+        ),
         GoRoute(
           path: '/pet/public/:petId',
           builder: (_, state) =>
@@ -170,27 +173,23 @@ class AppRouter {
             final petId = state.pathParameters['petId'];
             if (data is! PetEditorRouteData ||
                 authState is! AuthAuthenticated ||
-                !data.matchesEdit(
-                  petId: petId,
-                  userId: authState.user.uid,
-                )) {
+                !data.matchesEdit(petId: petId, userId: authState.user.uid)) {
               return const PetEditorRouteErrorPage();
             }
             return BlocProvider.value(
               value: data.petBloc,
-              child: PetEditorPage(
-                userId: authState.user.uid,
-                pet: data.pet,
-              ),
+              child: PetEditorPage(userId: authState.user.uid, pet: data.pet),
             );
           },
         ),
         GoRoute(
-            path: '/emotion/weekly-report',
-            builder: (_, __) => const WeeklyReportPage()),
+          path: '/emotion/weekly-report',
+          builder: (_, __) => const WeeklyReportPage(),
+        ),
         GoRoute(
-            path: '/health/alert-settings',
-            builder: (_, __) => const HealthAlertSettingsPage()),
+          path: '/health/alert-settings',
+          builder: (_, __) => const HealthAlertSettingsPage(),
+        ),
         GoRoute(path: '/news', builder: (_, __) => const NewsListPage()),
         GoRoute(
           path: '/privacy',
@@ -297,16 +296,13 @@ class AppRouter {
         GoRoute(
           path: '/post/:postId',
           name: 'post-detail',
-          builder: (context, state) => PostDetailPage(
-            postId: state.pathParameters['postId']!,
-          ),
+          builder: (context, state) =>
+              PostDetailPage(postId: state.pathParameters['postId']!),
         ),
         ShellRoute(
           builder: (context, state, child) => BlocProvider(
             create: (_) => sl<PetBloc>()..add(LoadUserPets()),
-            child: AuthGuard(
-              child: MainNavigation(child: child),
-            ),
+            child: AuthGuard(child: MainNavigation(child: child)),
           ),
           routes: [
             GoRoute(
@@ -332,7 +328,9 @@ class AppRouter {
                 final initialTab =
                     (tab == 'lounge' || tab == 'community') ? 1 : 0;
                 return FeedHubPage(
-                    initialTab: initialTab, initialCategory: category);
+                  initialTab: initialTab,
+                  initialCategory: category,
+                );
               },
             ),
             GoRoute(
@@ -506,10 +504,7 @@ class AppRouter {
                 final roomName = state.uri.queryParameters['name'];
                 return BlocProvider(
                   create: (context) => sl<ChatDetailBloc>(),
-                  child: ChatDetailPage(
-                    roomId: roomId,
-                    roomName: roomName,
-                  ),
+                  child: ChatDetailPage(roomId: roomId, roomName: roomName),
                 );
               },
             ),
@@ -524,9 +519,8 @@ class AppRouter {
             GoRoute(
               path: '/hashtag/:tag',
               name: 'hashtag',
-              builder: (context, state) => HashtagPage(
-                hashtag: state.pathParameters['tag']!,
-              ),
+              builder: (context, state) =>
+                  HashtagPage(hashtag: state.pathParameters['tag']!),
             ),
             GoRoute(
               path: '/location',
@@ -560,8 +554,9 @@ class AppRouter {
               builder: (context, state) {
                 final petId = state.uri.queryParameters['petId'] ?? '';
                 final petName = state.uri.queryParameters['petName'];
-                final species =
-                    MbtiSpeciesX.fromKey(state.uri.queryParameters['species']);
+                final species = MbtiSpeciesX.fromKey(
+                  state.uri.queryParameters['species'],
+                );
                 return MbtiTestPage(
                   petId: petId,
                   species: species,
@@ -637,6 +632,8 @@ class AppRouter {
                   name: 'emotion-result',
                   builder: (context, state) => EmotionResultLoaderPage(
                     analysisId: state.pathParameters['analysisId']!,
+                    repository: sl<EmotionRepository>(),
+                    getPreviousAnalysis: sl<GetPreviousAnalysis>(),
                   ),
                 ),
                 // /emotion/history → /ai-history-page 리다이렉트.
@@ -651,12 +648,7 @@ class AppRouter {
             GoRoute(
               path: '/ai-history-page',
               name: 'ai-history-page',
-              builder: (context, state) {
-                return BlocProvider(
-                  create: (_) => sl<EmotionAnalysisBloc>(),
-                  child: const AiHistoryPage(),
-                );
-              },
+              builder: (context, state) => const AiHistoryPage(),
             ),
             GoRoute(
               path: '/emotion-timeline',
@@ -676,7 +668,11 @@ class AppRouter {
               name: 'share-emotion',
               builder: (context, state) {
                 final id = state.pathParameters['analysisId']!;
-                return EmotionResultLoaderPage(analysisId: id);
+                return EmotionResultLoaderPage(
+                  analysisId: id,
+                  repository: sl<EmotionRepository>(),
+                  getPreviousAnalysis: sl<GetPreviousAnalysis>(),
+                );
               },
             ),
           ],
@@ -684,8 +680,9 @@ class AppRouter {
       ],
       redirect: (context, state) {
         final authState = authBloc.state;
-        final isOnboardingRoute =
-            state.matchedLocation.startsWith('/onboarding');
+        final isOnboardingRoute = state.matchedLocation.startsWith(
+          '/onboarding',
+        );
         final currentPath = state.matchedLocation;
 
         log('=== ROUTER REDIRECT DEBUG ===', name: 'GoRouter');
@@ -696,8 +693,10 @@ class AppRouter {
         // Kakao SDK가 자동으로 처리하므로 로그인 페이지로 리다이렉트
         final uri = state.uri;
         if (uri.scheme.startsWith('kakao') && uri.host == 'oauth') {
-          log('Kakao OAuth callback in GoRouter - redirecting to login',
-              name: 'GoRouter');
+          log(
+            'Kakao OAuth callback in GoRouter - redirecting to login',
+            name: 'GoRouter',
+          );
           return '/onboarding/login';
         }
 
@@ -709,15 +708,19 @@ class AppRouter {
 
         // 로딩 중일 때는 현재 위치 유지 (로그인 버튼 누른 후 splash로 튕기지 않도록)
         if (authState is AuthLoading) {
-          log('Auth state is loading - staying at current path: $currentPath',
-              name: 'GoRouter');
+          log(
+            'Auth state is loading - staying at current path: $currentPath',
+            name: 'GoRouter',
+          );
           return null;
         }
 
         // 이메일 인증 필요 상태 (회원가입 직후)
         if (authState is AuthEmailVerificationRequired) {
-          log('Email verification required - allowing email verification route',
-              name: 'GoRouter');
+          log(
+            'Email verification required - allowing email verification route',
+            name: 'GoRouter',
+          );
           // 이메일 인증 페이지는 허용
           if (currentPath.startsWith('/onboarding/email-verification')) {
             return null;
@@ -727,8 +730,10 @@ class AppRouter {
             return null;
           }
           // 그 외에는 로그인 페이지로 리다이렉트
-          log('Redirecting to /onboarding/login (email verification required)',
-              name: 'GoRouter');
+          log(
+            'Redirecting to /onboarding/login (email verification required)',
+            name: 'GoRouter',
+          );
           return '/onboarding/login';
         }
 
@@ -736,21 +741,27 @@ class AppRouter {
         if (authState is AuthAuthenticated) {
           final user = authState.user;
 
-          log('User authenticated - isOnboardingCompleted: ${user.isOnboardingCompleted}',
-              name: 'GoRouter');
+          log(
+            'User authenticated - isOnboardingCompleted: ${user.isOnboardingCompleted}',
+            name: 'GoRouter',
+          );
           // 온보딩이 완료되지 않은 경우 (신규 사용자)
           if (!user.isOnboardingCompleted) {
             log('User onboarding NOT completed', name: 'GoRouter');
             // 로그인 페이지에서는 약관 페이지로 리다이렉트
             if (currentPath == '/onboarding/login') {
-              log('On login page - redirecting to /onboarding/terms',
-                  name: 'GoRouter');
+              log(
+                'On login page - redirecting to /onboarding/terms',
+                name: 'GoRouter',
+              );
               return '/onboarding/terms';
             }
             // 이미 온보딩 관련 페이지에 있으면 그대로 유지 (login 제외)
             if (isOnboardingRoute) {
-              log('Already on onboarding route: $currentPath',
-                  name: 'GoRouter');
+              log(
+                'Already on onboarding route: $currentPath',
+                name: 'GoRouter',
+              );
               return null;
             }
             // 온보딩 약관 동의 페이지로 리다이렉트
@@ -762,8 +773,10 @@ class AppRouter {
           log('User onboarding completed - existing user', name: 'GoRouter');
           // 온보딩 페이지에 있으면 홈으로 리다이렉트
           if (isOnboardingRoute) {
-            log('Redirecting to /home (onboarding completed)',
-                name: 'GoRouter');
+            log(
+              'Redirecting to /home (onboarding completed)',
+              name: 'GoRouter',
+            );
             return '/home';
           }
           // 그 외에는 현재 위치 유지
@@ -802,8 +815,10 @@ class AppRouter {
         }
 
         // 그 외에는 로그인 페이지로 리다이렉트 (로그아웃 시 등)
-        log('Redirecting to /onboarding/login (unauthenticated)',
-            name: 'GoRouter');
+        log(
+          'Redirecting to /onboarding/login (unauthenticated)',
+          name: 'GoRouter',
+        );
         return '/onboarding/login';
       },
       errorBuilder: (context, state) => Scaffold(

@@ -13,7 +13,7 @@ import '../../../../../shared/themes/app_theme.dart';
 class HealthNextActionCard extends StatelessWidget {
   final VoidCallback onEmotionAnalysis;
   final VoidCallback onOtherArea;
-  final VoidCallback onMemo;
+  final VoidCallback? onMemo;
 
   /// false면 "다른 부위도 분석하기" 슬롯이 숨겨진다.
   /// 종합(overall) 분석을 이미 한 경우 false로 두는 게 자연스럽다.
@@ -23,7 +23,7 @@ class HealthNextActionCard extends StatelessWidget {
     super.key,
     required this.onEmotionAnalysis,
     required this.onOtherArea,
-    required this.onMemo,
+    this.onMemo,
     this.showOtherArea = true,
   });
 
@@ -46,10 +46,7 @@ class HealthNextActionCard extends StatelessWidget {
               width: 32.r,
               height: 32.r,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: bgColor,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
               child: Icon(icon, size: 18.r, color: iconColor),
             ),
             SizedBox(width: 10.w),
@@ -125,14 +122,15 @@ class HealthNextActionCard extends StatelessWidget {
               hint: '눈·귀, 피부·털 등 다른 부위도 점검해요',
               onTap: onOtherArea,
             ),
-          _buildItem(
-            icon: Icons.edit_outlined,
-            bgColor: AppTheme.tilePastelSand,
-            iconColor: EmotionResultTokens.grayDark,
-            label: '이 순간 기록하기',
-            hint: '한 줄 메모로 남겨두세요',
-            onTap: onMemo,
-          ),
+          if (onMemo != null)
+            _buildItem(
+              icon: Icons.edit_outlined,
+              bgColor: AppTheme.tilePastelSand,
+              iconColor: EmotionResultTokens.grayDark,
+              label: '이 순간 기록하기',
+              hint: '한 줄 메모로 남겨두세요',
+              onTap: onMemo!,
+            ),
         ],
       ),
     );
