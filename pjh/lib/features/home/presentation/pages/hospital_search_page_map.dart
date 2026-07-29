@@ -34,6 +34,7 @@ extension _HospitalMap on _HospitalSearchPageState {
             _mapReady = false;
             _mapInitFailed = false;
             _markerLayerAdded = false;
+            _registeredPlaceMarkerOrdinalCount = 0;
             _currentMarkerIds = <String>[];
             _markerCleanupIds.clear();
 
@@ -195,11 +196,6 @@ extension _HospitalMap on _HospitalSearchPageState {
             .buffer
             .asUint8List();
     if (!_isCurrentController(controller)) return;
-    final placeBytes = _defaultPlaceMarkerBytes ??=
-        await _createPlaceMarkerBytes(selected: false);
-    final selectedPlaceBytes = _selectedPlaceMarkerBytes ??=
-        await _createPlaceMarkerBytes(selected: true);
-    if (!_isCurrentController(controller)) return;
 
     await controller.registerMarkerStyles(
       styles: [
@@ -217,45 +213,64 @@ extension _HospitalMap on _HospitalSearchPageState {
             ),
           ],
         ),
-        MarkerStyle(
-          styleId: _placeStyleId,
-          perLevels: [
-            MarkerPerLevelStyle.fromBytes(
-              bytes: placeBytes,
-              textStyle: const MarkerTextStyle(
-                fontSize: 22,
-                fontColorArgb: 0xFFFFFFFF,
-                strokeThickness: 1,
-                strokeColorArgb: 0xFF3C79B6,
-              ),
-            ),
-          ],
-        ),
-        MarkerStyle(
-          styleId: _selectedPlaceStyleId,
-          perLevels: [
-            MarkerPerLevelStyle.fromBytes(
-              bytes: selectedPlaceBytes,
-              textStyle: const MarkerTextStyle(
-                fontSize: 24,
-                fontColorArgb: 0xFFFFFFFF,
-                strokeThickness: 2,
-                strokeColorArgb: 0xFF1E3A5F,
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
 
+  Future<void> _ensurePlaceMarkerStyles(
+    KakaoMapController controller, {
+    required int count,
+  }) async {
+    if (count <= _registeredPlaceMarkerOrdinalCount) return;
+
+    final firstOrdinal = _registeredPlaceMarkerOrdinalCount + 1;
+    final placeStyles = <MarkerStyle>[];
+    for (var ordinal = firstOrdinal; ordinal <= count; ordinal++) {
+      final placeBytes =
+          _defaultPlaceMarkerBytes[ordinal] ??= await _createPlaceMarkerBytes(
+        ordinal: ordinal,
+        selected: false,
+      );
+      final selectedPlaceBytes =
+          _selectedPlaceMarkerBytes[ordinal] ??= await _createPlaceMarkerBytes(
+        ordinal: ordinal,
+        selected: true,
+      );
+      placeStyles
+        ..add(
+          MarkerStyle(
+            styleId: _placeMarkerStyleId(ordinal, selected: false),
+            perLevels: [
+              MarkerPerLevelStyle.fromBytes(bytes: placeBytes),
+            ],
+          ),
+        )
+        ..add(
+          MarkerStyle(
+            styleId: _placeMarkerStyleId(ordinal, selected: true),
+            perLevels: [
+              MarkerPerLevelStyle.fromBytes(bytes: selectedPlaceBytes),
+            ],
+          ),
+        );
+    }
+    if (!_isCurrentController(controller)) return;
+
+    await controller.registerMarkerStyles(styles: placeStyles);
+    if (_isCurrentController(controller)) {
+      _registeredPlaceMarkerOrdinalCount = count;
+    }
+  }
+
   Future<Uint8List> _createPlaceMarkerBytes({
+    required int ordinal,
     required bool selected,
   }) async {
-    final devicePixelRatio =
-        MediaQuery.devicePixelRatioOf(context).clamp(1.0, 4.0);
     final logicalSize = selected ? 52.0 : 48.0;
-    final pixelSize = (logicalSize * devicePixelRatio).round();
+    // Kakao Map renders decoded bitmap pixels directly. Multiplying by the
+    // Flutter device pixel ratio makes a 48 px marker about three times larger
+    // on high-density Android devices.
+    final pixelSize = logicalSize.round();
     final center = pixelSize / 2;
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
@@ -263,7 +278,7 @@ extension _HospitalMap on _HospitalSearchPageState {
     if (selected) {
       canvas.drawCircle(
         ui.Offset(center, center),
-        center - (1 * devicePixelRatio),
+        center - 1,
         ui.Paint()
           ..color = const ui.Color(0x33203F67)
           ..style = ui.PaintingStyle.fill,
@@ -271,7 +286,7 @@ extension _HospitalMap on _HospitalSearchPageState {
     }
     canvas.drawCircle(
       ui.Offset(center, center),
-      center - ((selected ? 6 : 4) * devicePixelRatio),
+      center - (selected ? 6 : 4),
       ui.Paint()
         ..color =
             selected ? const ui.Color(0xFF203F67) : const ui.Color(0xFF3C79B6)
@@ -279,11 +294,32 @@ extension _HospitalMap on _HospitalSearchPageState {
     );
     canvas.drawCircle(
       ui.Offset(center, center),
-      center - ((selected ? 6 : 4) * devicePixelRatio),
+      center - (selected ? 6 : 4),
       ui.Paint()
         ..color = const ui.Color(0xFFFFFFFF)
         ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = 2 * devicePixelRatio,
+        ..strokeWidth = 2,
+    );
+
+    final numberPainter = TextPainter(
+      text: TextSpan(
+        text: '$ordinal',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: ordinal >= 10 ? 17 : 20,
+          fontWeight: FontWeight.w800,
+          height: 1,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.center,
+    )..layout();
+    numberPainter.paint(
+      canvas,
+      ui.Offset(
+        center - numberPainter.width / 2,
+        center - numberPainter.height / 2,
+      ),
     );
 
     final image = await recorder.endRecording().toImage(pixelSize, pixelSize);
@@ -424,6 +460,32 @@ extension _HospitalMap on _HospitalSearchPageState {
     );
 
     if (markerOptions.isNotEmpty) {
+      try {
+        await _ensurePlaceMarkerStyles(
+          controller,
+          count: markerOptions.length,
+        );
+      } catch (error) {
+        debugPrint(
+          '[PlaceMap] Marker style registration failed: '
+          '${error.runtimeType}',
+        );
+        if (_canApplyMarkers(
+          controller: controller,
+          generation: generation,
+          applyToken: applyToken,
+        )) {
+          await _addMyLocationMarker(controller);
+        }
+        return;
+      }
+      if (!_canApplyMarkers(
+        controller: controller,
+        generation: generation,
+        applyToken: applyToken,
+      )) {
+        return;
+      }
       final attemptedIds =
           markerOptions.map((option) => option.id).toList(growable: false);
       _markerCleanupIds.addAll(attemptedIds);
