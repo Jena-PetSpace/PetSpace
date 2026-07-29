@@ -37,8 +37,19 @@ class AiHistoryFilterSheet extends StatefulWidget {
       useSafeArea: true,
       showDragHandle: true,
       backgroundColor: Colors.white,
-      builder: (_) =>
-          AiHistoryFilterSheet(initial: initial, emotionOnly: emotionOnly),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (_) => SafeArea(
+        top: false,
+        minimum: EdgeInsets.only(bottom: 12.h),
+        child: SingleChildScrollView(
+          child: AiHistoryFilterSheet(
+            initial: initial,
+            emotionOnly: emotionOnly,
+          ),
+        ),
+      ),
     );
   }
 
@@ -54,17 +65,19 @@ class _AiHistoryFilterSheetState extends State<AiHistoryFilterSheet> {
   @override
   void initState() {
     super.initState();
-    _type =
-        widget.emotionOnly ? AiHistoryTypeFilter.emotion : widget.initial.type;
+    _type = widget.emotionOnly
+        ? AiHistoryTypeFilter.emotion
+        : widget.initial.type;
     _dateRange = widget.initial.dateRange;
-    _attentionOnly =
-        widget.emotionOnly ? false : widget.initial.healthAttentionOnly;
+    _attentionOnly = widget.emotionOnly
+        ? false
+        : widget.initial.healthAttentionOnly;
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 24.h),
+      padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 16.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +187,7 @@ class _AiHistoryFilterSheetState extends State<AiHistoryFilterSheet> {
                 ),
               ),
               style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.actionBase,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14.r),
                 ),
@@ -191,16 +204,16 @@ class _AiHistoryFilterSheetState extends State<AiHistoryFilterSheet> {
   }
 
   Widget _label(String value) => Padding(
-        padding: EdgeInsets.only(bottom: 10.h),
-        child: Text(
-          value,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.primaryTextColor,
-          ),
-        ),
-      );
+    padding: EdgeInsets.only(bottom: 10.h),
+    child: Text(
+      value,
+      style: TextStyle(
+        fontSize: 14.sp,
+        fontWeight: FontWeight.w700,
+        color: AppTheme.primaryTextColor,
+      ),
+    ),
+  );
 
   Widget _choiceChip(String label, bool selected, VoidCallback onTap) {
     return ChoiceChip(
@@ -223,9 +236,9 @@ class _AiHistoryFilterSheetState extends State<AiHistoryFilterSheet> {
   }
 
   void _setType(AiHistoryTypeFilter value) => setState(() {
-        _type = value;
-        if (value == AiHistoryTypeFilter.emotion) _attentionOnly = false;
-      });
+    _type = value;
+    if (value == AiHistoryTypeFilter.emotion) _attentionOnly = false;
+  });
 
   void _setDate(AiHistoryDateRange value) => setState(() => _dateRange = value);
 }
