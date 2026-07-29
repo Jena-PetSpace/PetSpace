@@ -66,47 +66,71 @@ extension _HospitalActions on _HospitalSearchPageState {
 
   Future<void> _callPhone(String phone) async {
     if (phone.isEmpty) return;
-    final uri = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
+    try {
+      final uri = Uri(scheme: 'tel', path: phone);
+      final canLaunch = await canLaunchUrl(uri);
+      final launched = canLaunch && await launchUrl(uri);
+      if (launched) return;
+    } catch (_) {
+      dev.log('전화 앱 실행 실패', name: 'HospitalSearch');
+    }
+    if (mounted) {
       _showSnack('전화 앱을 열 수 없습니다');
     }
   }
 
   Future<void> _openKakaoMapDetail(HospitalPlace place) async {
-    final url = place.placeUrl.isNotEmpty
-        ? place.placeUrl.replaceFirst(RegExp(r'^http://'), 'https://')
-        : 'https://map.kakao.com/link/search/${Uri.encodeComponent(place.name)}';
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+    try {
+      final url = place.placeUrl.isNotEmpty
+          ? place.placeUrl.replaceFirst(RegExp(r'^http://'), 'https://')
+          : 'https://map.kakao.com/link/search/'
+              '${Uri.encodeComponent(place.name)}';
+      final uri = Uri.parse(url);
+      final canLaunch = await canLaunchUrl(uri);
+      final launched = canLaunch &&
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (launched) return;
+    } catch (_) {
+      dev.log('카카오맵 상세 실행 실패', name: 'HospitalSearch');
+    }
+    if (mounted) {
       _showSnack('카카오맵을 열 수 없습니다');
     }
   }
 
   Future<void> _openKakaoMapDirections(HospitalPlace place) async {
-    final uri = Uri.parse(
-      'https://map.kakao.com/link/to/'
-      '${Uri.encodeComponent(place.name)},${place.lat},${place.lng}',
-    );
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+    try {
+      final uri = Uri.parse(
+        'https://map.kakao.com/link/to/'
+        '${Uri.encodeComponent(place.name)},${place.lat},${place.lng}',
+      );
+      final canLaunch = await canLaunchUrl(uri);
+      final launched = canLaunch &&
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (launched) return;
+    } catch (_) {
+      dev.log('길찾기 실행 실패', name: 'HospitalSearch');
+    }
+    if (mounted) {
       _showSnack('길찾기를 열 수 없습니다');
     }
   }
 
   Future<void> _sharePlace(HospitalPlace place) async {
-    final url = place.placeUrl.isNotEmpty
-        ? place.placeUrl.replaceFirst(RegExp(r'^http://'), 'https://')
-        : 'https://map.kakao.com/link/search/${Uri.encodeComponent(place.name)}';
-    final text = '${place.name}\n${place.address}\n$url';
-    await Share.share(
-      text,
-      subject: place.name,
-      sharePositionOrigin: shareOrigin(context),
-    );
+    try {
+      final url = place.placeUrl.isNotEmpty
+          ? place.placeUrl.replaceFirst(RegExp(r'^http://'), 'https://')
+          : 'https://map.kakao.com/link/search/'
+              '${Uri.encodeComponent(place.name)}';
+      final text = '${place.name}\n${place.address}\n$url';
+      await Share.share(
+        text,
+        subject: place.name,
+        sharePositionOrigin: shareOrigin(context),
+      );
+    } catch (_) {
+      dev.log('장소 공유 실행 실패', name: 'HospitalSearch');
+      if (mounted) _showSnack('공유 기능을 열 수 없습니다');
+    }
   }
 }

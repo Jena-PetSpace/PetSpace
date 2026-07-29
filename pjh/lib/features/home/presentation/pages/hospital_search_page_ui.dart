@@ -226,12 +226,15 @@ extension _HospitalUI on _HospitalSearchPageState {
   }
 
   Widget _buildBottomSheet() {
+    // Keep this element stable when the loading overlay enters the Stack.
+    // Re-mounting the sheet would attach its controller twice.
     return Positioned.fill(
+      key: const ValueKey<String>('place-results-sheet'),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final textScale = MediaQuery.textScalerOf(context).scale(1);
           final estimatedHeaderHeight =
-              (68.h + ((textScale - 1).clamp(0.0, 1.0) * 16.h));
+              (68.h + ((textScale - 1).clamp(0.0, 2.2) * 16.h));
           const maxAllowedMin = kPlaceSheetMax - 0.08;
           final effectiveMin = (estimatedHeaderHeight / constraints.maxHeight)
               .clamp(kPlaceSheetMin, maxAllowedMin)
@@ -539,7 +542,7 @@ extension _HospitalUI on _HospitalSearchPageState {
             semanticsLabel: '${place.name} 길찾기',
             icon: Icons.near_me,
             label: '길찾기',
-            onTap: () => _openKakaoMapDirections(place),
+            onTap: () => unawaited(_openKakaoMapDirections(place)),
           ),
         ),
         SizedBox(height: 10.h),
@@ -595,7 +598,7 @@ extension _HospitalUI on _HospitalSearchPageState {
         (
           label: '전화',
           icon: Icons.phone_outlined,
-          onTap: () => _callPhone(place.phone),
+          onTap: () => unawaited(_callPhone(place.phone)),
         ),
       (
         label: isFav ? '저장 취소' : '저장',
@@ -605,12 +608,12 @@ extension _HospitalUI on _HospitalSearchPageState {
       (
         label: '공유',
         icon: Icons.share_outlined,
-        onTap: () => _sharePlace(place),
+        onTap: () => unawaited(_sharePlace(place)),
       ),
       (
         label: '상세',
         icon: Icons.open_in_new,
-        onTap: () => _openKakaoMapDetail(place),
+        onTap: () => unawaited(_openKakaoMapDetail(place)),
       ),
     ];
     return Row(
@@ -1002,13 +1005,23 @@ extension _HospitalUI on _HospitalSearchPageState {
     if (_searchUiState != _PlaceSearchUiState.idle &&
         _searchUiState != _PlaceSearchUiState.empty) {
       return Center(
-        child: Text(
-          _messageForSearchState(_searchUiState),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13.sp,
-            color: AppTheme.secondaryTextColor,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _messageForSearchState(_searchUiState),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13.sp,
+                color: AppTheme.secondaryTextColor,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            TextButton(
+              onPressed: _retryCurrentSearch,
+              child: const Text('다시 시도'),
+            ),
+          ],
         ),
       );
     }

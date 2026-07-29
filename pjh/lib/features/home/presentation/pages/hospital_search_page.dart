@@ -285,6 +285,10 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
   HospitalPlace? _selectedPlace;
   bool _showDetail = false;
   _SheetSize _desiredSheetSize = _SheetSize.half;
+  _SheetSize? _programmaticSheetTarget;
+  bool _sheetAnimationRunning = false;
+  int _sheetAnimationGeneration = 0;
+  bool _preserveCollapsedAfterSearch = false;
   bool _pendingEmptyCollapse = false;
   bool _sheetAttachCallbackScheduled = false;
   bool _observedSearching = false;
@@ -333,6 +337,12 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
     _animateSheetTo(value);
   }
 
+  void _setSheetSizeImmediately(_SheetSize value) {
+    _pendingEmptyCollapse = false;
+    _desiredSheetSize = value;
+    _animateSheetTo(value);
+  }
+
   _SheetSize _sheetSizeForExtent(double extent) {
     final collapsedHalfThreshold =
         (_effectiveSheetMin + _effectiveSheetInitial) / 2;
@@ -349,20 +359,44 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
       };
 
   void _animateSheetTo(_SheetSize size) {
+    final previousTarget = _programmaticSheetTarget;
+    _programmaticSheetTarget = size;
     if (!_sheetController.isAttached) {
+      _sheetAnimationRunning = false;
       _scheduleSheetAttachSync();
       return;
     }
     final target = _extentForSheetSize(size);
-    if ((_sheetController.size - target).abs() < 0.004) return;
+    if ((_sheetController.size - target).abs() < 0.004 &&
+        !_sheetAnimationRunning &&
+        (previousTarget == null || previousTarget == size)) {
+      _programmaticSheetTarget = null;
+      _sheetAnimationRunning = false;
+      return;
+    }
+    final generation = ++_sheetAnimationGeneration;
+    _sheetAnimationRunning = true;
     unawaited(
       _sheetController
           .animateTo(
-        target,
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutCubic,
-      )
-          .catchError((Object error) {
+            target,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+          )
+          .timeout(
+            const Duration(milliseconds: 420),
+            onTimeout: () {},
+          )
+          .whenComplete(() {
+        if (!mounted || generation != _sheetAnimationGeneration) return;
+        _programmaticSheetTarget = null;
+        _sheetAnimationRunning = false;
+        if (_sheetController.isAttached) {
+          _desiredSheetSize = _sheetSizeForExtent(_sheetController.size);
+        } else {
+          _desiredSheetSize = size;
+        }
+      }).catchError((Object error) {
         dev.log(
           '시트 이동 실패',
           name: 'HospitalSearch',
@@ -385,7 +419,10 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
       final size = _sheetController.size;
       _sheetExtent.value = size;
       _applyMapRenderExtent(size);
-      _animateSheetTo(_desiredSheetSize);
+      final pendingTarget = _programmaticSheetTarget;
+      if (pendingTarget != null && !_sheetAnimationRunning) {
+        _animateSheetTo(pendingTarget);
+      }
     });
   }
 
@@ -418,7 +455,13 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
   void _handleSheetExtentChanged() {
     if (!_sheetController.isAttached) return;
     final extent = _sheetController.size;
-    _desiredSheetSize = _sheetSizeForExtent(extent);
+    if (_programmaticSheetTarget == null) {
+      _desiredSheetSize = _sheetSizeForExtent(extent);
+      if ((_searching || _searchUiState == _PlaceSearchUiState.loading) &&
+          _desiredSheetSize == _SheetSize.collapsed) {
+        _preserveCollapsedAfterSearch = true;
+      }
+    }
     if ((_sheetExtent.value - extent).abs() > 0.001) {
       _sheetExtent.value = extent;
     }
@@ -469,9 +512,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
     _searchFocusNode.addListener(() {
       if (!mounted) return;
       if (_searchFocusNode.hasFocus) {
-        if (_sheetSize != _SheetSize.collapsed) {
-          setState(() => _sheetSize = _SheetSize.collapsed);
-        }
+        _setSheetSizeImmediately(_SheetSize.collapsed);
       }
     });
   }
@@ -579,7 +620,10 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
         _sheetSize = _SheetSize.half;
         return;
       case _SheetSize.half:
-        _sheetSize = _SheetSize.collapsed;
+        if (_searching || _searchUiState == _PlaceSearchUiState.loading) {
+          _preserveCollapsedAfterSearch = true;
+        }
+        _setSheetSizeImmediately(_SheetSize.collapsed);
         return;
       case _SheetSize.collapsed:
         _closePlaceScreen();

@@ -280,6 +280,7 @@ extension _HospitalSearch on _HospitalSearchPageState {
     PlaceSearchOrigin? originOverride,
   }) async {
     _searchFocusNode.unfocus();
+    _preserveCollapsedAfterSearch = false;
     final token = _searchGeneration.begin();
     final category = _categories[index];
     final origin = originOverride ?? _searchOrigin;
@@ -317,6 +318,7 @@ extension _HospitalSearch on _HospitalSearchPageState {
     final trimmed = keyword.trim();
     if (trimmed.isEmpty) return;
     _searchFocusNode.unfocus();
+    _preserveCollapsedAfterSearch = false;
     final token = _searchGeneration.begin();
     final origin = _searchOrigin.copyWith(type: PlaceSearchOriginType.manual);
     final categoryIndex = manualSearchCategoryIndex(
@@ -345,6 +347,7 @@ extension _HospitalSearch on _HospitalSearchPageState {
   Future<void> _reSearchHere() async {
     final category = _categories[_selectedCategory];
     if (category.isFavoriteTab) return;
+    _preserveCollapsedAfterSearch = false;
     final origin = PlaceSearchOrigin(
       type: PlaceSearchOriginType.mapCenter,
       latitude: _cameraLat,
@@ -441,6 +444,7 @@ extension _HospitalSearch on _HospitalSearchPageState {
       if (!_searchGeneration.isCurrent(token) || !mounted) return;
       final places =
           merged.map(HospitalPlace.fromSearchItem).toList(growable: false);
+      final preserveCollapsed = _preserveCollapsedAfterSearch;
       setState(() {
         _searchOrigin = origin;
         _selectedCategory = categoryIndex;
@@ -457,7 +461,10 @@ extension _HospitalSearch on _HospitalSearchPageState {
             ? _selectedPlace
             : null;
         if (_selectedPlace == null) _showDetail = false;
-        if (places.isNotEmpty) _sheetSize = _SheetSize.half;
+        if (places.isNotEmpty && !preserveCollapsed) {
+          _sheetSize = _SheetSize.half;
+        }
+        _preserveCollapsedAfterSearch = false;
       });
 
       await _serializeSavedPlaceMutation(() async {
@@ -482,14 +489,68 @@ extension _HospitalSearch on _HospitalSearchPageState {
       });
       await _enqueueVisibleMarkerApply(token);
     } on KakaoLocalSearchException catch (error) {
-      if (!_searchGeneration.isCurrent(token) || !mounted) return;
-      final state = _searchStateForFailure(error.kind);
-      setState(() {
-        _searching = false;
-        _searchUiState = state;
-      });
-      _showSnack(_messageForSearchState(state));
+      await _finishSearchFailure(
+        token: token,
+        origin: origin,
+        categoryIndex: categoryIndex,
+        manualKeyword: manualKeyword,
+        state: _searchStateForFailure(error.kind),
+      );
+    } catch (error) {
+      dev.log(
+        'Unexpected place search failure: ${error.runtimeType}',
+        name: 'HospitalSearch',
+      );
+      await _finishSearchFailure(
+        token: token,
+        origin: origin,
+        categoryIndex: categoryIndex,
+        manualKeyword: manualKeyword,
+        state: _PlaceSearchUiState.server,
+      );
     }
+  }
+
+  Future<void> _finishSearchFailure({
+    required int token,
+    required PlaceSearchOrigin origin,
+    required int categoryIndex,
+    required String? manualKeyword,
+    required _PlaceSearchUiState state,
+  }) async {
+    if (!_searchGeneration.isCurrent(token) || !mounted) return;
+    setState(() {
+      _searchOrigin = origin;
+      _selectedCategory = categoryIndex;
+      _manualResultsActive = manualKeyword != null;
+      _manualSearchKeyword = manualKeyword;
+      _resultCategory = categoryIndex;
+      _resultManualSearchKeyword = manualKeyword;
+      _searchResults = const <HospitalPlace>[];
+      _searching = false;
+      _searchUiState = state;
+      _selectedPlace = null;
+      _showDetail = false;
+      _preserveCollapsedAfterSearch = false;
+      final catalog = _savedCatalog;
+      if (catalog != null) _refreshSavedPlaceView(catalog);
+    });
+    _setSheetSizeImmediately(_SheetSize.half);
+    await _enqueueVisibleMarkerApply(token);
+  }
+
+  void _retryCurrentSearch() {
+    final keyword = _manualSearchKeyword;
+    if (keyword != null) {
+      unawaited(_searchByKeyword(keyword));
+      return;
+    }
+    unawaited(
+      _searchCategory(
+        _selectedCategory,
+        originOverride: _searchOrigin,
+      ),
+    );
   }
 
   _PlaceSearchUiState _searchStateForFailure(KakaoLocalFailureKind kind) {

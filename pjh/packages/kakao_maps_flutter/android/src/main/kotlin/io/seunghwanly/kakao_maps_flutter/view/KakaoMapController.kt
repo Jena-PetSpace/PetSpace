@@ -377,7 +377,7 @@ class KakaoMapController(
     private fun cameraMoveOrigin(gestureType: GestureType?): String {
         return when (gestureType) {
             null -> "unknown"
-            GestureType.Unknown -> "programmatic"
+            GestureType.Unknown -> "unknown"
             else -> "gesture"
         }
     }
@@ -408,22 +408,14 @@ class KakaoMapController(
 
         val animation: CameraAnimation? = args.optJSONObject("animation")?.toCameraAnimationOrNull()
         val cameraUpdateJson = args.getJSONObject("cameraUpdate")
-        val zoomLevel = cameraUpdateJson.optInt("zoomLevel", -1)
         val cameraUpdate: CameraUpdate = cameraUpdateJson.toCameraUpdate()
 
         if (animation == null) {
             kMap.moveCamera(cameraUpdate)
-            // newCenterPosition ignores zoom; apply zoom separately
-            if (zoomLevel > 0) {
-                kMap.moveCamera(CameraUpdateFactory.zoomTo(zoomLevel))
-            }
             return result.success(null)
         }
 
         kMap.moveCamera(cameraUpdate, animation)
-        if (zoomLevel > 0) {
-            kMap.moveCamera(CameraUpdateFactory.zoomTo(zoomLevel))
-        }
         return result.success(null)
     }
 
