@@ -5,11 +5,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../domain/entities/emotion_analysis.dart';
 import '../bloc/emotion_analysis_bloc.dart';
+import '../bloc/emotion_memo_cubit.dart';
 import '../theme/emotion_result_tokens.dart';
 import '../widgets/result/ai_insight_card.dart';
 import '../widgets/result/bottom_action_bar.dart';
 import '../widgets/result/breed_guide_card.dart';
 import '../widgets/result/health_disclaimer_card.dart';
+import '../widgets/result/history_result_banner.dart';
 import '../widgets/result/context_card.dart';
 import '../widgets/result/emotion_distribution_card.dart';
 import '../widgets/result/emotion_share_card.dart';
@@ -54,12 +56,14 @@ class EmotionResultPage extends StatefulWidget {
 }
 
 class _EmotionResultPageState extends State<EmotionResultPage> {
+  late EmotionAnalysis _analysis;
+
   /// 분석 결과의 사진 경로. imagePaths가 비어 있으면 analysis.imageUrl을 사용.
   List<String> get _photoSources {
     if (widget.imagePaths.isNotEmpty) return widget.imagePaths;
-    if (widget.analysis.imageUrl.isNotEmpty) return [widget.analysis.imageUrl];
-    if (widget.analysis.localImagePath.isNotEmpty) {
-      return [widget.analysis.localImagePath];
+    if (_analysis.imageUrl.isNotEmpty) return [_analysis.imageUrl];
+    if (_analysis.localImagePath.isNotEmpty) {
+      return [_analysis.localImagePath];
     }
     return const [];
   }
@@ -67,19 +71,28 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
   @override
   void initState() {
     super.initState();
+    _analysis = widget.analysis;
     // 신규 분석 진입 시에만 자동 저장 트리거 (히스토리 진입은 스킵)
     if (!widget.fromHistory) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         // BLoC이 트리에 있어야만 동작 — 라우팅마다 BlocProvider가 다를 수 있어 try-catch로 감쌈
         try {
-          context
-              .read<EmotionAnalysisBloc>()
-              .add(const SaveAnalysisRequested());
+          context.read<EmotionAnalysisBloc>().add(
+                const SaveAnalysisRequested(),
+              );
         } catch (_) {
           // BLoC이 없는 라우팅 경로 — 무시
         }
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant EmotionResultPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.analysis != widget.analysis) {
+      _analysis = widget.analysis;
     }
   }
 
@@ -89,34 +102,54 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
     try {
       await EmotionShareHelper.shareAsCard(
         context,
-        analysis: widget.analysis,
-        petName: widget.analysis.petName,
+        analysis: _analysis,
+        petName: _analysis.petName,
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('공유 중 오류가 발생했어요: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('공유 중 오류가 발생했어요: $e')));
     }
   }
 
   Future<void> _onSave() async {
-    final memo = await MemoSaveModal.show(
-      context,
-      initialMemo: widget.analysis.memo,
-    );
+    final memo = await MemoSaveModal.show(context, initialMemo: _analysis.memo);
     if (!mounted || memo == null) return;
+    if (widget.fromHistory) {
+      try {
+        final cubit = context.read<EmotionMemoCubit>();
+        final saved = await cubit.save(memo);
+        if (!mounted) return;
+        if (saved) {
+          setState(() => _analysis = cubit.state.analysis);
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('메모를 저장했어요')));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(cubit.state.message ?? '메모를 저장하지 못했어요')),
+          );
+        }
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('메모를 저장하지 못했어요')));
+      }
+      return;
+    }
     try {
-      context
-          .read<EmotionAnalysisBloc>()
-          .add(SaveAnalysisRequested(memo: memo));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('메모를 저장했어요')),
-      );
+      context.read<EmotionAnalysisBloc>().add(
+            SaveAnalysisRequested(memo: memo),
+          );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('메모를 저장했어요')));
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('저장 중 오류가 발생했어요')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('저장 중 오류가 발생했어요')));
     }
   }
 
@@ -139,14 +172,14 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
   void _onHealthCheck() {
     // 통합 분석 페이지로 이동하면서 건강분석 탭으로 진입.
     // EmotionAnalysisPage(initialTab: 1) — 라우터에서 ?tab=health 파싱.
-    final petId = widget.analysis.petId;
+    final petId = _analysis.petId;
     final petQuery = (petId != null && petId.isNotEmpty) ? '&petId=$petId' : '';
     try {
       context.push('/emotion?tab=health$petQuery');
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('건강 분석 페이지로 이동할 수 없어요')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('건강 분석 페이지로 이동할 수 없어요')));
     }
   }
 
@@ -155,9 +188,9 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
     try {
       context.push('/hospital');
     } catch (_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('병원 찾기 페이지로 이동할 수 없어요')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('병원 찾기 페이지로 이동할 수 없어요')));
     }
   }
 
@@ -175,7 +208,7 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
-        '감정 분석 결과',
+        widget.fromHistory ? '저장된 감정 기록' : '감정 분석 결과',
         style: TextStyle(
           fontSize: 14.sp,
           fontWeight: FontWeight.w500,
@@ -204,7 +237,7 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
 
   @override
   Widget build(BuildContext context) {
-    final analysis = widget.analysis;
+    final analysis = _analysis;
     final showContext =
         analysis.contextNote != null && analysis.contextNote!.trim().isNotEmpty;
     final showPart = analysis.emotions.facialFeatures != null &&
@@ -220,12 +253,19 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
         child: Column(
           children: [
             PhotoSlider(imagePaths: _photoSources),
+            if (widget.fromHistory)
+              HistoryResultBanner(
+                label: '저장된 감정 기록',
+                petName: analysis.petName,
+              ),
             SizedBox(height: 12.h),
-            _section(EmotionSummaryCard(
-              analysis: analysis,
-              previousAnalysis: widget.previousAnalysis,
-              petName: analysis.petName,
-            )),
+            _section(
+              EmotionSummaryCard(
+                analysis: analysis,
+                previousAnalysis: widget.previousAnalysis,
+                petName: analysis.petName,
+              ),
+            ),
             if (showContext) ...[
               _gap(),
               _section(ContextCard(contextNote: analysis.contextNote!.trim())),
@@ -236,18 +276,20 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
             _section(EmotionDistributionCard(scores: analysis.emotions)),
             if (showPart) ...[
               _gap(),
-              _section(PartAnalysisCard(
-                features: analysis.emotions.facialFeatures!,
-              )),
+              _section(
+                PartAnalysisCard(features: analysis.emotions.facialFeatures!),
+              ),
             ],
             _gap(),
             _section(StressCard(score: analysis.emotions.stressLevel)),
             _gap(),
-            _section(NextActionCard(
-              analysis: analysis,
-              onHealthCheck: _onHealthCheck,
-              onMemo: _onSave,
-            )),
+            _section(
+              NextActionCard(
+                analysis: analysis,
+                onHealthCheck: _onHealthCheck,
+                onMemo: _onSave,
+              ),
+            ),
             _gap(),
             // TODO(breed): pets 테이블에서 breed/ageMonths 조회 후 주입 — 별도 PR
             _section(const BreedGuideCard()),
@@ -255,10 +297,9 @@ class _EmotionResultPageState extends State<EmotionResultPage> {
             _section(const HealthDisclaimerCard()),
             if (showVet) ...[
               _gap(),
-              _section(VetConsultCard(
-                analysis: analysis,
-                onFindVet: _onFindVet,
-              )),
+              _section(
+                VetConsultCard(analysis: analysis, onFindVet: _onFindVet),
+              ),
             ],
           ],
         ),

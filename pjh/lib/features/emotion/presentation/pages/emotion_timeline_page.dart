@@ -30,6 +30,8 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
   int _daysRange = 30;
   bool _loading = true;
   int? _expandedIndex;
+  String? _errorMessage;
+  bool _accessDenied = false;
 
   @override
   void initState() {
@@ -40,33 +42,66 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
   Future<void> _load() async {
     setState(() {
       _loading = true;
+      _errorMessage = null;
+      _accessDenied = false;
     });
-    final result = await sl<EmotionRepository>().getEmotionTimeline(
+    final repository = sl<EmotionRepository>();
+    final accessResult = await repository.canAccessOwnedPet(widget.petId);
+    if (!mounted) return;
+    var mayAccess = false;
+    String? accessError;
+    accessResult.fold(
+      (failure) => accessError = failure.message,
+      (allowed) => mayAccess = allowed,
+    );
+    if (accessError != null) {
+      setState(() {
+        _loading = false;
+        _errorMessage = accessError;
+      });
+      return;
+    }
+    if (!mayAccess) {
+      setState(() {
+        _loading = false;
+        _accessDenied = true;
+      });
+      return;
+    }
+
+    final result = await repository.getEmotionTimeline(
       petId: widget.petId,
       days: _daysRange,
     );
     if (!mounted) return;
     result.fold(
       (failure) {
-        dev.log('EmotionTimeline load error: ${failure.message}',
-            name: 'EmotionTimeline');
-        setState(() => _loading = false);
+        dev.log(
+          'EmotionTimeline load error: ${failure.message}',
+          name: 'EmotionTimeline',
+        );
+        setState(() {
+          _loading = false;
+          _errorMessage = failure.message;
+        });
       },
       (rows) {
         final list = rows
-            .map((json) => _TimelineEntry(
-                  date: DateTime.parse(json['date'] as String),
-                  dominantEmotion:
-                      json['dominant_emotion'] as String? ?? 'happiness',
-                  dominantValue:
-                      (json['dominant_value'] as num?)?.toDouble() ?? 0,
-                  happiness: (json['happiness_avg'] as num?)?.toDouble() ?? 0,
-                  sadness: (json['sadness_avg'] as num?)?.toDouble() ?? 0,
-                  anger: (json['anger_avg'] as num?)?.toDouble() ?? 0,
-                  fear: (json['fear_avg'] as num?)?.toDouble() ?? 0,
-                  count: (json['analysis_count'] as num?)?.toInt() ?? 0,
-                  imageUrl: json['first_image_url'] as String?,
-                ))
+            .map(
+              (json) => _TimelineEntry(
+                date: DateTime.parse(json['date'] as String),
+                dominantEmotion:
+                    json['dominant_emotion'] as String? ?? 'happiness',
+                dominantValue:
+                    (json['dominant_value'] as num?)?.toDouble() ?? 0,
+                happiness: (json['happiness_avg'] as num?)?.toDouble() ?? 0,
+                sadness: (json['sadness_avg'] as num?)?.toDouble() ?? 0,
+                anger: (json['anger_avg'] as num?)?.toDouble() ?? 0,
+                fear: (json['fear_avg'] as num?)?.toDouble() ?? 0,
+                count: (json['analysis_count'] as num?)?.toInt() ?? 0,
+                imageUrl: json['first_image_url'] as String?,
+              ),
+            )
             .toList();
         setState(() {
           _entries = list;
@@ -87,25 +122,102 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
         title: Text(
           '${widget.petName}의 감정 기록',
           style: TextStyle(
-              fontSize: 17.sp,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.primaryTextColor),
+            fontSize: 17.sp,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.primaryTextColor,
+          ),
         ),
         centerTitle: true,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _entries.isEmpty
-              ? _buildEmptyState()
-              : Column(
-                  children: [
-                    _buildHeaderCard(),
-                    _buildRangeSelector(),
-                    if (_entries.isNotEmpty) _buildChartCard(),
-                    const SizedBox(height: 8),
-                    Expanded(child: _buildTimelineList()),
-                  ],
-                ),
+          : _accessDenied
+              ? _buildAccessDeniedState()
+              : _errorMessage != null
+                  ? _buildErrorState()
+                  : _entries.isEmpty
+                      ? _buildEmptyState()
+                      : Column(
+                          children: [
+                            _buildHeaderCard(),
+                            _buildRangeSelector(),
+                            if (_entries.isNotEmpty) _buildChartCard(),
+                            const SizedBox(height: 8),
+                            Expanded(child: _buildTimelineList()),
+                          ],
+                        ),
+    );
+  }
+
+  Widget _buildAccessDeniedState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.lock_outline_rounded,
+              size: 52.sp,
+              color: AppTheme.neutral400,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              '이 기록을 열 수 없어요',
+              style: TextStyle(
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.primaryTextColor,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              '감정 기록 흐름은 반려동물의 보호자만 확인할 수 있어요.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13.sp,
+                height: 1.5,
+                color: AppTheme.secondaryTextColor,
+              ),
+            ),
+            SizedBox(height: 20.h),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).maybePop(),
+              child: const Text('돌아가기'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 48.sp,
+              color: AppTheme.neutral400,
+            ),
+            SizedBox(height: 14.h),
+            Text(
+              _errorMessage ?? '감정 기록을 불러오지 못했어요',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                height: 1.5,
+                color: AppTheme.primaryTextColor,
+              ),
+            ),
+            SizedBox(height: 16.h),
+            OutlinedButton(onPressed: _load, child: const Text('다시 시도')),
+          ],
+        ),
+      ),
     );
   }
 
@@ -120,9 +232,10 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
               '${widget.petName}의 첫 AI 감정분석을 해보세요',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 15.sp,
-                  color: AppTheme.secondaryTextColor,
-                  height: 1.5),
+                fontSize: 15.sp,
+                color: AppTheme.secondaryTextColor,
+                height: 1.5,
+              ),
             ),
             SizedBox(height: 24.h),
             ElevatedButton(
@@ -132,7 +245,8 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24.r)),
+                  borderRadius: BorderRadius.circular(24.r),
+                ),
               ),
               child: const Text('지금 분석하기'),
             ),
@@ -163,15 +277,20 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(widget.petName,
-                  style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primaryTextColor)),
+              Text(
+                widget.petName,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.primaryTextColor,
+                ),
+              ),
               Text(
                 '지난 $_daysRange일 동안 $totalCount회 분석',
                 style: TextStyle(
-                    fontSize: 12.sp, color: AppTheme.secondaryTextColor),
+                  fontSize: 12.sp,
+                  color: AppTheme.secondaryTextColor,
+                ),
               ),
             ],
           ),
@@ -198,8 +317,10 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 6.h,
+                  ),
                   decoration: BoxDecoration(
                     color: _daysRange == days
                         ? AppTheme.primaryColor
@@ -252,14 +373,16 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
       final hasData = spots.any((s) => s.y > 0.01);
       if (!hasData) return;
 
-      lines.add(LineChartBarData(
-        spots: spots,
-        isCurved: true,
-        color: color,
-        barWidth: 2,
-        dotData: FlDotData(show: sorted.length <= 10),
-        belowBarData: BarAreaData(show: false),
-      ));
+      lines.add(
+        LineChartBarData(
+          spots: spots,
+          isCurved: true,
+          color: color,
+          barWidth: 2,
+          dotData: FlDotData(show: sorted.length <= 10),
+          belowBarData: BarAreaData(show: false),
+        ),
+      );
     });
 
     return Container(
@@ -269,27 +392,35 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('감정 변화 흐름',
-              style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.primaryTextColor)),
+          Text(
+            '감정 변화 흐름',
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.primaryTextColor,
+            ),
+          ),
           SizedBox(height: 4.h),
           // 범례
           Wrap(
             spacing: 12.w,
             children: emotions.entries
-                .map((e) => Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(width: 10.w, height: 3.h, color: e.value),
-                        SizedBox(width: 4.w),
-                        Text(AppTheme.getEmotionLabel(e.key),
-                            style: TextStyle(
-                                fontSize: 10.sp,
-                                color: AppTheme.secondaryTextColor)),
-                      ],
-                    ))
+                .map(
+                  (e) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 10.w, height: 3.h, color: e.value),
+                      SizedBox(width: 4.w),
+                      Text(
+                        AppTheme.getEmotionLabel(e.key),
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          color: AppTheme.secondaryTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
                 .toList(),
           ),
           SizedBox(height: 12.h),
@@ -297,85 +428,98 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
             height: 160.h,
             child: lines.isEmpty
                 ? Center(
-                    child: Text('차트 데이터 없음',
-                        style: TextStyle(
-                            fontSize: 12.sp,
-                            color: AppTheme.secondaryTextColor)))
-                : LineChart(LineChartData(
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      horizontalInterval: 0.25,
-                      getDrawingHorizontalLine: (_) => const FlLine(
-                        color: AppTheme.dividerColor,
-                        strokeWidth: 1,
+                    child: Text(
+                      '차트 데이터 없음',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: AppTheme.secondaryTextColor,
                       ),
                     ),
-                    titlesData: FlTitlesData(
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          interval: 0.5,
-                          reservedSize: 28.w,
-                          getTitlesWidget: (val, _) => Text(
-                            val == 0
-                                ? '0'
-                                : val == 0.5
-                                    ? '0.5'
-                                    : '1',
-                            style: TextStyle(
+                  )
+                : LineChart(
+                    LineChartData(
+                      gridData: FlGridData(
+                        show: true,
+                        drawVerticalLine: false,
+                        horizontalInterval: 0.25,
+                        getDrawingHorizontalLine: (_) => const FlLine(
+                          color: AppTheme.dividerColor,
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            interval: 0.5,
+                            reservedSize: 28.w,
+                            getTitlesWidget: (val, _) => Text(
+                              val == 0
+                                  ? '0'
+                                  : val == 0.5
+                                      ? '0.5'
+                                      : '1',
+                              style: TextStyle(
                                 fontSize: 9.sp,
-                                color: AppTheme.secondaryTextColor),
+                                color: AppTheme.secondaryTextColor,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: sorted.length <= 14,
-                          getTitlesWidget: (val, _) {
-                            final idx = val.toInt();
-                            if (idx < 0 || idx >= sorted.length) {
-                              return const SizedBox.shrink();
-                            }
-                            final d = sorted[idx].date;
-                            return Padding(
-                              padding: EdgeInsets.only(top: 4.h),
-                              child: Text('${d.month}/${d.day}',
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: sorted.length <= 14,
+                            getTitlesWidget: (val, _) {
+                              final idx = val.toInt();
+                              if (idx < 0 || idx >= sorted.length) {
+                                return const SizedBox.shrink();
+                              }
+                              final d = sorted[idx].date;
+                              return Padding(
+                                padding: EdgeInsets.only(top: 4.h),
+                                child: Text(
+                                  '${d.month}/${d.day}',
                                   style: TextStyle(
-                                      fontSize: 9.sp,
-                                      color: AppTheme.secondaryTextColor)),
-                            );
-                          },
+                                    fontSize: 9.sp,
+                                    color: AppTheme.secondaryTextColor,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
                         ),
                       ),
-                      rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                      topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                    ),
-                    borderData: FlBorderData(show: false),
-                    minY: 0,
-                    maxY: 1,
-                    lineBarsData: lines,
-                    lineTouchData: LineTouchData(
-                      touchTooltipData: LineTouchTooltipData(
-                        getTooltipItems: (spots) => spots.map((s) {
-                          final keys = [
-                            'happiness',
-                            'sadness',
-                            'anger',
-                            'fear'
-                          ];
-                          final key =
-                              s.barIndex < keys.length ? keys[s.barIndex] : '';
-                          return LineTooltipItem(
-                            '${AppTheme.getEmotionLabel(key)}: ${(s.y * 100).toInt()}%',
-                            TextStyle(fontSize: 10.sp, color: Colors.white),
-                          );
-                        }).toList(),
+                      borderData: FlBorderData(show: false),
+                      minY: 0,
+                      maxY: 1,
+                      lineBarsData: lines,
+                      lineTouchData: LineTouchData(
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipItems: (spots) => spots.map((s) {
+                            final keys = [
+                              'happiness',
+                              'sadness',
+                              'anger',
+                              'fear',
+                            ];
+                            final key = s.barIndex < keys.length
+                                ? keys[s.barIndex]
+                                : '';
+                            return LineTooltipItem(
+                              '${AppTheme.getEmotionLabel(key)}: ${(s.y * 100).toInt()}%',
+                              TextStyle(fontSize: 10.sp, color: Colors.white),
+                            );
+                          }).toList(),
+                        ),
                       ),
                     ),
-                  )),
+                  ),
           ),
         ],
       ),
@@ -430,9 +574,10 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                         Text(
                           _formatDate(entry.date),
                           style: TextStyle(
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.secondaryTextColor),
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.secondaryTextColor,
+                          ),
                         ),
                         SizedBox(height: 4.h),
                         Row(
@@ -441,22 +586,25 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                               AppTheme.getEmotionIcon(entry.dominantEmotion),
                               size: 20.sp,
                               color: AppTheme.getEmotionColor(
-                                  entry.dominantEmotion),
+                                entry.dominantEmotion,
+                              ),
                             ),
                             SizedBox(width: 6.w),
                             Text(
                               AppTheme.getEmotionLabel(entry.dominantEmotion),
                               style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.primaryTextColor),
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryTextColor,
+                              ),
                             ),
                             SizedBox(width: 6.w),
                             Text(
                               '${(entry.dominantValue * 100).toInt()}%',
                               style: TextStyle(
-                                  fontSize: 13.sp,
-                                  color: AppTheme.secondaryTextColor),
+                                fontSize: 13.sp,
+                                color: AppTheme.secondaryTextColor,
+                              ),
                             ),
                           ],
                         ),
@@ -464,7 +612,9 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                           Text(
                             '${entry.count}회 분석 평균',
                             style: TextStyle(
-                                fontSize: 11.sp, color: AppTheme.primaryColor),
+                              fontSize: 11.sp,
+                              color: AppTheme.primaryColor,
+                            ),
                           ),
                       ],
                     ),
@@ -524,9 +674,13 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
             children: [
               SizedBox(
                 width: 52.w,
-                child: Text(label,
-                    style: TextStyle(
-                        fontSize: 11.sp, color: AppTheme.secondaryTextColor)),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ),
               ),
               SizedBox(width: 8.w),
               Expanded(
@@ -543,9 +697,13 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
                 ),
               ),
               SizedBox(width: 8.w),
-              Text('${(val * 100).toInt()}%',
-                  style: TextStyle(
-                      fontSize: 11.sp, color: AppTheme.secondaryTextColor)),
+              Text(
+                '${(val * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  color: AppTheme.secondaryTextColor,
+                ),
+              ),
             ],
           ),
         );
@@ -570,9 +728,11 @@ class _EmotionTimelinePageState extends State<EmotionTimelinePage> {
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    final diff = DateTime(now.year, now.month, now.day)
-        .difference(DateTime(date.year, date.month, date.day))
-        .inDays;
+    final diff = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).difference(DateTime(date.year, date.month, date.day)).inDays;
     if (diff == 0) return '오늘';
     if (diff == 1) return '어제';
     if (diff < 7) return '$diff일 전';

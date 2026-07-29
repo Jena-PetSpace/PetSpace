@@ -3,15 +3,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../pets/domain/entities/pet.dart';
+import 'pet_selection_primitives.dart';
 
-/// AI 분석 / AI 히스토리 공용 인라인 드롭다운
+/// AI 분석용 인라인 반려동물 선택기.
 /// - 터치 시 아래로 옵션 목록이 펼쳐짐
-/// - 이미지가 있으면 실제 사진, 없으면 이모지 + 발바닥 fallback
+/// - 분석 기록 선택기와 같은 아바타·메타데이터 규칙을 사용함
 class PetInlineDropdown extends StatefulWidget {
   final List<Pet> pets;
   final Pet? selectedPet;
   final bool showUnregistered;
-  final ValueChanged<Pet?> onPetSelected;       // null = 미등록 선택
+  final ValueChanged<Pet?> onPetSelected; // null = 미등록 선택
   final ValueChanged<bool> onUnregisteredChanged;
 
   const PetInlineDropdown({
@@ -39,105 +40,132 @@ class _PetInlineDropdownState extends State<PetInlineDropdown> {
         border: Border.all(
           color: _expanded
               ? AppTheme.primaryColor.withValues(alpha: 0.5)
-              : AppTheme.dividerColor,
+              : AppTheme.border,
         ),
         boxShadow: _expanded
-            ? [BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              )]
+            ? [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
             : [],
       ),
-      child: Column(children: [
-        // ── 선택된 항목 (항상 보임) ──────────────────────────
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(12.r),
-            bottom: _expanded ? Radius.zero : Radius.circular(12.r),
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-            child: Row(children: [
-              _avatar(widget.showUnregistered ? null : widget.selectedPet, 36.w),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.showUnregistered
-                          ? '등록된 반려동물 없이 분석'
-                          : (widget.selectedPet?.name ?? '반려동물을 선택해주세요'),
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w600,
-                        color: (widget.selectedPet == null && !widget.showUnregistered)
-                            ? AppTheme.secondaryTextColor
-                            : AppTheme.primaryTextColor,
-                      ),
-                    ),
-                    if (!widget.showUnregistered && widget.selectedPet != null)
-                      Text(
-                        '${widget.selectedPet!.typeDisplayName} · '
-                        '${widget.selectedPet!.breed ?? '품종 미상'} · '
-                        '${widget.selectedPet!.displayAge}',
-                        style: TextStyle(
-                            fontSize: 10.sp,
-                            color: AppTheme.secondaryTextColor),
-                      ),
-                  ],
-                ),
-              ),
-              AnimatedRotation(
-                turns: _expanded ? 0.5 : 0,
-                duration: const Duration(milliseconds: 200),
-                child: Icon(Icons.keyboard_arrow_down,
-                    color: AppTheme.secondaryTextColor, size: 20.w),
-              ),
-            ]),
-          ),
-        ),
-
-        // ── 펼쳐지는 옵션 목록 ───────────────────────────────
-        AnimatedCrossFade(
-          duration: const Duration(milliseconds: 200),
-          crossFadeState:
-              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          firstChild: const SizedBox.shrink(),
-          secondChild: Column(children: [
-            const Divider(height: 1),
-            ...widget.pets.map((pet) {
-              final isSelected =
-                  !widget.showUnregistered && widget.selectedPet?.id == pet.id;
-              return _optionTile(
-                avatar: _avatar(pet, 40.w),
-                title: pet.name,
-                subtitle: '${pet.typeDisplayName} · '
-                    '${pet.breed ?? '품종 미상'} · '
-                    '${pet.displayAge}',
-                isSelected: isSelected,
-                onTap: () {
-                  setState(() => _expanded = false);
-                  widget.onPetSelected(pet);
-                },
-              );
-            }),
-            const Divider(height: 1),
-            _optionTile(
-              avatar: _avatar(null, 40.w),
-              title: '등록된 반려동물 없이 분석',
-              subtitle: '특정 반려동물을 선택하지 않고 분석한 경우',
-              isSelected: widget.showUnregistered,
-              onTap: () {
-                setState(() => _expanded = false);
-                widget.onUnregisteredChanged(true);
-              },
+      child: Column(
+        children: [
+          // ── 선택된 항목 (항상 보임) ──────────────────────────
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(12.r),
+              bottom: _expanded ? Radius.zero : Radius.circular(12.r),
             ),
-          ]),
-        ),
-      ]),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+              child: Row(
+                children: [
+                  PetSelectionAvatar(
+                    pet: widget.showUnregistered ? null : widget.selectedPet,
+                    size: 40.w,
+                    fallbackIcon: widget.showUnregistered
+                        ? Icons.pets_outlined
+                        : Icons.pets,
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.showUnregistered
+                              ? '등록된 반려동물 없이 분석'
+                              : (widget.selectedPet?.name ?? '반려동물을 선택해주세요'),
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w600,
+                            color:
+                                (widget.selectedPet == null &&
+                                    !widget.showUnregistered)
+                                ? AppTheme.secondaryTextColor
+                                : AppTheme.primaryTextColor,
+                          ),
+                        ),
+                        if (!widget.showUnregistered &&
+                            widget.selectedPet != null)
+                          Text(
+                            petSelectionMeta(widget.selectedPet!),
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: AppTheme.secondaryTextColor,
+                      size: 20.w,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── 펼쳐지는 옵션 목록 ───────────────────────────────
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 200),
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: 320.h),
+              child: ListView(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                children: [
+                  const Divider(height: 1, color: AppTheme.dividerColor),
+                  for (final pet in widget.pets) ...[
+                    _optionTile(
+                      avatar: PetSelectionAvatar(pet: pet, size: 44.w),
+                      title: pet.name,
+                      subtitle: petSelectionMeta(pet),
+                      isSelected:
+                          !widget.showUnregistered &&
+                          widget.selectedPet?.id == pet.id,
+                      onTap: () {
+                        setState(() => _expanded = false);
+                        widget.onPetSelected(pet);
+                      },
+                    ),
+                    const Divider(height: 1, color: AppTheme.dividerColor),
+                  ],
+                  _optionTile(
+                    avatar: PetSelectionAvatar(
+                      pet: null,
+                      size: 44.w,
+                      fallbackIcon: Icons.pets_outlined,
+                    ),
+                    title: '등록된 반려동물 없이 분석',
+                    subtitle: '특정 반려동물을 선택하지 않고 분석한 경우',
+                    isSelected: widget.showUnregistered,
+                    onTap: () {
+                      setState(() => _expanded = false);
+                      widget.onUnregisteredChanged(true);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -154,69 +182,43 @@ class _PetInlineDropdownState extends State<PetInlineDropdown> {
         color: isSelected
             ? AppTheme.primaryColor.withValues(alpha: 0.04)
             : Colors.transparent,
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-        child: Row(children: [
-          avatar,
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        child: Row(
+          children: [
+            avatar,
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
                     style: TextStyle(
-                      fontSize: 13.sp,
+                      fontSize: 15.sp,
                       fontWeight: FontWeight.w600,
                       color: isSelected
                           ? AppTheme.primaryColor
                           : AppTheme.primaryTextColor,
-                    )),
-                Text(subtitle,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
                     style: TextStyle(
-                        fontSize: 10.sp,
-                        color: AppTheme.secondaryTextColor)),
-              ],
-            ),
-          ),
-          if (isSelected)
-            Icon(Icons.check_circle,
-                color: AppTheme.primaryColor, size: 18.w),
-        ]),
-      ),
-    );
-  }
-
-  Widget _avatar(Pet? pet, double size) {
-    if (pet?.avatarUrl != null && pet!.avatarUrl!.isNotEmpty) {
-      return ClipOval(
-        child: Image.network(
-          pet.avatarUrl!,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _avatarFallback(pet, size),
-        ),
-      );
-    }
-    return _avatarFallback(pet, size);
-  }
-
-  Widget _avatarFallback(Pet? pet, double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: pet == null
-            ? AppTheme.neutral100
-            : AppTheme.primaryColor.withValues(alpha: 0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: pet == null
-            ? Icon(Icons.pets, color: AppTheme.secondaryTextColor, size: size * 0.48)
-            : Text(
-                pet.type == PetType.dog ? '🐶' : '🐱',
-                style: TextStyle(fontSize: size * 0.45),
+                      fontSize: 12.sp,
+                      color: AppTheme.secondaryTextColor,
+                    ),
+                  ),
+                ],
               ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: AppTheme.primaryColor,
+                size: 18.w,
+              ),
+          ],
+        ),
       ),
     );
   }

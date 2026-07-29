@@ -3,6 +3,8 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/emotion_analysis.dart';
+import '../entities/ai_history.dart';
+import '../entities/health_analysis.dart';
 import '../../../pets/domain/entities/pet.dart';
 
 abstract class EmotionRepository {
@@ -25,7 +27,23 @@ abstract class EmotionRepository {
     int limit = 20,
   });
   Future<Either<Failure, EmotionAnalysis>> getAnalysisById(String id);
+  Future<Either<Failure, HealthAnalysis>> getHealthAnalysisById(String id);
+  Future<Either<Failure, EmotionAnalysis>> updateAnalysisMemo({
+    required String analysisId,
+    required String memo,
+  });
   Future<Either<Failure, void>> deleteAnalysis(String id);
+
+  Future<Either<Failure, AiHistoryPageBatch>> getAiHistoryPage({
+    required String userId,
+    required AiHistoryPetScope petScope,
+    required List<String> activePetIds,
+    AiHistoryTypeFilter typeFilter = AiHistoryTypeFilter.all,
+    AiHistoryDateRange dateRange = AiHistoryDateRange.all,
+    bool healthAttentionOnly = false,
+    AiHistoryCursor cursor = const AiHistoryCursor.initial(),
+    int pageSize = 20,
+  });
 
   // 반려동물 관리
   Future<Either<Failure, Pet>> registerPet(Pet pet);
@@ -76,13 +94,17 @@ abstract class EmotionRepository {
 
   /// 내 건강분석 이력 전체 (health_history 테이블)
   Future<Either<Failure, List<Map<String, dynamic>>>> getHealthHistory(
-      String userId);
+    String userId,
+  );
 
   /// 감정 타임라인 (RPC get_emotion_timeline) — 지정 기간 일자별 평균
   Future<Either<Failure, List<Map<String, dynamic>>>> getEmotionTimeline({
     required String petId,
     int days = 30,
   });
+
+  /// 현재 로그인 사용자가 해당 펫의 보호자인지 확인한다.
+  Future<Either<Failure, bool>> canAccessOwnedPet(String petId);
 
   /// 건강분석 결과 저장 (Storage 업로드 + health_history INSERT)
   /// localImagePaths 를 Storage 로 업로드한 뒤 resultJson 의 image_urls 를 갱신.
