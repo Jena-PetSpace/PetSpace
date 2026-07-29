@@ -20,23 +20,31 @@ class AnalysisSubTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOn = currentIndex == index;
     return Expanded(
-      child: GestureDetector(
+      child: Semantics(
+        button: true,
+        selected: isOn,
+        label: '$label 탭',
         onTap: () => onSelected(index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: EdgeInsets.symmetric(vertical: 11.h),
-          // v2: pill 토글 그림자 제거 (elevation 절제 원칙)
-          decoration: BoxDecoration(
-            color: isOn ? AppTheme.primaryColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(26.r),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: isOn ? FontWeight.w700 : FontWeight.w500,
-              color: isOn ? Colors.white : AppTheme.secondaryTextColor,
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: () => onSelected(index),
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: EdgeInsets.symmetric(vertical: 11.h),
+            // v2: pill 토글 그림자 제거 (elevation 절제 원칙)
+            decoration: BoxDecoration(
+              color: isOn ? AppTheme.primaryColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(26.r),
+            ),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: isOn ? FontWeight.w700 : FontWeight.w500,
+                color: isOn ? Colors.white : AppTheme.secondaryTextColor,
+              ),
             ),
           ),
         ),

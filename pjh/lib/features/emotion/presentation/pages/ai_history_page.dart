@@ -19,8 +19,10 @@ import '../../domain/entities/health_analysis.dart';
 import '../../domain/repositories/emotion_repository.dart';
 import '../bloc/ai_history_bloc.dart';
 import '../models/ai_history_presentation.dart';
+import '../widgets/analysis_input/analysis_sub_tab.dart';
 import '../widgets/history/ai_history_filter_sheet.dart';
 import '../widgets/history/ai_history_record_card.dart';
+import '../widgets/pet_selection_primitives.dart';
 import 'health_result_page.dart';
 
 class AiHistoryPage extends StatelessWidget {
@@ -86,12 +88,12 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
       _ => const <Pet>[],
     };
     context.read<AiHistoryBloc>().add(
-          AiHistoryContextChanged(
-            userId: authState.user.uid,
-            pets: pets,
-            petsFailed: petState is PetError,
-          ),
-        );
+      AiHistoryContextChanged(
+        userId: authState.user.uid,
+        pets: pets,
+        petsFailed: petState is PetError,
+      ),
+    );
   }
 
   @override
@@ -123,7 +125,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
               children: [
                 _buildControls(state),
                 Expanded(
-                  child: widget.selectMode ||
+                  child:
+                      widget.selectMode ||
                           state.segment == AiHistorySegment.records
                       ? _buildRecords(state)
                       : _buildFlow(state),
@@ -145,12 +148,13 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
           children: [
             SizedBox(
               width: double.infinity,
-              height: 48.h,
+              height: 64.h,
               child: OutlinedButton(
-                onPressed:
-                    state.petsFailed ? null : () => _showPetScopePicker(state),
+                onPressed: state.petsFailed
+                    ? null
+                    : () => _showPetScopePicker(state),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppTheme.dividerColor),
+                  side: const BorderSide(color: AppTheme.border),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14.r),
                   ),
@@ -160,15 +164,31 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
                 child: Row(
                   children: [
                     _scopeAvatar(state),
-                    SizedBox(width: 10.w),
+                    SizedBox(width: 12.w),
                     Expanded(
-                      child: Text(
-                        _scopeLabel(state),
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryTextColor,
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _scopeLabel(state),
+                            style: TextStyle(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primaryTextColor,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            _scopeSubtitle(state),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Icon(
@@ -184,71 +204,38 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
             if (!widget.selectMode) ...[
               SizedBox(height: 10.h),
               Container(
-                height: 44.h,
-                padding: EdgeInsets.all(4.w),
                 decoration: BoxDecoration(
-                  color: AppTheme.subtleBackground,
-                  borderRadius: BorderRadius.circular(13.r),
+                  color: AppTheme.dividerColor,
+                  borderRadius: BorderRadius.circular(30.r),
                 ),
+                padding: EdgeInsets.all(3.w),
                 child: Row(
                   children: [
-                    _segmentButton(
+                    AnalysisSubTab(
                       label: '기록',
-                      selected: state.segment == AiHistorySegment.records,
-                      onTap: () => context.read<AiHistoryBloc>().add(
-                            const AiHistorySegmentChanged(
-                                AiHistorySegment.records),
-                          ),
+                      index: 0,
+                      currentIndex: state.segment == AiHistorySegment.records
+                          ? 0
+                          : 1,
+                      onSelected: (_) => context.read<AiHistoryBloc>().add(
+                        const AiHistorySegmentChanged(AiHistorySegment.records),
+                      ),
                     ),
-                    _segmentButton(
+                    AnalysisSubTab(
                       label: '흐름',
-                      selected: state.segment == AiHistorySegment.flow,
-                      onTap: () => context.read<AiHistoryBloc>().add(
-                            const AiHistorySegmentChanged(
-                                AiHistorySegment.flow),
-                          ),
+                      index: 1,
+                      currentIndex: state.segment == AiHistorySegment.records
+                          ? 0
+                          : 1,
+                      onSelected: (_) => context.read<AiHistoryBloc>().add(
+                        const AiHistorySegmentChanged(AiHistorySegment.flow),
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _segmentButton({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: Semantics(
-        selected: selected,
-        button: true,
-        label: '$label 탭',
-        onTap: onTap,
-        excludeSemantics: true,
-        child: Material(
-          color: selected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(10.r),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(10.r),
-            child: Center(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w700,
-                  color: selected
-                      ? AppTheme.primaryColor
-                      : AppTheme.secondaryTextColor,
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -265,8 +252,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
       return _errorState(
         state.errorMessage ?? '기록을 불러오지 못했어요',
         () => context.read<AiHistoryBloc>().add(
-              const AiHistoryRefreshRequested(),
-            ),
+          const AiHistoryRefreshRequested(),
+        ),
       );
     }
 
@@ -296,8 +283,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: OutlinedButton(
               onPressed: () => context.read<AiHistoryBloc>().add(
-                    const AiHistoryNextPageRequested(),
-                  ),
+                const AiHistoryNextPageRequested(),
+              ),
               child: const Text('다음 기록 범위 확인'),
             ),
           ),
@@ -351,8 +338,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: OutlinedButton(
               onPressed: () => context.read<AiHistoryBloc>().add(
-                    const AiHistoryNextPageRequested(),
-                  ),
+                const AiHistoryNextPageRequested(),
+              ),
               child: const Text('기록 더 보기'),
             ),
           ),
@@ -364,8 +351,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
       onRefresh: () async {
         context.read<AiHistoryBloc>().add(const AiHistoryRefreshRequested());
         await context.read<AiHistoryBloc>().stream.firstWhere(
-              (value) => !value.isRefreshing,
-            );
+          (value) => !value.isRefreshing,
+        );
       },
       child: ListView(
         controller: _scrollController,
@@ -410,8 +397,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
               label: '확인할 건강 기록',
               selected: state.healthAttentionOnly,
               onTap: () => context.read<AiHistoryBloc>().add(
-                    AiHistoryAttentionChanged(!state.healthAttentionOnly),
-                  ),
+                AiHistoryAttentionChanged(!state.healthAttentionOnly),
+              ),
             ),
           ),
         IconButton(
@@ -457,8 +444,9 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
             style: TextStyle(
               fontSize: 12.sp,
               fontWeight: FontWeight.w700,
-              color:
-                  selected ? AppTheme.primaryColor : AppTheme.primaryTextColor,
+              color: selected
+                  ? AppTheme.primaryColor
+                  : AppTheme.primaryTextColor,
             ),
           ),
         ),
@@ -496,8 +484,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
 
   Widget _buildAttentionBanner() {
     void openAttentionRecords() => context.read<AiHistoryBloc>().add(
-          const AiHistoryAttentionChanged(true),
-        );
+      const AiHistoryAttentionChanged(true),
+    );
     return Semantics(
       button: true,
       label: '확인할 건강 기록 보기',
@@ -538,24 +526,25 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
 
   Widget _buildEmptyState(AiHistoryState state) {
     final scoped = state.scope.kind != AiHistoryPetScopeKind.all;
-    final filtered = state.dateRange != AiHistoryDateRange.all ||
+    final filtered =
+        state.dateRange != AiHistoryDateRange.all ||
         (!widget.selectMode &&
             (state.typeFilter != AiHistoryTypeFilter.all ||
                 state.healthAttentionOnly));
     final title = state.hasMore
         ? '조건에 맞는 기록을 더 확인할 수 있어요'
         : filtered
-            ? '현재 필터에 맞는 기록이 없어요'
-            : scoped
-                ? '이 범위에 연결된 기록이 없어요'
-                : '아직 저장된 분석 기록이 없어요';
+        ? '현재 필터에 맞는 기록이 없어요'
+        : scoped
+        ? '이 범위에 연결된 기록이 없어요'
+        : '아직 저장된 분석 기록이 없어요';
     final description = state.hasMore
         ? '앞선 저장 구간에는 일치하는 항목이 없었어요. 아래 버튼으로 다음 기록 범위를 이어서 확인해 주세요.'
         : filtered
-            ? '필터를 초기화하거나 다른 기간과 유형을 선택해 보세요.'
-            : scoped
-                ? '전체 기록이나 다른 반려동물 범위를 확인해 보세요.'
-                : 'AI 분석 후 저장된 결과를 여기에서 다시 볼 수 있어요.';
+        ? '필터를 초기화하거나 다른 기간과 유형을 선택해 보세요.'
+        : scoped
+        ? '전체 기록이나 다른 반려동물 범위를 확인해 보세요.'
+        : 'AI 분석 후 저장된 결과를 여기에서 다시 볼 수 있어요.';
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 72.h, horizontal: 20.w),
       child: Column(
@@ -589,14 +578,14 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
           if (filtered) ...[
             OutlinedButton(
               onPressed: () => context.read<AiHistoryBloc>().add(
-                    AiHistoryFiltersApplied(
-                      type: widget.selectMode
-                          ? AiHistoryTypeFilter.emotion
-                          : AiHistoryTypeFilter.all,
-                      dateRange: AiHistoryDateRange.all,
-                      healthAttentionOnly: false,
-                    ),
-                  ),
+                AiHistoryFiltersApplied(
+                  type: widget.selectMode
+                      ? AiHistoryTypeFilter.emotion
+                      : AiHistoryTypeFilter.all,
+                  dateRange: AiHistoryDateRange.all,
+                  healthAttentionOnly: false,
+                ),
+              ),
               child: const Text('필터 초기화'),
             ),
             SizedBox(height: 10.h),
@@ -609,15 +598,14 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
               children: [
                 OutlinedButton(
                   onPressed: () => context.read<AiHistoryBloc>().add(
-                        const AiHistoryScopeChanged(AiHistoryPetScope.all()),
-                      ),
+                    const AiHistoryScopeChanged(AiHistoryPetScope.all()),
+                  ),
                   child: const Text('전체 기록 보기'),
                 ),
                 OutlinedButton(
                   onPressed: () => context.read<AiHistoryBloc>().add(
-                        const AiHistoryScopeChanged(
-                            AiHistoryPetScope.unlinked()),
-                      ),
+                    const AiHistoryScopeChanged(AiHistoryPetScope.unlinked()),
+                  ),
                   child: const Text('연결 안 된 기록 보기'),
                 ),
               ],
@@ -657,8 +645,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
       return _errorState(
         state.flowErrorMessage ?? '흐름을 불러오지 못했어요',
         () => context.read<AiHistoryBloc>().add(
-              const AiHistoryRefreshRequested(),
-            ),
+          const AiHistoryRefreshRequested(),
+        ),
       );
     }
     if (state.scope.kind == AiHistoryPetScopeKind.unlinked) {
@@ -669,8 +657,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
       onRefresh: () async {
         context.read<AiHistoryBloc>().add(const AiHistoryRefreshRequested());
         await context.read<AiHistoryBloc>().stream.firstWhere(
-              (value) => value.flowStatus != AiHistoryLoadStatus.loading,
-            );
+          (value) => value.flowStatus != AiHistoryLoadStatus.loading,
+        );
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -746,10 +734,10 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
                     ),
                     label: Text(pet.name),
                     onPressed: () => context.read<AiHistoryBloc>().add(
-                          AiHistoryScopeChanged(
-                            AiHistoryPetScope.registered(pet.id),
-                          ),
-                        ),
+                      AiHistoryScopeChanged(
+                        AiHistoryPetScope.registered(pet.id),
+                      ),
+                    ),
                   ),
                 )
                 .toList(),
@@ -805,7 +793,9 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
         if (health.isEmpty)
           _smallEmpty('최근 기록에서는 연결 안 된 건강 항목을 찾지 못했어요')
         else
-          ...health.take(5).map(
+          ...health
+              .take(5)
+              .map(
                 (record) => Padding(
                   padding: EdgeInsets.only(bottom: 10.h),
                   child: AiHistoryRecordCard(
@@ -836,8 +826,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
                   selected: state.flowDays == days,
                   showCheckmark: false,
                   onSelected: (_) => context.read<AiHistoryBloc>().add(
-                        AiHistoryFlowPeriodChanged(days),
-                      ),
+                    AiHistoryFlowPeriodChanged(days),
+                  ),
                   selectedColor: AppTheme.primaryColor,
                   backgroundColor: Colors.white,
                   labelStyle: TextStyle(
@@ -871,9 +861,9 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
     final dominant = dominantCounts.entries.isEmpty
         ? null
         : (dominantCounts.entries.toList()
-              ..sort((a, b) => b.value.compareTo(a.value)))
-            .first
-            .key;
+                ..sort((a, b) => b.value.compareTo(a.value)))
+              .first
+              .key;
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -1176,11 +1166,11 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
   }
 
   bool _hasAttentionRecord(AiHistoryState state) => state.records.any(
-        (record) =>
-            record.health != null &&
-            AiHistoryPresentation.healthState(record.health!) !=
-                HealthObservationState.stable,
-      );
+    (record) =>
+        record.health != null &&
+        AiHistoryPresentation.healthState(record.health!) !=
+            HealthObservationState.stable,
+  );
 
   Future<void> _showFilters(AiHistoryState state) async {
     final value = await AiHistoryFilterSheet.show(
@@ -1194,78 +1184,94 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
     );
     if (!mounted || value == null) return;
     context.read<AiHistoryBloc>().add(
-          AiHistoryFiltersApplied(
-            type: value.type,
-            dateRange: value.dateRange,
-            healthAttentionOnly: value.healthAttentionOnly,
-          ),
-        );
+      AiHistoryFiltersApplied(
+        type: value.type,
+        dateRange: value.dateRange,
+        healthAttentionOnly: value.healthAttentionOnly,
+      ),
+    );
   }
 
   Future<void> _showPetScopePicker(AiHistoryState state) async {
     final scope = await showModalBottomSheet<AiHistoryPetScope>(
       context: context,
+      isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
       backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
       builder: (sheetContext) {
-        return Padding(
-          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 22.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                minTileHeight: 52,
-                leading: const CircleAvatar(child: Icon(Icons.apps)),
-                title: const Text('전체'),
-                trailing: state.scope.kind == AiHistoryPetScopeKind.all
-                    ? const Icon(Icons.check)
-                    : null,
-                onTap: () =>
-                    Navigator.pop(sheetContext, const AiHistoryPetScope.all()),
-              ),
-              ...state.pets.map(
-                (pet) => ListTile(
-                  minTileHeight: 52,
-                  leading: CircleAvatar(
-                    backgroundColor: AppTheme.primaryColor.withValues(
-                      alpha: 0.1,
+        return SafeArea(
+          top: false,
+          minimum: EdgeInsets.only(bottom: 12.h),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
+            ),
+            child: ListView(
+              shrinkWrap: true,
+              padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 12.h),
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(4.w, 2.h, 4.w, 12.h),
+                  child: Text(
+                    '기록을 볼 반려동물',
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primaryTextColor,
                     ),
-                    child: const Icon(Icons.pets),
                   ),
-                  title: Text(pet.name),
-                  trailing: state.scope.petId == pet.id
-                      ? const Icon(Icons.check)
-                      : null,
+                ),
+                _petScopeTile(
+                  avatar: PetSelectionAvatar(
+                    pet: null,
+                    size: 44.w,
+                    fallbackIcon: Icons.apps_rounded,
+                    backgroundColor: AppTheme.actionContainer,
+                  ),
+                  title: '전체 기록',
+                  subtitle: '모든 반려동물의 분석 기록',
+                  selected: state.scope.kind == AiHistoryPetScopeKind.all,
                   onTap: () => Navigator.pop(
                     sheetContext,
-                    AiHistoryPetScope.registered(pet.id),
+                    const AiHistoryPetScope.all(),
                   ),
                 ),
-              ),
-              ListTile(
-                minTileHeight: 52,
-                leading: const CircleAvatar(
-                  child: Icon(Icons.link_off_rounded),
+                ...state.pets.map(
+                  (pet) => _petScopeTile(
+                    avatar: PetSelectionAvatar(pet: pet, size: 44.w),
+                    title: pet.name,
+                    subtitle: petSelectionMeta(pet),
+                    selected: state.scope.petId == pet.id,
+                    onTap: () => Navigator.pop(
+                      sheetContext,
+                      AiHistoryPetScope.registered(pet.id),
+                    ),
+                  ),
                 ),
-                title: const Text('연결 안 된 기록'),
-                subtitle: Text(
-                  state.petsFailed
+                _petScopeTile(
+                  avatar: PetSelectionAvatar(
+                    pet: null,
+                    size: 44.w,
+                    fallbackIcon: Icons.link_off_rounded,
+                    backgroundColor: AppTheme.actionContainer,
+                  ),
+                  title: '연결 안 된 기록',
+                  subtitle: state.petsFailed
                       ? '반려동물 목록을 불러온 뒤 확인할 수 있어요'
-                      : '반려동물 정보가 없거나 현재 목록과 연결되지 않은 기록',
+                      : '현재 반려동물 목록과 연결되지 않은 분석 기록',
+                  selected: state.scope.kind == AiHistoryPetScopeKind.unlinked,
+                  enabled: !state.petsFailed,
+                  onTap: () => Navigator.pop(
+                    sheetContext,
+                    const AiHistoryPetScope.unlinked(),
+                  ),
                 ),
-                trailing: state.scope.kind == AiHistoryPetScopeKind.unlinked
-                    ? const Icon(Icons.check)
-                    : null,
-                enabled: !state.petsFailed,
-                onTap: state.petsFailed
-                    ? null
-                    : () => Navigator.pop(
-                          sheetContext,
-                          const AiHistoryPetScope.unlinked(),
-                        ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -1308,23 +1314,95 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
     };
   }
 
+  String _scopeSubtitle(AiHistoryState state) {
+    return switch (state.scope.kind) {
+      AiHistoryPetScopeKind.all => '모든 반려동물의 분석 기록',
+      AiHistoryPetScopeKind.unlinked => '현재 목록과 연결되지 않은 분석 기록',
+      AiHistoryPetScopeKind.registered =>
+        state.selectedPet == null
+            ? '반려동물 정보를 확인할 수 없어요'
+            : petSelectionMeta(state.selectedPet!),
+    };
+  }
+
   Widget _scopeAvatar(AiHistoryState state) {
     final pet = state.selectedPet;
-    return CircleAvatar(
-      radius: 15.r,
-      backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-      backgroundImage: pet?.avatarUrl != null && pet!.avatarUrl!.isNotEmpty
-          ? NetworkImage(pet.avatarUrl!)
-          : null,
-      child: pet?.avatarUrl == null || pet!.avatarUrl!.isEmpty
-          ? Icon(
-              state.scope.kind == AiHistoryPetScopeKind.unlinked
-                  ? Icons.link_off_rounded
-                  : Icons.pets,
-              size: 17.sp,
-              color: AppTheme.primaryColor,
-            )
-          : null,
+    return PetSelectionAvatar(
+      pet: pet,
+      size: 36.w,
+      fallbackIcon: switch (state.scope.kind) {
+        AiHistoryPetScopeKind.all => Icons.apps_rounded,
+        AiHistoryPetScopeKind.unlinked => Icons.link_off_rounded,
+        AiHistoryPetScopeKind.registered => Icons.pets,
+      },
+      backgroundColor: AppTheme.actionContainer,
+    );
+  }
+
+  Widget _petScopeTile({
+    required Widget avatar,
+    required String title,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+    bool enabled = true,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 4.h),
+      child: Material(
+        color: selected
+            ? AppTheme.primaryColor.withValues(alpha: 0.05)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12.r),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(12.r),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            child: Row(
+              children: [
+                Opacity(opacity: enabled ? 1 : 0.45, child: avatar),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w600,
+                          color: enabled
+                              ? AppTheme.primaryTextColor
+                              : AppTheme.disabledColor,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: enabled
+                              ? AppTheme.secondaryTextColor
+                              : AppTheme.disabledColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (selected)
+                  Icon(
+                    Icons.check_circle,
+                    color: AppTheme.primaryColor,
+                    size: 20.w,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
