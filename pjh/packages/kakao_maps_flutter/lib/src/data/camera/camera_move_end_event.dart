@@ -13,6 +13,7 @@ class CameraMoveEndEvent {
       zoomLevel: (json['zoomLevel']! as num).toDouble(),
       tilt: (json['tilt']! as num).toDouble(),
       rotation: (json['rotation']! as num).toDouble(),
+      movedBy: json['movedBy'] as String?,
     );
   }
 
@@ -23,6 +24,7 @@ class CameraMoveEndEvent {
     required this.zoomLevel,
     required this.tilt,
     required this.rotation,
+    this.movedBy,
   });
 
   /// Latitude
@@ -40,6 +42,16 @@ class CameraMoveEndEvent {
   /// Rotation angle (deg)
   final double rotation;
 
+  /// Camera movement origin.
+  ///
+  /// Values emitted by the native implementations are `gesture`,
+  /// `programmatic`, or `unknown`. This remains nullable for compatibility
+  /// with events from older native implementations. The Android SDK reports
+  /// programmatic movement through its `Unknown` gesture type, so this value is
+  /// best-effort. Consumers should suppress work only for explicit
+  /// `programmatic`; treat `unknown` and null as possible user movement.
+  final String? movedBy;
+
   /// To JSON map
   Map<String, dynamic> toJson() => {
         'latitude': latitude,
@@ -47,5 +59,6 @@ class CameraMoveEndEvent {
         'zoomLevel': zoomLevel,
         'tilt': tilt,
         'rotation': rotation,
+        if (movedBy != null) 'movedBy': movedBy,
       };
 }

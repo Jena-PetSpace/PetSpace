@@ -38,9 +38,7 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   ///
   /// [KO]
   /// - [viewId]에 바인딩되는 컨트롤러 생성
-  KakaoMapController({
-    required this.viewId,
-  }) {
+  KakaoMapController({required this.viewId}) {
     _platform = MethodChannelKakaoMapController.create(viewId);
   }
 
@@ -63,6 +61,15 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   final int viewId;
 
   late final KakaoMapControllerPlatform _platform;
+
+  /// Completes when the native Kakao map is ready to accept commands.
+  Future<void> get ready {
+    final platform = _platform;
+    if (platform is MethodChannelKakaoMapController) {
+      return platform.ready;
+    }
+    return Future<void>.value();
+  }
 
   /// Label click stream
   /// [EN]
@@ -99,6 +106,13 @@ class KakaoMapController extends KakaoMapControllerPlatform {
     return _platform._callMethod(methodCall);
   }
 
+  /// Releases this controller's event streams and method-channel handler.
+  @override
+  void dispose() {
+    _platform.dispose();
+    super.dispose();
+  }
+
   /// Get zoom level
   /// [EN]
   /// - Returns null when unavailable
@@ -115,9 +129,7 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   ///
   /// [KO]
   /// - SDK가 지원하는 범위 내 값 필요
-  Future<void> setZoomLevel({
-    required int zoomLevel,
-  }) async {
+  Future<void> setZoomLevel({required int zoomLevel}) async {
     await _platform._callMethod(SetZoomLevel(zoomLevel: zoomLevel));
   }
 
@@ -132,10 +144,7 @@ class KakaoMapController extends KakaoMapControllerPlatform {
     CameraAnimation? animation,
   }) async {
     await _platform._callMethod(
-      MoveCamera(
-        cameraUpdate: cameraUpdate,
-        animation: animation,
-      ),
+      MoveCamera(cameraUpdate: cameraUpdate, animation: animation),
     );
   }
 
@@ -149,8 +158,9 @@ class KakaoMapController extends KakaoMapControllerPlatform {
     required MarkerOption markerOption,
     String layerId = KakaoMapController.defaultLabelLayerId,
   }) async {
-    await _platform
-        ._callMethod(AddMarker(markerOption: markerOption, layerId: layerId));
+    await _platform._callMethod(
+      AddMarker(markerOption: markerOption, layerId: layerId),
+    );
   }
 
   /// Remove marker
@@ -207,16 +217,12 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   ///
   /// [KO]
   /// - [MarkerOption.styleId]에서 참조하는 스타일 묶음을 등록
-  Future<void> registerMarkerStyles({
-    required List<MarkerStyle> styles,
-  }) async {
+  Future<void> registerMarkerStyles({required List<MarkerStyle> styles}) async {
     await _platform._callMethod(RegisterMarkerStyles(styles: styles));
   }
 
   /// Remove marker styles
-  Future<void> removeMarkerStyles({
-    required List<String> styleIds,
-  }) async {
+  Future<void> removeMarkerStyles({required List<String> styleIds}) async {
     await _platform._callMethod(RemoveMarkerStyles(styleIds: styleIds));
   }
 
@@ -241,9 +247,7 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   ///
   /// [KO]
   /// - [position]을 화면 좌표로 변환, 실패 시 null 반환
-  Future<Offset?> toScreenPoint({
-    required LatLng position,
-  }) async {
+  Future<Offset?> toScreenPoint({required LatLng position}) async {
     return _platform._callMethod(ToScreenPoint(position: position));
   }
 
@@ -253,23 +257,17 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   ///
   /// [KO]
   /// - [point]을 지리 좌표로 변환, 실패 시 null 반환
-  Future<LatLng?> fromScreenPoint({
-    required Offset point,
-  }) async {
+  Future<LatLng?> fromScreenPoint({required Offset point}) async {
     return _platform._callMethod(FromScreenPoint(point: point));
   }
 
   /// Set POI visibility
-  Future<void> setPoiVisible({
-    required bool isVisible,
-  }) async {
+  Future<void> setPoiVisible({required bool isVisible}) async {
     return _platform._callMethod(SetPoiVisible(isVisible: isVisible));
   }
 
   /// Set POI clickability
-  Future<void> setPoiClickable({
-    required bool isClickable,
-  }) async {
+  Future<void> setPoiClickable({required bool isClickable}) async {
     return _platform._callMethod(SetPoiClickable(isClickable: isClickable));
   }
 
@@ -279,9 +277,7 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   ///
   /// [KO]
   /// - 0: SMALL, 1: REGULAR, 2: LARGE, 3: XLARGE
-  Future<void> setPoiScale({
-    required int scale,
-  }) async {
+  Future<void> setPoiScale({required int scale}) async {
     return _platform._callMethod(SetPoiScale(scale: scale));
   }
 
@@ -293,20 +289,12 @@ class KakaoMapController extends KakaoMapControllerPlatform {
     required int bottom,
   }) async {
     return _platform._callMethod(
-      SetPadding(
-        left: left,
-        top: top,
-        right: right,
-        bottom: bottom,
-      ),
+      SetPadding(left: left, top: top, right: right, bottom: bottom),
     );
   }
 
   /// Set viewport size
-  Future<void> setViewport({
-    required int width,
-    required int height,
-  }) async {
+  Future<void> setViewport({required int width, required int height}) async {
     return _platform._callMethod(SetViewport(width: width, height: height));
   }
 
@@ -324,14 +312,13 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   Future<void> addInfoWindow({
     required InfoWindowOption infoWindowOption,
   }) async {
-    await _platform
-        ._callMethod(AddInfoWindow(infoWindowOption: infoWindowOption));
+    await _platform._callMethod(
+      AddInfoWindow(infoWindowOption: infoWindowOption),
+    );
   }
 
   /// Remove info window
-  Future<void> removeInfoWindow({
-    required String id,
-  }) async {
+  Future<void> removeInfoWindow({required String id}) async {
     await _platform._callMethod(RemoveInfoWindow(id: id));
   }
 
@@ -339,14 +326,13 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   Future<void> addInfoWindows({
     required List<InfoWindowOption> infoWindowOptions,
   }) async {
-    await _platform
-        ._callMethod(AddInfoWindows(infoWindowOptions: infoWindowOptions));
+    await _platform._callMethod(
+      AddInfoWindows(infoWindowOptions: infoWindowOptions),
+    );
   }
 
   /// Remove info windows
-  Future<void> removeInfoWindows({
-    required List<String> ids,
-  }) async {
+  Future<void> removeInfoWindows({required List<String> ids}) async {
     await _platform._callMethod(RemoveInfoWindows(ids: ids));
   }
 
@@ -394,10 +380,7 @@ class KakaoMapController extends KakaoMapControllerPlatform {
     required Offset offset,
   }) async {
     await _platform._callMethod(
-      SetCompassPosition(
-        alignment: alignment,
-        offset: offset,
-      ),
+      SetCompassPosition(alignment: alignment, offset: offset),
     );
   }
 
@@ -431,10 +414,7 @@ class KakaoMapController extends KakaoMapControllerPlatform {
     required Offset offset,
   }) async {
     return _platform._callMethod(
-      SetLogoPosition(
-        alignment: alignment,
-        offset: offset,
-      ),
+      SetLogoPosition(alignment: alignment, offset: offset),
     );
   }
 
@@ -462,21 +442,13 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   }
 
   /// Show all markers in the specified layer
-  Future<void> showAllMarkers({
-    required String layerId,
-  }) async {
-    await _platform._callMethod(
-      ShowAllMarkers(layerId: layerId),
-    );
+  Future<void> showAllMarkers({required String layerId}) async {
+    await _platform._callMethod(ShowAllMarkers(layerId: layerId));
   }
 
   /// Hide all markers in the specified layer
-  Future<void> hideAllMarkers({
-    required String layerId,
-  }) async {
-    await _platform._callMethod(
-      HideAllMarkers(layerId: layerId),
-    );
+  Future<void> hideAllMarkers({required String layerId}) async {
+    await _platform._callMethod(HideAllMarkers(layerId: layerId));
   }
 
   // ===== LOD Marker (LodLabel/LodPoi) APIs =====
@@ -489,9 +461,7 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   }
 
   /// Remove LOD marker layer
-  Future<void> removeLodMarkerLayer({
-    required String layerId,
-  }) async {
+  Future<void> removeLodMarkerLayer({required String layerId}) async {
     await _platform._callMethod(RemoveLodMarkerLayer(layerId: layerId));
   }
 
@@ -508,8 +478,9 @@ class KakaoMapController extends KakaoMapControllerPlatform {
     required List<MarkerOption> options,
     required String layerId,
   }) async {
-    await _platform
-        ._callMethod(AddLodMarkers(options: options, layerId: layerId));
+    await _platform._callMethod(
+      AddLodMarkers(options: options, layerId: layerId),
+    );
   }
 
   /// Remove specific LOD markers
@@ -521,23 +492,17 @@ class KakaoMapController extends KakaoMapControllerPlatform {
   }
 
   /// Clear all LOD markers in layer
-  Future<void> clearAllLodMarkers({
-    required String layerId,
-  }) async {
+  Future<void> clearAllLodMarkers({required String layerId}) async {
     await _platform._callMethod(ClearAllLodMarkers(layerId: layerId));
   }
 
   /// Show all LOD markers in layer
-  Future<void> showAllLodMarkers({
-    required String layerId,
-  }) async {
+  Future<void> showAllLodMarkers({required String layerId}) async {
     await _platform._callMethod(ShowAllLodMarkers(layerId: layerId));
   }
 
   /// Hide all LOD markers in layer
-  Future<void> hideAllLodMarkers({
-    required String layerId,
-  }) async {
+  Future<void> hideAllLodMarkers({required String layerId}) async {
     await _platform._callMethod(HideAllLodMarkers(layerId: layerId));
   }
 

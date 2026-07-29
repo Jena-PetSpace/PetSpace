@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.View
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.KakaoMapReadyCallback
+import com.kakao.vectormap.GestureType
 import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.MapGravity
 import com.kakao.vectormap.MapLifeCycleCallback
@@ -53,6 +54,9 @@ class KakaoMapController(
 
     private lateinit var kMap: KakaoMap
 
+    @Volatile
+    private var mapReady = false
+
     // Parse initial position from args
     private var initialPosition: LatLng?
 
@@ -89,19 +93,18 @@ class KakaoMapController(
         mapView.start(
             object : MapLifeCycleCallback() {
                 override fun onMapDestroy() {
+                    mapReady = false
                     mapView.finish()
                 }
 
                 override fun onMapError(p0: Exception?) {
+                    mapReady = false
                     methodChannel.invokeMethod("onMapError", p0.toString())
                 }
             },
             object : KakaoMapReadyCallback() {
                 override fun onMapReady(kakaoMap: KakaoMap) {
                     kMap = kakaoMap
-
-                    // Send message to Flutter
-                    methodChannel.invokeMethod("onMapReady", true)
 
                     // Null Check
                     if (!::kMap.isInitialized) {
@@ -171,6 +174,7 @@ class KakaoMapController(
                             "zoomLevel" to cameraPosition.zoomLevel,
                             "rotation" to cameraPosition.rotationAngle,
                             "tilt" to cameraPosition.tiltAngle,
+                            "movedBy" to cameraMoveOrigin(gestureType),
                         )
                         methodChannel.invokeMethod("onCameraMoveEnd", event)
                     }
@@ -221,6 +225,12 @@ class KakaoMapController(
                         // We'll implement show/hide and position methods for consistency
                         Log.d("KakaoMapController", "Logo configuration provided: $config")
                     }
+
+                    // Signal readiness only after listeners and configured widgets
+                    // have been installed. Dart also probes isMapReady so that a
+                    // callback emitted before the Dart handler is attached is safe.
+                    mapReady = true
+                    methodChannel.invokeMethod("onMapReady", true)
                 }
 
                 override fun getPosition(): LatLng {
@@ -364,6 +374,14 @@ class KakaoMapController(
         }
     }
 
+    private fun cameraMoveOrigin(gestureType: GestureType?): String {
+        return when (gestureType) {
+            null -> "unknown"
+            GestureType.Unknown -> "unknown"
+            else -> "gesture"
+        }
+    }
+
     private fun JSONObject.extractLayerId(): String? {
         // optString(key, fallback)은 키가 없거나 값이 null일 때 fallback을 반환합니다.
         // 따라서 기존의 긴 if문과 완벽하게 동일한 역할을 합니다.
@@ -390,22 +408,14 @@ class KakaoMapController(
 
         val animation: CameraAnimation? = args.optJSONObject("animation")?.toCameraAnimationOrNull()
         val cameraUpdateJson = args.getJSONObject("cameraUpdate")
-        val zoomLevel = cameraUpdateJson.optInt("zoomLevel", -1)
         val cameraUpdate: CameraUpdate = cameraUpdateJson.toCameraUpdate()
 
         if (animation == null) {
             kMap.moveCamera(cameraUpdate)
-            // newCenterPosition ignores zoom; apply zoom separately
-            if (zoomLevel > 0) {
-                kMap.moveCamera(CameraUpdateFactory.zoomTo(zoomLevel))
-            }
             return result.success(null)
         }
 
         kMap.moveCamera(cameraUpdate, animation)
-        if (zoomLevel > 0) {
-            kMap.moveCamera(CameraUpdateFactory.zoomTo(zoomLevel))
-        }
         return result.success(null)
     }
 
@@ -1385,6 +1395,7 @@ class KakaoMapController(
         Log.d("KakaoMapController", "onMethodCall: ${call.method}")
 
         when (call.method) {
+            "isMapReady" -> result.success(mapReady)
             "registerMarkerStyles" -> registerMarkerStyles(call.arguments, result)
             "removeMarkerStyles" -> removeMarkerStyles(asJSONObject(call.arguments), result)
             "clearMarkerStyles" -> clearMarkerStyles(result)
@@ -1454,6 +1465,7 @@ class KakaoMapController(
     }
 
     override fun dispose() {
+        mapReady = false
         mapView.finish()
         methodChannel.setMethodCallHandler(null)
     }

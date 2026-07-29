@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -9,6 +10,8 @@ import 'secrets.dart';
 
 // Core
 import '../core/network/network_info.dart';
+import '../core/place_search/kakao_local_data_source.dart';
+import '../core/place_search/saved_place_local_data_source.dart';
 
 // Features - Auth
 import '../features/auth/data/repositories/auth_repository_impl.dart';
@@ -538,6 +541,21 @@ Future<void> _initNews() async {
 Future<void> _initCore() async {
   // Core
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl());
+  sl.registerLazySingleton<http.Client>(
+    http.Client.new,
+    dispose: (client) => client.close(),
+  );
+  sl.registerLazySingleton<KakaoLocalDataSource>(
+    () => KakaoLocalDataSource(
+      client: sl<http.Client>(),
+      apiKey: ApiConfig.kakaoRestApiKey,
+    ),
+  );
+  sl.registerLazySingleton<SavedPlaceLocalDataSource>(
+    () => SavedPlaceLocalDataSource(
+      preferences: sl<SharedPreferences>(),
+    ),
+  );
 
   // Core Services
   sl.registerLazySingleton<ImageUploadService>(
