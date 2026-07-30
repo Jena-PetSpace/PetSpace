@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
 import '../../../../core/usecases/usecase.dart';
+import '../../../../shared/models/petspace_icon_asset.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_icon.dart';
 import '../../../fortune/data/datasources/fortune_seen_local_data_source.dart'
     show fortuneDateKey;
 import '../../../mbti/domain/entities/pet_mbti_result.dart' show MbtiSpeciesX;
@@ -16,7 +17,7 @@ import '../../../pets/presentation/bloc/pet_bloc.dart';
 import '../../../pets/presentation/bloc/pet_state.dart';
 
 /// 홈 상단 퀵 액션 — 원형 아이콘 버튼 5개 가로 배치.
-/// 아이콘: Lucide 스트로크 SVG(딥블루 단색) — 헤더 아이콘과 동일 계열.
+/// 아이콘: 기능을 빠르게 구분할 수 있는 원본 컬러 자산.
 ///
 /// MBTI·운세는 선택된 반려동물 기준으로 동작한다. 등록된 반려동물이 없으면
 /// 진입을 막고 등록 화면으로 유도(반려동물 없이 운세가 생성되던 문제 방지).
@@ -28,29 +29,29 @@ class HomeQuickActions extends StatelessWidget {
     final actions = <_QuickAction>[
       _QuickAction(
         // 플레이스 = 기존 동물병원 찾기
-        asset: 'assets/svg/icon_place.svg',
+        asset: PetSpaceIconAsset.quickPlace,
         label: '플레이스',
         onTap: () => context.push('/hospital'),
       ),
       _QuickAction(
-        asset: 'assets/svg/icon_mbti.svg',
+        asset: PetSpaceIconAsset.quickMbti,
         label: 'MBTI 검사',
         // push로 진입해야 뒤로가기(앱·하드웨어)로 홈 복귀 가능
         onTap: () => _openMbti(context),
       ),
       _QuickAction(
-        asset: 'assets/svg/icon_walk.svg',
+        asset: PetSpaceIconAsset.quickWalk,
         label: '산책 기록',
         // 미구현 — 버튼만 노출, 탭 시 안내 스낵바
         onTap: () => _showComingSoon(context),
       ),
       _QuickAction(
-        asset: 'assets/svg/icon_fortune.svg',
+        asset: PetSpaceIconAsset.quickFortune,
         label: '오늘의 운세',
         onTap: () => _openFortune(context),
       ),
       _QuickAction(
-        asset: 'assets/svg/icon_quiz.svg',
+        asset: PetSpaceIconAsset.quickQuiz,
         label: 'O/X 퀴즈',
         onTap: () => context.push('/quiz/play'),
       ),
@@ -91,14 +92,9 @@ class HomeQuickActions extends StatelessWidget {
                       color: AppTheme.border,
                       shape: BoxShape.circle,
                     ),
-                    child: SvgPicture.asset(
-                      action.asset,
-                      width: 24.w,
-                      height: 24.w,
-                      colorFilter: const ColorFilter.mode(
-                        AppTheme.primaryColor,
-                        BlendMode.srcIn,
-                      ),
+                    child: PetSpaceIcon(
+                      asset: action.asset,
+                      size: action.asset.defaultSize.w,
                     ),
                   ),
                   SizedBox(height: 8.h),
@@ -209,7 +205,7 @@ class HomeQuickActions extends StatelessWidget {
 }
 
 class _QuickAction {
-  final String asset;
+  final PetSpaceIconAsset asset;
   final String label;
   final VoidCallback onTap;
 

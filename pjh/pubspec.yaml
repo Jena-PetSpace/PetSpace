@@ -106,6 +106,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/quick_actions/
     - assets/images/capture_guide/emotion/
     - assets/images/capture_guide/eye_ear/
     - assets/images/capture_guide/nose_mouth/
