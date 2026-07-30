@@ -1,9 +1,9 @@
 # 작업지시서 초안: ICON-1 — 펫페이스 아이콘 시스템 정비
 
-- 상태: 초안
+- 상태: ICON-1A·1B 로컬 구현·자동 검증 완료, 실기기 검증 대기
 - 작성자: Codex
-- 승인자: 사용자 승인 대기
-- 담당: 미정
+- 승인자: 사용자 (2026-07-30 앱 코드 수정·복구 가능한 커밋 진행 승인)
+- 담당: Codex
 - 교차 리뷰어: 미정
 - 기준 브랜치: `win-android-release` (`02f74e50`)
 - 작업 브랜치: `feature/icon-system-plan-20260730`
@@ -305,4 +305,47 @@ git diff --check
 4. 하단 5탭은 이번에 변경하지 않는다.
 5. 1A·1B 실기기 검증 후 1C를 진행한다.
 
-이 기본안이 승인되면 다음 단계에서 정확한 1A·1B 구현 manifest와 시각 비교 시트를 만든다.
+## 11. ICON-1A·1B 구현 결과
+
+2026-07-30 사용자 승인에 따라 홈 바로가기 5종까지만 구현했다.
+
+### 구현 내용
+
+- 사용자 제공 PNG 내장 SVG에서 원본 PNG를 추출했다.
+- 모든 자산을 512×512 투명 캔버스로 정규화했다.
+- 산책 기록의 두 발자국을 하나의 자산으로 합성했다.
+- 컬러 래스터와 단색 SVG를 구분하는 `PetSpaceIcon` 렌더러를 추가했다.
+- 홈 바로가기 5종을 컬러 자산으로 교체했다.
+- 기존 라우팅·반려동물 선택·미구현 안내 동작은 변경하지 않았다.
+- 하단 5탭과 ICON-1C 공용 조작 아이콘은 변경하지 않았다.
+
+### 변경 파일
+
+- `pjh/pubspec.yaml`
+- `pjh/assets/images/quick_actions/quick_place.png`
+- `pjh/assets/images/quick_actions/quick_mbti.png`
+- `pjh/assets/images/quick_actions/quick_walk.png`
+- `pjh/assets/images/quick_actions/quick_fortune.png`
+- `pjh/assets/images/quick_actions/quick_quiz.png`
+- `pjh/lib/shared/models/petspace_icon_asset.dart`
+- `pjh/lib/shared/widgets/petspace_icon.dart`
+- `pjh/lib/features/home/presentation/widgets/home_quick_actions.dart`
+- `pjh/test/shared/widgets/petspace_icon_test.dart`
+- `pjh/test/features/home/presentation/widgets/home_quick_actions_test.dart`
+
+### 자동 검증 결과
+
+- 신규 대상 widget test: 5건 통과
+- 변경 파일별 `dart analyze`: 모두 통과
+- `flutter analyze --no-pub`: 통과, 이슈 0건
+- 전체 `flutter test --no-pub`: 901건 통과
+- `git diff --check`: 통과
+
+### 남은 사람 검증
+
+- 실제 홈 화면에서 다섯 아이콘의 시각 무게가 균등한지
+- 산책 기록 두 발자국 간격과 방향이 참고 이미지와 자연스럽게 일치하는지
+- Android·iOS 실제 화면에서 컬러가 흐리거나 번져 보이지 않는지
+- 각 버튼을 눌렀을 때 기존 기능 또는 기존 안내가 그대로 동작하는지
+
+실기기에서 이상이 없을 때만 ICON-1C 공용 조작 아이콘 이관을 별도 커밋으로 진행한다.
