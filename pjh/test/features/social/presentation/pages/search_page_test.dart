@@ -163,4 +163,29 @@ void main() {
 
     verify(() => bloc.add(const SearchAllRequested(query: 'pet'))).called(1);
   });
+
+  testWidgets('네트워크 오류는 연결 복구 상태로 안내한다', (tester) async {
+    await pumpPage(
+      tester,
+      state: const SearchState(
+        errors: {
+          SearchSection.discovery: '네트워크 연결을 확인하고 다시 시도해주세요.',
+        },
+      ),
+    );
+    expect(find.text('인터넷 연결을 확인해주세요'), findsOneWidget);
+  });
+
+  testWidgets('서버 오류는 잠시 후 재시도 상태로 안내한다', (tester) async {
+    await pumpPage(
+      tester,
+      state: const SearchState(
+        errors: {
+          SearchSection.discovery: '검색 결과를 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
+        },
+      ),
+    );
+    expect(find.text('검색 결과를 불러오지 못했어요'), findsOneWidget);
+    expect(find.text('잠시 후 다시 시도해주세요.'), findsOneWidget);
+  });
 }

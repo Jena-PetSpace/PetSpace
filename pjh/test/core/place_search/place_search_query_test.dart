@@ -49,6 +49,75 @@ void main() {
     expect(changed.longitude, query.longitude);
   });
 
+  test('category tabs reject unrelated Kakao keyword matches', () {
+    PlaceSearchItem item({
+      required String name,
+      required String category,
+    }) {
+      return PlaceSearchItem(
+        providerPlaceId: name,
+        name: name,
+        category: category,
+        address: '',
+        phone: '',
+        latitude: 37.5,
+        longitude: 127,
+        placeUrl: '',
+      );
+    }
+
+    expect(
+      matchesPlaceCategory(
+        item(name: '세무회계 사람', category: '전문,기술서비스 > 세무사'),
+        '동물병원',
+      ),
+      isFalse,
+    );
+    expect(
+      matchesPlaceCategory(
+        item(name: '누리봄동물병원', category: '의료,건강 > 동물병원'),
+        '동물병원',
+      ),
+      isTrue,
+    );
+    expect(
+      matchesPlaceCategory(
+        item(name: '우리동물약국', category: '의료,건강 > 약국'),
+        '약국',
+      ),
+      isTrue,
+    );
+    expect(
+      matchesPlaceCategory(
+        item(name: '스타벅스', category: '음식점 > 카페'),
+        '카페',
+      ),
+      isFalse,
+    );
+    expect(
+      matchesPlaceCategory(
+        item(name: '멍멍카페', category: '음식점 > 카페 > 애견카페'),
+        '카페',
+      ),
+      isTrue,
+    );
+    expect(
+      matchesPlaceCategory(
+        item(name: '몽실이', category: '가정,생활 > 반려동물 > 미용'),
+        '미용실',
+      ),
+      isTrue,
+    );
+    expect(
+      matchesPlaceCategory(
+        item(name: '세무회계 사람', category: '전문,기술서비스 > 세무사'),
+        '',
+      ),
+      isTrue,
+      reason: 'manual keyword searches must keep provider results',
+    );
+  });
+
   test('generation rejects an older response after a newer search', () {
     final generation = PlaceSearchGeneration();
     final a = generation.begin();

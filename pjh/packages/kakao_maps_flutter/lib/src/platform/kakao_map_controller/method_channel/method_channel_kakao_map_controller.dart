@@ -39,7 +39,7 @@ class MethodChannelKakaoMapController extends KakaoMapControllerPlatform {
       return;
     }
 
-    if (call.method == 'onMapError') {
+    if (call.method == 'onMapError' || call.method == 'onMapFailed') {
       if (!_readyCompleter.isCompleted) {
         _readyCompleter.completeError(
           StateError('Kakao map failed to initialize: ${call.arguments}'),
@@ -70,9 +70,10 @@ class MethodChannelKakaoMapController extends KakaoMapControllerPlatform {
       return;
     }
 
-    throw UnimplementedError(
-      '[Flutter:MethodChannelKakaoMapController] ${call.method} not implemented',
-    );
+    // Native implementations can add events before the Dart package learns
+    // how to consume them. Unknown callbacks must not crash the platform
+    // channel or leave map readiness unresolved.
+    return;
   }
 
   Future<void> _probeReadyState() async {

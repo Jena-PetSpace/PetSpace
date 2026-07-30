@@ -25,6 +25,7 @@ class _MyPostsPageState extends State<MyPostsPage>
   static const _kNoPet = '__none__'; // "기타" 필터용 (반려동물 없이 분석)
   late TabController _tabController;
   String? _selectedPetFilter; // null = 전체, _kNoPet = 기타, petId = 특정 반려동물
+  final Set<String> _hiddenPostIds = <String>{};
 
   @override
   void initState() {
@@ -129,7 +130,10 @@ class _MyPostsPageState extends State<MyPostsPage>
           return const Center(child: CircularProgressIndicator());
         }
         if (state is FeedLoaded) {
-          if (state.posts.isEmpty) {
+          final visiblePosts = state.posts
+              .where((post) => !_hiddenPostIds.contains(post.id))
+              .toList(growable: false);
+          if (visiblePosts.isEmpty) {
             return _buildEmptyState(
               title: '작성한 게시물이 없습니다',
               subtitle: '반려동물의 일상을 공유해보세요!',
@@ -144,10 +148,10 @@ class _MyPostsPageState extends State<MyPostsPage>
             },
             child: ListView.separated(
               padding: EdgeInsets.all(16.w),
-              itemCount: state.posts.length,
+              itemCount: visiblePosts.length,
               separatorBuilder: (_, __) => SizedBox(height: 12.h),
               itemBuilder: (context, index) {
-                final post = state.posts[index];
+                final post = visiblePosts[index];
                 final authState = context.read<AuthBloc>().state;
                 final userId =
                     authState is AuthAuthenticated ? authState.user.uid : '';
@@ -158,7 +162,9 @@ class _MyPostsPageState extends State<MyPostsPage>
                         LikePostRequested(postId: post.id, userId: userId),
                       ),
                   onComment: () => context.push('/post/${post.id}'),
+                  onOpenDetail: () => _openPostDetail(post.id),
                   onShare: () {},
+                  onBlocked: () => setState(() => _hiddenPostIds.add(post.id)),
                 );
               },
             ),
@@ -186,6 +192,13 @@ class _MyPostsPageState extends State<MyPostsPage>
         return const Center(child: CircularProgressIndicator());
       },
     );
+  }
+
+  Future<void> _openPostDetail(String postId) async {
+    final removed = await context.push<bool>('/post/$postId');
+    if (removed == true && mounted) {
+      setState(() => _hiddenPostIds.add(postId));
+    }
   }
 
   // ─── 감정분석 탭 ───

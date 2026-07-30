@@ -2,14 +2,17 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../../core/error/error_messages.dart';
 import '../../../../core/utils/auth_input_validators.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 import '../../../../shared/widgets/rate_limit_countdown.dart';
 import '../../../auth/domain/entities/user.dart';
 import '../../../auth/domain/services/account_deletion_policy.dart';
@@ -27,51 +30,11 @@ class OnboardingLoginPage extends StatefulWidget {
 }
 
 class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
-  // Google Identity가 제공하는 2026 iOS Light 원형 로그인 아이콘 원본.
-  // 임의의 단색 G를 만들지 않고 승인된 자산을 그대로 렌더링한다.
-  static final _googleSignInButtonPng = base64Decode(
-    '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',
-  );
+  static final Future<Uint8List> _googleSignInButtonPng = rootBundle
+      .loadString('assets/images/google_sign_in_round_light.png.b64')
+      .then(
+        (encoded) => base64Decode(encoded.replaceAll(RegExp(r'\s+'), '')),
+      );
 
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -251,23 +214,11 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                       ),
                     ],
                     SizedBox(height: 20.h),
-                    SizedBox(
-                      height: 52,
-                      child: ElevatedButton(
-                        key: const ValueKey('email-auth-submit'),
-                        onPressed: _isPending ? null : _submitEmail,
-                        child: _pendingProvider == 'Email'
-                            ? const SizedBox.square(
-                                dimension: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                _isLogin ? '로그인하기' : '회원가입 계속하기',
-                              ),
-                      ),
+                    PetSpaceV3PrimaryButton(
+                      key: const ValueKey('email-auth-submit'),
+                      label: _isLogin ? '로그인하기' : '회원가입 계속하기',
+                      onPressed: _isPending ? null : _submitEmail,
+                      loading: _pendingProvider == 'Email',
                     ),
                   ],
                 ),
@@ -356,7 +307,11 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
               ? null
               : () => setState(() {
                     _isLogin = !_isLogin;
-                    _formKey.currentState?.reset();
+                    // 로그인/회원가입 전환 시 아이디는 유지해 재입력을 줄이고,
+                    // 비밀번호 계열만 새 인증 흐름에 남지 않도록 초기화한다.
+                    _passwordController.clear();
+                    _passwordConfirmController.clear();
+                    _rateLimitDuration = null;
                   }),
           style: TextButton.styleFrom(foregroundColor: linkColor),
           child: Text(_isLogin ? '회원가입' : '로그인'),
@@ -404,7 +359,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
     final isLoading = _pendingProvider == provider;
     final semanticsLabel = switch (provider) {
       'Google' => 'Google로 로그인하기',
-      'Kakao' => '카카오톡으로 로그인하기',
+      'Kakao' => '카카오 로그인',
       _ => 'Apple로 로그인하기',
     };
     final (Color background, Color foreground, Color border, Widget icon) =
@@ -413,20 +368,39 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
           isDark ? Colors.white : Colors.black,
           isDark ? Colors.black : Colors.white,
           Colors.transparent,
-          const Icon(Icons.apple, size: 26),
+          SizedBox.square(
+            key: const Key('apple-login-brand-icon'),
+            dimension: 28,
+            child: CustomPaint(
+              painter: AppleLogoPainter(
+                color: isDark ? Colors.black : Colors.white,
+              ),
+            ),
+          ),
         ),
       'Google' => (
           Colors.transparent,
           AppTheme.actionBase,
           Colors.transparent,
-          Image.memory(
-            _googleSignInButtonPng,
+          SizedBox.square(
             key: const Key('google-login-brand-icon'),
-            width: 58,
-            height: 58,
-            fit: BoxFit.contain,
-            gaplessPlayback: true,
-            filterQuality: FilterQuality.high,
+            dimension: 58,
+            child: FutureBuilder<Uint8List>(
+              future: _googleSignInButtonPng,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const SizedBox.shrink();
+                }
+                return Image.memory(
+                  snapshot.requireData,
+                  width: 58,
+                  height: 58,
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                  filterQuality: FilterQuality.high,
+                );
+              },
+            ),
           ),
         ),
       _ => (
@@ -446,36 +420,37 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
       label: semanticsLabel,
       button: true,
       enabled: enabled,
-      child: ExcludeSemantics(
-        child: Tooltip(
-          message: semanticsLabel,
-          child: Material(
-            key: ValueKey('social-login-$provider'),
-            color: background,
-            shape: CircleBorder(side: BorderSide(color: border)),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: enabled ? () => _beginProvider(provider) : null,
-              customBorder: const CircleBorder(),
-              child: SizedBox.square(
-                dimension: 58,
-                child: Center(
-                  child: isLoading
-                      ? SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: foreground,
-                          ),
-                        )
-                      : IconTheme(
-                          data: IconThemeData(color: foreground),
-                          child: DefaultTextStyle(
-                            style: TextStyle(color: foreground),
-                            child: icon,
-                          ),
+      excludeSemantics: true,
+      onTap: enabled ? () => _beginProvider(provider) : null,
+      child: Tooltip(
+        message: semanticsLabel,
+        child: Material(
+          key: ValueKey('social-login-$provider'),
+          color: background,
+          shape: CircleBorder(side: BorderSide(color: border)),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: enabled ? () => _beginProvider(provider) : null,
+            customBorder: const CircleBorder(),
+            child: SizedBox.square(
+              dimension: 58,
+              child: Center(
+                child: isLoading
+                    ? SizedBox.square(
+                        key: ValueKey('social-login-progress-$provider'),
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: foreground,
                         ),
-                ),
+                      )
+                    : IconTheme(
+                        data: IconThemeData(color: foreground),
+                        child: DefaultTextStyle(
+                          style: TextStyle(color: foreground),
+                          child: icon,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -492,6 +467,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
         !RegExp(r'[0-9]').hasMatch(password)) {
       return '영문과 숫자를 포함해 8자 이상 입력해주세요.';
     }
+    if (password.length > 72) return '비밀번호는 최대 72자까지 입력할 수 있어요.';
     return null;
   }
 

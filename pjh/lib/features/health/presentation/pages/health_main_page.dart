@@ -156,6 +156,10 @@ class _HealthMainViewState extends State<_HealthMainView> {
         : state.records
             .where((record) => record.recordType == _selectedFilter)
             .toList();
+    final upcomingCare = state.upcomingAlerts
+        .where((record) => record.dueDate != null)
+        .toList()
+      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
     final selectedLabel =
         _filterTypes.firstWhere((entry) => entry.$1 == _selectedFilter).$2;
     return RefreshIndicator(
@@ -168,18 +172,24 @@ class _HealthMainViewState extends State<_HealthMainView> {
           children: [
             _buildPetBar(pet),
             SizedBox(height: 22.h),
-            _buildSectionHeader(title: '다음 케어', trailing: '가까운 일정 1개'),
+            _buildSectionHeader(
+              title: '다음 케어',
+              trailing: _upcomingCareSummary(upcomingCare.length),
+              trailingKey: const Key('health_next_care_summary'),
+            ),
             SizedBox(height: 10.h),
-            _buildUpcomingAlerts(state.upcomingAlerts),
+            _buildUpcomingAlerts(upcomingCare),
             SizedBox(height: 12.h),
             SizedBox(
               width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                key: const Key('health_add_record_cta'),
-                onPressed: () => _showAddRecordSheet(context),
-                icon: const Icon(Icons.add),
-                label: const Text('건강 기록 추가'),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 52),
+                child: ElevatedButton.icon(
+                  key: const Key('health_add_record_cta'),
+                  onPressed: () => _showAddRecordSheet(context),
+                  icon: const Icon(Icons.add),
+                  label: const Text('건강 기록 추가'),
+                ),
               ),
             ),
             SizedBox(height: 26.h),
@@ -282,21 +292,25 @@ class _HealthMainViewState extends State<_HealthMainView> {
   Widget _buildSectionHeader({
     required String title,
     required String trailing,
+    Key? trailingKey,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: AppTheme.fontHeading.sp,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.titleLarge?.color,
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: AppTheme.fontHeading.sp,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).textTheme.titleLarge?.color,
+            ),
           ),
         ),
+        SizedBox(width: 12.w),
         Flexible(
           child: Text(
+            key: trailingKey,
             trailing,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -392,28 +406,31 @@ class _HealthMainViewState extends State<_HealthMainView> {
   };
 
   Widget _buildFilterChips() {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.zero,
-        itemCount: _filterTypes.length,
-        separatorBuilder: (_, __) => SizedBox(width: 6.w),
-        itemBuilder: (context, i) {
-          final (type, label) = _filterTypes[i];
-          return _typeChip(
-            label: label,
-            color: _filterTypeColors[type]!,
-            isSelected: _selectedFilter == type,
-            onTap: () => setState(() => _selectedFilter = type),
-          );
-        },
+    return SingleChildScrollView(
+      key: const Key('health_record_filter_strip'),
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var i = 0; i < _filterTypes.length; i++) ...[
+            if (i > 0) SizedBox(width: 6.w),
+            _typeChip(
+              key: Key(
+                'health_filter_${_filterTypes[i].$1?.name ?? 'all'}',
+              ),
+              label: _filterTypes[i].$2,
+              color: _filterTypeColors[_filterTypes[i].$1]!,
+              isSelected: _selectedFilter == _filterTypes[i].$1,
+              onTap: () => setState(() => _selectedFilter = _filterTypes[i].$1),
+            ),
+          ],
+        ],
       ),
     );
   }
 
   /// 라벨 알약 칩 — 필터와 시트의 유형 선택이 공용으로 사용.
   Widget _typeChip({
+    Key? key,
     required String label,
     required Color color,
     required bool isSelected,
@@ -421,6 +438,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
   }) {
     final theme = Theme.of(context);
     return Semantics(
+      key: key,
       button: true,
       selected: isSelected,
       label: '$label 기록 필터',
@@ -461,6 +479,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
     final alert = alerts.isEmpty ? null : alerts.first;
     final dueDate = alert?.dueDate;
     return Container(
+      key: const Key('health_next_care_card'),
       width: double.infinity,
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
@@ -475,6 +494,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
         children: [
           if (alert == null || dueDate == null)
             Row(
+              key: const Key('health_next_care_empty'),
               children: [
                 _careIcon(Icons.event_available_outlined),
                 SizedBox(width: 12.w),
@@ -504,6 +524,7 @@ class _HealthMainViewState extends State<_HealthMainView> {
             )
           else ...[
             Semantics(
+              key: const Key('health_next_care_item'),
               label:
                   '${alert.title}, ${_formatDate(dueDate)}, ${_formatDday(alert.daysUntilDue())}',
               child: Row(
@@ -515,8 +536,9 @@ class _HealthMainViewState extends State<_HealthMainView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
+                          key: const Key('health_next_care_title'),
                           alert.title,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: AppTheme.fontBody.sp,
@@ -569,6 +591,12 @@ class _HealthMainViewState extends State<_HealthMainView> {
         ],
       ),
     );
+  }
+
+  String _upcomingCareSummary(int count) {
+    if (count == 0) return '예정 없음';
+    if (count == 1) return '가까운 일정 1개';
+    return '가까운 일정 $count개 중 1개';
   }
 
   Widget _careIcon(IconData icon) {

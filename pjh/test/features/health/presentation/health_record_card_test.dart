@@ -64,14 +64,14 @@ void main() {
     expect(taps, 1);
   });
 
-  testWidgets('record card has no overflow at 320x568 and 150 percent text',
+  testWidgets('record card has no overflow at 320x568 and 200 percent text',
       (tester) async {
     tester.view.physicalSize = const Size(640, 1136);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
-      _wrap(onTap: () {}, textScale: 1.5),
+      _wrap(onTap: () {}, textScale: 2),
     );
 
     expect(tester.takeException(), isNull);

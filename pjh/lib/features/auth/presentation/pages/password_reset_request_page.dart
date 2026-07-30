@@ -6,9 +6,15 @@ import '../../../../core/utils/auth_input_validators.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
 import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 
 class PasswordResetRequestPage extends StatefulWidget {
-  const PasswordResetRequestPage({super.key});
+  final GoTrueClient? authClient;
+
+  const PasswordResetRequestPage({
+    super.key,
+    this.authClient,
+  });
 
   @override
   State<PasswordResetRequestPage> createState() =>
@@ -23,6 +29,8 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
 
   bool get _canSendResetCode =>
       AuthInputValidators.isValidEmail(_emailController.text);
+  GoTrueClient get _authClient =>
+      widget.authClient ?? Supabase.instance.client.auth;
 
   @override
   void dispose() {
@@ -41,24 +49,28 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
     try {
       final email = _emailController.text.trim();
 
-      // Supabase는 등록되지 않은 이메일에도 동일하게 응답한다. 계정 존재 여부를
-      // 화면 문구나 분기에서 추측할 수 없도록 성공·일반 실패 안내도 중립적으로 유지한다.
-      await Supabase.instance.client.auth.signInWithOtp(
+      // 계정 생성은 금지하고, 계정 존재 여부를 화면 문구나 분기에서 추측할 수
+      // 없도록 성공·일반 실패 안내를 같은 중립 흐름으로 유지한다.
+      await _authClient.signInWithOtp(
         email: email,
         emailRedirectTo: null,
+        shouldCreateUser: false,
       );
 
       if (mounted) {
-        context.go(
-          '/auth/password-reset/verify?email=${Uri.encodeComponent(email)}',
-        );
+        _goToVerification(email);
       }
     } on AuthException catch (error) {
-      if (mounted) {
+      if (!mounted) return;
+      if (_isRateLimitError(error.message)) {
         setState(() {
           _isLoading = false;
           _errorMessage = _getErrorMessage(error.message);
         });
+      } else {
+        // 미등록 주소의 Supabase 응답도 성공과 같은 화면으로 보내 계정 존재
+        // 여부를 노출하지 않는다. 이 경우 코드는 검증되지 않는다.
+        _goToVerification(_emailController.text.trim());
       }
     } catch (_) {
       if (mounted) {
@@ -70,9 +82,19 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
     }
   }
 
+  void _goToVerification(String email) {
+    context.go(
+      '/auth/password-reset/verify?email=${Uri.encodeComponent(email)}',
+    );
+  }
+
+  bool _isRateLimitError(String error) {
+    final normalized = error.toLowerCase();
+    return normalized.contains('rate limit') || normalized.contains('too many');
+  }
+
   String _getErrorMessage(String error) {
-    if (error.toLowerCase().contains('rate limit') ||
-        error.toLowerCase().contains('too many')) {
+    if (_isRateLimitError(error)) {
       return '요청이 많아 잠시 쉬어가야 해요. 잠시 후 다시 시도해주세요.';
     }
     return '입력한 주소로 안내를 보내지 못했어요. 잠시 후 다시 시도해주세요.';
@@ -188,22 +210,11 @@ class _PasswordResetRequestPageState extends State<PasswordResetRequestPage> {
       ),
       bottomNavigationBar: PetSpaceBottomActionBar(
         minimum: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-        child: SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            key: const ValueKey('password-reset-submit'),
-            onPressed: _isLoading || !_canSendResetCode ? null : _sendResetCode,
-            child: _isLoading
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Text('인증 코드 받기'),
-          ),
+        child: PetSpaceV3PrimaryButton(
+          key: const ValueKey('password-reset-submit'),
+          label: '인증 코드 받기',
+          onPressed: _isLoading || !_canSendResetCode ? null : _sendResetCode,
+          loading: _isLoading,
         ),
       ),
     );

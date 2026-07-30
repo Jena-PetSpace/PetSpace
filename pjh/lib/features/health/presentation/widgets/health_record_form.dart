@@ -113,39 +113,39 @@ class HealthRecordForm extends StatelessWidget {
       children: [
         _label(context, '기록 유형', '필수'),
         SizedBox(height: 8.h),
-        SizedBox(
-          height: 44,
-          child: ListView.separated(
-            key: const Key('health_record_type_selector'),
-            scrollDirection: Axis.horizontal,
-            itemCount: _types.length,
-            separatorBuilder: (_, __) => SizedBox(width: 8.w),
-            itemBuilder: (context, index) {
-              final (type, label) = _types[index];
-              return ChoiceChip(
-                key: Key('health_type_${type.name}'),
-                label: Text(label),
-                selected: selectedType == type,
-                onSelected: enabled ? (_) => onTypeChanged(type) : null,
-                showCheckmark: false,
-                selectedColor: AppTheme.actionBase,
-                labelStyle: TextStyle(
-                  color: selectedType == type
-                      ? Colors.white
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                  fontSize: AppTheme.fontCaption.sp,
+        SingleChildScrollView(
+          key: const Key('health_record_type_selector'),
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (var index = 0; index < _types.length; index++) ...[
+                if (index > 0) SizedBox(width: 8.w),
+                ChoiceChip(
+                  key: Key('health_type_${_types[index].$1.name}'),
+                  label: Text(_types[index].$2),
+                  selected: selectedType == _types[index].$1,
+                  onSelected:
+                      enabled ? (_) => onTypeChanged(_types[index].$1) : null,
+                  showCheckmark: false,
+                  selectedColor: AppTheme.actionBase,
+                  labelStyle: TextStyle(
+                    color: selectedType == _types[index].$1
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    fontSize: AppTheme.fontCaption.sp,
+                  ),
+                  side: BorderSide(
+                    color: selectedType == _types[index].$1
+                        ? AppTheme.actionBase
+                        : AppTheme.border,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
+                  ),
                 ),
-                side: BorderSide(
-                  color: selectedType == type
-                      ? AppTheme.actionBase
-                      : AppTheme.border,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm.r),
-                ),
-              );
-            },
+              ],
+            ],
           ),
         ),
         SizedBox(height: 22.h),

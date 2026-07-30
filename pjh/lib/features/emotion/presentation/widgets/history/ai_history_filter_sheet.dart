@@ -65,13 +65,11 @@ class _AiHistoryFilterSheetState extends State<AiHistoryFilterSheet> {
   @override
   void initState() {
     super.initState();
-    _type = widget.emotionOnly
-        ? AiHistoryTypeFilter.emotion
-        : widget.initial.type;
+    _type =
+        widget.emotionOnly ? AiHistoryTypeFilter.emotion : widget.initial.type;
     _dateRange = widget.initial.dateRange;
-    _attentionOnly = widget.emotionOnly
-        ? false
-        : widget.initial.healthAttentionOnly;
+    _attentionOnly =
+        widget.emotionOnly ? false : widget.initial.healthAttentionOnly;
   }
 
   @override
@@ -177,24 +175,33 @@ class _AiHistoryFilterSheetState extends State<AiHistoryFilterSheet> {
           SizedBox(height: 20.h),
           SizedBox(
             width: double.infinity,
-            height: 52.h,
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).pop(
-                AiHistoryFilterSelection(
-                  type: _type,
-                  dateRange: _dateRange,
-                  healthAttentionOnly: _attentionOnly,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: 52.h),
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(
+                  AiHistoryFilterSelection(
+                    type: _type,
+                    dateRange: _dateRange,
+                    healthAttentionOnly: _attentionOnly,
+                  ),
                 ),
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.actionBase,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14.r),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.actionBase,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 18.w,
+                    vertical: 14.h,
+                  ),
                 ),
-              ),
-              child: Text(
-                '적용하기',
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w700),
+                child: Text(
+                  '적용하기',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ),
           ),
@@ -204,16 +211,16 @@ class _AiHistoryFilterSheetState extends State<AiHistoryFilterSheet> {
   }
 
   Widget _label(String value) => Padding(
-    padding: EdgeInsets.only(bottom: 10.h),
-    child: Text(
-      value,
-      style: TextStyle(
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w700,
-        color: AppTheme.primaryTextColor,
-      ),
-    ),
-  );
+        padding: EdgeInsets.only(bottom: 10.h),
+        child: Text(
+          value,
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.primaryTextColor,
+          ),
+        ),
+      );
 
   Widget _choiceChip(String label, bool selected, VoidCallback onTap) {
     return ChoiceChip(
@@ -236,9 +243,9 @@ class _AiHistoryFilterSheetState extends State<AiHistoryFilterSheet> {
   }
 
   void _setType(AiHistoryTypeFilter value) => setState(() {
-    _type = value;
-    if (value == AiHistoryTypeFilter.emotion) _attentionOnly = false;
-  });
+        _type = value;
+        if (value == AiHistoryTypeFilter.emotion) _attentionOnly = false;
+      });
 
   void _setDate(AiHistoryDateRange value) => setState(() => _dateRange = value);
 }

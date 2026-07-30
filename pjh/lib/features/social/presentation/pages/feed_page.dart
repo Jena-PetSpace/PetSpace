@@ -18,8 +18,7 @@ import '../widgets/operational_card_tile.dart';
 import '../widgets/post_card_connector.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
-import '../../../../shared/widgets/network_error_widget.dart';
-import '../../../../shared/widgets/empty_state_widget.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 import '../../../../shared/themes/app_theme.dart';
 
 class FeedPage extends StatefulWidget {
@@ -275,7 +274,13 @@ class _FeedPageState extends State<FeedPage> {
     FeedRecommendedLoaded state,
     List<OperationalCard> cards,
   ) {
-    final items = _interleaveOperationalCards(state.posts, cards);
+    final visiblePosts = state.posts
+        .where((post) => !_hiddenPostIds.contains(post.id))
+        .toList(growable: false);
+    if (visiblePosts.isEmpty && state.posts.isNotEmpty) {
+      return _buildBlockedHiddenState();
+    }
+    final items = _interleaveOperationalCards(visiblePosts, cards);
     return ListView.builder(
       controller: _scrollController,
       padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -300,20 +305,24 @@ class _FeedPageState extends State<FeedPage> {
     if (state.posts.isEmpty) {
       return _buildEmptyState();
     }
+    final visiblePosts = state.posts
+        .where((post) => !_hiddenPostIds.contains(post.id))
+        .toList(growable: false);
+    if (visiblePosts.isEmpty) return _buildBlockedHiddenState();
 
     return ListView.builder(
       controller: _scrollController,
       padding: EdgeInsets.symmetric(vertical: 8.h),
-      itemCount: state.posts.length + (state.isLoadingMore ? 1 : 0),
+      itemCount: visiblePosts.length + (state.isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index >= state.posts.length) {
+        if (index >= visiblePosts.length) {
           return Padding(
             padding: EdgeInsets.symmetric(vertical: 16.h),
             child: const Center(child: CircularProgressIndicator()),
           );
         }
 
-        final post = state.posts[index];
+        final post = visiblePosts[index];
         return _buildPostCard(post);
       },
     );
@@ -384,22 +393,26 @@ class _FeedPageState extends State<FeedPage> {
 
   Widget _buildEmptyState() {
     final isFollowing = widget.followingOnly;
-    return EmptyStateWidget(
-      icon: Icons.feed_outlined,
+    return PetSpaceV3StateView(
+      kind: PetSpaceV3StateKind.empty,
       title: isFollowing ? '팔로잉 피드가 비어있어요' : '아직 게시물이 없어요',
-      subtitle: isFollowing
-          ? '친구를 팔로우하고\n반려동물 일상을 함께해보세요!'
-          : '반려동물의 일상을 공유하고\n친구들과 소통해보세요!',
-      secondaryLabel: isFollowing ? '탐색하기' : null,
-      onSecondary: isFollowing ? () => context.go('/search') : null,
-      actionLabel: '첫 게시물 작성',
-      onAction: _openCanonicalComposer,
+      message: isFollowing
+          ? '친구를 팔로우하고 반려동물 일상을 함께해보세요.'
+          : '사진과 함께 반려동물의 첫 일상을 공유해보세요.',
+      primaryActionLabel: '첫 게시물 작성',
+      onPrimaryAction: _openCanonicalComposer,
+      secondaryActionLabel: isFollowing ? '사용자 탐색' : null,
+      onSecondaryAction: isFollowing ? () => context.go('/search') : null,
     );
   }
 
   Widget _buildNetworkErrorState() {
-    return NetworkErrorScreen(
-      onRetry: () => context.read<FeedBloc>().add(
+    return PetSpaceV3StateView(
+      kind: PetSpaceV3StateKind.network,
+      title: '인터넷 연결을 확인해주세요',
+      message: '연결이 복구되면 피드를 다시 불러올 수 있어요.',
+      primaryActionLabel: '다시 시도',
+      onPrimaryAction: () => context.read<FeedBloc>().add(
             LoadFeedRequested(
               userId: widget.userId,
               followingOnly: widget.followingOnly,
@@ -409,39 +422,26 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Widget _buildErrorState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64.w, color: AppTheme.errorColor),
-          SizedBox(height: 16.h),
-          Text(
-            '오류가 발생했습니다',
-            style: TextStyle(
-              fontSize: 18.sp,
-              color: Theme.of(context).textTheme.titleMedium?.color,
+    return PetSpaceV3StateView(
+      kind: PetSpaceV3StateKind.server,
+      title: '피드를 불러오지 못했어요',
+      message: message,
+      primaryActionLabel: '다시 시도',
+      onPrimaryAction: () => context.read<FeedBloc>().add(
+            LoadFeedRequested(
+              userId: widget.userId,
+              followingOnly: widget.followingOnly,
             ),
           ),
-          SizedBox(height: 8.h),
-          Text(
-            message,
-            style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: () {
-              context.read<FeedBloc>().add(
-                    LoadFeedRequested(
-                      userId: widget.userId,
-                      followingOnly: widget.followingOnly,
-                    ),
-                  );
-            },
-            child: Text('다시 시도', style: TextStyle(fontSize: 14.sp)),
-          ),
-        ],
-      ),
+    );
+  }
+
+  Widget _buildBlockedHiddenState() {
+    return const PetSpaceV3StateView(
+      key: Key('feed_blocked_hidden'),
+      kind: PetSpaceV3StateKind.blockedHidden,
+      title: '차단한 사용자의 게시물을 숨겼어요',
+      message: '새 게시물이 등록되거나 새로고침하면 최신 피드를 확인할 수 있어요.',
     );
   }
 

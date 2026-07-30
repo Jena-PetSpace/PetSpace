@@ -12,6 +12,9 @@ class CommentCard extends StatelessWidget {
   final VoidCallback onLike;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
+  final ValueChanged<Comment>? onReport;
+  final ValueChanged<Comment>? onUserActions;
+  final Set<String> hiddenAuthorIds;
 
   const CommentCard({
     super.key,
@@ -21,6 +24,9 @@ class CommentCard extends StatelessWidget {
     required this.onLike,
     this.onDelete,
     this.onEdit,
+    this.onReport,
+    this.onUserActions,
+    this.hiddenAuthorIds = const <String>{},
   });
 
   @override
@@ -62,16 +68,20 @@ class CommentCard extends StatelessWidget {
   }
 
   Widget _buildCommentHeader() {
-    return Row(
+    return Wrap(
+      spacing: 8.w,
+      runSpacing: 2.h,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
           comment.authorName,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 13.sp,
           ),
         ),
-        SizedBox(width: 8.w),
         Text(
           _formatDateTime(comment.createdAt),
           style: TextStyle(
@@ -96,53 +106,61 @@ class CommentCard extends StatelessWidget {
   Widget _buildCommentActions() {
     return Row(
       children: [
-        InkWell(
-          onTap: onLike,
-          borderRadius: BorderRadius.circular(16.r),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  comment.isLikedByCurrentUser
-                      ? Icons.favorite
-                      : Icons.favorite_border,
-                  size: 14.w,
-                  color:
-                      comment.isLikedByCurrentUser ? AppTheme.errorColor : AppTheme.neutral500,
+        Expanded(
+          child: Wrap(
+            spacing: 8.w,
+            runSpacing: 4.h,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              InkWell(
+                onTap: onLike,
+                borderRadius: BorderRadius.circular(16.r),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        comment.isLikedByCurrentUser
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        size: 14.w,
+                        color: comment.isLikedByCurrentUser
+                            ? AppTheme.errorColor
+                            : AppTheme.neutral500,
+                      ),
+                      if (comment.likesCount > 0) ...[
+                        SizedBox(width: 4.w),
+                        Text(
+                          '${comment.likesCount}',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: AppTheme.neutral500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                if (comment.likesCount > 0) ...[
-                  SizedBox(width: 4.w),
-                  Text(
-                    '${comment.likesCount}',
+              ),
+              InkWell(
+                onTap: onReply,
+                borderRadius: BorderRadius.circular(16.r),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  child: Text(
+                    '답글',
                     style: TextStyle(
                       fontSize: 11.sp,
                       color: AppTheme.neutral500,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        SizedBox(width: 16.w),
-        InkWell(
-          onTap: onReply,
-          borderRadius: BorderRadius.circular(16.r),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-            child: Text(
-              '답글',
-              style: TextStyle(
-                fontSize: 11.sp,
-                color: AppTheme.neutral500,
-                fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
+            ],
           ),
         ),
-        const Spacer(),
         if (comment.authorId == currentUserId)
           PopupMenuButton<String>(
             icon: Icon(
@@ -168,7 +186,8 @@ class CommentCard extends StatelessWidget {
                     Icon(Icons.delete, size: 16.w, color: AppTheme.errorColor),
                     SizedBox(width: 8.w),
                     Text('삭제',
-                        style: TextStyle(color: AppTheme.errorColor, fontSize: 14.sp)),
+                        style: TextStyle(
+                            color: AppTheme.errorColor, fontSize: 14.sp)),
                   ],
                 ),
               ),
@@ -181,6 +200,35 @@ class CommentCard extends StatelessWidget {
                 case 'delete':
                   onDelete?.call();
                   break;
+              }
+            },
+          )
+        else if (onReport != null || onUserActions != null)
+          PopupMenuButton<String>(
+            key: Key('comment_options_${comment.id}'),
+            tooltip: '댓글 더보기',
+            icon: Icon(
+              Icons.more_horiz,
+              size: 18.w,
+              color: AppTheme.neutral500,
+            ),
+            itemBuilder: (context) => [
+              if (onReport != null)
+                const PopupMenuItem(
+                  value: 'report_comment',
+                  child: Text('댓글 신고'),
+                ),
+              if (onUserActions != null)
+                const PopupMenuItem(
+                  value: 'user_actions',
+                  child: Text('사용자 신고 · 차단'),
+                ),
+            ],
+            onSelected: (value) {
+              if (value == 'report_comment') {
+                onReport?.call(comment);
+              } else if (value == 'user_actions') {
+                onUserActions?.call(comment);
               }
             },
           ),
@@ -198,12 +246,17 @@ class CommentCard extends StatelessWidget {
         ),
       ),
       child: Column(
-        children: comment.replies.map((reply) {
+        children: comment.replies
+            .where((reply) => !hiddenAuthorIds.contains(reply.authorId))
+            .map((reply) {
           return CommentCard(
             comment: reply,
             currentUserId: currentUserId,
             onReply: onReply,
             onLike: onLike,
+            onReport: onReport,
+            onUserActions: onUserActions,
+            hiddenAuthorIds: hiddenAuthorIds,
           );
         }).toList(),
       ),

@@ -28,18 +28,27 @@ import 'health_result_page.dart';
 
 class AiHistoryPage extends StatelessWidget {
   final bool selectMode;
+  final AiHistoryBloc? historyBloc;
 
-  const AiHistoryPage({super.key, this.selectMode = false});
+  const AiHistoryPage({
+    super.key,
+    this.selectMode = false,
+    this.historyBloc,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final view = _AiHistoryView(selectMode: selectMode);
+    if (historyBloc != null) {
+      return BlocProvider.value(value: historyBloc!, child: view);
+    }
     return BlocProvider(
       create: (_) => AiHistoryBloc(
         repository: sl<EmotionRepository>(),
         preferences: sl<SharedPreferences>(),
         emotionOnly: selectMode,
       ),
-      child: _AiHistoryView(selectMode: selectMode),
+      child: view,
     );
   }
 }
@@ -89,12 +98,12 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
       _ => const <Pet>[],
     };
     context.read<AiHistoryBloc>().add(
-      AiHistoryContextChanged(
-        userId: authState.user.uid,
-        pets: pets,
-        petsFailed: petState is PetError,
-      ),
-    );
+          AiHistoryContextChanged(
+            userId: authState.user.uid,
+            pets: pets,
+            petsFailed: petState is PetError,
+          ),
+        );
   }
 
   @override
@@ -126,8 +135,7 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
               children: [
                 _buildControls(state),
                 Expanded(
-                  child:
-                      widget.selectMode ||
+                  child: widget.selectMode ||
                           state.segment == AiHistorySegment.records
                       ? _buildRecords(state)
                       : _buildFlow(state),
@@ -159,22 +167,22 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
                     AnalysisSubTab(
                       label: '기록',
                       index: 0,
-                      currentIndex: state.segment == AiHistorySegment.records
-                          ? 0
-                          : 1,
+                      currentIndex:
+                          state.segment == AiHistorySegment.records ? 0 : 1,
                       onSelected: (_) => context.read<AiHistoryBloc>().add(
-                        const AiHistorySegmentChanged(AiHistorySegment.records),
-                      ),
+                            const AiHistorySegmentChanged(
+                                AiHistorySegment.records),
+                          ),
                     ),
                     AnalysisSubTab(
                       label: '흐름',
                       index: 1,
-                      currentIndex: state.segment == AiHistorySegment.records
-                          ? 0
-                          : 1,
+                      currentIndex:
+                          state.segment == AiHistorySegment.records ? 0 : 1,
                       onSelected: (_) => context.read<AiHistoryBloc>().add(
-                        const AiHistorySegmentChanged(AiHistorySegment.flow),
-                      ),
+                            const AiHistorySegmentChanged(
+                                AiHistorySegment.flow),
+                          ),
                     ),
                   ],
                 ),
@@ -188,8 +196,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
                   !widget.selectMode && state.segment == AiHistorySegment.flow,
               enabled: !state.petsFailed,
               onChanged: (scope) => context.read<AiHistoryBloc>().add(
-                AiHistoryScopeChanged(scope),
-              ),
+                    AiHistoryScopeChanged(scope),
+                  ),
             ),
           ],
         ),
@@ -206,10 +214,10 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
     }
     if (state.status == AiHistoryLoadStatus.failure && state.records.isEmpty) {
       return _errorState(
-        state.errorMessage ?? '기록을 불러오지 못했어요',
+        '기록을 불러오지 못했어요',
         () => context.read<AiHistoryBloc>().add(
-          const AiHistoryRefreshRequested(),
-        ),
+              const AiHistoryRefreshRequested(),
+            ),
       );
     }
 
@@ -219,7 +227,9 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
       if (!widget.selectMode && _hasAttentionRecord(state))
         _buildAttentionBanner(),
       if (state.errorMessage != null && state.records.isNotEmpty)
-        _inlineError(state.errorMessage!),
+        _inlineError(
+          '일부 기록을 새로 불러오지 못했어요. 현재 목록은 계속 확인할 수 있어요.',
+        ),
     ];
     if (state.records.isEmpty) {
       children.add(_buildEmptyState(state));
@@ -239,8 +249,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: OutlinedButton(
               onPressed: () => context.read<AiHistoryBloc>().add(
-                const AiHistoryNextPageRequested(),
-              ),
+                    const AiHistoryNextPageRequested(),
+                  ),
               child: const Text('다음 기록 범위 확인'),
             ),
           ),
@@ -294,8 +304,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: OutlinedButton(
               onPressed: () => context.read<AiHistoryBloc>().add(
-                const AiHistoryNextPageRequested(),
-              ),
+                    const AiHistoryNextPageRequested(),
+                  ),
               child: const Text('기록 더 보기'),
             ),
           ),
@@ -307,8 +317,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
       onRefresh: () async {
         context.read<AiHistoryBloc>().add(const AiHistoryRefreshRequested());
         await context.read<AiHistoryBloc>().stream.firstWhere(
-          (value) => !value.isRefreshing,
-        );
+              (value) => !value.isRefreshing,
+            );
       },
       child: ListView(
         controller: _scrollController,
@@ -359,8 +369,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
 
   Widget _buildAttentionBanner() {
     void openAttentionRecords() => context.read<AiHistoryBloc>().add(
-      const AiHistoryAttentionChanged(true),
-    );
+          const AiHistoryAttentionChanged(true),
+        );
     return Semantics(
       button: true,
       label: '확인할 건강 기록 보기',
@@ -401,25 +411,24 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
 
   Widget _buildEmptyState(AiHistoryState state) {
     final scoped = state.scope.kind != AiHistoryPetScopeKind.all;
-    final filtered =
-        state.dateRange != AiHistoryDateRange.all ||
+    final filtered = state.dateRange != AiHistoryDateRange.all ||
         (!widget.selectMode &&
             (state.typeFilter != AiHistoryTypeFilter.all ||
                 state.healthAttentionOnly));
     final title = state.hasMore
         ? '조건에 맞는 기록을 더 확인할 수 있어요'
         : filtered
-        ? '현재 필터에 맞는 기록이 없어요'
-        : scoped
-        ? '이 범위에 연결된 기록이 없어요'
-        : '아직 저장된 분석 기록이 없어요';
+            ? '현재 필터에 맞는 기록이 없어요'
+            : scoped
+                ? '이 범위에 연결된 기록이 없어요'
+                : '아직 저장된 분석 기록이 없어요';
     final description = state.hasMore
         ? '앞선 저장 구간에는 일치하는 항목이 없었어요. 아래 버튼으로 다음 기록 범위를 이어서 확인해 주세요.'
         : filtered
-        ? '필터를 초기화하거나 다른 기간과 유형을 선택해 보세요.'
-        : scoped
-        ? '전체 기록이나 다른 반려동물 범위를 확인해 보세요.'
-        : 'AI 분석 후 저장된 결과를 여기에서 다시 볼 수 있어요.';
+            ? '필터를 초기화하거나 다른 기간과 유형을 선택해 보세요.'
+            : scoped
+                ? '전체 기록이나 다른 반려동물 범위를 확인해 보세요.'
+                : 'AI 분석 후 저장된 결과를 여기에서 다시 볼 수 있어요.';
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 72.h, horizontal: 20.w),
       child: Column(
@@ -453,14 +462,14 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
           if (filtered) ...[
             OutlinedButton(
               onPressed: () => context.read<AiHistoryBloc>().add(
-                AiHistoryFiltersApplied(
-                  type: widget.selectMode
-                      ? AiHistoryTypeFilter.emotion
-                      : AiHistoryTypeFilter.all,
-                  dateRange: AiHistoryDateRange.all,
-                  healthAttentionOnly: false,
-                ),
-              ),
+                    AiHistoryFiltersApplied(
+                      type: widget.selectMode
+                          ? AiHistoryTypeFilter.emotion
+                          : AiHistoryTypeFilter.all,
+                      dateRange: AiHistoryDateRange.all,
+                      healthAttentionOnly: false,
+                    ),
+                  ),
               child: const Text('필터 초기화'),
             ),
             SizedBox(height: 10.h),
@@ -473,14 +482,15 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
               children: [
                 OutlinedButton(
                   onPressed: () => context.read<AiHistoryBloc>().add(
-                    const AiHistoryScopeChanged(AiHistoryPetScope.all()),
-                  ),
+                        const AiHistoryScopeChanged(AiHistoryPetScope.all()),
+                      ),
                   child: const Text('전체 기록 보기'),
                 ),
                 OutlinedButton(
                   onPressed: () => context.read<AiHistoryBloc>().add(
-                    const AiHistoryScopeChanged(AiHistoryPetScope.unlinked()),
-                  ),
+                        const AiHistoryScopeChanged(
+                            AiHistoryPetScope.unlinked()),
+                      ),
                   child: const Text('연결 안 된 기록 보기'),
                 ),
               ],
@@ -518,18 +528,18 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
     }
     if (state.flowStatus == AiHistoryLoadStatus.failure) {
       return _errorState(
-        state.flowErrorMessage ?? '흐름을 불러오지 못했어요',
+        '흐름을 불러오지 못했어요',
         () => context.read<AiHistoryBloc>().add(
-          const AiHistoryRefreshRequested(),
-        ),
+              const AiHistoryRefreshRequested(),
+            ),
       );
     }
     return RefreshIndicator(
       onRefresh: () async {
         context.read<AiHistoryBloc>().add(const AiHistoryRefreshRequested());
         await context.read<AiHistoryBloc>().stream.firstWhere(
-          (value) => value.flowStatus != AiHistoryLoadStatus.loading,
-        );
+              (value) => value.flowStatus != AiHistoryLoadStatus.loading,
+            );
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -598,8 +608,8 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
                   selected: state.flowDays == days,
                   showCheckmark: false,
                   onSelected: (_) => context.read<AiHistoryBloc>().add(
-                    AiHistoryFlowPeriodChanged(days),
-                  ),
+                        AiHistoryFlowPeriodChanged(days),
+                      ),
                   selectedColor: AppTheme.primaryColor,
                   backgroundColor: Colors.white,
                   labelStyle: TextStyle(
@@ -633,9 +643,9 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
     final dominant = dominantCounts.entries.isEmpty
         ? null
         : (dominantCounts.entries.toList()
-                ..sort((a, b) => b.value.compareTo(a.value)))
-              .first
-              .key;
+              ..sort((a, b) => b.value.compareTo(a.value)))
+            .first
+            .key;
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -708,66 +718,87 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
           if (state.daySignals.length < 2)
             _smallEmpty('기록이 다른 날에 1건 더 쌓이면 흐름을 볼 수 있어요')
           else
-            SizedBox(
-              height: 118.h,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: state.daySignals.length,
-                separatorBuilder: (_, __) => SizedBox(width: 10.w),
-                itemBuilder: (_, index) {
-                  final signal = state.daySignals[index];
-                  return Container(
-                    width: 108.w,
-                    padding: EdgeInsets.all(12.w),
-                    decoration: BoxDecoration(
-                      color: AppTheme.subtleBackground,
-                      borderRadius: BorderRadius.circular(14.r),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${signal.day.month}/${signal.day.day}',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: AppTheme.secondaryTextColor,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var index = 0;
+                        index < state.daySignals.length;
+                        index++) ...[
+                      if (index > 0) SizedBox(width: 10.w),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: 108.w,
+                          maxWidth: 132.w,
+                          minHeight: 118.h,
+                        ),
+                        child: Container(
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: AppTheme.subtleBackground,
+                            borderRadius: BorderRadius.circular(14.r),
+                          ),
+                          child: Builder(
+                            builder: (context) {
+                              final signal = state.daySignals[index];
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${signal.day.month}/${signal.day.day}',
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      color: AppTheme.secondaryTextColor,
+                                    ),
+                                  ),
+                                  SizedBox(height: 12.h),
+                                  Icon(
+                                    signal.hasMixedSignals
+                                        ? Icons.blur_circular_rounded
+                                        : AppTheme.getEmotionIcon(
+                                            signal.dominantEmotion,
+                                          ),
+                                    color: AppTheme.getEmotionColor(
+                                      signal.dominantEmotion,
+                                    ),
+                                  ),
+                                  SizedBox(height: 5.h),
+                                  Flexible(
+                                    child: Text(
+                                      signal.hasMixedSignals
+                                          ? '여러 신호 함께'
+                                          : AiHistoryPresentation.emotionLabel(
+                                              signal.dominantEmotion,
+                                            ),
+                                      style: TextStyle(
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppTheme.primaryTextColor,
+                                      ),
+                                    ),
+                                  ),
+                                  if (signal.analysisCount > 1) ...[
+                                    SizedBox(height: 3.h),
+                                    Text(
+                                      '${signal.analysisCount}건 평균',
+                                      style: TextStyle(
+                                        fontSize: 11.sp,
+                                        color: AppTheme.secondaryTextColor,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              );
+                            },
                           ),
                         ),
-                        const Spacer(),
-                        Icon(
-                          signal.hasMixedSignals
-                              ? Icons.blur_circular_rounded
-                              : AppTheme.getEmotionIcon(signal.dominantEmotion),
-                          color: AppTheme.getEmotionColor(
-                            signal.dominantEmotion,
-                          ),
-                        ),
-                        SizedBox(height: 5.h),
-                        Text(
-                          signal.hasMixedSignals
-                              ? '여러 신호 함께'
-                              : AiHistoryPresentation.emotionLabel(
-                                  signal.dominantEmotion,
-                                ),
-                          maxLines: 2,
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.primaryTextColor,
-                          ),
-                        ),
-                        if (signal.analysisCount > 1)
-                          Text(
-                            '${signal.analysisCount}건 평균',
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              color: AppTheme.secondaryTextColor,
-                            ),
-                          ),
-                      ],
-                    ),
-                  );
-                },
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
         ],
@@ -938,11 +969,11 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
   }
 
   bool _hasAttentionRecord(AiHistoryState state) => state.records.any(
-    (record) =>
-        record.health != null &&
-        AiHistoryPresentation.healthState(record.health!) !=
-            HealthObservationState.stable,
-  );
+        (record) =>
+            record.health != null &&
+            AiHistoryPresentation.healthState(record.health!) !=
+                HealthObservationState.stable,
+      );
 
   Future<void> _showFilters(AiHistoryState state) async {
     final value = await AiHistoryFilterSheet.show(
@@ -956,12 +987,12 @@ class _AiHistoryViewState extends State<_AiHistoryView> {
     );
     if (!mounted || value == null) return;
     context.read<AiHistoryBloc>().add(
-      AiHistoryFiltersApplied(
-        type: value.type,
-        dateRange: value.dateRange,
-        healthAttentionOnly: value.healthAttentionOnly,
-      ),
-    );
+          AiHistoryFiltersApplied(
+            type: value.type,
+            dateRange: value.dateRange,
+            healthAttentionOnly: value.healthAttentionOnly,
+          ),
+        );
   }
 
   void _openRecord(AiHistoryState state, AiHistoryRecord record) {

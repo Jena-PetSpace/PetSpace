@@ -213,27 +213,29 @@ class _HealthAlertSettingsPageState extends State<HealthAlertSettingsPage> {
           SizedBox(height: 16.h),
           SizedBox(
             width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              key: const Key('health_alert_test_button'),
-              onPressed: _isTesting ? null : _sendTestNotification,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.actionBase,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: ElevatedButton(
+                key: const Key('health_alert_test_button'),
+                onPressed: _isTesting ? null : _sendTestNotification,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.actionBase,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+                  ),
                 ),
+                child: _isTesting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('5초 뒤 테스트 알림 보내기'),
               ),
-              child: _isTesting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('5초 뒤 테스트 알림 보내기'),
             ),
           ),
           if (_resultMessage != null) ...[

@@ -247,7 +247,7 @@ void main() {
     await pumpPage(tester, commentBloc: bloc);
     await tester.tap(find.byKey(const Key('post_detail_options')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('신고'));
+    await tester.tap(find.text('게시물 신고'));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('social_report_reason_스팸 또는 광고')),

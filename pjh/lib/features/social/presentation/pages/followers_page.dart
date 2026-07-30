@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/entities/follow.dart';
 import '../../domain/repositories/social_repository.dart';
 import '../widgets/user_list_tile.dart';
+import '../widgets/social_user_actions_sheet.dart';
 
 class FollowersPage extends StatefulWidget {
   final String userId;
@@ -16,6 +18,7 @@ class FollowersPage extends StatefulWidget {
   final int initialTab;
   final SocialRepository? repository;
   final Duration searchDebounce;
+  final String? currentUserId;
 
   const FollowersPage({
     super.key,
@@ -24,6 +27,7 @@ class FollowersPage extends StatefulWidget {
     this.initialTab = 0,
     this.repository,
     this.searchDebounce = const Duration(milliseconds: 300),
+    this.currentUserId,
   });
 
   @override
@@ -331,15 +335,24 @@ class _FollowersPageState extends State<FollowersPage>
               return _buildListFooter(data, isFollowers);
             }
             final follow = data.items[index];
+            final targetUserId = _userId(follow, isFollowers);
             final username = _username(follow, isFollowers)?.trim();
             return UserListTile(
-              userId: _userId(follow, isFollowers),
+              userId: targetUserId,
               userName: _userName(follow, isFollowers),
               userProfileImage: _profileImage(follow, isFollowers),
               subtitle:
                   username == null || username.isEmpty ? null : '@$username',
-              onTap: () =>
-                  context.push('/user-profile/${_userId(follow, isFollowers)}'),
+              onTap: () async {
+                final blocked =
+                    await context.push<bool>('/user-profile/$targetUserId');
+                if (blocked == true && mounted) {
+                  _hideUser(targetUserId);
+                }
+              },
+              onUserActions: targetUserId == widget.currentUserId
+                  ? null
+                  : () => _showUserActions(follow, isFollowers),
             );
           },
         ),
@@ -369,6 +382,35 @@ class _FollowersPageState extends State<FollowersPage>
       );
     }
     return SizedBox(height: 16.h);
+  }
+
+  Future<void> _showUserActions(Follow follow, bool isFollowers) async {
+    final currentUserId =
+        widget.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null || currentUserId.isEmpty) return;
+    final targetUserId = _userId(follow, isFollowers);
+    if (targetUserId == currentUserId) return;
+    await SocialUserActionsSheet.show(
+      context,
+      targetUserId: targetUserId,
+      targetUserName: _userName(follow, isFollowers),
+      currentUserId: currentUserId,
+      repository: _repository,
+      onBlocked: () {
+        if (mounted) _hideUser(targetUserId);
+      },
+    );
+  }
+
+  void _hideUser(String targetUserId) {
+    setState(() {
+      _followers.items.removeWhere(
+        (item) => _userId(item, true) == targetUserId,
+      );
+      _following.items.removeWhere(
+        (item) => _userId(item, false) == targetUserId,
+      );
+    });
   }
 }
 

@@ -402,7 +402,11 @@ extension _HospitalSearch on _HospitalSearchPageState {
           ),
         );
         if (!_searchGeneration.isCurrent(token) || !mounted) return;
-        items.addAll(page.items);
+        items.addAll(
+          page.items.where(
+            (item) => matchesPlaceCategory(item, category),
+          ),
+        );
         final uniqueCount = mergePlaceSearchItems(
           items,
           originLatitude: origin.latitude,
@@ -433,7 +437,11 @@ extension _HospitalSearch on _HospitalSearchPageState {
           ),
         );
         if (!_searchGeneration.isCurrent(token) || !mounted) return;
-        items.addAll(page.items);
+        items.addAll(
+          page.items.where(
+            (item) => matchesPlaceCategory(item, category),
+          ),
+        );
       }
 
       final merged = mergePlaceSearchItems(

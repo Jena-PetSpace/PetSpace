@@ -4,15 +4,18 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../config/injection_container.dart';
 import '../../../../core/utils/relative_time.dart';
 import '../../../../shared/constants/community_categories.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/category_chip.dart';
-import '../../../../shared/widgets/empty_state_widget.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 import '../../../social/presentation/cubit/operational_cards_cubit.dart';
 import '../../../social/presentation/pages/feed_page.dart';
+import '../../../social/presentation/widgets/social_content_report_sheet.dart';
+import '../../../social/presentation/widgets/social_user_actions_sheet.dart';
 import '../../domain/entities/community_post.dart';
 import '../cubit/community_cubit.dart';
 import '../widgets/community_post_card.dart';
@@ -26,6 +29,7 @@ class FeedHubPage extends StatelessWidget {
   final int initialTab;
   final String? initialCategory;
   final CommunityCubit? communityCubit;
+  final String? currentUserId;
 
   /// 테스트·시각 검토에서 서버/전역 BLoC 없이 피드 표면만 주입하는 seam.
   /// 제품 경로에서는 null이며 기존 [FeedPage]와 운영 카드를 그대로 사용한다.
@@ -37,6 +41,7 @@ class FeedHubPage extends StatelessWidget {
     this.initialCategory,
     this.communityCubit,
     this.feedContent,
+    this.currentUserId,
   });
 
   @override
@@ -45,6 +50,7 @@ class FeedHubPage extends StatelessWidget {
       initialTab: initialTab,
       initialCategory: initialCategory,
       feedContent: feedContent,
+      currentUserId: currentUserId,
     );
     final withCommunity = communityCubit == null
         ? BlocProvider<CommunityCubit>(
@@ -70,10 +76,12 @@ class _FeedHubView extends StatefulWidget {
   final int initialTab;
   final String? initialCategory;
   final Widget? feedContent;
+  final String? currentUserId;
   const _FeedHubView({
     required this.initialTab,
     this.initialCategory,
     this.feedContent,
+    this.currentUserId,
   });
 
   @override
@@ -82,17 +90,25 @@ class _FeedHubView extends StatefulWidget {
 
 class _FeedHubViewState extends State<_FeedHubView>
     with SingleTickerProviderStateMixin {
+  static const List<CommunityCategory> _communityTabs = [
+    CommunityCategory(value: 'qa', label: '질문'),
+    CommunityCategory(value: 'info', label: '정보'),
+    CommunityCategory(value: 'brag', label: '자랑'),
+    CommunityCategory(value: 'chat', label: '일상'),
+  ];
+
   late TabController _tabController;
   final ScrollController _loungeScrollController = ScrollController();
 
   /// 커뮤니티 필터 선택: 0=전체, 1..=CommunityCategories.lounge[i-1].
   int _selectedLoungeCategory = 0;
+  final Set<String> _locallyBlockedAuthorIds = <String>{};
 
   CommunityCubit get _cubit => context.read<CommunityCubit>();
 
   String? get _selectedCategoryValue => _selectedLoungeCategory == 0
       ? null
-      : CommunityCategories.lounge[_selectedLoungeCategory - 1].value;
+      : _communityTabs[_selectedLoungeCategory - 1].value;
 
   @override
   void initState() {
@@ -107,8 +123,8 @@ class _FeedHubViewState extends State<_FeedHubView>
 
     if (widget.initialTab >= 1) {
       // 딥링크 category: 신 값만 매칭, 미매칭(구 카테고리·해시태그)은 '전체' 폴백.
-      final idx = CommunityCategories.lounge
-          .indexWhere((c) => c.value == widget.initialCategory);
+      final idx =
+          _communityTabs.indexWhere((c) => c.value == widget.initialCategory);
       if (idx >= 0) _selectedLoungeCategory = idx + 1;
       _cubit.loadCategory(_selectedCategoryValue);
     }
@@ -257,7 +273,7 @@ class _FeedHubViewState extends State<_FeedHubView>
 
   Widget _buildLoungeCategoryBar() {
     final theme = Theme.of(context);
-    final labels = ['전체', ...CommunityCategories.lounge.map((c) => c.label)];
+    final labels = ['전체', ..._communityTabs.map((c) => c.label)];
     return Container(
       color: theme.colorScheme.surface,
       height: 48.h,
@@ -284,13 +300,18 @@ class _FeedHubViewState extends State<_FeedHubView>
         }
 
         if (state.status == CommunityStatus.error && state.posts.isEmpty) {
-          return EmptyStateWidget(
+          final isNetworkError =
+              state.errorMessage?.startsWith('네트워크') ?? false;
+          return PetSpaceV3StateView(
             key: const Key('community_initial_error'),
-            icon: Icons.cloud_off_outlined,
-            title: '커뮤니티 글을 불러오지 못했어요',
-            subtitle: '연결 상태를 확인하고 다시 시도해주세요.',
-            actionLabel: '다시 시도',
-            onAction: () => _cubit.loadCategory(_selectedCategoryValue),
+            kind: isNetworkError
+                ? PetSpaceV3StateKind.network
+                : PetSpaceV3StateKind.server,
+            title: isNetworkError ? '인터넷 연결을 확인해주세요' : '커뮤니티 글을 불러오지 못했어요',
+            message:
+                isNetworkError ? '연결이 복구되면 다시 시도할 수 있어요.' : '잠시 후 다시 시도해주세요.',
+            primaryActionLabel: '다시 시도',
+            onPrimaryAction: () => _cubit.loadCategory(_selectedCategoryValue),
           );
         }
 
@@ -339,14 +360,20 @@ class _FeedHubViewState extends State<_FeedHubView>
               return CommunityPostCard(
                 authorName: post.authorName,
                 authorPhotoUrl: post.authorPhotoUrl,
-                category: post.categoryLabel,
+                category: _communityCategoryLabel(post.category),
                 title: post.title,
                 content: post.body,
                 likes: post.likes,
                 comments: post.comments,
                 timeAgo: _timeAgo(post.createdAt),
                 isAdmin: post.isAdmin,
-                onTap: () => context.push('/post/${post.id}'),
+                onTap: () => _openCommunityPost(post),
+                onReportPost: post.authorId == _currentUserId
+                    ? null
+                    : () => _reportCommunityPost(post),
+                onUserActions: post.authorId == _currentUserId
+                    ? null
+                    : () => _showCommunityUserActions(post),
               );
             },
           ),
@@ -356,18 +383,24 @@ class _FeedHubViewState extends State<_FeedHubView>
   }
 
   Widget _buildEmpty() {
+    if (_locallyBlockedAuthorIds.isNotEmpty) {
+      return const PetSpaceV3StateView(
+        key: Key('community_blocked_hidden'),
+        kind: PetSpaceV3StateKind.blockedHidden,
+        title: '차단한 사용자의 글을 숨겼어요',
+        message: '새 글이 등록되거나 새로고침하면 최신 커뮤니티를 확인할 수 있어요.',
+      );
+    }
     final isAll = _selectedLoungeCategory == 0;
-    final label = isAll
-        ? '전체'
-        : CommunityCategories.lounge[_selectedLoungeCategory - 1].label;
-    return EmptyStateWidget(
-      icon: Icons.forum_outlined,
+    final label =
+        isAll ? '전체' : _communityTabs[_selectedLoungeCategory - 1].label;
+    return PetSpaceV3StateView(
+      kind: PetSpaceV3StateKind.empty,
       title: isAll ? '아직 글이 없어요' : '$label 글이 아직 없어요',
-      subtitle: isAll
-          ? '궁금한 점을 물어보거나\n반려 생활 이야기를 나눠보세요!'
-          : '$label 카테고리의 첫 글을\n남겨보세요!',
-      actionLabel: '첫 글 쓰기',
-      onAction: _openCreateCommunityPost,
+      message:
+          isAll ? '궁금한 점을 물어보거나 반려 생활 이야기를 나눠보세요.' : '$label 카테고리의 첫 글을 남겨보세요.',
+      primaryActionLabel: '첫 글 쓰기',
+      onPrimaryAction: _openCreateCommunityPost,
     );
   }
 
@@ -389,6 +422,68 @@ class _FeedHubViewState extends State<_FeedHubView>
     if (created == true && mounted) {
       _cubit.refresh();
     }
+  }
+
+  String get _currentUserId {
+    if (widget.currentUserId?.isNotEmpty == true) {
+      return widget.currentUserId!;
+    }
+    try {
+      return Supabase.instance.client.auth.currentUser?.id ?? '';
+    } on AssertionError {
+      return '';
+    }
+  }
+
+  String _communityCategoryLabel(String? category) {
+    for (final item in _communityTabs) {
+      if (item.value == category) return item.label;
+    }
+    return CommunityCategories.label(category);
+  }
+
+  Future<void> _openCommunityPost(CommunityPost post) async {
+    final removed = await context.push<bool>('/post/${post.id}');
+    if (removed != true || !mounted) return;
+    if (post.authorId == _currentUserId) {
+      await _cubit.refresh();
+    } else {
+      _locallyBlockedAuthorIds.add(post.authorId);
+      _cubit.hideAuthor(post.authorId);
+    }
+  }
+
+  Future<void> _reportCommunityPost(CommunityPost post) async {
+    final userId = _currentUserId;
+    if (userId.isEmpty) return;
+    final accepted = await SocialContentReportSheet.show(
+      context,
+      target: SocialReportTarget.post,
+      targetId: post.id,
+      currentUserId: userId,
+      repository: sl<SocialRepository>(),
+    );
+    if (accepted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('게시물 신고가 접수되었습니다.')),
+      );
+    }
+  }
+
+  Future<void> _showCommunityUserActions(CommunityPost post) async {
+    final userId = _currentUserId;
+    if (userId.isEmpty) return;
+    await SocialUserActionsSheet.show(
+      context,
+      targetUserId: post.authorId,
+      targetUserName: post.authorName,
+      currentUserId: userId,
+      repository: sl<SocialRepository>(),
+      onBlocked: () {
+        _locallyBlockedAuthorIds.add(post.authorId);
+        _cubit.hideAuthor(post.authorId);
+      },
+    );
   }
 
   String _timeAgo(DateTime dt) => formatRelativeTime(dt);

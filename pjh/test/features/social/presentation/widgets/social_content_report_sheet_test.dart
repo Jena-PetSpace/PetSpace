@@ -22,21 +22,29 @@ void main() {
   Future<void> pumpSheet(
     WidgetTester tester, {
     SocialReportTarget target = SocialReportTarget.comment,
+    Size size = const Size(390, 844),
+    double textScale = 1,
   }) async {
-    tester.view.physicalSize = const Size(390, 844);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(390, 844),
-        builder: (_, __) => MaterialApp(
-          home: Scaffold(
-            body: SocialContentReportSheet(
-              target: target,
-              targetId: 'target-1',
-              currentUserId: 'viewer',
-              repository: repository,
+        builder: (_, __) => MediaQuery(
+          data: MediaQueryData(
+            size: size,
+            textScaler: TextScaler.linear(textScale),
+          ),
+          child: MaterialApp(
+            home: Scaffold(
+              body: SocialContentReportSheet(
+                target: target,
+                targetId: 'target-1',
+                currentUserId: 'viewer',
+                repository: repository,
+              ),
             ),
           ),
         ),
@@ -91,5 +99,42 @@ void main() {
     expect(find.byKey(const Key('social_report_error')), findsOneWidget);
     expect(find.textContaining('database-secret'), findsNothing);
     expect(find.byType(SocialContentReportSheet), findsOneWidget);
+  });
+
+  testWidgets('사용자 대상은 reportUser로 정확히 접수한다', (tester) async {
+    when(
+      () => repository.reportUser('target-1', 'viewer', '개인정보 침해'),
+    ).thenAnswer((_) async => const Right(null));
+
+    await pumpSheet(tester, target: SocialReportTarget.user);
+
+    expect(find.text('사용자 신고'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('social_report_reason_개인정보 침해')),
+    );
+    await tester.pump();
+    await tester.ensureVisible(find.byKey(const Key('social_report_submit')));
+    await tester.tap(find.byKey(const Key('social_report_submit')));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => repository.reportUser('target-1', 'viewer', '개인정보 침해'),
+    ).called(1);
+  });
+
+  testWidgets('320x568과 200% 글자에서도 신고 CTA를 잃지 않는다', (tester) async {
+    await pumpSheet(
+      tester,
+      size: const Size(320, 568),
+      textScale: 2,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('social_report_submit')),
+      120,
+    );
+
+    expect(find.byKey(const Key('social_report_submit')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

@@ -21,6 +21,8 @@ import '../bloc/feed_bloc.dart';
 import '../utils/post_draft_storage.dart';
 import '../widgets/location_picker_sheet.dart';
 
+enum _DraftExitChoice { save, keepEditing, discard }
+
 class CreatePostPage extends StatefulWidget {
   final String? imageUrl;
   final EmotionAnalysis? emotionAnalysis;
@@ -64,7 +66,7 @@ class _CreatePostPageState extends State<CreatePostPage>
     if (_isSubmitting) return false;
     final hasText = _contentController.text.trim().isNotEmpty;
     if (_isEditMode) return hasText;
-    return hasText || _selectedImages.isNotEmpty || _imageUrl != null;
+    return _selectedImages.isNotEmpty || _imageUrl != null;
   }
 
   @override
@@ -108,19 +110,25 @@ class _CreatePostPageState extends State<CreatePostPage>
   Future<void> _saveDraft() async {
     if (_isEditMode) return;
     final content = _contentController.text;
-    if (content.isEmpty && _hashtags.isEmpty) return;
-    await PostDraftStorage.save(content: content, hashtags: _hashtags);
+    if (content.isEmpty && _hashtags.isEmpty) {
+      await PostDraftStorage.clearFeed();
+      return;
+    }
+    await PostDraftStorage.saveFeed(content: content, hashtags: _hashtags);
   }
 
   Future<void> _loadDraft() async {
-    final draft = await PostDraftStorage.load();
+    final draft = await PostDraftStorage.loadFeed();
     if (draft == null || !mounted) return;
     if (draft.content.isNotEmpty || draft.hashtags.isNotEmpty) {
       final restore = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('임시저장 불러오기'),
-          content: const Text('이전에 작성 중이던 내용이 있습니다.\n불러오시겠습니까?'),
+          title: const Text('피드 임시저장 불러오기'),
+          content: const Text(
+            '이전에 작성 중이던 피드 내용이 있습니다.\n'
+            '본문과 태그를 불러옵니다. 사진은 다시 선택해주세요.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -145,27 +153,74 @@ class _CreatePostPageState extends State<CreatePostPage>
   }
 
   Future<void> _handleBackPress() async {
+    if (_isSubmitting) return;
     final hasContent = _contentController.text.isNotEmpty ||
         _selectedImages.isNotEmpty ||
         _hashtags.isNotEmpty ||
         _location != null;
-    if (hasContent) {
-      final shouldDiscard = await BackPressHandler.showDiscardDialog(
-        context,
-        title: '게시글 작성 취소',
-        content: '본문과 태그를 임시 저장하고 작성 화면을 닫을까요?\n사진과 위치는 저장되지 않습니다.',
-      );
-      if (shouldDiscard) {
-        await _saveDraft();
-        if (mounted && context.canPop()) context.pop();
-      }
-    } else {
+    if (!hasContent) {
       if (mounted && context.canPop()) context.pop();
+      return;
     }
+    if (_isEditMode) {
+      final shouldClose = await BackPressHandler.showDiscardDialog(
+        context,
+        title: '수정을 그만할까요?',
+        content: '수정한 내용은 저장되지 않습니다.',
+      );
+      if (shouldClose && mounted && context.canPop()) context.pop();
+      return;
+    }
+
+    final choice = await showDialog<_DraftExitChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        scrollable: true,
+        actionsOverflowDirection: VerticalDirection.down,
+        actionsOverflowAlignment: OverflowBarAlignment.end,
+        title: const Text('피드 작성을 마칠까요?'),
+        content: const Text(
+          '본문과 태그만 임시 저장할 수 있어요. '
+          '사진과 위치는 저장되지 않아 다음에 다시 선택해야 합니다.',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('create_post_exit_keep'),
+            onPressed: () =>
+                Navigator.pop(dialogContext, _DraftExitChoice.keepEditing),
+            child: const Text('계속 작성'),
+          ),
+          TextButton(
+            key: const Key('create_post_exit_discard'),
+            onPressed: () =>
+                Navigator.pop(dialogContext, _DraftExitChoice.discard),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
+            child: const Text('내용 버리기'),
+          ),
+          FilledButton(
+            key: const Key('create_post_exit_save'),
+            onPressed: () =>
+                Navigator.pop(dialogContext, _DraftExitChoice.save),
+            child: const Text('임시 저장'),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || choice == _DraftExitChoice.keepEditing || !mounted) {
+      return;
+    }
+    if (choice == _DraftExitChoice.save) {
+      await _saveDraft();
+    } else {
+      await PostDraftStorage.clearFeed();
+    }
+    if (mounted && context.canPop()) context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final usesLargeText = textScale > 1.5;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -175,7 +230,7 @@ class _CreatePostPageState extends State<CreatePostPage>
       child: BlocListener<FeedBloc, FeedState>(
         listener: (context, state) {
           if (state is FeedPostCreated) {
-            PostDraftStorage.clear();
+            unawaited(PostDraftStorage.clearFeed());
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('게시글을 등록했어요.')),
             );
@@ -199,13 +254,21 @@ class _CreatePostPageState extends State<CreatePostPage>
           appBar: AppBar(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             surfaceTintColor: Colors.transparent,
-            leadingWidth: 68.w,
-            leading: TextButton(
-              key: const Key('create_post_close_button'),
-              onPressed: _isSubmitting ? null : _handleBackPress,
-              child: const Text('닫기'),
+            toolbarHeight: usesLargeText ? 72 : kToolbarHeight,
+            leadingWidth: usesLargeText ? 76 : 68.w,
+            leading: Center(
+              child: TextButton(
+                key: const Key('create_post_close_button'),
+                onPressed: _isSubmitting ? null : _handleBackPress,
+                child: const Text('닫기'),
+              ),
             ),
-            title: Text(_isEditMode ? '게시글 수정' : '게시글 작성'),
+            title: Text(
+              _isEditMode ? '게시글 수정' : '게시글 작성',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
             centerTitle: true,
           ),
           // P2-3: 키보드 외부 영역 탭 시 자동 닫기 (한국 모바일 표준 UX)
@@ -248,7 +311,7 @@ class _CreatePostPageState extends State<CreatePostPage>
                       key: const Key('create_post_image_picker'),
                       images: _selectedImages,
                       maxImages: 10,
-                      emptyHeight: 132,
+                      emptyHeight: usesLargeText ? 180 : 132,
                       onChanged: (imgs) => setState(() {
                         _selectedImages = imgs;
                         _submissionError = null;
@@ -316,20 +379,25 @@ class _CreatePostPageState extends State<CreatePostPage>
     final theme = Theme.of(context);
     return Row(
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: AppTheme.fontBody.sp,
-            fontWeight: FontWeight.w700,
-            color: theme.colorScheme.onSurface,
+        Flexible(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: AppTheme.fontBody.sp,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
         ),
-        const Spacer(),
-        Text(
-          trailing,
-          style: TextStyle(
-            fontSize: AppTheme.fontMicro.sp,
-            color: theme.colorScheme.onSurfaceVariant,
+        SizedBox(width: 12.w),
+        Flexible(
+          child: Text(
+            trailing,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: AppTheme.fontMicro.sp,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       ],
@@ -700,9 +768,9 @@ class _CreatePostPageState extends State<CreatePostPage>
   void _submit() {
     if (_isSubmitting) return;
     final contentText = _contentController.text.trim();
-    if (contentText.isEmpty && _selectedImages.isEmpty && _imageUrl == null) {
+    if (_selectedImages.isEmpty && _imageUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('내용 또는 사진을 추가해주세요')),
+        const SnackBar(content: Text('피드에는 사진을 1장 이상 추가해주세요.')),
       );
       return;
     }

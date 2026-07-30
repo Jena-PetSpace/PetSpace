@@ -1,10 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
-import '../../../../core/utils/back_press_handler.dart';
 import '../../../../shared/constants/community_categories.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/category_chip.dart';
@@ -12,6 +13,9 @@ import '../../../../shared/widgets/petspace_bottom_action_bar.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../social/domain/entities/post.dart';
 import '../../../social/domain/repositories/social_repository.dart';
+import '../../../social/presentation/utils/post_draft_storage.dart';
+
+enum _CommunityDraftExitChoice { save, keepEditing, discard }
 
 class CreateCommunityPostPage extends StatefulWidget {
   final SocialRepository? repository;
@@ -30,43 +34,118 @@ class CreateCommunityPostPage extends StatefulWidget {
       _CreateCommunityPostPageState();
 }
 
-class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
+class _CreateCommunityPostPageState extends State<CreateCommunityPostPage>
+    with WidgetsBindingObserver {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   bool _isSubmitting = false;
-  String _selectedCategory = CommunityCategories.defaultWriteValue;
+  String? _selectedCategory;
   String? _titleError;
   String? _contentError;
   String? _submitError;
+  Timer? _autosaveTimer;
 
-  static const _categories = CommunityCategories.lounge;
+  static const _categories = <CommunityCategory>[
+    CommunityCategory(value: 'qa', label: '질문'),
+    CommunityCategory(value: 'info', label: '정보'),
+    CommunityCategory(value: 'brag', label: '자랑'),
+    CommunityCategory(value: 'chat', label: '일상'),
+  ];
 
   SocialRepository get _repository =>
       widget.repository ?? sl<SocialRepository>();
 
   bool get _canSubmit =>
       !_isSubmitting &&
+      _selectedCategory != null &&
       _titleController.text.trim().isNotEmpty &&
       _contentController.text.trim().isNotEmpty;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadDraft();
+    _autosaveTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _saveDraft(),
+    );
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autosaveTimer?.cancel();
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      unawaited(_saveDraft());
+    }
+  }
+
+  Future<void> _saveDraft() async {
+    final title = _titleController.text;
+    final content = _contentController.text;
+    final category = _selectedCategory ?? '';
+    if (title.isEmpty && content.isEmpty && category.isEmpty) {
+      await PostDraftStorage.clearCommunity();
+      return;
+    }
+    await PostDraftStorage.saveCommunity(
+      title: title,
+      content: content,
+      category: category,
+    );
+  }
+
+  Future<void> _loadDraft() async {
+    final draft = await PostDraftStorage.loadCommunity();
+    if (draft == null || !mounted) return;
+    final restore = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('커뮤니티 임시저장 불러오기'),
+        content: const Text('이전에 작성 중이던 커뮤니티 글이 있습니다. 불러올까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('무시'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('불러오기'),
+          ),
+        ],
+      ),
+    );
+    if (restore != true || !mounted) return;
+    final allowedValues = _categories.map((item) => item.value).toSet();
+    setState(() {
+      _titleController.text = draft.title;
+      _contentController.text = draft.content;
+      _selectedCategory =
+          allowedValues.contains(draft.category) ? draft.category : null;
+    });
   }
 
   Future<void> _submit() async {
     if (_isSubmitting) return;
     final title = _titleController.text.trim();
     final content = _contentController.text.trim();
+    final categoryError = _selectedCategory == null ? '카테고리를 선택해주세요.' : null;
     final titleError = title.isEmpty ? '제목을 입력해주세요.' : null;
     final contentError = content.isEmpty ? '내용을 입력해주세요.' : null;
-    if (titleError != null || contentError != null) {
+    if (categoryError != null || titleError != null || contentError != null) {
       setState(() {
         _titleError = titleError;
         _contentError = contentError;
-        _submitError = null;
+        _submitError = categoryError;
       });
       return;
     }
@@ -94,7 +173,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
       authorName: authorName?.trim().isNotEmpty == true ? authorName! : '사용자',
       type: PostType.text,
       content: '$title\n\n$content',
-      category: _selectedCategory,
+      category: _selectedCategory!,
       createdAt: DateTime.now(),
       isPublic: true,
       isPrivate: false,
@@ -107,7 +186,10 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
         _isSubmitting = false;
         _submitError = '글을 등록하지 못했어요. 입력 내용은 그대로 유지됩니다.';
       }),
-      (_) => Navigator.of(context).pop(true),
+      (_) {
+        unawaited(PostDraftStorage.clearCommunity());
+        Navigator.of(context).pop(true);
+      },
     );
   }
 
@@ -119,17 +201,61 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
       if (mounted && context.canPop()) context.pop();
       return;
     }
-    final shouldDiscard = await BackPressHandler.showDiscardDialog(
-      context,
-      title: '커뮤니티 글쓰기 취소',
-      content: '작성 중인 내용이 있습니다.\n나가면 내용이 사라집니다.',
+    final choice = await showDialog<_CommunityDraftExitChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        scrollable: true,
+        actionsOverflowDirection: VerticalDirection.down,
+        actionsOverflowAlignment: OverflowBarAlignment.end,
+        title: const Text('커뮤니티 작성을 마칠까요?'),
+        content: const Text('제목·내용·카테고리를 기기에 임시 저장할 수 있어요.'),
+        actions: [
+          TextButton(
+            key: const Key('community_exit_keep'),
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              _CommunityDraftExitChoice.keepEditing,
+            ),
+            child: const Text('계속 작성'),
+          ),
+          TextButton(
+            key: const Key('community_exit_discard'),
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              _CommunityDraftExitChoice.discard,
+            ),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
+            child: const Text('내용 버리기'),
+          ),
+          FilledButton(
+            key: const Key('community_exit_save'),
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              _CommunityDraftExitChoice.save,
+            ),
+            child: const Text('임시 저장'),
+          ),
+        ],
+      ),
     );
-    if (shouldDiscard && mounted && context.canPop()) context.pop();
+    if (choice == null ||
+        choice == _CommunityDraftExitChoice.keepEditing ||
+        !mounted) {
+      return;
+    }
+    if (choice == _CommunityDraftExitChoice.save) {
+      await _saveDraft();
+    } else {
+      await PostDraftStorage.clearCommunity();
+    }
+    if (mounted && context.canPop()) context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final usesLargeText = textScale > 1.5;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -140,13 +266,21 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
         appBar: AppBar(
           backgroundColor: theme.scaffoldBackgroundColor,
           surfaceTintColor: Colors.transparent,
-          leadingWidth: 68.w,
-          leading: TextButton(
-            key: const Key('community_close_button'),
-            onPressed: _isSubmitting ? null : _handleBackPress,
-            child: const Text('닫기'),
+          toolbarHeight: usesLargeText ? 72 : kToolbarHeight,
+          leadingWidth: usesLargeText ? 76 : 68.w,
+          leading: Center(
+            child: TextButton(
+              key: const Key('community_close_button'),
+              onPressed: _isSubmitting ? null : _handleBackPress,
+              child: const Text('닫기'),
+            ),
           ),
-          title: const Text('커뮤니티 글쓰기'),
+          title: const Text(
+            '커뮤니티 글쓰기',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
           centerTitle: true,
         ),
         body: GestureDetector(
@@ -188,9 +322,10 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
                             selected: _selectedCategory == category.value,
                             onTap: () {
                               if (_isSubmitting) return;
-                              setState(
-                                () => _selectedCategory = category.value,
-                              );
+                              setState(() {
+                                _selectedCategory = category.value;
+                                _submitError = null;
+                              });
                             },
                           ),
                         ),
@@ -256,7 +391,8 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
                     ),
                   ),
                   child: Text(
-                    '등록 실패 시 제목·내용·카테고리를 그대로 유지합니다. 작성 중 나가면 내용은 저장되지 않아요.',
+                    '제목·내용·카테고리는 커뮤니티 전용 임시저장에 보관됩니다. '
+                    '피드 임시저장과 섞이지 않아요.',
                     style: TextStyle(
                       fontSize: AppTheme.fontCaption.sp,
                       height: 1.45,
@@ -303,20 +439,25 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage> {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: AppTheme.fontBody.sp,
-            fontWeight: FontWeight.w700,
-            color: theme.colorScheme.onSurface,
+        Flexible(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: AppTheme.fontBody.sp,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
         ),
-        const Spacer(),
-        Text(
-          trailing,
-          style: TextStyle(
-            fontSize: AppTheme.fontMicro.sp,
-            color: theme.colorScheme.onSurfaceVariant,
+        SizedBox(width: 12.w),
+        Flexible(
+          child: Text(
+            trailing,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: AppTheme.fontMicro.sp,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       ],

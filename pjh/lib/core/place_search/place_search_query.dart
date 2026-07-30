@@ -143,6 +143,43 @@ class PlaceSearchItem {
   }
 }
 
+bool matchesPlaceCategory(PlaceSearchItem item, String categoryLabel) {
+  if (categoryLabel.isEmpty) return true;
+
+  final name = _normalizedPlaceText(item.name);
+  final category = _normalizedPlaceText(item.category);
+  final combined = '$name $category';
+
+  return switch (categoryLabel) {
+    '동물병원' => combined.contains('동물병원') ||
+        combined.contains('동물의료') ||
+        combined.contains('veterinary'),
+    '약국' => combined.contains('동물약') ||
+        combined.contains('반려동물약') ||
+        (name.contains('동물') && category.contains('약국')),
+    '카페' => combined.contains('반려동물카페') ||
+        combined.contains('애견카페') ||
+        combined.contains('고양이카페') ||
+        combined.contains('강아지카페') ||
+        combined.contains('펫카페') ||
+        (category.contains('카페') &&
+            (combined.contains('반려동물') ||
+                combined.contains('애견') ||
+                combined.contains('고양이') ||
+                combined.contains('강아지') ||
+                combined.contains('펫'))),
+    '미용실' => combined.contains('반려동물미용') ||
+        combined.contains('애견미용') ||
+        combined.contains('고양이미용') ||
+        combined.contains('펫미용') ||
+        (category.contains('반려동물') && combined.contains('미용')),
+    _ => true,
+  };
+}
+
+String _normalizedPlaceText(String value) =>
+    value.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+
 class PlaceSearchPage {
   const PlaceSearchPage({
     required this.items,

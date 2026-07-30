@@ -291,20 +291,22 @@ class _HealthRecordEditorPageState extends State<HealthRecordEditorPage> {
           ],
           SizedBox(
             width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              key: const Key('health_editor_submit'),
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(widget.isEditing ? '변경사항 저장' : '건강 기록 저장'),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 52),
+              child: ElevatedButton(
+                key: const Key('health_editor_submit'),
+                onPressed: _submitting ? null : _submit,
+                child: _submitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(widget.isEditing ? '변경사항 저장' : '건강 기록 저장'),
+              ),
             ),
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 import '../../../../core/constants/legal_documents.dart';
 import '../../../../core/services/profile_service.dart';
 import '../../../../config/injection_container.dart' as di;
@@ -334,39 +335,10 @@ class _TermsAgreementPageState extends State<TermsAgreementPage> {
               ),
 
               // 다음 버튼
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: (_canProceed && !_isSaving) ? _onProceed : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _canProceed
-                        ? AppTheme.primaryColor
-                        : AppTheme.neutral300,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    disabledBackgroundColor: AppTheme.neutral300,
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          '동의하고 계속',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
+              PetSpaceV3PrimaryButton(
+                label: '동의하고 계속',
+                onPressed: (_canProceed && !_isSaving) ? _onProceed : null,
+                loading: _isSaving,
               ),
               const SizedBox(height: 16),
             ],

@@ -36,7 +36,11 @@ void main() {
     await bloc.close();
   });
 
-  Future<void> pumpPage(WidgetTester tester, {ThemeData? theme}) async {
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    ThemeData? theme,
+    String? imageUrl,
+  }) async {
     await tester.pumpWidget(
       ScreenUtilInit(
         designSize: const Size(390, 844),
@@ -45,9 +49,10 @@ void main() {
           value: bloc,
           child: MaterialApp(
             theme: theme,
-            home: const CreatePostPage(
+            home: CreatePostPage(
               currentUserId: 'author-1',
               currentUserName: '보리네',
+              imageUrl: imageUrl,
             ),
           ),
         ),
@@ -66,7 +71,7 @@ void main() {
     expect(find.textContaining('동영상'), findsNothing);
   });
 
-  testWidgets('본문이나 사진이 없으면 게시 버튼과 오해하기 쉬운 색을 활성화하지 않는다', (
+  testWidgets('사진이 없으면 본문을 입력해도 게시 버튼을 활성화하지 않는다', (
     tester,
   ) async {
     await pumpPage(tester);
@@ -80,12 +85,12 @@ void main() {
     );
     await tester.pump();
 
-    expect(tester.widget<FilledButton>(submitFinder).onPressed, isNotNull);
+    expect(tester.widget<FilledButton>(submitFinder).onPressed, isNull);
     expect(find.text('태그 추가'), findsOneWidget);
   });
 
   testWidgets('작성 요청은 전체 공개이며 실패 시 안전한 안내와 입력을 보존한다', (tester) async {
-    await pumpPage(tester);
+    await pumpPage(tester, imageUrl: 'https://example.com/feed-photo.jpg');
 
     await tester.enterText(
       find.byKey(const Key('create_post_content_field')),
@@ -129,11 +134,14 @@ void main() {
     await tester.tap(find.byKey(const Key('create_post_close_button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('게시글 작성 취소'), findsOneWidget);
+    expect(find.text('피드 작성을 마칠까요?'), findsOneWidget);
     expect(
-      find.text('본문과 태그를 임시 저장하고 작성 화면을 닫을까요?\n사진과 위치는 저장되지 않습니다.'),
+      find.textContaining('사진과 위치는 저장되지 않아'),
       findsOneWidget,
     );
+    expect(find.text('계속 작성'), findsOneWidget);
+    expect(find.text('내용 버리기'), findsOneWidget);
+    expect(find.text('임시 저장'), findsOneWidget);
   });
 
   testWidgets('단일 하단 CTA와 다크 surface를 사용한다', (tester) async {
@@ -156,5 +164,50 @@ void main() {
       (location.decoration! as BoxDecoration).color,
       AppTheme.darkTheme.colorScheme.surface,
     );
+  });
+
+  testWidgets('320x568과 200% 글자에서 3지 이탈 행동이 모두 보인다', (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        minTextAdapt: true,
+        builder: (_, __) => MediaQuery(
+          data: const MediaQueryData(
+            size: Size(320, 568),
+            textScaler: TextScaler.linear(2),
+          ),
+          child: BlocProvider<FeedBloc>.value(
+            value: bloc,
+            child: const MaterialApp(
+              home: CreatePostPage(
+                currentUserId: 'author-1',
+                currentUserName: '보리네',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('create_post_content_field')),
+      '작성 중인 내용',
+    );
+    tester.testTextInput.hide();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull,
+        reason: '작성 화면 자체가 overflow하면 안 됩니다.');
+    await tester.tap(find.byKey(const Key('create_post_close_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('create_post_exit_keep')), findsOneWidget);
+    expect(find.byKey(const Key('create_post_exit_discard')), findsOneWidget);
+    expect(find.byKey(const Key('create_post_exit_save')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

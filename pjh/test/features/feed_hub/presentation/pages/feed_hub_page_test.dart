@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
+import 'package:meong_nyang_diary/core/error/failures.dart';
 import 'package:meong_nyang_diary/features/feed_hub/presentation/cubit/community_cubit.dart';
 import 'package:meong_nyang_diary/features/feed_hub/presentation/pages/feed_hub_page.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
@@ -60,7 +61,7 @@ void main() {
     expect(find.text('커뮤니티'), findsOneWidget);
     expect(find.text('발견'), findsNothing);
     expect(find.text('라운지'), findsNothing);
-    for (final label in ['전체', '잡담', '자랑', '궁금해요', '정보']) {
+    for (final label in ['전체', '질문', '정보', '자랑', '일상']) {
       expect(find.text(label), findsWidgets);
     }
     expect(find.text('제목 없이 저장된 예전 글도 보여요.'), findsOneWidget);
@@ -91,5 +92,36 @@ void main() {
     expect(
         scaffold.backgroundColor, AppTheme.darkTheme.scaffoldBackgroundColor);
     expect(appBar.backgroundColor, AppTheme.darkTheme.colorScheme.surface);
+  });
+
+  testWidgets('네트워크 실패는 서버 장애와 구분해 연결 복구 행동을 안내한다', (tester) async {
+    when(
+      () => repository.getCommunityPosts(
+        category: any(named: 'category'),
+        limit: any(named: 'limit'),
+        beforeCreatedAt: any(named: 'beforeCreatedAt'),
+      ),
+    ).thenAnswer(
+      (_) async => const Left(NetworkFailure(message: 'private network')),
+    );
+
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        minTextAdapt: true,
+        builder: (_, __) => MaterialApp(
+          home: FeedHubPage(
+            initialTab: 1,
+            communityCubit: cubit,
+            feedContent: const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('인터넷 연결을 확인해주세요'), findsOneWidget);
+    expect(find.text('잠시 후 다시 시도해주세요.'), findsNothing);
+    expect(find.textContaining('private network'), findsNothing);
   });
 }

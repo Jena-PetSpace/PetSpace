@@ -9,6 +9,7 @@ class UserListTile extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final VoidCallback? onUserActions;
 
   const UserListTile({
     super.key,
@@ -18,6 +19,7 @@ class UserListTile extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onTap,
+    this.onUserActions,
   });
 
   @override
@@ -66,7 +68,22 @@ class UserListTile extends StatelessWidget {
                   ),
                 )
               : null,
-          trailing: trailing ?? Icon(Icons.chevron_right, size: 20.w),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (trailing != null)
+                trailing!
+              else
+                Icon(Icons.chevron_right, size: 20.w),
+              if (onUserActions != null)
+                IconButton(
+                  key: Key('user_actions_$userId'),
+                  onPressed: onUserActions,
+                  tooltip: '$userName 사용자 신고 및 차단',
+                  icon: const Icon(Icons.more_horiz),
+                ),
+            ],
+          ),
           onTap: onTap,
         ),
       ),

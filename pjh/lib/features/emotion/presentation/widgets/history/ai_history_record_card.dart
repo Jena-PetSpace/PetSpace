@@ -35,12 +35,17 @@ class AiHistoryRecordCard extends StatelessWidget {
     final healthState = isEmotion
         ? null
         : AiHistoryPresentation.healthStateLabel(record.health!);
+    final confidence =
+        isEmotion ? record.emotion!.confidence : record.health!.confidence;
+    final trustLabel = _confidenceLabel(confidence);
     final semantics = [
       typeLabel,
       if (healthState != null) healthState,
       title,
       petLabel,
       time,
+      trustLabel,
+      '진단 결과가 아님',
       if (selectionMode) '선택 가능',
     ].join(', ');
 
@@ -140,10 +145,21 @@ class AiHistoryRecordCard extends StatelessWidget {
                       SizedBox(height: 7.h),
                       Text(
                         '$petLabel · $time',
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12.sp,
+                          color: AppTheme.secondaryTextColor,
+                        ),
+                      ),
+                      SizedBox(height: 5.h),
+                      Text(
+                        '$trustLabel · 진단 결과가 아니에요',
+                        maxLines: 2,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          height: 1.35,
+                          fontWeight: FontWeight.w600,
                           color: AppTheme.secondaryTextColor,
                         ),
                       ),
@@ -181,6 +197,14 @@ class AiHistoryRecordCard extends StatelessWidget {
       );
     }
     return _fallback(isEmotion);
+  }
+
+  String _confidenceLabel(double confidence) {
+    if (!confidence.isFinite || confidence <= 0) return '참고용 AI 결과';
+    final normalized = confidence > 1 ? confidence / 100 : confidence;
+    if (normalized >= 0.8) return '분석 근거 높음';
+    if (normalized >= 0.55) return '분석 근거 보통';
+    return '참고용 AI 결과';
   }
 
   Widget _fallback(bool isEmotion) {

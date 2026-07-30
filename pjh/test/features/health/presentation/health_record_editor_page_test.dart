@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +10,8 @@ import 'package:meong_nyang_diary/features/pets/domain/entities/pet.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockHealthBloc extends Mock implements HealthBloc {}
+
+class _FakeHealthEvent extends Fake implements HealthEvent {}
 
 final _pet = Pet(
   id: 'pet-1',
@@ -30,11 +34,21 @@ HealthRecord _legacyVaccine() => HealthRecord(
       updatedAt: DateTime(2026, 7, 20),
     );
 
-Widget _wrap(_MockHealthBloc bloc, {HealthRecord? record}) {
+Widget _wrap(
+  _MockHealthBloc bloc, {
+  HealthRecord? record,
+  double textScale = 1,
+}) {
   return ScreenUtilInit(
     designSize: const Size(390, 844),
     minTextAdapt: true,
     builder: (_, __) => MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
       home: HealthRecordEditorPage(
         pet: _pet,
         userId: _pet.userId,
@@ -55,6 +69,10 @@ void _setSurface(WidgetTester tester) {
 
 void main() {
   late _MockHealthBloc bloc;
+
+  setUpAll(() {
+    registerFallbackValue(_FakeHealthEvent());
+  });
 
   setUp(() {
     bloc = _MockHealthBloc();
@@ -144,5 +162,75 @@ void main() {
     );
     expect(find.textContaining('건강 목록·변화 추이·PDF 리포트'), findsOneWidget);
     expect(find.textContaining('복구할 수 없습니다'), findsOneWidget);
+  });
+
+  testWidgets('320x568·글자 200%에서도 저장 CTA와 입력 오류가 도달 가능하다', (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(_wrap(bloc, textScale: 2));
+    final submit = find.byKey(const Key('health_editor_submit'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('health_editor_submit_error')), findsOneWidget);
+    expect(find.text('백신 종류를 입력해주세요.'), findsOneWidget);
+    expect(tester.getSize(submit).height, greaterThanOrEqualTo(52));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('저장 실패 후 입력을 유지하고 저장 버튼을 다시 활성화한다', (tester) async {
+    _setSurface(tester);
+    final initial = HealthLoaded(
+      petId: _pet.id,
+      userId: _pet.userId,
+      records: const [],
+    );
+    final states = StreamController<HealthState>.broadcast();
+    addTearDown(states.close);
+    when(() => bloc.state).thenReturn(initial);
+    when(() => bloc.stream).thenAnswer((_) => states.stream);
+    when(() => bloc.add(any())).thenAnswer((invocation) {
+      final event = invocation.positionalArguments.first as HealthEvent;
+      if (event is AddHealthRecordEvent) {
+        Future<void>.microtask(
+          () => states.add(
+            initial.copyWith(
+              mutation: HealthMutationState(
+                operationId: event.operationId,
+                type: HealthMutationType.add,
+                phase: HealthMutationPhase.failed,
+                message: '기록을 저장하지 못했어요. 입력 내용은 유지됩니다.',
+              ),
+            ),
+          ),
+        );
+      }
+    });
+    await tester.pumpWidget(_wrap(bloc));
+
+    final vaccineField = find.byKey(const Key('health_vaccine_type_field'));
+    await tester.enterText(vaccineField, '종합 예방접종');
+    final submit = find.byKey(const Key('health_editor_submit'));
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('기록을 저장하지 못했어요. 입력 내용은 유지됩니다.'),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<TextField>(vaccineField).controller!.text,
+      '종합 예방접종',
+    );
+    expect(
+      tester.widget<ElevatedButton>(submit).onPressed,
+      isNotNull,
+    );
   });
 }

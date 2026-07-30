@@ -19,6 +19,7 @@ import '../bloc/profile_bloc.dart';
 import '../widgets/profile_cover.dart';
 import '../widgets/profile_stats_card.dart';
 import '../widgets/user_posts_list.dart';
+import '../widgets/social_user_actions_sheet.dart';
 
 class ProfilePage extends StatefulWidget {
   final String userId;
@@ -86,15 +87,21 @@ class _ProfilePageState extends State<ProfilePage> {
         foregroundColor: theme.colorScheme.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        actions: _isOwnProfile
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined),
-                  tooltip: '설정',
-                  onPressed: () => context.push('/settings/my'),
-                ),
-              ]
-            : null,
+        actions: [
+          if (_isOwnProfile)
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: '설정',
+              onPressed: () => context.push('/settings/my'),
+            )
+          else
+            IconButton(
+              key: const Key('profile_user_actions'),
+              icon: const Icon(Icons.more_horiz),
+              tooltip: '사용자 신고 및 차단',
+              onPressed: _showProfileUserActions,
+            ),
+        ],
       ),
       body: BlocConsumer<ProfileBloc, ProfileState>(
         listener: (context, state) {
@@ -556,6 +563,26 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showSettings() => context.push('/settings/my');
+
+  Future<void> _showProfileUserActions() async {
+    final currentUserId =
+        widget.currentUserId ?? Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null || currentUserId.isEmpty) return;
+    final state = context.read<ProfileBloc>().state;
+    final targetName =
+        state is ProfileLoaded ? state.user.displayName : '이 사용자';
+    final repository = widget.socialRepository ?? sl<SocialRepository>();
+    await SocialUserActionsSheet.show(
+      context,
+      targetUserId: widget.userId,
+      targetUserName: targetName,
+      currentUserId: currentUserId,
+      repository: repository,
+      onBlocked: () {
+        if (mounted && context.canPop()) context.pop(true);
+      },
+    );
+  }
 
   Future<void> _sendMessage(SocialUser user) async {
     final currentUserId =

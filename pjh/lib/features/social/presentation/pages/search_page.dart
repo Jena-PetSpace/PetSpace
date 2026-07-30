@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart' as di;
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 import '../../../../shared/widgets/shimmer_loading.dart';
 import '../../domain/entities/post.dart';
 import '../../domain/entities/social_user.dart';
@@ -603,31 +604,23 @@ class _SearchPageState extends State<SearchPage>
   }
 
   Widget _emptySearch() {
-    return const EmptyStateWidget(
-      icon: Icons.search_off,
+    return const PetSpaceV3StateView(
+      kind: PetSpaceV3StateKind.searchEmpty,
       title: '검색 결과가 없어요',
-      subtitle: '다른 이름이나 키워드로 다시 검색해보세요.',
+      message: '다른 이름이나 키워드로 다시 검색해보세요.',
     );
   }
 
   Widget _errorState(String message, VoidCallback retry) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(24.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48.w, color: AppTheme.errorColor),
-            SizedBox(height: 12.h),
-            const Text(
-              '검색 결과를 불러오지 못했어요. 연결 상태를 확인해주세요.',
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 12.h),
-            FilledButton(onPressed: retry, child: const Text('다시 시도')),
-          ],
-        ),
-      ),
+    final isNetworkError = message.startsWith('네트워크');
+    return PetSpaceV3StateView(
+      kind: isNetworkError
+          ? PetSpaceV3StateKind.network
+          : PetSpaceV3StateKind.server,
+      title: isNetworkError ? '인터넷 연결을 확인해주세요' : '검색 결과를 불러오지 못했어요',
+      message: isNetworkError ? '연결이 복구되면 다시 시도할 수 있어요.' : '잠시 후 다시 시도해주세요.',
+      primaryActionLabel: '다시 시도',
+      onPrimaryAction: retry,
     );
   }
 }

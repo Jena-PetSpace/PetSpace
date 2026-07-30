@@ -143,7 +143,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('대표 설정은 낙관적 성공 안내 없이 이벤트만 전달한다', (tester) async {
+  testWidgets('대표 설정은 확인 뒤에만 이벤트를 한 번 전달한다', (tester) async {
     final pet = buildPet(1);
     final bloc = await pumpPage(
       tester,
@@ -154,7 +154,25 @@ void main() {
       find.byKey(const Key('pet_card_menu_pet-1')),
     );
     menu.onSelected!('primary');
-    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('pet_primary_confirmation_dialog')),
+      findsOneWidget,
+    );
+    verifyNever(() => bloc.add(any(that: isA<SelectPet>())));
+    await tester.tap(
+      find.byKey(const Key('pet_primary_confirmation_cancel')),
+    );
+    await tester.pumpAndSettle();
+    verifyNever(() => bloc.add(any(that: isA<SelectPet>())));
+
+    menu.onSelected!('primary');
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('pet_primary_confirmation_confirm')),
+    );
+    await tester.pumpAndSettle();
 
     verify(() => bloc.add(any(that: isA<SelectPet>()))).called(1);
     expect(find.byKey(const Key('pet_management_feedback_snackbar')),
@@ -231,11 +249,12 @@ void main() {
     expectFloatingFeedback(tester, backgroundColor: AppTheme.errorColor);
   });
 
-  testWidgets('빈 상태는 공유 상태뷰를 유지하고 populated 전용 CTA를 만들지 않는다', (tester) async {
+  testWidgets('빈 상태는 장식 아이콘 없이 최초 등록 행동만 제공한다', (tester) async {
     await pumpPage(tester, state: const PetLoaded(pets: []));
 
-    expect(find.text('등록된 반려동물이 없습니다'), findsOneWidget);
+    expect(find.text('등록된 반려동물이 없어요'), findsOneWidget);
     expect(find.text('반려동물 추가하기'), findsOneWidget);
+    expect(find.byIcon(Icons.pets), findsNothing);
     expect(find.byKey(const Key('pet_management_add_button')), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -257,7 +276,49 @@ void main() {
     expect(find.textContaining('건강 기록'), findsOneWidget);
     expect(find.text('기록은 유지되고 연결만 해제'), findsOneWidget);
     expect(find.text('게시물과 산책 기록'), findsOneWidget);
+    expect(find.text('마지막 반려동물이에요'), findsOneWidget);
+    expect(find.textContaining('홈·건강 화면에서 선택할 반려동물이 없어집니다'), findsOneWidget);
     expect(find.text('이 작업은 되돌릴 수 없습니다.'), findsOneWidget);
+  });
+
+  testWidgets('여러 마리 중 삭제할 때는 마지막 반려동물 안내를 노출하지 않는다', (
+    tester,
+  ) async {
+    final pets = [buildPet(1), buildPet(2)];
+    await pumpPage(
+      tester,
+      state: PetLoaded(pets: pets, selectedPet: pets.first),
+    );
+
+    final menu = tester.widget<PopupMenuButton<String>>(
+      find.byKey(const Key('pet_card_menu_pet-2')),
+    );
+    menu.onSelected!('delete');
+    await tester.pumpAndSettle();
+
+    expect(find.text('마지막 반려동물이에요'), findsNothing);
+  });
+
+  testWidgets('대표 반려동물은 다른 대표를 선택하기 전 삭제할 수 없다', (tester) async {
+    final pets = [buildPet(1), buildPet(2)];
+    final bloc = await pumpPage(
+      tester,
+      state: PetLoaded(pets: pets, selectedPet: pets.first),
+    );
+
+    final menu = tester.widget<PopupMenuButton<String>>(
+      find.byKey(const Key('pet_card_menu_pet-1')),
+    );
+    menu.onSelected!('delete');
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('pet_primary_delete_gate_dialog')),
+      findsOneWidget,
+    );
+    expect(find.text('새 대표 반려동물을 먼저 선택해 주세요'), findsOneWidget);
+    verifyNever(() => bloc.add(any(that: isA<DeletePetEvent>())));
+    expect(find.text('함께 삭제되는 정보'), findsNothing);
   });
 
   testWidgets('다크모드 CTA는 theme primary container 역할색을 사용한다', (tester) async {

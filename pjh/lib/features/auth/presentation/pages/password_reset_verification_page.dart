@@ -8,13 +8,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/info_box.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 
 class PasswordResetVerificationPage extends StatefulWidget {
   final String email;
+  final GoTrueClient? authClient;
+  final int initialResendCountdown;
 
   const PasswordResetVerificationPage({
     super.key,
     required this.email,
+    this.authClient,
+    this.initialResendCountdown = 60,
   });
 
   @override
@@ -26,6 +31,8 @@ class _PasswordResetVerificationPageState
     extends State<PasswordResetVerificationPage> {
   final List<TextEditingController> _controllers =
       List.generate(6, (_) => TextEditingController());
+  final TextEditingController _accessibleCodeController =
+      TextEditingController();
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   // KeyboardListener 전용 FocusNode (dispose 관리)
   final List<FocusNode> _keyboardListenerNodes =
@@ -33,13 +40,18 @@ class _PasswordResetVerificationPageState
 
   bool _isVerifying = false;
   bool _isResending = false;
-  int _resendCountdown = 60; // 초기 60초 (페이지 로드 시 자동 발송됨)
+  late int _resendCountdown;
   Timer? _countdownTimer;
   String? _errorMessage;
+  bool get _isCodeComplete =>
+      _controllers.every((controller) => controller.text.isNotEmpty);
+  GoTrueClient get _authClient =>
+      widget.authClient ?? Supabase.instance.client.auth;
 
   @override
   void initState() {
     super.initState();
+    _resendCountdown = widget.initialResendCountdown;
     // 카운트다운 시작 (request 페이지에서 이미 발송했으므로)
     _startCountdown();
   }
@@ -49,6 +61,7 @@ class _PasswordResetVerificationPageState
     for (var controller in _controllers) {
       controller.dispose();
     }
+    _accessibleCodeController.dispose();
     for (var focusNode in _focusNodes) {
       focusNode.dispose();
     }
@@ -79,27 +92,29 @@ class _PasswordResetVerificationPageState
     });
 
     try {
-      await Supabase.instance.client.auth.signInWithOtp(
+      await _authClient.signInWithOtp(
         email: widget.email,
         emailRedirectTo: null,
+        shouldCreateUser: false,
       );
 
-      if (mounted) {
+      _completeResend();
+    } on AuthException catch (error) {
+      if (!mounted) return;
+      final normalized = error.message.toLowerCase();
+      final isRateLimited =
+          normalized.contains('rate limit') || normalized.contains('too many');
+      if (isRateLimited) {
         setState(() {
           _isResending = false;
-          _resendCountdown = 60;
+          _errorMessage = '요청이 많아요. 잠시 후 다시 시도해주세요.';
         });
-
-        _startCountdown();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('인증 코드가 재발송되었습니다'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      } else {
+        // 미등록 주소 응답은 재발송 성공과 동일하게 처리해 계정 존재 여부를
+        // 화면에서 추측할 수 없게 한다.
+        _completeResend();
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
           _isResending = false;
@@ -107,6 +122,21 @@ class _PasswordResetVerificationPageState
         });
       }
     }
+  }
+
+  void _completeResend() {
+    if (!mounted) return;
+    setState(() {
+      _isResending = false;
+      _resendCountdown = 60;
+    });
+    _startCountdown();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('인증 코드가 재발송되었습니다'),
+        backgroundColor: AppTheme.successColor,
+      ),
+    );
   }
 
   Future<void> _verifyOtp() async {
@@ -126,7 +156,7 @@ class _PasswordResetVerificationPageState
 
     try {
       // OTP 검증 - signInWithOtp로 보낸 코드는 magiclink 타입
-      final response = await Supabase.instance.client.auth.verifyOTP(
+      final response = await _authClient.verifyOTP(
         token: code,
         type: OtpType.magiclink,
         email: widget.email,
@@ -138,7 +168,7 @@ class _PasswordResetVerificationPageState
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('인증이 완료되었습니다'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppTheme.successColor,
             ),
           );
 
@@ -148,6 +178,11 @@ class _PasswordResetVerificationPageState
               '/auth/password-reset/new-password?email=${Uri.encodeComponent(widget.email)}',
             );
           }
+        } else {
+          setState(() {
+            _isVerifying = false;
+            _errorMessage = '인증을 완료하지 못했어요. 코드를 확인하고 다시 시도해주세요.';
+          });
         }
       }
     } on AuthException catch (e) {
@@ -173,10 +208,24 @@ class _PasswordResetVerificationPageState
     if (value.isNotEmpty && index < 5) {
       _focusNodes[index + 1].requestFocus();
     }
+    setState(() => _errorMessage = null);
+  }
 
-    final allFilled = _controllers.every((c) => c.text.isNotEmpty);
-    if (allFilled && !_isVerifying) {
-      _verifyOtp();
+  void _onAccessibleCodeChanged(String value) {
+    for (var index = 0; index < _controllers.length; index++) {
+      _controllers[index].text = index < value.length ? value[index] : '';
+    }
+    setState(() => _errorMessage = null);
+  }
+
+  Future<void> _signOutAndGo(String route) async {
+    try {
+      await _authClient.signOut();
+    } catch (_) {
+      // 로컬 세션 정리가 실패해도 사용자가 재설정 흐름에 갇히지 않게 한다.
+    }
+    if (mounted) {
+      context.go(route);
     }
   }
 
@@ -197,13 +246,7 @@ class _PasswordResetVerificationPageState
       appBar: PetSpaceAppBar.page(
         title: '인증 코드 확인',
         backgroundColor: AppTheme.backgroundColor,
-        onBack: () async {
-          // 로그아웃 후 비밀번호 찾기 페이지로 이동
-          await Supabase.instance.client.auth.signOut();
-          if (context.mounted) {
-            context.go('/auth/password-reset/request');
-          }
-        },
+        onBack: () => _signOutAndGo('/auth/password-reset/request'),
       ),
       body: SafeArea(
         top: false,
@@ -235,129 +278,166 @@ class _PasswordResetVerificationPageState
               const SizedBox(height: 32),
 
               // 6자리 OTP 입력 필드
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(6, (index) {
-                  return SizedBox(
-                    width: 48,
-                    height: 60,
-                    child: KeyboardListener(
-                      focusNode: _keyboardListenerNodes[index],
-                      onKeyEvent: (event) => _onKeyPressed(index, event),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final useSingleCodeField =
+                      MediaQuery.textScalerOf(context).scale(22) >= 36 ||
+                          constraints.maxWidth < 300;
+                  if (useSingleCodeField) {
+                    return Semantics(
+                      label: '6자리 인증 코드',
+                      textField: true,
                       child: TextField(
-                        controller: _controllers[index],
-                        focusNode: _focusNodes[index],
-                        textAlign: TextAlign.center,
+                        key: const ValueKey(
+                          'password-reset-code-accessible',
+                        ),
+                        controller: _accessibleCodeController,
                         keyboardType: TextInputType.number,
-                        maxLength: 1,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.oneTimeCode],
+                        maxLength: 6,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 10,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                         decoration: InputDecoration(
+                          labelText: '6자리 인증 코드',
+                          hintText: '000000',
                           counterText: '',
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppTheme.neutral300,
-                              width: 2,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppTheme.neutral300,
-                              width: 2,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: AppTheme.accentColor,
-                              width: 2,
-                            ),
                           ),
                         ),
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                         ],
-                        onChanged: (value) => _onCodeChanged(index, value),
+                        onChanged: _onAccessibleCodeChanged,
+                        onSubmitted: _isCodeComplete && !_isVerifying
+                            ? (_) => _verifyOtp()
+                            : null,
                       ),
-                    ),
+                    );
+                  }
+
+                  const gap = 8.0;
+                  final available = (constraints.maxWidth - (gap * 5)) / 6;
+                  final fieldWidth = available.clamp(36.0, 48.0).toDouble();
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(6, (index) {
+                      return ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: fieldWidth,
+                          maxWidth: fieldWidth,
+                          minHeight: 60,
+                        ),
+                        child: Semantics(
+                          label: '인증 코드 ${index + 1}번째 자리',
+                          textField: true,
+                          child: KeyboardListener(
+                            focusNode: _keyboardListenerNodes[index],
+                            onKeyEvent: (event) => _onKeyPressed(index, event),
+                            child: TextField(
+                              key: ValueKey('password-reset-code-$index'),
+                              controller: _controllers[index],
+                              focusNode: _focusNodes[index],
+                              textAlign: TextAlign.center,
+                              keyboardType: TextInputType.number,
+                              textInputAction: index == 5
+                                  ? TextInputAction.done
+                                  : TextInputAction.next,
+                              autofillHints: index == 0
+                                  ? const [AutofillHints.oneTimeCode]
+                                  : null,
+                              maxLength: 1,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              decoration: InputDecoration(
+                                counterText: '',
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              onChanged: (value) =>
+                                  _onCodeChanged(index, value),
+                              onSubmitted:
+                                  index == 5 && _isCodeComplete && !_isVerifying
+                                      ? (_) => _verifyOtp()
+                                      : null,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
                   );
-                }),
+                },
               ),
               const SizedBox(height: 24),
 
               // 에러 메시지
               if (_errorMessage != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.tilePastelRose,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: AppTheme.errorColor.withValues(alpha: 0.35)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline,
-                          color: AppTheme.errorColor, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(
-                            color: AppTheme.errorColor,
-                            fontSize: 14,
+                Semantics(
+                  liveRegion: true,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.tilePastelRose,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppTheme.errorColor.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: AppTheme.errorColor,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: AppTheme.errorColor,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               if (_errorMessage != null) const SizedBox(height: 24),
 
               // 인증 버튼
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isVerifying ? null : _verifyOtp,
-                  style: ElevatedButton.styleFrom(
-                    // 버튼 주색은 테마 기본(navy/primary) 상속 — accent는 강조/링크용 (STEP 2-0)
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isVerifying
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text(
-                          '인증하기',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
+              PetSpaceV3PrimaryButton(
+                key: const ValueKey('password-reset-verify-submit'),
+                label: '인증하기',
+                onPressed: _isVerifying || !_isCodeComplete ? null : _verifyOtp,
+                loading: _isVerifying,
               ),
               const SizedBox(height: 24),
 
               // 재발송 버튼
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 4,
                 children: [
                   const Text(
                     '인증 코드를 받지 못하셨나요?',

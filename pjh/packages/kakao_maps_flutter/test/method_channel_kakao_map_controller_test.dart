@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kakao_maps_flutter/kakao_maps_flutter.dart';
@@ -22,7 +24,7 @@ void main() {
   }
 
   tearDown(() async {
-    for (final viewId in <int>[1, 11, 22, 33, 44, 55]) {
+    for (final viewId in <int>[1, 11, 22, 33, 44, 55, 66, 77]) {
       final channel = MethodChannel(
         'view.method_channel.kakao_maps_flutter#$viewId',
       );
@@ -194,5 +196,56 @@ void main() {
     await sendNativeMethod(channelName, 'onMapReady', true);
 
     expect(await zoomFuture, 12);
+  });
+
+  test('accepts the legacy iOS onMapFailed initialization event', () async {
+    const channelName = 'view.method_channel.kakao_maps_flutter#66';
+    const channel = MethodChannel(channelName);
+
+    messenger.setMockMethodCallHandler(
+      channel,
+      (call) async => call.method == 'isMapReady' ? false : null,
+    );
+
+    final controller = KakaoMapController(viewId: 66);
+    addTearDown(controller.dispose);
+    final readyExpectation = expectLater(
+      controller.ready,
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('failed to initialize'),
+        ),
+      ),
+    );
+
+    await sendNativeMethod(
+      channelName,
+      'onMapFailed',
+      <String, Object?>{'error': 'sdk unavailable'},
+    );
+
+    await readyExpectation;
+  });
+
+  test('native ready event wins a delayed readiness probe race', () async {
+    const channelName = 'view.method_channel.kakao_maps_flutter#77';
+    const channel = MethodChannel(channelName);
+    final probe = Completer<bool>();
+
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'isMapReady') return probe.future;
+      return null;
+    });
+
+    final controller = KakaoMapController(viewId: 77);
+    addTearDown(controller.dispose);
+
+    await sendNativeMethod(channelName, 'onMapReady', true);
+    await expectLater(controller.ready, completes);
+
+    probe.complete(false);
+    await Future<void>.delayed(Duration.zero);
   });
 }

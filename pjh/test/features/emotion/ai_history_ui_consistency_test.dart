@@ -11,14 +11,20 @@ import 'package:meong_nyang_diary/features/emotion/presentation/widgets/pet_inli
 import 'package:meong_nyang_diary/features/pets/domain/entities/pet.dart';
 
 void main() {
-  Widget wrap(Widget child, {EdgeInsets safePadding = EdgeInsets.zero}) {
+  Widget wrap(
+    Widget child, {
+    EdgeInsets safePadding = EdgeInsets.zero,
+    Size size = const Size(360, 800),
+    double textScale = 1,
+  }) {
     return ScreenUtilInit(
       designSize: const Size(360, 800),
       builder: (_, __) => MediaQuery(
         data: MediaQueryData(
-          size: const Size(360, 800),
+          size: size,
           padding: safePadding,
           viewPadding: safePadding,
+          textScaler: TextScaler.linear(textScale),
         ),
         child: MaterialApp(home: child),
       ),
@@ -203,6 +209,50 @@ void main() {
       find.widgetWithText(FilledButton, '적용하기'),
     );
     expect(applyButton.bottom, lessThanOrEqualTo(800 - bottomSafeArea));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('320x568 200%에서도 필터 적용 CTA를 스크롤해 도달할 수 있다', (tester) async {
+    const size = Size(320, 568);
+    const bottomSafeArea = 34.0;
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      wrap(
+        Scaffold(
+          body: Builder(
+            builder: (context) => Center(
+              child: FilledButton(
+                onPressed: () => AiHistoryFilterSheet.show(
+                  context,
+                  initial: const AiHistoryFilterSelection(
+                    type: AiHistoryTypeFilter.all,
+                    dateRange: AiHistoryDateRange.all,
+                    healthAttentionOnly: false,
+                  ),
+                ),
+                child: const Text('필터 열기'),
+              ),
+            ),
+          ),
+        ),
+        safePadding: const EdgeInsets.only(bottom: bottomSafeArea),
+        size: size,
+        textScale: 2,
+      ),
+    );
+
+    await tester.tap(find.text('필터 열기'));
+    await tester.pumpAndSettle();
+    final applyFinder = find.widgetWithText(FilledButton, '적용하기');
+    await tester.ensureVisible(applyFinder);
+    await tester.pumpAndSettle();
+
+    final applyButton = tester.getRect(applyFinder);
+    expect(applyButton.bottom, lessThanOrEqualTo(size.height - bottomSafeArea));
     expect(tester.takeException(), isNull);
   });
 

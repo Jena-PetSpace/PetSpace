@@ -270,7 +270,10 @@ class EmotionRepositoryImpl implements EmotionRepository {
       }
       return Right(HealthAnalysisModel.fromSupabaseRow(response));
     } catch (e) {
-      return Left(ServerFailure(message: '건강 기록 조회 중 오류가 발생했습니다: $e'));
+      _logRepositoryFailure('getHealthAnalysisById', e);
+      return const Left(
+        ServerFailure(message: '건강 기록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -300,7 +303,10 @@ class EmotionRepositoryImpl implements EmotionRepository {
       }
       return Right(EmotionAnalysisModel.fromJson(response));
     } catch (e) {
-      return Left(ServerFailure(message: '메모 저장 중 오류가 발생했습니다: $e'));
+      _logRepositoryFailure('updateAnalysisMemo', e);
+      return const Left(
+        ServerFailure(message: '메모를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -452,7 +458,10 @@ class EmotionRepositoryImpl implements EmotionRepository {
         ),
       );
     } catch (e) {
-      return Left(ServerFailure(message: 'AI 분석 기록 조회 중 오류가 발생했습니다: $e'));
+      _logRepositoryFailure('getAiHistoryPage', e);
+      return const Left(
+        ServerFailure(message: 'AI 분석 기록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -919,7 +928,10 @@ class EmotionRepositoryImpl implements EmotionRepository {
           .maybeSingle();
       return Right(row != null);
     } catch (e) {
-      return Left(ServerFailure(message: '반려동물 접근 권한 확인 중 오류가 발생했습니다: $e'));
+      _logRepositoryFailure('canAccessOwnedPet', e);
+      return const Left(
+        ServerFailure(message: '반려동물 정보를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.'),
+      );
     }
   }
 
@@ -1048,4 +1060,12 @@ DateTime _rowCreatedAt(Map<String, dynamic> row) {
 
 bool _isAttentionHealth(HealthAnalysis analysis) {
   return analysis.requiresReview;
+}
+
+void _logRepositoryFailure(String operation, Object error) {
+  log(
+    '$operation failed',
+    name: 'EmotionRepo',
+    error: error.runtimeType,
+  );
 }

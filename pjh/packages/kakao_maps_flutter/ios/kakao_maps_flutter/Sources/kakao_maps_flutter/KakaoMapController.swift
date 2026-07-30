@@ -7,6 +7,7 @@ class KakaoMapController: NSObject, FlutterPlatformView, MapControllerDelegate, 
     private let mapController: KMController
     private let methodChannel: FlutterMethodChannel
     private let kKakaoMapViewName = "mapview"
+    private var isMapReady = false
     
     
     private let initialPosition: MapPoint?
@@ -119,6 +120,13 @@ class KakaoMapController: NSObject, FlutterPlatformView, MapControllerDelegate, 
     }
     
     func addViewSucceeded(_ viewName: String, viewInfoName: String) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in
+                self?.addViewSucceeded(viewName, viewInfoName: viewInfoName)
+            }
+            return
+        }
+        isMapReady = true
         withKakaoMapView({ _ in }) { view in
             if let compassConfig = self.compassConfig {
                 view.showCompass()
@@ -170,11 +178,34 @@ class KakaoMapController: NSObject, FlutterPlatformView, MapControllerDelegate, 
     }
     
     func addViewFailed(_ error: Error) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in
+                self?.addViewFailed(error)
+            }
+            return
+        }
+        isMapReady = false
         methodChannel.invokeMethod("onMapFailed", arguments: ["error": error.localizedDescription])
+    }
+
+    func authenticationFailed(_ errorCode: Int, desc: String) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in
+                self?.authenticationFailed(errorCode, desc: desc)
+            }
+            return
+        }
+        isMapReady = false
+        methodChannel.invokeMethod(
+            "onMapFailed",
+            arguments: ["code": "map_authentication_failed"]
+        )
     }
     
     private func onMethodCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
+        case "isMapReady":
+            result(isMapReady)
         case "registerMarkerStyles":
             registerMarkerStyles(call, result)
         case "removeMarkerStyles":

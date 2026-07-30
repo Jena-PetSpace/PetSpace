@@ -1,0 +1,46 @@
+name: UIUX Scope Boundary
+
+on:
+  push:
+    branches: [main, mac-ios-release, win-android-release]
+  pull_request:
+    branches: [main, mac-ios-release, win-android-release]
+
+jobs:
+  verify-frozen-rendering-inputs:
+    name: Verify frozen Home and AI result inputs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Flutter 3.41.7 설치
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.7'
+          channel: stable
+          cache: true
+
+      - name: 의존성 설치
+        working-directory: pjh
+        run: flutter pub get
+
+      - name: 동결 렌더 입력 검증
+        working-directory: pjh
+        run: dart run tool/verify_uiux_scope.dart
+
+      - name: 경계 계약 테스트
+        working-directory: pjh
+        run: |
+          flutter test --no-pub test/contracts/uiux_scope_boundary_contract_test.dart
+          flutter test --no-pub test/shared/widgets/petspace_uiux_v3_test.dart
+          flutter test --no-pub test/tool/verify_uiux_scope_test.dart
+
+      - name: 정적 분석
+        working-directory: pjh
+        run: flutter analyze --no-pub
+
+      - name: 전체 테스트
+        working-directory: pjh
+        run: flutter test --no-pub

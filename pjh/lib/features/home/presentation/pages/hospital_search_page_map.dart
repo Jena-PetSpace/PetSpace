@@ -22,6 +22,7 @@ extension _HospitalMap on _HospitalSearchPageState {
       fit: StackFit.expand,
       children: [
         KakaoMap(
+          key: ValueKey<int>(_mapViewGeneration),
           initialPosition: initialPosition,
           onMapCreated: (controller) async {
             await _labelClickSub?.cancel();
@@ -116,12 +117,7 @@ extension _HospitalMap on _HospitalSearchPageState {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      final controller = _mapController;
-                      if (controller != null) {
-                        unawaited(_initializeMap(controller));
-                      }
-                    },
+                    onPressed: _recreateMapView,
                     child: const Text('다시 시도'),
                   ),
                 ],
@@ -132,11 +128,29 @@ extension _HospitalMap on _HospitalSearchPageState {
     );
   }
 
+  void _recreateMapView() {
+    if (!mounted) return;
+    unawaited(_labelClickSub?.cancel());
+    unawaited(_cameraMoveEndSub?.cancel());
+    _labelClickSub = null;
+    _cameraMoveEndSub = null;
+    setState(() {
+      _mapController = null;
+      _mapReady = false;
+      _mapInitFailed = false;
+      _markerLayerAdded = false;
+      _registeredPlaceMarkerOrdinalCount = 0;
+      _currentMarkerIds = <String>[];
+      _markerCleanupIds.clear();
+      _mapViewGeneration += 1;
+    });
+  }
+
   Future<void> _initializeMap(KakaoMapController controller) async {
     if (!mounted || !identical(_mapController, controller)) return;
     setState(() => _mapInitFailed = false);
     try {
-      await controller.ready;
+      await controller.ready.timeout(const Duration(seconds: 12));
       if (!_isCurrentController(controller)) return;
       if (!_markerLayerAdded) {
         await controller.addMarkerLayer(

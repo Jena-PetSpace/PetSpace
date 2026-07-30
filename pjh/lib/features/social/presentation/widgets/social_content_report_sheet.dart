@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../domain/repositories/social_repository.dart';
 
-enum SocialReportTarget { post, comment }
+enum SocialReportTarget { post, comment, user }
 
 class SocialContentReportSheet extends StatefulWidget {
   static const List<String> reasons = <String>[
@@ -61,8 +61,11 @@ class _SocialContentReportSheetState extends State<SocialContentReportSheet> {
   bool _isSubmitting = false;
   String? _errorMessage;
 
-  String get _targetLabel =>
-      widget.target == SocialReportTarget.post ? '게시물' : '댓글';
+  String get _targetLabel => switch (widget.target) {
+        SocialReportTarget.post => '게시물',
+        SocialReportTarget.comment => '댓글',
+        SocialReportTarget.user => '사용자',
+      };
 
   Future<void> _submit() async {
     final reason = _selectedReason;
@@ -77,17 +80,23 @@ class _SocialContentReportSheetState extends State<SocialContentReportSheet> {
       _errorMessage = null;
     });
 
-    final result = widget.target == SocialReportTarget.post
-        ? await widget.repository.reportPost(
-            widget.targetId,
-            widget.currentUserId,
-            reason,
-          )
-        : await widget.repository.reportComment(
-            widget.targetId,
-            widget.currentUserId,
-            reason,
-          );
+    final result = await switch (widget.target) {
+      SocialReportTarget.post => widget.repository.reportPost(
+          widget.targetId,
+          widget.currentUserId,
+          reason,
+        ),
+      SocialReportTarget.comment => widget.repository.reportComment(
+          widget.targetId,
+          widget.currentUserId,
+          reason,
+        ),
+      SocialReportTarget.user => widget.repository.reportUser(
+          widget.targetId,
+          widget.currentUserId,
+          reason,
+        ),
+    };
     if (!mounted) return;
     result.fold(
       (_) => setState(() {
@@ -190,8 +199,8 @@ class _SocialContentReportSheetState extends State<SocialContentReportSheet> {
                   ),
                 ],
                 SizedBox(height: 12.h),
-                SizedBox(
-                  height: 52,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 52),
                   child: FilledButton(
                     key: const Key('social_report_submit'),
                     onPressed: _selectedReason == null || _isSubmitting
@@ -200,6 +209,10 @@ class _SocialContentReportSheetState extends State<SocialContentReportSheet> {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppTheme.actionBase,
                       foregroundColor: AppTheme.surfaceColor,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
                     ),
                     child: _isSubmitting
                         ? const SizedBox.square(
@@ -209,7 +222,7 @@ class _SocialContentReportSheetState extends State<SocialContentReportSheet> {
                               color: AppTheme.surfaceColor,
                             ),
                           )
-                        : const Text('신고 접수'),
+                        : const Text('신고 접수', textAlign: TextAlign.center),
                   ),
                 ),
               ],

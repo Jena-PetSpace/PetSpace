@@ -11,7 +11,6 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../config/injection_container.dart' as di;
-import '../../../../core/services/block_service.dart';
 import '../../../../core/utils/public_ai_text.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -30,10 +29,11 @@ import '../widgets/comment_list_item.dart';
 import '../widgets/edit_post_bottom_sheet.dart';
 import '../widgets/likes_bottom_sheet.dart';
 import '../widgets/social_content_report_sheet.dart';
+import '../widgets/social_user_actions_sheet.dart';
 
 enum _PostLoadStatus { loading, loaded, error, notFound }
 
-enum _PostDetailMenuAction { edit, delete, report, block }
+enum _PostDetailMenuAction { edit, delete, report, userActions }
 
 class PostDetailPage extends StatefulWidget {
   final String postId;
@@ -455,11 +455,11 @@ class _PostDetailPageState extends State<PostDetailPage> {
               return const [
                 PopupMenuItem(
                   value: _PostDetailMenuAction.report,
-                  child: Text('신고'),
+                  child: Text('게시물 신고'),
                 ),
                 PopupMenuItem(
-                  value: _PostDetailMenuAction.block,
-                  child: Text('사용자 차단'),
+                  value: _PostDetailMenuAction.userActions,
+                  child: Text('사용자 신고 · 차단'),
                 ),
               ];
             },
@@ -1087,8 +1087,8 @@ class _PostDetailPageState extends State<PostDetailPage> {
       case _PostDetailMenuAction.report:
         unawaited(_reportPost());
         return;
-      case _PostDetailMenuAction.block:
-        unawaited(_blockAuthor());
+      case _PostDetailMenuAction.userActions:
+        unawaited(_showAuthorActions());
         return;
     }
   }
@@ -1173,39 +1173,21 @@ class _PostDetailPageState extends State<PostDetailPage> {
     if (accepted && mounted) _showSafeMessage('신고가 접수되었습니다.');
   }
 
-  Future<void> _blockAuthor() async {
+  Future<void> _showAuthorActions() async {
     final authorId = _post?['author_id'] as String? ?? '';
     if (authorId.isEmpty) return;
     final user = _post?['users'] as Map<String, dynamic>?;
     final authorName = user?['display_name'] as String? ?? '이 사용자';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('사용자 차단'),
-        content: Text(
-          '$authorName님을 차단하시겠습니까?\n\n차단하면 해당 사용자의 게시물과 댓글이 보이지 않습니다.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
-            child: const Text('차단'),
-          ),
-        ],
-      ),
+    await SocialUserActionsSheet.show(
+      context,
+      targetUserId: authorId,
+      targetUserName: authorName,
+      currentUserId: _currentUserId,
+      repository: _repository,
+      onBlocked: () {
+        if (mounted) Navigator.of(context).pop(true);
+      },
     );
-    if (confirmed != true || !mounted) return;
-    final succeeded = await di.sl<BlockService>().blockUser(authorId);
-    if (!mounted) return;
-    if (!succeeded) {
-      _showSafeMessage('차단하지 못했어요. 잠시 후 다시 시도해주세요.');
-      return;
-    }
-    Navigator.of(context).pop(true);
   }
 
   Future<void> _sharePost() async {

@@ -3,7 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../config/app_config.dart';
 import '../../../../core/constants/legal_documents.dart';
-import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_app_bar.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 
 /// 커뮤니티 가이드라인 페이지.
 ///
@@ -16,29 +17,26 @@ class CommunityGuidelinesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          '커뮤니티 가이드라인',
-          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.onSurface,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
+      backgroundColor: PetSpaceV3Tokens.canvas,
+      appBar: PetSpaceAppBar.page(
+        title: '커뮤니티 가이드라인',
+        backgroundColor: PetSpaceV3Tokens.canvas,
+        onBack: () => Navigator.of(context).maybePop(),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(20.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(theme),
+            _buildHeader(),
+            SizedBox(height: 20.h),
             for (final section in LegalDocuments.communityGuidelineSections)
-              _buildSection(theme, section.title, section.items),
-            _buildContactSection(theme),
+              Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: _buildSection(section.title, section.items),
+              ),
+            _buildContactSection(),
             SizedBox(height: 30.h),
           ],
         ),
@@ -46,13 +44,10 @@ class CommunityGuidelinesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
-    return Container(
+  Widget _buildHeader() {
+    return PetSpaceV3Card(
+      backgroundColor: PetSpaceV3Tokens.paleBlue,
       padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12.r),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -60,16 +55,18 @@ class CommunityGuidelinesPage extends StatelessWidget {
             children: [
               Icon(
                 Icons.shield_outlined,
-                color: AppTheme.primaryColor,
+                color: PetSpaceV3Tokens.action,
                 size: 24.sp,
               ),
               SizedBox(width: 8.w),
-              Text(
-                '안전한 펫페이스를 위해',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
+              Expanded(
+                child: Text(
+                  '안전한 펫페이스를 위해',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: PetSpaceV3Tokens.brandDeep,
+                  ),
                 ),
               ),
             ],
@@ -82,7 +79,8 @@ class CommunityGuidelinesPage extends StatelessWidget {
             key: const Key('community_guidelines_metadata'),
             style: TextStyle(
               fontSize: 12.sp,
-              color: theme.colorScheme.onSurfaceVariant,
+              color: PetSpaceV3Tokens.textMuted,
+              height: 1.5,
             ),
           ),
         ],
@@ -91,12 +89,10 @@ class CommunityGuidelinesPage extends StatelessWidget {
   }
 
   Widget _buildSection(
-    ThemeData theme,
     String title,
     List<String> items,
   ) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
+    return PetSpaceV3Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,10 +101,10 @@ class CommunityGuidelinesPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 15.sp,
               fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
+              color: PetSpaceV3Tokens.text,
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: 10.h),
           ...items.map(
             (item) => Padding(
               padding: EdgeInsets.symmetric(vertical: 4.h),
@@ -121,7 +117,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
                       width: 4.w,
                       height: 4.w,
                       decoration: const BoxDecoration(
-                        color: AppTheme.primaryColor,
+                        color: PetSpaceV3Tokens.action,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -132,7 +128,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13.sp,
                         height: 1.5,
-                        color: theme.colorScheme.onSurface,
+                        color: PetSpaceV3Tokens.text,
                       ),
                     ),
                   ),
@@ -145,14 +141,9 @@ class CommunityGuidelinesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContactSection(ThemeData theme) {
-    return Container(
-      margin: EdgeInsets.only(top: 20.h),
+  Widget _buildContactSection() {
+    return PetSpaceV3Card(
       padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10.r),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -166,7 +157,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
             key: const Key('community_guidelines_contact'),
             style: TextStyle(
               fontSize: 12.sp,
-              color: theme.colorScheme.onSurfaceVariant,
+              color: PetSpaceV3Tokens.textMuted,
               height: 1.5,
             ),
           ),
@@ -175,7 +166,7 @@ class CommunityGuidelinesPage extends StatelessWidget {
             AppConfig.supportEmail,
             style: TextStyle(
               fontSize: 12.sp,
-              color: AppTheme.primaryColor,
+              color: PetSpaceV3Tokens.action,
               fontWeight: FontWeight.w600,
             ),
           ),

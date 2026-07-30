@@ -6,15 +6,12 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:meong_nyang_diary/config/injection_container.dart';
 import 'package:meong_nyang_diary/core/error/failures.dart';
-import 'package:meong_nyang_diary/core/services/block_service.dart';
 import 'package:meong_nyang_diary/features/social/domain/entities/post.dart';
 import 'package:meong_nyang_diary/features/social/domain/repositories/social_repository.dart';
 import 'package:meong_nyang_diary/features/social/presentation/controllers/post_interaction_coordinator.dart';
 import 'package:meong_nyang_diary/features/social/presentation/widgets/post_card_connector.dart';
 
 class _MockRepository extends Mock implements SocialRepository {}
-
-class _MockBlockService extends Mock implements BlockService {}
 
 Post _post({
   bool liked = false,
@@ -39,14 +36,12 @@ Post _post({
 
 void main() {
   late _MockRepository repository;
-  late _MockBlockService blockService;
   late PostInteractionCoordinator coordinator;
   late List<Post> changed;
   late List<String> removed;
 
   setUp(() async {
     repository = _MockRepository();
-    blockService = _MockBlockService();
     coordinator = PostInteractionCoordinator(repository: repository);
     changed = [];
     removed = [];
@@ -54,10 +49,6 @@ void main() {
       await sl.unregister<SocialRepository>();
     }
     sl.registerSingleton<SocialRepository>(repository);
-    if (sl.isRegistered<BlockService>()) {
-      await sl.unregister<BlockService>();
-    }
-    sl.registerSingleton<BlockService>(blockService);
     when(() => repository.getUserStreak(any())).thenAnswer(
       (_) async => const Right(0),
     );
@@ -66,9 +57,6 @@ void main() {
   tearDown(() async {
     if (sl.isRegistered<SocialRepository>()) {
       await sl.unregister<SocialRepository>();
-    }
-    if (sl.isRegistered<BlockService>()) {
-      await sl.unregister<BlockService>();
     }
   });
 
@@ -225,14 +213,18 @@ void main() {
     tester,
   ) async {
     var succeeds = true;
-    when(() => blockService.blockUser('author-1')).thenAnswer(
-      (_) async => succeeds,
+    when(() => repository.blockUser('author-1')).thenAnswer(
+      (_) async => succeeds
+          ? const Right(null)
+          : const Left(ServerFailure(message: 'private failure')),
     );
 
     Future<void> confirmBlock() async {
       await tester.tap(find.byTooltip('게시물 옵션'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.block));
+      await tester.tap(find.byIcon(Icons.person_off_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('social_user_block_action')));
       await tester.pumpAndSettle();
       final dialog = find.byType(AlertDialog);
       await tester.tap(
@@ -250,7 +242,7 @@ void main() {
     await pumpConnector(tester, post: _post(authorId: 'author-1'));
     await confirmBlock();
 
-    verify(() => blockService.blockUser('author-1')).called(2);
+    verify(() => repository.blockUser('author-1')).called(2);
     expect(removed, isEmpty);
   });
 }

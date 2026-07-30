@@ -5,13 +5,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/info_box.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 
 class PasswordResetNewPasswordPage extends StatefulWidget {
   final String email;
+  final GoTrueClient? authClient;
 
   const PasswordResetNewPasswordPage({
     super.key,
     required this.email,
+    this.authClient,
   });
 
   @override
@@ -29,6 +32,12 @@ class _PasswordResetNewPasswordPageState
   bool _obscurePassword = true;
   bool _obscurePasswordConfirm = true;
   String? _errorMessage;
+
+  bool get _isFormReady =>
+      _validatePassword(_passwordController.text) == null &&
+      _validatePasswordConfirm(_passwordConfirmController.text) == null;
+  GoTrueClient get _authClient =>
+      widget.authClient ?? Supabase.instance.client.auth;
 
   @override
   void dispose() {
@@ -51,11 +60,12 @@ class _PasswordResetNewPasswordPageState
       final newPassword = _passwordController.text;
 
       // Supabase에서 비밀번호 업데이트
-      await Supabase.instance.client.auth.updateUser(
+      await _authClient.updateUser(
         UserAttributes(password: newPassword),
       );
 
       if (mounted) {
+        setState(() => _isLoading = false);
         // 성공 다이얼로그 표시
         showDialog(
           context: context,
@@ -87,11 +97,8 @@ class _PasswordResetNewPasswordPageState
                 height: 48,
                 child: ElevatedButton(
                   onPressed: () async {
-                    // 로그아웃 후 로그인 페이지로 이동
-                    await Supabase.instance.client.auth.signOut();
-                    if (context.mounted) {
-                      context.go('/onboarding/login');
-                    }
+                    Navigator.of(context).pop();
+                    await _signOutAndGoToLogin();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.actionBase,
@@ -124,6 +131,17 @@ class _PasswordResetNewPasswordPageState
           _errorMessage = '비밀번호 변경 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
         });
       }
+    }
+  }
+
+  Future<void> _signOutAndGoToLogin() async {
+    try {
+      await _authClient.signOut();
+    } catch (_) {
+      // 네트워크 오류가 있어도 완료 다이얼로그에 사용자를 가두지 않는다.
+    }
+    if (mounted) {
+      context.go('/onboarding/login');
     }
   }
 
@@ -169,13 +187,7 @@ class _PasswordResetNewPasswordPageState
       appBar: PetSpaceAppBar.page(
         title: '새 비밀번호 설정',
         backgroundColor: AppTheme.backgroundColor,
-        onBack: () async {
-          // 로그아웃 후 로그인 페이지로 이동
-          await Supabase.instance.client.auth.signOut();
-          if (context.mounted) {
-            context.go('/onboarding/login');
-          }
-        },
+        onBack: _signOutAndGoToLogin,
       ),
       body: SafeArea(
         top: false,
@@ -211,8 +223,12 @@ class _PasswordResetNewPasswordPageState
 
                 // 새 비밀번호 입력
                 TextFormField(
+                  key: const ValueKey('password-reset-new-password'),
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  autofillHints: const [AutofillHints.newPassword],
+                  textInputAction: TextInputAction.next,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: InputDecoration(
                     labelText: '새 비밀번호',
                     hintText: '영문·숫자 포함 8자 이상',
@@ -235,13 +251,18 @@ class _PasswordResetNewPasswordPageState
                     ),
                   ),
                   validator: _validatePassword,
+                  onChanged: (_) => setState(() => _errorMessage = null),
                 ),
                 const SizedBox(height: 16),
 
                 // 비밀번호 확인
                 TextFormField(
+                  key: const ValueKey('password-reset-new-password-confirm'),
                   controller: _passwordConfirmController,
                   obscureText: _obscurePasswordConfirm,
+                  autofillHints: const [AutofillHints.newPassword],
+                  textInputAction: TextInputAction.done,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: InputDecoration(
                     labelText: '비밀번호 확인',
                     hintText: '비밀번호를 다시 입력하세요',
@@ -264,69 +285,56 @@ class _PasswordResetNewPasswordPageState
                     ),
                   ),
                   validator: _validatePasswordConfirm,
+                  onChanged: (_) => setState(() => _errorMessage = null),
+                  onFieldSubmitted: _isFormReady && !_isLoading
+                      ? (_) => _resetPassword()
+                      : null,
                 ),
                 const SizedBox(height: 24),
 
                 // 에러 메시지
                 if (_errorMessage != null)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.tilePastelRose,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: AppTheme.errorColor.withValues(alpha: 0.35)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: AppTheme.errorColor, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: AppTheme.errorColor,
-                              fontSize: 14,
+                  Semantics(
+                    liveRegion: true,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.tilePastelRose,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppTheme.errorColor.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: AppTheme.errorColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: AppTheme.errorColor,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 if (_errorMessage != null) const SizedBox(height: 24),
 
                 // 비밀번호 변경 버튼
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _resetPassword,
-                    style: ElevatedButton.styleFrom(
-                      // 버튼 주색은 테마 기본(navy/primary) 상속 — accent는 강조/링크용 (STEP 2-0)
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            '비밀번호 변경',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
+                PetSpaceV3PrimaryButton(
+                  key: const ValueKey('password-reset-new-submit'),
+                  label: '비밀번호 변경',
+                  onPressed:
+                      _isLoading || !_isFormReady ? null : _resetPassword,
+                  loading: _isLoading,
                 ),
                 const SizedBox(height: 24),
 

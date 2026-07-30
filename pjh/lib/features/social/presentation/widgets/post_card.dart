@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/injection_container.dart';
-import '../../../../core/services/block_service.dart';
 import '../../../../core/utils/hashtag_utils.dart';
 import '../../../../core/utils/public_ai_text.dart';
 import '../../../../core/utils/relative_time.dart';
@@ -17,6 +16,7 @@ import '../utils/saved_posts_change_notifier.dart';
 import 'collection_picker_sheet.dart';
 import 'likes_bottom_sheet.dart';
 import 'social_content_report_sheet.dart';
+import 'social_user_actions_sheet.dart';
 
 part 'post_card_header.dart';
 part 'post_card_media.dart';

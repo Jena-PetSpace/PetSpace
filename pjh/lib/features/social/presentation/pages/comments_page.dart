@@ -4,22 +4,29 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../config/injection_container.dart' as di;
 import '../../../../core/utils/back_press_handler.dart';
 import '../../../../shared/themes/app_theme.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 import '../../domain/entities/comment.dart';
+import '../../domain/repositories/social_repository.dart';
 import '../bloc/comment_bloc.dart';
 import '../bloc/comment_event.dart';
 import '../bloc/comment_state.dart';
 import '../widgets/comment_card.dart';
+import '../widgets/social_content_report_sheet.dart';
+import '../widgets/social_user_actions_sheet.dart';
 
 class CommentsPage extends StatefulWidget {
   final String postId;
   final String currentUserId;
+  final SocialRepository? repository;
 
   const CommentsPage({
     super.key,
     required this.postId,
     required this.currentUserId,
+    this.repository,
   });
 
   @override
@@ -31,6 +38,10 @@ class _CommentsPageState extends State<CommentsPage> {
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _isSubmitting = false;
+  final Set<String> _hiddenAuthorIds = <String>{};
+
+  SocialRepository get _repository =>
+      widget.repository ?? di.sl<SocialRepository>();
 
   @override
   void initState() {
@@ -131,20 +142,31 @@ class _CommentsPageState extends State<CommentsPage> {
     if (state.comments.isEmpty) {
       return _buildEmptyState();
     }
+    final visibleComments = state.comments
+        .where((comment) => !_hiddenAuthorIds.contains(comment.authorId))
+        .toList(growable: false);
+    if (visibleComments.isEmpty) {
+      return const PetSpaceV3StateView(
+        key: Key('comments_blocked_hidden'),
+        kind: PetSpaceV3StateKind.blockedHidden,
+        title: '차단한 사용자의 댓글을 숨겼어요',
+        message: '새 댓글이 등록되면 이 화면에 표시됩니다.',
+      );
+    }
 
     return ListView.builder(
       controller: _scrollController,
       padding: EdgeInsets.symmetric(vertical: 8.h),
-      itemCount: state.comments.length + (state.isLoadingMore ? 1 : 0),
+      itemCount: visibleComments.length + (state.isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index >= state.comments.length) {
+        if (index >= visibleComments.length) {
           return Padding(
             padding: EdgeInsets.symmetric(vertical: 16.h),
             child: const Center(child: CircularProgressIndicator()),
           );
         }
 
-        final comment = state.comments[index];
+        final comment = visibleComments[index];
         return CommentCard(
           comment: comment,
           currentUserId: widget.currentUserId,
@@ -156,6 +178,12 @@ class _CommentsPageState extends State<CommentsPage> {
           onEdit: comment.authorId == widget.currentUserId
               ? () => _editComment(comment)
               : null,
+          onReport:
+              comment.authorId == widget.currentUserId ? null : _reportComment,
+          onUserActions: comment.authorId == widget.currentUserId
+              ? null
+              : _showUserActions,
+          hiddenAuthorIds: _hiddenAuthorIds,
         );
       },
     );
@@ -387,6 +415,35 @@ class _CommentsPageState extends State<CommentsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _reportComment(Comment comment) async {
+    final accepted = await SocialContentReportSheet.show(
+      context,
+      target: SocialReportTarget.comment,
+      targetId: comment.id,
+      currentUserId: widget.currentUserId,
+      repository: _repository,
+    );
+    if (accepted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('댓글 신고가 접수되었습니다.')),
+      );
+    }
+  }
+
+  Future<void> _showUserActions(Comment comment) async {
+    await SocialUserActionsSheet.show(
+      context,
+      targetUserId: comment.authorId,
+      targetUserName: comment.authorName,
+      currentUserId: widget.currentUserId,
+      repository: _repository,
+      onBlocked: () {
+        if (!mounted) return;
+        setState(() => _hiddenAuthorIds.add(comment.authorId));
+      },
     );
   }
 }

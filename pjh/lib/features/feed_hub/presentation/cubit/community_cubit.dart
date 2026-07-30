@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/failures.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 import '../../domain/entities/community_post.dart';
 
@@ -38,9 +39,11 @@ class CommunityCubit extends Cubit<CommunityState> {
     );
 
     result.fold(
-      (_) => emit(state.copyWith(
+      (failure) => emit(state.copyWith(
         status: CommunityStatus.error,
-        errorMessage: '커뮤니티 글을 불러오지 못했어요.',
+        errorMessage: failure is NetworkFailure
+            ? '네트워크 연결을 확인하고 다시 시도해주세요.'
+            : '커뮤니티 글을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
       )),
       (rows) {
         final posts = rows.map(CommunityPost.fromJson).toList();
@@ -67,9 +70,11 @@ class CommunityCubit extends Cubit<CommunityState> {
     );
 
     result.fold(
-      (_) => emit(state.copyWith(
+      (failure) => emit(state.copyWith(
         isLoadingMore: false,
-        errorMessage: '글을 더 불러오지 못했어요.',
+        errorMessage: failure is NetworkFailure
+            ? '네트워크 연결을 확인한 뒤 다시 불러와주세요.'
+            : '글을 더 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
       )),
       (rows) {
         final more = rows.map(CommunityPost.fromJson).toList();
@@ -85,4 +90,14 @@ class CommunityCubit extends Cubit<CommunityState> {
 
   /// 현재 카테고리를 처음부터 다시 로드 (당겨서 새로고침).
   Future<void> refresh() => loadCategory(state.category);
+
+  /// 차단 성공 직후 재조회 전에 현재 목록에서 해당 작성자의 글을 숨긴다.
+  void hideAuthor(String authorId) {
+    if (authorId.isEmpty) return;
+    final visible = state.posts
+        .where((post) => post.authorId != authorId)
+        .toList(growable: false);
+    if (visible.length == state.posts.length) return;
+    emit(state.copyWith(posts: visible));
+  }
 }

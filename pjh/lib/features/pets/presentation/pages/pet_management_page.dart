@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../../../shared/widgets/petspace_state_view.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 import '../../domain/entities/pet.dart';
 import '../bloc/pet_bloc.dart';
 import '../bloc/pet_event.dart';
@@ -87,12 +88,12 @@ class _PetManagementPageState extends State<PetManagementPage> {
             final selectedPet = state is PetLoaded ? state.selectedPet : null;
 
             if (pets.isEmpty) {
-              return PetSpaceStateView.empty(
-                icon: Icons.pets,
-                title: '등록된 반려동물이 없습니다',
-                message: '첫 번째 반려동물을 등록해보세요!\n함께하는 순간을 기록할 수 있어요.',
-                actionLabel: '반려동물 추가하기',
-                onAction: _openAddPetPage,
+              return PetSpaceV3StateView(
+                kind: PetSpaceV3StateKind.initial,
+                title: '등록된 반려동물이 없어요',
+                message: '첫 번째 반려동물을 등록하면 함께하는 순간을 기록할 수 있어요.',
+                primaryActionLabel: '반려동물 추가하기',
+                onPrimaryAction: _openAddPetPage,
               );
             }
 
@@ -273,11 +274,70 @@ class _PetManagementPageState extends State<PetManagementPage> {
       isSelectionPending: pendingSelectedPetId == pet.id,
       onTap: () => _showPetDetails(pet),
       onEdit: () => _openEditPetPage(pet),
-      onDelete: () => _showDeleteConfirmation(pet),
-      onSetPrimary: () {
-        context.read<PetBloc>().add(SelectPet(pet));
-      },
+      onDelete: () => _requestPetDeletion(pet, selectedPet),
+      onSetPrimary: () => _showPrimaryPetConfirmation(pet),
     );
+  }
+
+  Future<void> _showPrimaryPetConfirmation(Pet pet) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const Key('pet_primary_confirmation_dialog'),
+        title: const Text('대표 반려동물 변경'),
+        content: Text(
+          '${pet.name}을(를) 대표 반려동물로 설정할까요?\n\n'
+          '대표 반려동물은 MY와 건강, 감정 분석 등 주요 화면의 '
+          '기본 대상으로 사용됩니다.',
+        ),
+        actions: [
+          TextButton(
+            key: const Key('pet_primary_confirmation_cancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            key: const Key('pet_primary_confirmation_confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('변경'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    context.read<PetBloc>().add(SelectPet(pet));
+  }
+
+  void _requestPetDeletion(Pet pet, Pet? selectedPet) {
+    final petBloc = context.read<PetBloc>();
+    final currentState = petBloc.state;
+    final pets = switch (currentState) {
+      PetLoaded(:final pets) => pets,
+      PetOperationSuccess(:final pets) => pets,
+      _ => const <Pet>[],
+    };
+    final hasAnotherPet = pets.any((candidate) => candidate.id != pet.id);
+    if (selectedPet?.id == pet.id && hasAnotherPet) {
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: const Key('pet_primary_delete_gate_dialog'),
+          title: const Text('새 대표 반려동물을 먼저 선택해 주세요'),
+          content: const Text(
+            '대표 반려동물을 삭제하기 전에 다른 반려동물을 대표로 설정해 주세요.',
+          ),
+          actions: [
+            TextButton(
+              key: const Key('pet_primary_delete_gate_confirm'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    _showDeleteConfirmation(pet);
   }
 
   void _showFeedback(String message, {Color? backgroundColor}) {
@@ -328,6 +388,13 @@ class _PetManagementPageState extends State<PetManagementPage> {
 
   void _showDeleteConfirmation(Pet pet) {
     final petBloc = context.read<PetBloc>();
+    final currentState = petBloc.state;
+    final pets = switch (currentState) {
+      PetLoaded(:final pets) => pets,
+      PetOperationSuccess(:final pets) => pets,
+      _ => const <Pet>[],
+    };
+    final isLastPet = pets.length == 1 && pets.single.id == pet.id;
 
     showDialog(
       context: context,
@@ -369,6 +436,15 @@ class _PetManagementPageState extends State<PetManagementPage> {
                 description: '게시물과 산책 기록',
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
+              if (isLastPet) ...[
+                SizedBox(height: 10.h),
+                _buildDeleteImpact(
+                  icon: Icons.person_off_outlined,
+                  title: '마지막 반려동물이에요',
+                  description: '삭제하면 대표 반려동물이 해제되고 홈·건강 화면에서 선택할 반려동물이 없어집니다.',
+                  color: AppTheme.errorColor,
+                ),
+              ],
               SizedBox(height: 14.h),
               Text(
                 '이 작업은 되돌릴 수 없습니다.',

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_app_bar.dart';
+import '../../../../shared/widgets/petspace_uiux_v3.dart';
 
 class TermsDetailPage extends StatelessWidget {
   final String title;
@@ -17,12 +17,11 @@ class TermsDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: PetSpaceV3Tokens.canvas,
       appBar: PetSpaceAppBar.page(
         title: title,
-        backgroundColor: theme.colorScheme.surface,
+        backgroundColor: PetSpaceV3Tokens.canvas,
         onBack: () => Navigator.of(context).pop(),
       ),
       body: SafeArea(
@@ -30,59 +29,35 @@ class TermsDetailPage extends StatelessWidget {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  content,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: theme.colorScheme.onSurface,
-                    height: 1.6,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: PetSpaceV3Card(
+                  child: SelectionArea(
+                    child: Text(
+                      content,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: PetSpaceV3Tokens.text,
+                        height: 1.65,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
             if (onAgree != null)
-              Container(
-                padding: EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  top: 20,
-                  bottom: 20 + MediaQuery.of(context).padding.bottom,
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  8,
+                  20,
+                  12 + MediaQuery.paddingOf(context).bottom,
                 ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      onAgree!();
-                      Navigator.of(context).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.actionBase,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      '동의',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                child: PetSpaceV3PrimaryButton(
+                  label: '동의',
+                  onPressed: () {
+                    onAgree!();
+                    Navigator.of(context).pop();
+                  },
                 ),
               ),
           ],

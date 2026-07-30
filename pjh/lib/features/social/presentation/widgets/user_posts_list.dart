@@ -209,7 +209,18 @@ class _UserPostsListState extends State<UserPostsList> {
                 button: true,
                 label: '게시물 상세 보기',
                 child: InkWell(
-                  onTap: () => context.push('/post/$postId'),
+                  onTap: () async {
+                    final removed = await context.push<bool>('/post/$postId');
+                    if (removed != true || !mounted) return;
+                    setState(() {
+                      if (widget.isMyProfile) {
+                        _posts.removeWhere((item) => item['id'] == postId);
+                      } else {
+                        _posts.clear();
+                        _hasMore = false;
+                      }
+                    });
+                  },
                   child: Stack(
                     fit: StackFit.expand,
                     children: [

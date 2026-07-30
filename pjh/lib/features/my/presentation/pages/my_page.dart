@@ -45,6 +45,7 @@ class MyPage extends StatefulWidget {
 class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _statsRefreshKey = 0;
+  int _myGridRefreshKey = 0;
   // 내 게시글 커서 (커서 기반 페이지네이션)
   String? _myPostsCursor;
   bool _myPostsHasMore = true;
@@ -268,6 +269,7 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
     Widget? header,
   }) {
     return LazyGridView<Map<String, dynamic>>(
+      key: ValueKey('my-grid-$_myGridRefreshKey-$isMyPosts'),
       onLoadInitial: onLoadInitial,
       onLoadMore: onLoadMore,
       crossAxisCount: 3,
@@ -308,7 +310,12 @@ class _MyPageState extends State<MyPage> with SingleTickerProviderStateMixin {
           button: true,
           label: caption.trim().isEmpty ? '게시물 상세 보기' : '$caption 게시물 상세 보기',
           child: GestureDetector(
-            onTap: () => context.push('/post/$postId'),
+            onTap: () async {
+              final removed = await context.push<bool>('/post/$postId');
+              if (removed == true && mounted) {
+                setState(() => _myGridRefreshKey++);
+              }
+            },
             child: Stack(
               fit: StackFit.expand,
               children: [

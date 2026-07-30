@@ -263,6 +263,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
 
   bool _mapReady = false;
   bool _mapInitFailed = false;
+  int _mapViewGeneration = 0;
   bool _markerLayerAdded = false;
   int _registeredPlaceMarkerOrdinalCount = 0;
   Future<void> _markerQueue = Future<void>.value();

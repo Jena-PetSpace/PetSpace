@@ -6,6 +6,7 @@ import 'package:meong_nyang_diary/config/app_config.dart';
 import 'package:meong_nyang_diary/core/constants/legal_documents.dart';
 import 'package:meong_nyang_diary/features/profile/presentation/pages/community_guidelines_page.dart';
 import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
+import 'package:meong_nyang_diary/shared/widgets/petspace_uiux_v3.dart';
 
 void main() {
   Future<void> pumpPage(
@@ -46,6 +47,7 @@ void main() {
       find.textContaining(LegalDocuments.communityGuidelinesApprover),
       findsOneWidget,
     );
+    expect(find.byType(PetSpaceV3Card), findsWidgets);
     await tester.fling(
       find.byType(SingleChildScrollView),
       const Offset(0, -5000),
@@ -56,6 +58,27 @@ void main() {
       find.text(LegalDocuments.communityGuidelinesContact),
       findsOneWidget,
     );
+    expect(find.text(AppConfig.supportEmail), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('작은 화면·200% 글자에서도 가이드라인 카드가 overflow되지 않는다', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpPage(tester, textScale: 2);
+
+    expect(find.byType(PetSpaceV3Card), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await tester.fling(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -3000),
+      1000,
+    );
+    await tester.pumpAndSettle();
     expect(find.text(AppConfig.supportEmail), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

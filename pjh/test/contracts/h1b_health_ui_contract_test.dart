@@ -17,8 +17,10 @@ void main() {
     expect(main, contains('selected: isSelected'));
     expect(main, contains('AppTheme.actionBase'));
     expect(main, contains('BoxConstraints(minWidth: 44, minHeight: 44)'));
-    expect(main, contains('height: 44,'));
-    expect(main, isNot(contains('height: 44.h')));
+    expect(main, contains("key: const Key('health_record_filter_strip')"));
+    expect(main, contains('SingleChildScrollView('));
+    expect(main, isNot(contains('height: 44,')));
+    expect(main, contains('BoxConstraints(minHeight: 52)'));
     expect(main, isNot(contains('return GestureDetector(')));
   });
 
@@ -50,8 +52,9 @@ void main() {
     expect(sheets, contains('rootNavigator: true'));
     expect(sheets, contains('HealthRecordEditorPage('));
     expect(sheets, isNot(contains('showModalBottomSheet(')));
-    expect(form, contains('height: 44,'));
-    expect(form, isNot(contains('height: 44.h')));
+    expect(form, contains("key: const Key('health_record_type_selector')"));
+    expect(form, contains('SingleChildScrollView('));
+    expect(form, isNot(contains('height: 44,')));
     for (final value in [
       'HealthRecordType.vaccination',
       'HealthRecordType.checkup',

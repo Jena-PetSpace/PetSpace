@@ -264,6 +264,17 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
     );
   }
 
+  void _removeAfterDetail(SavedPostItem removedItem) {
+    final blockedAnotherUser = removedItem.post.authorId != widget.userId;
+    setState(() {
+      _items.removeWhere(
+        (item) => blockedAnotherUser
+            ? item.post.authorId == removedItem.post.authorId
+            : item.post.id == removedItem.post.id,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -303,7 +314,10 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
         if (widget.header != null) SliverToBoxAdapter(child: widget.header),
         SliverGrid(
           delegate: SliverChildBuilderDelegate(
-            (context, index) => _SavedPostTile(item: _items[index]),
+            (context, index) => _SavedPostTile(
+              item: _items[index],
+              onRemoved: _removeAfterDetail,
+            ),
             childCount: _items.length,
           ),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -363,7 +377,8 @@ class _SavedPostsGridState extends State<SavedPostsGrid>
 
 class _SavedPostTile extends StatelessWidget {
   final SavedPostItem item;
-  const _SavedPostTile({required this.item});
+  final ValueChanged<SavedPostItem> onRemoved;
+  const _SavedPostTile({required this.item, required this.onRemoved});
 
   @override
   Widget build(BuildContext context) {
@@ -374,7 +389,10 @@ class _SavedPostTile extends StatelessWidget {
       label: '${(post.content ?? '').trim()} 게시물 상세 보기'.trim(),
       child: InkWell(
         key: Key('saved_post_${post.id}'),
-        onTap: () => context.push('/post/${post.id}'),
+        onTap: () async {
+          final removed = await context.push<bool>('/post/${post.id}');
+          if (removed == true && context.mounted) onRemoved(item);
+        },
         child: Stack(
           fit: StackFit.expand,
           children: [

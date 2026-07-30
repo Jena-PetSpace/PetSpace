@@ -146,13 +146,19 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('앱 정보에는 실행 중인 build name과 number를 표시한다', (tester) async {
+  testWidgets('앱 정보에는 실행 버전과 오픈소스 라이선스 진입점을 표시한다', (
+    tester,
+  ) async {
     await pumpPage(tester);
     await revealAccountManagement(tester);
     await tester.tap(find.text('앱 정보 · 버전'));
     await tester.pumpAndSettle();
 
     expect(find.text('2.4.1 (37)'), findsOneWidget);
+    expect(find.text('View licenses'), findsOneWidget);
+    await tester.tap(find.text('View licenses'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LicensePage), findsOneWidget);
   });
 
   testWidgets('차단 관리 메뉴는 계정 섹션에서 정본 개인정보 경로로 이동한다', (

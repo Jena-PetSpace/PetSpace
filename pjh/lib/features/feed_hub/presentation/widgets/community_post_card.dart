@@ -15,6 +15,8 @@ class CommunityPostCard extends StatelessWidget {
   final String timeAgo;
   final bool isAdmin;
   final VoidCallback? onTap;
+  final VoidCallback? onReportPost;
+  final VoidCallback? onUserActions;
 
   const CommunityPostCard({
     super.key,
@@ -28,6 +30,8 @@ class CommunityPostCard extends StatelessWidget {
     required this.timeAgo,
     this.isAdmin = false,
     this.onTap,
+    this.onReportPost,
+    this.onUserActions,
   });
 
   @override
@@ -51,6 +55,7 @@ class CommunityPostCard extends StatelessWidget {
             children: [
               // 작성자 + 시간
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 아바타 폴백: 발바닥 아이콘 + 연블루 배경 (사람 아이콘 금지)
                   CircleAvatar(
@@ -68,42 +73,92 @@ class CommunityPostCard extends StatelessWidget {
                           ),
                   ),
                   SizedBox(width: 8.w),
-                  Text(
-                    authorName,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  SizedBox(width: 8.w),
                   Expanded(
-                    child: Text(
-                      timeAgo,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: AppTheme.fontMicro.sp,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          authorName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        SizedBox(height: 3.h),
+                        Wrap(
+                          spacing: 8.w,
+                          runSpacing: 4.h,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              timeAgo,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: AppTheme.fontMicro.sp,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            // 미분류면 빈 장식도 렌더링하지 않는다.
+                            if (category.isNotEmpty)
+                              Container(
+                                constraints: BoxConstraints(maxWidth: 150.w),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8.w,
+                                  vertical: 2.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.accentColor.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                                child: Text(
+                                  category,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 10.sp,
+                                    color: AppTheme.accentColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  // 미분류(빈 라벨)면 칩 자체를 숨긴다 — 빈 파란 점 렌더 결함 방지.
-                  if (category.isNotEmpty)
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                      child: Text(
-                        category,
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          color: AppTheme.accentColor,
-                          fontWeight: FontWeight.w500,
-                        ),
+                  if (onReportPost != null || onUserActions != null)
+                    SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: PopupMenuButton<String>(
+                        key: const Key('community_post_options'),
+                        tooltip: '커뮤니티 글 더보기',
+                        icon: const Icon(Icons.more_horiz),
+                        onSelected: (value) {
+                          if (value == 'report_post') {
+                            onReportPost?.call();
+                          } else if (value == 'user_actions') {
+                            onUserActions?.call();
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          if (onReportPost != null)
+                            const PopupMenuItem(
+                              value: 'report_post',
+                              child: Text('게시물 신고'),
+                            ),
+                          if (onUserActions != null)
+                            const PopupMenuItem(
+                              value: 'user_actions',
+                              child: Text('사용자 신고 · 차단'),
+                            ),
+                        ],
                       ),
                     ),
                 ],
@@ -148,28 +203,45 @@ class CommunityPostCard extends StatelessWidget {
               SizedBox(height: 10.h),
 
               // 좋아요 / 댓글
-              Row(
+              Wrap(
+                spacing: 16.w,
+                runSpacing: 8.h,
                 children: [
-                  Icon(Icons.favorite_border,
-                      size: 14.w, color: theme.colorScheme.onSurfaceVariant),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '좋아요 $likes',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.favorite_border,
+                        size: 14.w,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      SizedBox(width: 4.w),
+                      Text(
+                        '좋아요 $likes',
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 16.w),
-                  Icon(Icons.chat_bubble_outline,
-                      size: 14.w, color: theme.colorScheme.onSurfaceVariant),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '댓글 $comments',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: 14.w,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      SizedBox(width: 4.w),
+                      Text(
+                        '댓글 $comments',
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
