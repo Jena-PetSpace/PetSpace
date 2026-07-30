@@ -154,6 +154,8 @@ const double kPlaceSheetInitial = 0.42;
 @visibleForTesting
 const double kPlaceSheetMax = 0.88;
 @visibleForTesting
+const double kPlaceFloatingHeaderHeight = 112;
+@visibleForTesting
 const List<double> kPlaceSheetSnapSizes = <double>[
   kPlaceSheetMin,
   kPlaceSheetInitial,
@@ -202,6 +204,16 @@ const String _myLocationStyleId = 'my_location_style';
 const String _placeStyleIdPrefix = 'place_style';
 const String _selectedPlaceStyleIdPrefix = 'selected_place_style';
 const String _selectedPlaceInfoWindowId = 'selected_place_info_window';
+@visibleForTesting
+const int kMyLocationMarkerPixelSize = 20;
+
+@visibleForTesting
+({int width, int height}) placeMarkerPixelSize({required bool selected}) =>
+    selected ? (width: 44, height: 44) : (width: 41, height: 41);
+
+@visibleForTesting
+double selectedPlaceInfoWindowOffsetY() =>
+    -(placeMarkerPixelSize(selected: true).height / 2 + 8);
 
 String _placeMarkerStyleId(int ordinal, {required bool selected}) {
   final prefix = selected ? _selectedPlaceStyleIdPrefix : _placeStyleIdPrefix;
@@ -305,13 +317,10 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
   // ── 스크롤/검색 ──
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
-  final ValueNotifier<double> _sheetExtent =
-      ValueNotifier<double>(kPlaceSheetInitial);
-  final ValueNotifier<double> _mapRenderExtent =
-      ValueNotifier<double>(kPlaceSheetInitial);
-  Timer? _mapResizeThrottleTimer;
+  final ValueNotifier<double> _sheetExtent = ValueNotifier<double>(
+    kPlaceSheetInitial,
+  );
   Timer? _sheetSettleTimer;
-  double _pendingMapRenderExtent = kPlaceSheetInitial;
   Future<void> _mapViewportQueue = Future<void>.value();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -389,10 +398,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
             duration: const Duration(milliseconds: 260),
             curve: Curves.easeOutCubic,
           )
-          .timeout(
-            const Duration(milliseconds: 420),
-            onTimeout: () {},
-          )
+          .timeout(const Duration(milliseconds: 420), onTimeout: () {})
           .whenComplete(() {
         if (!mounted || generation != _sheetAnimationGeneration) return;
         _programmaticSheetTarget = null;
@@ -403,11 +409,7 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
           _desiredSheetSize = size;
         }
       }).catchError((Object error) {
-        dev.log(
-          '시트 이동 실패',
-          name: 'HospitalSearch',
-          error: error,
-        );
+        dev.log('시트 이동 실패', name: 'HospitalSearch', error: error);
       }),
     );
   }
@@ -424,7 +426,6 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
       }
       final size = _sheetController.size;
       _sheetExtent.value = size;
-      _applyMapRenderExtent(size);
       final pendingTarget = _programmaticSheetTarget;
       if (pendingTarget != null && !_sheetAnimationRunning) {
         _animateSheetTo(pendingTarget);
@@ -471,36 +472,21 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
     if ((_sheetExtent.value - extent).abs() > 0.001) {
       _sheetExtent.value = extent;
     }
-    _scheduleMapViewportSync(extent);
+    _scheduleMapViewportSync();
   }
 
-  void _scheduleMapViewportSync(double extent) {
-    _pendingMapRenderExtent = extent;
+  void _scheduleMapViewportSync() {
     _sheetSettleTimer?.cancel();
     _sheetSettleTimer = Timer(const Duration(milliseconds: 150), () {
       if (!mounted) return;
-      _applyMapRenderExtent(_pendingMapRenderExtent);
       unawaited(_syncMapPaddingToSheet());
     });
-    if (_mapResizeThrottleTimer != null) return;
-    _mapResizeThrottleTimer = Timer(const Duration(milliseconds: 100), () {
-      _mapResizeThrottleTimer = null;
-      if (!mounted) return;
-      _applyMapRenderExtent(_pendingMapRenderExtent);
-      unawaited(_syncMapPaddingToSheet());
-    });
-  }
-
-  void _applyMapRenderExtent(double extent) {
-    final clamped = extent.clamp(_effectiveSheetMin, kPlaceSheetMax).toDouble();
-    if ((_mapRenderExtent.value - clamped).abs() < 0.002) return;
-    _suppressCameraMoveForViewportMutation();
-    _mapRenderExtent.value = clamped;
   }
 
   void _suppressCameraMoveForViewportMutation() {
-    _suppressCameraMoveUntil =
-        DateTime.now().add(const Duration(milliseconds: 400));
+    _suppressCameraMoveUntil = DateTime.now().add(
+      const Duration(milliseconds: 400),
+    );
   }
 
   bool _isCameraMoveSuppressed(DateTime now) {
@@ -528,7 +514,6 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
     WidgetsBinding.instance.removeObserver(this);
     _labelClickSub?.cancel();
     _cameraMoveEndSub?.cancel();
-    _mapResizeThrottleTimer?.cancel();
     _sheetSettleTimer?.cancel();
     final controller = _mapController;
     if (controller != null) {
@@ -543,7 +528,6 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
       ..removeListener(_handleSheetExtentChanged)
       ..dispose();
     _sheetExtent.dispose();
-    _mapRenderExtent.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -559,25 +543,23 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
   Future<void> _syncMapPaddingToSheet() async {
     final controller = _mapController;
     if (controller == null || !_mapReady) return;
-    _mapViewportQueue =
-        _mapViewportQueue.catchError((Object _) {}).then((_) async {
+    _mapViewportQueue = _mapViewportQueue.catchError((Object _) {}).then((
+      _,
+    ) async {
       if (!mounted || !identical(_mapController, controller) || !_mapReady) {
         return;
       }
+      final padding = _mapPaddingForCurrentSheet();
       _suppressCameraMoveForViewportMutation();
       try {
         await controller.setPadding(
           left: 0,
-          top: 0,
+          top: padding.top,
           right: 0,
-          bottom: 24.h.round(),
+          bottom: padding.bottom,
         );
       } catch (error) {
-        dev.log(
-          '[HS] setPadding 실패',
-          name: 'HospitalSearch',
-          error: error,
-        );
+        dev.log('[HS] setPadding 실패', name: 'HospitalSearch', error: error);
       } finally {
         _suppressCameraMoveForViewportMutation();
       }
@@ -585,9 +567,24 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
     await _mapViewportQueue;
   }
 
-  Future<void> _serializeSavedPlaceMutation(
-    Future<void> Function() mutation,
-  ) {
+  ({int top, int bottom}) _mapPaddingForCurrentSheet() {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final safeHeight = mediaQuery == null
+        ? 844.h
+        : mediaQuery.size.height -
+            mediaQuery.padding.top -
+            mediaQuery.padding.bottom;
+    final topPadding = kPlaceFloatingHeaderHeight.h.round();
+    final maxBottomPadding =
+        (safeHeight - topPadding - 120.h).round().clamp(0, 1 << 20).toInt();
+    final bottomPadding = (safeHeight * _sheetExtent.value + 8.h)
+        .round()
+        .clamp(0, maxBottomPadding)
+        .toInt();
+    return (top: topPadding, bottom: bottomPadding);
+  }
+
+  Future<void> _serializeSavedPlaceMutation(Future<void> Function() mutation) {
     final next = _savedPlaceMutationQueue
         .catchError((Object _) {})
         .then((_) => mutation());
@@ -650,48 +647,49 @@ class _HospitalSearchPageState extends State<HospitalSearchPage>
         backgroundColor: AppTheme.backgroundColor,
         resizeToAvoidBottomInset: false,
         body: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              _buildLocationBanner(),
-              _buildSearchBar(),
-              _buildCategoryBar(),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return ColoredBox(
-                      color: AppTheme.neutral100,
-                      child: Stack(
-                        children: [
-                          ValueListenableBuilder<double>(
-                            valueListenable: _mapRenderExtent,
-                            builder: (context, extent, child) {
-                              final clearance = 18.h;
-                              final mapHeight =
-                                  (constraints.maxHeight * (1 - extent) -
-                                          clearance)
-                                      .clamp(0.0, constraints.maxHeight)
-                                      .toDouble();
-                              return Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                height: mapHeight,
-                                child: _buildMap(),
-                              );
-                            },
-                          ),
-                          _buildCloseMapButton(),
-                          _buildMapOverlayButtons(),
-                          if (_searching) _buildSearchingIndicator(),
-                          if (_showReSearchButton && !_showDetail)
-                            _buildReSearchButton(),
-                          _buildBottomSheet(),
+              Positioned.fill(child: _buildMap()),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: (kPlaceFloatingHeaderHeight + 20).h,
+                child: const IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0xE6FFFFFF),
+                          Color(0xBFFFFFFF),
+                          Color(0x00FFFFFF),
                         ],
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Column(
+                  key: const ValueKey<String>('place-floating-header'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildLocationBanner(),
+                    _buildSearchBar(),
+                    _buildCategoryBar(),
+                  ],
+                ),
+              ),
+              _buildMapOverlayButtons(),
+              if (_searching) _buildSearchingIndicator(),
+              if (_showReSearchButton && !_showDetail && !_searching)
+                _buildReSearchButton(),
+              _buildBottomSheet(),
             ],
           ),
         ),

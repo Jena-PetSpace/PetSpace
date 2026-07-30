@@ -48,8 +48,9 @@ extension _HospitalMap on _HospitalSearchPageState {
               }
             });
 
-            _cameraMoveEndSub =
-                controller.onCameraMoveEndStream.listen((event) {
+            _cameraMoveEndSub = controller.onCameraMoveEndStream.listen((
+              event,
+            ) {
               if (!mounted || !identical(_mapController, controller)) return;
               if (!event.latitude.isFinite ||
                   !event.longitude.isFinite ||
@@ -133,7 +134,6 @@ extension _HospitalMap on _HospitalSearchPageState {
 
   Future<void> _initializeMap(KakaoMapController controller) async {
     if (!mounted || !identical(_mapController, controller)) return;
-    final bottomPadding = 24.h.round();
     setState(() => _mapInitFailed = false);
     try {
       await controller.ready;
@@ -155,11 +155,12 @@ extension _HospitalMap on _HospitalSearchPageState {
       await _registerMarkerStyles(controller);
       if (!_isCurrentController(controller)) return;
       _suppressCameraMoveForViewportMutation();
+      final padding = _mapPaddingForCurrentSheet();
       await controller.setPadding(
         left: 0,
-        top: 0,
+        top: padding.top,
         right: 0,
-        bottom: bottomPadding,
+        bottom: padding.bottom,
       );
       _suppressCameraMoveForViewportMutation();
       if (!_isCurrentController(controller)) return;
@@ -191,10 +192,25 @@ extension _HospitalMap on _HospitalSearchPageState {
   }
 
   Future<void> _registerMarkerStyles(KakaoMapController controller) async {
-    final myLocBytes =
-        (await rootBundle.load('assets/icons/map/my_location_dot.png'))
-            .buffer
-            .asUint8List();
+    final sourceMyLocBytes = (await rootBundle.load(
+      'assets/icons/map/my_location_dot.png',
+    ))
+        .buffer
+        .asUint8List();
+    Uint8List myLocBytes;
+    try {
+      myLocBytes = await _resizeMarkerBytes(
+        sourceMyLocBytes,
+        kMyLocationMarkerPixelSize,
+      );
+    } catch (error) {
+      myLocBytes = sourceMyLocBytes;
+      dev.log(
+        '내 위치 마커 축소 실패, 원본을 사용합니다.',
+        name: 'HospitalSearch',
+        error: error,
+      );
+    }
     if (!_isCurrentController(controller)) return;
 
     await controller.registerMarkerStyles(
@@ -226,23 +242,15 @@ extension _HospitalMap on _HospitalSearchPageState {
     final firstOrdinal = _registeredPlaceMarkerOrdinalCount + 1;
     final placeStyles = <MarkerStyle>[];
     for (var ordinal = firstOrdinal; ordinal <= count; ordinal++) {
-      final placeBytes =
-          _defaultPlaceMarkerBytes[ordinal] ??= await _createPlaceMarkerBytes(
-        ordinal: ordinal,
-        selected: false,
-      );
-      final selectedPlaceBytes =
-          _selectedPlaceMarkerBytes[ordinal] ??= await _createPlaceMarkerBytes(
-        ordinal: ordinal,
-        selected: true,
-      );
+      final placeBytes = _defaultPlaceMarkerBytes[ordinal] ??=
+          await _createPlaceMarkerBytes(ordinal: ordinal, selected: false);
+      final selectedPlaceBytes = _selectedPlaceMarkerBytes[ordinal] ??=
+          await _createPlaceMarkerBytes(ordinal: ordinal, selected: true);
       placeStyles
         ..add(
           MarkerStyle(
             styleId: _placeMarkerStyleId(ordinal, selected: false),
-            perLevels: [
-              MarkerPerLevelStyle.fromBytes(bytes: placeBytes),
-            ],
+            perLevels: [MarkerPerLevelStyle.fromBytes(bytes: placeBytes)],
           ),
         )
         ..add(
@@ -266,47 +274,64 @@ extension _HospitalMap on _HospitalSearchPageState {
     required int ordinal,
     required bool selected,
   }) async {
-    final logicalSize = selected ? 52.0 : 48.0;
+    final markerSize = placeMarkerPixelSize(selected: selected);
+    final pixelWidth = markerSize.width;
+    final pixelHeight = markerSize.height;
     // Kakao Map renders decoded bitmap pixels directly. Multiplying by the
-    // Flutter device pixel ratio makes a 48 px marker about three times larger
+    // Flutter device pixel ratio makes a marker about three times larger
     // on high-density Android devices.
-    final pixelSize = logicalSize.round();
-    final center = pixelSize / 2;
+    final centerX = pixelWidth / 2;
+    final centerY = pixelHeight / 2;
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
 
     if (selected) {
       canvas.drawCircle(
-        ui.Offset(center, center),
-        center - 1,
+        ui.Offset(centerX, centerY + 1),
+        centerX - 1,
         ui.Paint()
           ..color = const ui.Color(0x33203F67)
           ..style = ui.PaintingStyle.fill,
       );
+      canvas.drawCircle(
+        ui.Offset(centerX, centerY),
+        centerX - 4,
+        ui.Paint()
+          ..color = const ui.Color(0xFF203F67)
+          ..style = ui.PaintingStyle.fill,
+      );
+      canvas.drawCircle(
+        ui.Offset(centerX, centerY),
+        centerX - 4,
+        ui.Paint()
+          ..color = const ui.Color(0xFFFFFFFF)
+          ..style = ui.PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
+    } else {
+      canvas.drawCircle(
+        ui.Offset(centerX, centerY),
+        centerX - 2,
+        ui.Paint()
+          ..color = const ui.Color(0xFF3C79B6)
+          ..style = ui.PaintingStyle.fill,
+      );
+      canvas.drawCircle(
+        ui.Offset(centerX, centerY),
+        centerX - 2,
+        ui.Paint()
+          ..color = const ui.Color(0xFFFFFFFF)
+          ..style = ui.PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
     }
-    canvas.drawCircle(
-      ui.Offset(center, center),
-      center - (selected ? 6 : 4),
-      ui.Paint()
-        ..color =
-            selected ? const ui.Color(0xFF203F67) : const ui.Color(0xFF3C79B6)
-        ..style = ui.PaintingStyle.fill,
-    );
-    canvas.drawCircle(
-      ui.Offset(center, center),
-      center - (selected ? 6 : 4),
-      ui.Paint()
-        ..color = const ui.Color(0xFFFFFFFF)
-        ..style = ui.PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
 
     final numberPainter = TextPainter(
       text: TextSpan(
         text: '$ordinal',
         style: TextStyle(
           color: Colors.white,
-          fontSize: ordinal >= 10 ? 17 : 20,
+          fontSize: ordinal >= 10 ? 14 : 16,
           fontWeight: FontWeight.w800,
           height: 1,
         ),
@@ -317,16 +342,35 @@ extension _HospitalMap on _HospitalSearchPageState {
     numberPainter.paint(
       canvas,
       ui.Offset(
-        center - numberPainter.width / 2,
-        center - numberPainter.height / 2,
+        centerX - numberPainter.width / 2,
+        centerY - numberPainter.height / 2,
       ),
     );
 
-    final image = await recorder.endRecording().toImage(pixelSize, pixelSize);
+    final image = await recorder.endRecording().toImage(
+          pixelWidth,
+          pixelHeight,
+        );
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     if (data == null) {
       throw StateError('장소 마커 이미지를 생성하지 못했습니다.');
+    }
+    return data.buffer.asUint8List();
+  }
+
+  Future<Uint8List> _resizeMarkerBytes(Uint8List source, int targetSize) async {
+    final codec = await ui.instantiateImageCodec(
+      source,
+      targetWidth: targetSize,
+      targetHeight: targetSize,
+    );
+    final frame = await codec.getNextFrame();
+    codec.dispose();
+    final data = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+    frame.image.dispose();
+    if (data == null) {
+      throw StateError('현재 위치 마커 이미지를 생성하지 못했습니다.');
     }
     return data.buffer.asUint8List();
   }
@@ -366,22 +410,20 @@ extension _HospitalMap on _HospitalSearchPageState {
     final controller = _mapController;
     final visible = List<HospitalPlace>.of(_places);
     final selectedPlace = _selectedPlace;
-    _markerQueue = _markerQueue.catchError((Object _) {}).then(
-      (_) async {
-        await _applyVisibleMarkers(
-          controller: controller,
-          generation: generation,
-          applyToken: applyToken,
-          visible: visible,
-        );
-        await _syncSelectedInfoWindow(
-          controller: controller,
-          generation: generation,
-          selectedPlace: selectedPlace,
-          visible: visible,
-        );
-      },
-    );
+    _markerQueue = _markerQueue.catchError((Object _) {}).then((_) async {
+      await _applyVisibleMarkers(
+        controller: controller,
+        generation: generation,
+        applyToken: applyToken,
+        visible: visible,
+      );
+      await _syncSelectedInfoWindow(
+        controller: controller,
+        generation: generation,
+        selectedPlace: selectedPlace,
+        visible: visible,
+      );
+    });
     return _markerQueue;
   }
 
@@ -461,10 +503,7 @@ extension _HospitalMap on _HospitalSearchPageState {
 
     if (markerOptions.isNotEmpty) {
       try {
-        await _ensurePlaceMarkerStyles(
-          controller,
-          count: markerOptions.length,
-        );
+        await _ensurePlaceMarkerStyles(controller, count: markerOptions.length);
       } catch (error) {
         debugPrint(
           '[PlaceMap] Marker style registration failed: '
@@ -540,27 +579,36 @@ extension _HospitalMap on _HospitalSearchPageState {
       await controller.removeInfoWindow(id: _selectedPlaceInfoWindowId);
     } catch (_) {}
 
+    final selectedIndex = selectedPlace == null
+        ? -1
+        : visible.indexWhere((place) => place.id == selectedPlace.id);
     final canShow = selectedPlace != null &&
+        selectedIndex >= 0 &&
         _searchGeneration.isCurrent(generation) &&
         _selectedPlace?.id == selectedPlace.id &&
-        visible.any((place) => place.id == selectedPlace.id);
+        visible[selectedIndex].id == selectedPlace.id;
     if (!canShow || !mounted || !identical(_mapController, controller)) return;
 
     try {
+      final ordinal = placeOrdinal(selectedIndex);
+      final category = selectedPlace.category.isEmpty
+          ? null
+          : selectedPlace.category.split('>').last.trim();
       await controller.addInfoWindow(
         infoWindowOption: InfoWindowOption.text(
           id: _selectedPlaceInfoWindowId,
           latLng: selectedPlace.latLng,
           title: selectedPlace.name,
+          snippet: category == null ? '$ordinal번 장소' : '$ordinal · $category',
+          offset: InfoWindowOffset(
+            x: 0,
+            y: selectedPlaceInfoWindowOffsetY(),
+          ),
           zOrder: 900,
         ),
       );
     } catch (error) {
-      dev.log(
-        '장소 InfoWindow 표시 실패',
-        name: 'HospitalSearch',
-        error: error,
-      );
+      dev.log('장소 InfoWindow 표시 실패', name: 'HospitalSearch', error: error);
     }
   }
 

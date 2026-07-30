@@ -53,10 +53,7 @@ void main() {
                 'distance': '198',
               },
             ],
-            'meta': <String, Object>{
-              'is_end': true,
-              'pageable_count': 2,
-            },
+            'meta': <String, Object>{'is_end': true, 'pageable_count': 2},
           }),
         ),
         200,
@@ -107,9 +104,9 @@ void main() {
           return MaterialApp(
             builder: (context, child) {
               return MediaQuery(
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(textScale),
-                ),
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(textScale)),
                 child: child!,
               );
             },
@@ -142,18 +139,12 @@ void main() {
 
   test('시트 상수와 거리 기준 문구가 정본 계약을 유지한다', () {
     expect(kPlaceSheetSnapSizes, <double>[0.12, 0.42, 0.88]);
-    expect(
-      placeDistanceOriginLabel(PlaceSearchOriginType.device),
-      '현재 위치 기준',
-    );
+    expect(placeDistanceOriginLabel(PlaceSearchOriginType.device), '현재 위치 기준');
     expect(
       placeDistanceOriginLabel(PlaceSearchOriginType.mapCenter),
       '지도 중심 기준',
     );
-    expect(
-      placeDistanceOriginLabel(PlaceSearchOriginType.manual),
-      '검색 기준',
-    );
+    expect(placeDistanceOriginLabel(PlaceSearchOriginType.manual), '검색 기준');
     expect(
       placeDistanceOriginLabel(PlaceSearchOriginType.fallback),
       '서울시청 주변 결과',
@@ -161,6 +152,16 @@ void main() {
   });
 
   test('마커와 카드가 공유할 순번 helper가 같은 번호를 만든다', () {
+    expect(kMyLocationMarkerPixelSize, 20);
+    expect(
+      placeMarkerPixelSize(selected: false),
+      (width: 41, height: 41),
+    );
+    expect(
+      placeMarkerPixelSize(selected: true),
+      (width: 44, height: 44),
+    );
+    expect(selectedPlaceInfoWindowOffsetY(), -30);
     const places = <HospitalPlace>[
       HospitalPlace(
         id: 'a',
@@ -213,15 +214,17 @@ void main() {
       places: overflowMarkers
           .asMap()
           .entries
-          .map((entry) => HospitalPlace(
-                id: entry.value.id,
-                name: '장소 ${entry.key}',
-                address: '',
-                phone: '',
-                lat: 37.5,
-                lng: 127,
-                category: '동물병원',
-              ))
+          .map(
+            (entry) => HospitalPlace(
+              id: entry.value.id,
+              name: '장소 ${entry.key}',
+              address: '',
+              phone: '',
+              lat: 37.5,
+              lng: 127,
+              category: '동물병원',
+            ),
+          )
           .toList(growable: false),
       selectedPlaceId: 'overflow-39',
     );
@@ -238,23 +241,33 @@ void main() {
     }
     expect(find.byType(DraggableScrollableSheet), findsOneWidget);
     expect(find.byType(CustomScrollView), findsOneWidget);
-    expect(find.bySemanticsLabel('장소 화면 닫기'), findsOneWidget);
+    expect(find.bySemanticsLabel('장소 화면 닫기'), findsNothing);
+    final mapRect = tester.getRect(
+      find.byKey(const ValueKey<String>('fake-map')),
+    );
+    final searchRect = tester.getRect(find.byType(TextField));
+    expect(mapRect.top, lessThan(searchRect.top));
+    expect(mapRect.bottom, greaterThan(searchRect.bottom));
   });
 
   testWidgets('시트를 중간→전체→축소 방향으로 실제 drag할 수 있다', (tester) async {
     await pumpPage(tester);
 
     final scrollView = find.byType(CustomScrollView);
+    final map = find.byKey(const ValueKey<String>('fake-map'));
+    final initialMapSize = tester.getSize(map);
     final initialHeight = tester.getSize(scrollView).height;
     await tester.drag(scrollView, const Offset(0, -360));
     await tester.pumpAndSettle();
     final expandedHeight = tester.getSize(scrollView).height;
     expect(expandedHeight, greaterThan(initialHeight + 40));
+    expect(tester.getSize(map), initialMapSize);
 
     await tester.drag(scrollView, const Offset(0, 520));
     await tester.pumpAndSettle();
     final collapsedHeight = tester.getSize(scrollView).height;
     expect(collapsedHeight, lessThan(expandedHeight - 40));
+    expect(tester.getSize(map), initialMapSize);
   });
 
   testWidgets('검색 중 검색창 포커스는 결과 시트를 즉시 축소한다', (tester) async {
@@ -266,13 +279,20 @@ void main() {
     final initialHeight = tester.getSize(scrollView).height;
     await tester.tap(find.text('동물병원'));
     await tester.pump();
+    final floatingHeaderRect = tester.getRect(
+      find.byKey(const ValueKey<String>('place-floating-header')),
+    );
+    final searchingIndicatorRect = tester.getRect(
+      find.byKey(const ValueKey<String>('place-searching-indicator')),
+    );
+    expect(
+      searchingIndicatorRect.top,
+      greaterThanOrEqualTo(floatingHeaderRect.bottom),
+    );
     await tester.showKeyboard(find.byType(TextField));
     await tester.pump(const Duration(milliseconds: 320));
 
-    expect(
-      tester.getSize(scrollView).height,
-      lessThan(initialHeight - 40),
-    );
+    expect(tester.getSize(scrollView).height, lessThan(initialHeight - 40));
 
     response.complete(
       http.Response(
@@ -299,10 +319,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 320));
     await tester.pump(const Duration(milliseconds: 320));
 
-    expect(
-      tester.getSize(scrollView).height,
-      lessThan(initialHeight - 40),
-    );
+    expect(tester.getSize(scrollView).height, lessThan(initialHeight - 40));
 
     response.complete(
       http.Response(
@@ -349,10 +366,7 @@ void main() {
                 'distance': '152',
               },
             ],
-            'meta': <String, Object>{
-              'is_end': true,
-              'pageable_count': 1,
-            },
+            'meta': <String, Object>{'is_end': true, 'pageable_count': 1},
           }),
         ),
         200,
@@ -365,10 +379,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('접힘 유지 동물병원'), findsOneWidget);
-    expect(
-      tester.getSize(scrollView).height,
-      lessThan(initialHeight - 40),
-    );
+    expect(tester.getSize(scrollView).height, lessThan(initialHeight - 40));
   });
 
   testWidgets('검색창에서 실행한 성공 검색은 결과 시트를 연다', (tester) async {
@@ -418,10 +429,7 @@ void main() {
                 'distance': '152',
               },
             ],
-            'meta': <String, Object>{
-              'is_end': true,
-              'pageable_count': 1,
-            },
+            'meta': <String, Object>{'is_end': true, 'pageable_count': 1},
           }),
         ),
         200,
@@ -462,10 +470,7 @@ void main() {
 
     expect(find.text('다시 시도'), findsOneWidget);
     final retryButton = find.widgetWithText(TextButton, '다시 시도');
-    expect(
-      retryButton.hitTestable(),
-      findsOneWidget,
-    );
+    expect(retryButton.hitTestable(), findsOneWidget);
     expect(
       tester.getSize(find.byType(CustomScrollView)).height,
       greaterThan(240),
@@ -502,11 +507,7 @@ void main() {
   });
 
   testWidgets('320x568·textScale 3.0에서 overflow가 없다', (tester) async {
-    await pumpPage(
-      tester,
-      size: const Size(320, 568),
-      textScale: 3,
-    );
+    await pumpPage(tester, size: const Size(320, 568), textScale: 3);
 
     expect(tester.takeException(), isNull);
     expect(find.byType(CustomScrollView), findsOneWidget);
