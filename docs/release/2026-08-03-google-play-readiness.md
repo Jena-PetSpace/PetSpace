@@ -6,10 +6,12 @@
 
 ## 1. 브랜치와 작업 로직
 
-- `origin/win-android-release`와 `origin/mac-ios-release`는 현재 동일한 기준
-  커밋이다. Windows 로컬도 해당 커밋으로 fast-forward 되었다.
-- Mac에서 진행 중인 전화면·전기능 UI/UX 감사 결과가 아직 push되지 않았다면
-  이 문서의 기준에는 포함되지 않는다.
+- 작업 시작 시 두 원격 브랜치는 `8b275f1`로 같았다. 이후 Mac의 W1 인증·설정
+  목업 커밋 `164ae40`을 검토해 Windows 로컬에 fast-forward하고, Android 출시
+  준비 커밋을 병합했다.
+- 현재 `win-android-release`는 검토된 Mac W1 문서와 Android 출시 준비 변경을
+  모두 포함하므로 `mac-ios-release`보다 앞선다. Mac에서 이후 push되는 실제 UI/UX
+  구현은 새 diff로 다시 검토한 뒤 Windows에 병합한다.
 - 이후 순서는 `Mac 감사 feature → mac-ios-release push → Windows에서 fetch →
   전용 integration worktree에서 win-android-release로 merge → Android 전체 검증 →
   win-android-release push`로 고정한다.
