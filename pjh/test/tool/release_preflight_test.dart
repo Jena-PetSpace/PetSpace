@@ -15,9 +15,7 @@ void main() {
     ).run();
 
     expect(
-      findings.where(
-        (finding) => finding.level == ReleaseFindingLevel.blocker,
-      ),
+      findings.where((finding) => finding.level == ReleaseFindingLevel.blocker),
       isEmpty,
     );
   });
@@ -35,7 +33,10 @@ void main() {
       contains(
         isA<ReleaseFinding>()
             .having(
-                (finding) => finding.code, 'code', 'PRECISE_LOCATION_PRIVACY')
+              (finding) => finding.code,
+              'code',
+              'PRECISE_LOCATION_PRIVACY',
+            )
             .having(
               (finding) => finding.level,
               'level',
@@ -57,11 +58,7 @@ void main() {
       findings,
       contains(
         isA<ReleaseFinding>()
-            .having(
-              (finding) => finding.code,
-              'code',
-              'APPLE_TOKEN_REVOCATION',
-            )
+            .having((finding) => finding.code, 'code', 'APPLE_TOKEN_REVOCATION')
             .having(
               (finding) => finding.level,
               'level',
@@ -83,11 +80,7 @@ void main() {
       findings,
       contains(
         isA<ReleaseFinding>()
-            .having(
-              (finding) => finding.code,
-              'code',
-              'ACCOUNT_PURGE_CONTRACT',
-            )
+            .having((finding) => finding.code, 'code', 'ACCOUNT_PURGE_CONTRACT')
             .having(
               (finding) => finding.level,
               'level',
@@ -163,10 +156,32 @@ void main() {
       findings,
       contains(
         isA<ReleaseFinding>()
+            .having((finding) => finding.code, 'code', 'PLAY_STORE_PACKAGE_URL')
+            .having(
+              (finding) => finding.level,
+              'level',
+              ReleaseFindingLevel.blocker,
+            ),
+      ),
+    );
+  });
+
+  test('Android release signing must fail closed', () async {
+    final fixture = await _createFixture(androidReleaseProtected: false);
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings,
+      contains(
+        isA<ReleaseFinding>()
             .having(
               (finding) => finding.code,
               'code',
-              'PLAY_STORE_PACKAGE_URL',
+              'ANDROID_RELEASE_SIGNING',
             )
             .having(
               (finding) => finding.level,
@@ -174,6 +189,50 @@ void main() {
               ReleaseFindingLevel.blocker,
             ),
       ),
+    );
+  });
+
+  test('Kakao client-derived password remains a release blocker', () async {
+    final fixture = await _createFixture(kakaoOidcProtected: false);
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings,
+      contains(
+        isA<ReleaseFinding>()
+            .having((finding) => finding.code, 'code', 'KAKAO_AUTH_CONTRACT')
+            .having(
+              (finding) => finding.level,
+              'level',
+              ReleaseFindingLevel.blocker,
+            ),
+      ),
+    );
+  });
+
+  test('Windows CRLF does not change text contract checks', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final privacyManifest = File(
+      p.join(fixture.path, 'pjh/ios/Runner/PrivacyInfo.xcprivacy'),
+    );
+    privacyManifest.writeAsStringSync(
+      privacyManifest.readAsStringSync().replaceAll('\n', '\r\n'),
+    );
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere((finding) => finding.code == 'TRACKING_DECLARATION')
+          .level,
+      ReleaseFindingLevel.pass,
     );
   });
 
@@ -231,9 +290,12 @@ Future<Directory> _createFixture({
   bool accountPurgeProtected = true,
   bool softDeleteAccessProtected = true,
   bool accountDeletionDisclosureAccurate = true,
+  bool androidReleaseProtected = true,
+  bool kakaoOidcProtected = true,
 }) async {
-  final workspace =
-      await Directory.systemTemp.createTemp('release-preflight-test-');
+  final workspace = await Directory.systemTemp.createTemp(
+    'release-preflight-test-',
+  );
   final appRoot = Directory(p.join(workspace.path, 'pjh'));
 
   void writeApp(String path, String contents) {
@@ -260,7 +322,42 @@ Future<Directory> _createFixture({
   );
   writeApp(
     'android/app/build.gradle.kts',
-    'defaultConfig { applicationId = "com.jena.petspace" }\n',
+    androidReleaseProtected
+        ? 'defaultConfig { applicationId = "com.jena.petspace"; '
+            'targetSdk = 36 }\n'
+            'val releaseSigningReady = true\n'
+            'throw GradleException("Release signing is not configured")\n'
+            'buildTypes { release { signingConfig = '
+            'signingConfigs.getByName("release") } }\n'
+        : 'defaultConfig { applicationId = "com.jena.petspace"; '
+            'targetSdk = 36 }\n'
+            'buildTypes { release { signingConfig = '
+            'signingConfigs.getByName("debug") } }\n',
+  );
+  writeApp(
+    'android/app/src/main/AndroidManifest.xml',
+    '<uses-permission android:name="android.permission.INTERNET" />\n'
+        '<uses-permission '
+        'android:name="android.permission.POST_NOTIFICATIONS" />\n'
+        '<intent-filter android:autoVerify="true">\n'
+        '<data android:host="petspace.app" />\n'
+        '</intent-filter>\n',
+  );
+  writeApp(
+    'lib/core/services/fcm_service.dart',
+    "@pragma('vm:entry-point')\n"
+        'getInitialMessage(); onMessageOpenedApp;\n',
+  );
+  writeApp('lib/core/services/notification_service.dart', 'onTokenRefresh;\n');
+  writeApp(
+    'lib/features/emotion/data/services/gemini_ai_service.dart',
+    'functions/v1/gemini-proxy currentSession?.accessToken\n',
+  );
+  writeWorkspace(
+    'supabase/functions/gemini-proxy/index.ts',
+    'auth.getUser(jwt) MAX_REQUEST_BYTES normalizeRequest '
+        'MAX_OUTPUT_TOKENS ALLOWED_MIME_TYPES SAFETY_SETTINGS '
+        '분석 요청을 처리하지 못했습니다.\n',
   );
   writeApp(
     'ios/Runner.xcodeproj/project.pbxproj',
@@ -376,14 +473,16 @@ Future<Directory> _createFixture({
             'auth.users(id) NOT NULL\n'}'
         '${softDeleteAccessProtected ? 'AS RESTRICTIVE FOR ALL TO authenticated '
             'private.user_is_active_internal(auth.uid()) '
-            "'health_history' 'chat_messages' 'posts'\n" : ''}',
+            "'health_history' 'chat_messages' 'posts'\n" : ''}'
+        '${kakaoOidcProtected ? '' : 'CREATE OR REPLACE FUNCTION '
+            'confirm_kakao_user_by_email(p_email text);\n'}',
   );
   writeApp(
     'lib/features/auth/data/repositories/auth_repository_impl.dart',
-    appleRevocationImplemented
-        ? 'authorizationCode; appleAuthorizationCode; appleNonce; '
-            'request-account-deletion;\n'
-        : 'request-account-deletion;\n',
+    '${appleRevocationImplemented ? 'authorizationCode; '
+            'appleAuthorizationCode; appleNonce; '
+            'request-account-deletion;\n' : 'request-account-deletion;\n'}'
+        '${kakaoOidcProtected ? 'OAuthProvider.kakao; signInWithIdToken;\n' : 'kakaoPasswordSalt; confirm_kakao_user_by_email;\n'}',
   );
   return workspace;
 }

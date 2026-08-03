@@ -36,13 +36,34 @@ android {
     if (keystorePropertiesFile.exists()) {
         keystoreProperties.load(keystorePropertiesFile.inputStream())
     }
+    val requiredSigningProperties =
+        listOf("keyAlias", "keyPassword", "storeFile", "storePassword")
+    val hasAllSigningProperties = requiredSigningProperties.all { key ->
+        (keystoreProperties[key] as String?)?.isNotBlank() == true
+    }
+    val configuredStoreFile =
+        (keystoreProperties["storeFile"] as String?)?.let { file(it) }
+    val releaseSigningReady =
+        keystorePropertiesFile.exists() &&
+            hasAllSigningProperties &&
+            configuredStoreFile?.exists() == true
+    val releaseBuildRequested = gradle.startParameter.taskNames.any { task ->
+        task.contains("release", ignoreCase = true)
+    }
+
+    if (releaseBuildRequested && !releaseSigningReady) {
+        throw GradleException(
+            "Release signing is not configured. " +
+                "Provide an ignored android/key.properties file and upload keystore.",
+        )
+    }
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        if (releaseSigningReady) {
             create("release") {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = file(keystoreProperties["storeFile"] as String)
+                storeFile = configuredStoreFile
                 storePassword = keystoreProperties["storePassword"] as String
             }
         }
@@ -65,10 +86,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug") // key.properties 없으면 debug 키 사용
+            if (releaseSigningReady) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
         debug {

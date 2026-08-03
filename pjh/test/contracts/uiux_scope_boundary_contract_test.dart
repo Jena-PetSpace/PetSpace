@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -41,7 +42,7 @@ void main() {
     for (final entry in _protectedDigests.entries) {
       final file = File(entry.key);
       expect(file.existsSync(), isTrue, reason: '${entry.key} is required');
-      final actual = sha256.convert(file.readAsBytesSync()).toString();
+      final actual = _stableTextDigest(file);
       expect(actual, entry.value, reason: '${entry.key} changed');
       expect(snapshot[entry.key], entry.value);
     }
@@ -50,8 +51,7 @@ void main() {
   test('all 52 protected rendering inputs match disk and full snapshot', () {
     final snapshot = _snapshotByPath();
     final protectedFile = File('tool/uiux_protected_scope.sha256');
-    final protectedManifestDigest =
-        sha256.convert(protectedFile.readAsBytesSync()).toString();
+    final protectedManifestDigest = _stableTextDigest(protectedFile);
     expect(protectedManifestDigest, _protectedScopeManifestDigest);
 
     final protected = _snapshotByPath(
@@ -61,7 +61,7 @@ void main() {
     for (final entry in protected.entries) {
       final file = File(entry.key);
       expect(file.existsSync(), isTrue, reason: '${entry.key} is required');
-      final actual = sha256.convert(file.readAsBytesSync()).toString();
+      final actual = _stableTextDigest(file);
       expect(actual, entry.value, reason: '${entry.key} changed');
       expect(snapshot[entry.key], entry.value);
     }
@@ -119,6 +119,12 @@ void main() {
     expect(source, isNot(contains('/widgets/result/')));
     expect(source, isNot(contains('petspace_state_view.dart')));
   });
+}
+
+String _stableTextDigest(File file) {
+  final normalized =
+      file.readAsStringSync().replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+  return sha256.convert(utf8.encode(normalized)).toString();
 }
 
 List<File> _requiredDartFiles(String path) {

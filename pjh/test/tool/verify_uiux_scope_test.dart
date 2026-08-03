@@ -189,7 +189,7 @@ Future<ProcessResult> _runVerifier(
   bool printSnapshot = false,
 }) {
   return Process.run(
-    'dart',
+    _dartExecutable(),
     [
       verifierPath,
       '--root=${fixture.path}',
@@ -200,4 +200,23 @@ Future<ProcessResult> _runVerifier(
     ],
     workingDirectory: Directory.current.path,
   );
+}
+
+String _dartExecutable() {
+  var directory = File(Platform.resolvedExecutable).parent;
+  while (directory.parent.path != directory.path) {
+    if (p.basename(directory.path) == 'cache') {
+      final executable = File(
+        p.join(
+          directory.path,
+          'dart-sdk',
+          'bin',
+          Platform.isWindows ? 'dart.exe' : 'dart',
+        ),
+      );
+      if (executable.existsSync()) return executable.path;
+    }
+    directory = directory.parent;
+  }
+  throw StateError('Unable to locate the Dart SDK executable.');
 }
