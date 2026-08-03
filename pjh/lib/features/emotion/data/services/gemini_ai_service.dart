@@ -17,6 +17,30 @@ class GeminiAIService {
   static const String _proxyUrl =
       'https://juukbctqzlrxfnivhgqe.supabase.co/functions/v1/gemini-proxy';
 
+  // The Edge proxy accepts at most 12 MiB. Keep a 1 MiB margin for JSON
+  // framing, prompts, and headers so an input accepted by the app is not
+  // rejected by the proxy after base64 expansion.
+  static const int maxImagesPerRequest = 5;
+  static const int maxSourceImageBytes = 5 * 1024 * 1024;
+  static const int maxClientRequestBytes = 11 * 1024 * 1024;
+  static const int maxImageBase64Chars = 9 * 1024 * 1024;
+
+  static int estimateRequestBytes(Map<String, dynamic> requestData) {
+    return utf8.encode(jsonEncode(requestData)).length;
+  }
+
+  static int estimateBase64Chars(int sourceBytes) {
+    return ((sourceBytes + 2) ~/ 3) * 4;
+  }
+
+  static bool isEncodedRequestWithinBudget(int encodedBytes) {
+    return encodedBytes <= maxClientRequestBytes;
+  }
+
+  static bool isWithinRequestBudget(Map<String, dynamic> requestData) {
+    return isEncodedRequestWithinBudget(estimateRequestBytes(requestData));
+  }
+
   static void _debugLog(String message) {
     if (kDebugMode) {
       log(message, name: 'GeminiAI');
@@ -124,8 +148,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       }
 
       final fileSize = await imageFile.length();
-      if (fileSize > 20 * 1024 * 1024) {
-        throw const ImageException('이미지 파일이 너무 큽니다. (최대 20MB)');
+      if (fileSize > maxSourceImageBytes) {
+        throw const ImageException('사진 용량이 너무 큽니다. 사진당 최대 5MB까지 사용할 수 있어요.');
       }
 
       final bytes = await imageFile.readAsBytes();
@@ -172,6 +196,9 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     if (imageFiles.isEmpty) {
       throw const AnalysisException('분석할 이미지가 없습니다.');
     }
+    if (imageFiles.length > maxImagesPerRequest) {
+      throw const AnalysisException('사진은 최대 5장까지 분석할 수 있어요.');
+    }
     if (imageFiles.length == 1) {
       return analyzeEmotionFromImage(
         imageFiles.first,
@@ -202,10 +229,21 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
             "아래 ${imageFiles.length}장의 사진은 모두 같은 반려동물입니다. 모든 사진을 종합적으로 분석해주세요.\n\n$prompt",
       });
 
+      var estimatedImageChars = 0;
       for (final imageFile in imageFiles) {
         if (!await imageFile.exists()) continue;
         final fileSize = await imageFile.length();
-        if (fileSize > 20 * 1024 * 1024) continue;
+        if (fileSize > maxSourceImageBytes) {
+          throw const AnalysisException(
+            '사진 용량이 너무 큽니다. 사진당 최대 5MB까지 사용할 수 있어요.',
+          );
+        }
+        estimatedImageChars += estimateBase64Chars(fileSize);
+        if (estimatedImageChars > maxImageBase64Chars) {
+          throw const AnalysisException(
+            '선택한 사진의 전체 용량이 너무 큽니다. 사진 수를 줄이거나 더 작은 사진을 사용해주세요.',
+          );
+        }
 
         final bytes = await imageFile.readAsBytes();
         final base64Image = base64Encode(bytes);
@@ -337,6 +375,13 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
   Future<Map<String, dynamic>> _callApi(
     Map<String, dynamic> requestData,
   ) async {
+    final encodedRequest = jsonEncode(requestData);
+    if (!isEncodedRequestWithinBudget(utf8.encode(encodedRequest).length)) {
+      throw const AnalysisException(
+        '선택한 사진의 전체 용량이 너무 큽니다. 사진 수를 줄이거나 더 작은 사진을 사용해주세요.',
+      );
+    }
+
     // 로그인 세션의 access token으로 gemini-proxy 인증(서버에서 JWT 검증).
     final auth = Supabase.instance.client.auth;
     var session = auth.currentSession;
@@ -358,7 +403,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 
     final response = await _dio.post(
       _proxyUrl,
-      data: requestData,
+      data: encodedRequest,
       options: Options(
         headers: {
           'Content-Type': 'application/json',
@@ -535,6 +580,10 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       return const AnalysisException('로그인이 만료되었습니다. 다시 로그인해주세요.');
     } else if (e.response?.statusCode == 429) {
       return const AnalysisException('API 사용량 한도를 초과했습니다.');
+    } else if (e.response?.statusCode == 413) {
+      return const AnalysisException(
+        '선택한 사진의 전체 용량이 너무 큽니다. 사진 수를 줄이거나 더 작은 사진을 사용해주세요.',
+      );
     } else if (e.type == DioExceptionType.connectionTimeout) {
       return const AnalysisException('연결 시간이 초과되었습니다.');
     } else if (e.type == DioExceptionType.receiveTimeout) {
@@ -560,8 +609,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     if (value is String) {
       try {
         return int.parse(value).clamp(0, 100);
-      } catch (e) {
-        log('Failed to parse int from "$value": $e', name: 'GeminiAiService');
+      } catch (_) {
+        _debugLog('Gemini 응답 정수 파싱 실패');
       }
     }
     return defaultValue;
@@ -587,6 +636,9 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     if (imagePaths.isEmpty) {
       throw const AnalysisException('분석할 이미지가 없습니다.');
     }
+    if (imagePaths.length > maxImagesPerRequest) {
+      throw const AnalysisException('사진은 최대 5장까지 분석할 수 있어요.');
+    }
 
     try {
       _debugLog('Gemini 건강 분석 시작 (${imagePaths.length}장)');
@@ -607,11 +659,22 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
           : '';
       parts.add({'text': '$prefix$prompt'});
 
+      var estimatedImageChars = 0;
       for (final path in imagePaths) {
         final file = File(path);
         if (!await file.exists()) continue;
         final fileSize = await file.length();
-        if (fileSize > 20 * 1024 * 1024) continue;
+        if (fileSize > maxSourceImageBytes) {
+          throw const AnalysisException(
+            '사진 용량이 너무 큽니다. 사진당 최대 5MB까지 사용할 수 있어요.',
+          );
+        }
+        estimatedImageChars += estimateBase64Chars(fileSize);
+        if (estimatedImageChars > maxImageBase64Chars) {
+          throw const AnalysisException(
+            '선택한 사진의 전체 용량이 너무 큽니다. 사진 수를 줄이거나 더 작은 사진을 사용해주세요.',
+          );
+        }
         final bytes = await file.readAsBytes();
         parts.add({
           'inline_data': {

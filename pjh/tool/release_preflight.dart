@@ -546,26 +546,53 @@ class ReleasePreflight {
     String geminiService,
     String geminiProxy,
   ) {
+    int? parseByteLimit(String source, String name) {
+      final match = RegExp(
+        '$name\\s*=\\s*(\\d+)\\s*\\*\\s*1024\\s*\\*\\s*1024',
+      ).firstMatch(source);
+      final mebibytes = int.tryParse(match?.group(1) ?? '');
+      return mebibytes == null ? null : mebibytes * 1024 * 1024;
+    }
+
+    final clientRequestLimit = parseByteLimit(
+      geminiService,
+      'maxClientRequestBytes',
+    );
+    final proxyRequestLimit = parseByteLimit(
+      geminiProxy,
+      'MAX_REQUEST_BYTES',
+    );
+    final requestBudgetsAligned = clientRequestLimit != null &&
+        proxyRequestLimit != null &&
+        clientRequestLimit < proxyRequestLimit;
     final clientUsesAuthenticatedProxy =
         geminiService.contains('functions/v1/gemini-proxy') &&
             geminiService.contains('currentSession') &&
             geminiService.contains('accessToken') &&
+            geminiService.contains('maxImagesPerRequest = 5') &&
+            geminiService.contains('maxSourceImageBytes = 5 * 1024 * 1024') &&
+            geminiService.contains('maxImageBase64Chars') &&
+            geminiService.contains('isWithinRequestBudget') &&
+            geminiService.contains('isEncodedRequestWithinBudget') &&
+            geminiService.contains('statusCode == 413') &&
             !geminiService.contains('GEMINI_API_KEY');
     final proxyIsGuarded = geminiProxy.contains('auth.getUser(jwt)') &&
         geminiProxy.contains('MAX_REQUEST_BYTES') &&
         geminiProxy.contains('normalizeRequest') &&
         geminiProxy.contains('MAX_OUTPUT_TOKENS') &&
+        geminiProxy.contains('MAX_IMAGE_PARTS') &&
         geminiProxy.contains('ALLOWED_MIME_TYPES') &&
         geminiProxy.contains('SAFETY_SETTINGS') &&
+        geminiProxy.contains('responseMimeType') &&
         geminiProxy.contains('분석 요청을 처리하지 못했습니다.');
 
     findings.add(
       ReleaseFinding(
-        clientUsesAuthenticatedProxy && proxyIsGuarded
+        clientUsesAuthenticatedProxy && proxyIsGuarded && requestBudgetsAligned
             ? ReleaseFindingLevel.pass
             : ReleaseFindingLevel.blocker,
         'GEMINI_PROXY_CONTRACT',
-        clientUsesAuthenticatedProxy && proxyIsGuarded
+        clientUsesAuthenticatedProxy && proxyIsGuarded && requestBudgetsAligned
             ? 'Gemini uses an authenticated, size-limited server proxy and '
                 'server-enforced request, output, image, and safety bounds '
                 'without embedding the provider key in the app.'

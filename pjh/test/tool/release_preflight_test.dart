@@ -214,6 +214,50 @@ void main() {
     );
   });
 
+  test('Gemini client and proxy request budgets must stay aligned', () async {
+    final fixture = await _createFixture(geminiClientRequestMiB: 13);
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings,
+      contains(
+        isA<ReleaseFinding>()
+            .having((finding) => finding.code, 'code', 'GEMINI_PROXY_CONTRACT')
+            .having(
+              (finding) => finding.level,
+              'level',
+              ReleaseFindingLevel.blocker,
+            ),
+      ),
+    );
+  });
+
+  test('Gemini proxy must retain image and response-format guards', () async {
+    final fixture = await _createFixture(geminiProxyProtected: false);
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings,
+      contains(
+        isA<ReleaseFinding>()
+            .having((finding) => finding.code, 'code', 'GEMINI_PROXY_CONTRACT')
+            .having(
+              (finding) => finding.level,
+              'level',
+              ReleaseFindingLevel.blocker,
+            ),
+      ),
+    );
+  });
+
   test('Windows CRLF does not change text contract checks', () async {
     final fixture = await _createFixture();
     addTearDown(() => fixture.delete(recursive: true));
@@ -292,6 +336,9 @@ Future<Directory> _createFixture({
   bool accountDeletionDisclosureAccurate = true,
   bool androidReleaseProtected = true,
   bool kakaoOidcProtected = true,
+  bool geminiProxyProtected = true,
+  int geminiClientRequestMiB = 11,
+  int geminiProxyRequestMiB = 12,
 }) async {
   final workspace = await Directory.systemTemp.createTemp(
     'release-preflight-test-',
@@ -351,13 +398,27 @@ Future<Directory> _createFixture({
   writeApp('lib/core/services/notification_service.dart', 'onTokenRefresh;\n');
   writeApp(
     'lib/features/emotion/data/services/gemini_ai_service.dart',
-    'functions/v1/gemini-proxy currentSession?.accessToken\n',
+    'functions/v1/gemini-proxy currentSession accessToken '
+        'maxImagesPerRequest = 5 '
+        'maxSourceImageBytes = 5 * 1024 * 1024 '
+        'maxClientRequestBytes = $geminiClientRequestMiB * 1024 * 1024 '
+        'maxImageBase64Chars isWithinRequestBudget '
+        'isEncodedRequestWithinBudget statusCode == 413\n',
   );
   writeWorkspace(
     'supabase/functions/gemini-proxy/index.ts',
-    'auth.getUser(jwt) MAX_REQUEST_BYTES normalizeRequest '
-        'MAX_OUTPUT_TOKENS ALLOWED_MIME_TYPES SAFETY_SETTINGS '
-        '분석 요청을 처리하지 못했습니다.\n',
+    geminiProxyProtected
+        ? 'auth.getUser(jwt) '
+            'MAX_REQUEST_BYTES = $geminiProxyRequestMiB * 1024 * 1024 '
+            'normalizeRequest '
+            'MAX_OUTPUT_TOKENS MAX_IMAGE_PARTS ALLOWED_MIME_TYPES '
+            'SAFETY_SETTINGS responseMimeType '
+            '분석 요청을 처리하지 못했습니다.\n'
+        : 'auth.getUser(jwt) '
+            'MAX_REQUEST_BYTES = $geminiProxyRequestMiB * 1024 * 1024 '
+            'normalizeRequest '
+            'MAX_OUTPUT_TOKENS ALLOWED_MIME_TYPES SAFETY_SETTINGS '
+            '분석 요청을 처리하지 못했습니다.\n',
   );
   writeApp(
     'ios/Runner.xcodeproj/project.pbxproj',

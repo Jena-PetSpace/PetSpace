@@ -28,6 +28,7 @@ const RATE_LIMIT_PER_MINUTE = 20;
 const MAX_REQUEST_BYTES = 12 * 1024 * 1024;
 const MAX_TEXT_CHARS = 12_000;
 const MAX_OUTPUT_TOKENS = 4_096;
+const MAX_IMAGE_PARTS = 5;
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -57,7 +58,11 @@ function normalizeRequest(value: unknown): Record<string, unknown> | null {
   }
   if (Object.keys(contents[0]).some((key) => key !== "parts")) return null;
   const parts = contents[0].parts;
-  if (!Array.isArray(parts) || parts.length < 1 || parts.length > 6) return null;
+  if (
+    !Array.isArray(parts) ||
+    parts.length < 1 ||
+    parts.length > MAX_IMAGE_PARTS + 1
+  ) return null;
 
   let textParts = 0;
   let imageParts = 0;
@@ -90,12 +95,18 @@ function normalizeRequest(value: unknown): Record<string, unknown> | null {
     }
     return null;
   }
-  if (textParts !== 1 || imageParts > 5) return null;
+  if (textParts !== 1 || imageParts > MAX_IMAGE_PARTS) return null;
 
   const rawConfig = value.generationConfig;
   if (rawConfig !== undefined && !isRecord(rawConfig)) return null;
   const config = rawConfig as Record<string, unknown> | undefined;
-  const allowedConfigKeys = new Set(["temperature", "topK", "topP", "maxOutputTokens"]);
+  const allowedConfigKeys = new Set([
+    "temperature",
+    "topK",
+    "topP",
+    "maxOutputTokens",
+    "responseMimeType",
+  ]);
   if (config && Object.keys(config).some((key) => !allowedConfigKeys.has(key))) {
     return null;
   }
@@ -123,10 +134,24 @@ function normalizeRequest(value: unknown): Record<string, unknown> | null {
   if ([temperature, topK, topP, maxOutputTokens].some((item) => item === null)) {
     return null;
   }
+  const responseMimeType = config?.responseMimeType;
+  if (
+    responseMimeType !== undefined &&
+    responseMimeType !== "application/json" &&
+    responseMimeType !== "text/plain"
+  ) {
+    return null;
+  }
 
   return {
     contents: [{ parts: normalizedParts }],
-    generationConfig: { temperature, topK, topP, maxOutputTokens },
+    generationConfig: {
+      temperature,
+      topK,
+      topP,
+      maxOutputTokens,
+      ...(responseMimeType === undefined ? {} : { responseMimeType }),
+    },
     safetySettings: SAFETY_SETTINGS,
   };
 }
