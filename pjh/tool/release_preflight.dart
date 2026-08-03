@@ -1,11 +1,6 @@
 import 'dart:io';
 
-enum ReleaseFindingLevel {
-  pass,
-  warning,
-  blocker,
-  manual,
-}
+enum ReleaseFindingLevel { pass, warning, blocker, manual }
 
 class ReleaseFinding {
   const ReleaseFinding(this.level, this.code, this.message);
@@ -28,6 +23,7 @@ class ReleasePreflight {
     final pubspec = _read('pubspec.yaml');
     final appConfig = _read('lib/config/app_config.dart');
     final androidGradle = _read('android/app/build.gradle.kts');
+    final androidManifest = _read('android/app/src/main/AndroidManifest.xml');
     final project = _read('ios/Runner.xcodeproj/project.pbxproj');
     final infoPlist = _read('ios/Runner/Info.plist');
     final releaseEntitlements = _read('ios/Runner/Runner.entitlements');
@@ -65,6 +61,19 @@ class ReleasePreflight {
     final authRepository = _read(
       'lib/features/auth/data/repositories/auth_repository_impl.dart',
     );
+    final fcmService = _read('lib/core/services/fcm_service.dart');
+    final notificationService = _read(
+      'lib/core/services/notification_service.dart',
+    );
+    final geminiService = _read(
+      'lib/features/emotion/data/services/gemini_ai_service.dart',
+    );
+    final geminiProxy = _readWorkspace(
+      'supabase/functions/gemini-proxy/index.ts',
+    );
+    final legacyEmotionFunction = _readWorkspace(
+      'supabase/functions/analyze-emotion/index.ts',
+    );
     final appleDeletionAuthorization = _read(
       'lib/features/auth/data/services/'
       'apple_account_deletion_authorization.dart',
@@ -72,6 +81,16 @@ class ReleasePreflight {
 
     _checkVersion(findings, pubspec, appConfig);
     _checkAndroidPackage(findings, androidGradle, appConfig);
+    _checkAndroidReleaseContract(findings, androidGradle, androidManifest);
+    _checkFcmContract(
+      findings,
+      androidManifest,
+      fcmService,
+      notificationService,
+    );
+    _checkGeminiContract(findings, geminiService, geminiProxy);
+    _checkLegacyEmotionFunction(findings, legacyEmotionFunction);
+    _checkKakaoAuthContract(findings, authRepository, canonicalDatabase);
     _expectContains(
       findings,
       project,
@@ -199,8 +218,54 @@ class ReleasePreflight {
       File('${appRoot.path}/ios/Runner/GoogleService-Info.plist'),
       'iOS Firebase configuration',
     );
+    _presenceOnly(
+      findings,
+      'FIREBASE_ANDROID_CONFIG',
+      File('${appRoot.path}/android/app/google-services.json'),
+      'Android Firebase configuration',
+    );
+    _presenceOnly(
+      findings,
+      'ANDROID_SIGNING_PROPERTIES',
+      File('${appRoot.path}/android/key.properties'),
+      'Android upload-signing properties',
+    );
 
     findings
+      ..add(
+        const ReleaseFinding(
+          ReleaseFindingLevel.manual,
+          'PLAY_CONSOLE_APP_CONTENT',
+          'Complete app access, ads, target audience, content rating, Data '
+              'safety, privacy policy, and account-deletion declarations in '
+              'Play Console and retain screenshots of the submitted answers.',
+        ),
+      )
+      ..add(
+        const ReleaseFinding(
+          ReleaseFindingLevel.manual,
+          'ANDROID_PROVIDER_CONSOLES',
+          'Verify the release package and upload/app-signing certificate '
+              'fingerprints in Firebase and Kakao, plus Supabase redirect '
+              'URLs and provider settings, using a signed internal-test build.',
+        ),
+      )
+      ..add(
+        const ReleaseFinding(
+          ReleaseFindingLevel.manual,
+          'EMAIL_DELIVERY_RUNTIME',
+          'Verify production SMTP, signup verification, resend, password '
+              'reset, expiry, and abuse-rate-limit behavior with real accounts.',
+        ),
+      )
+      ..add(
+        const ReleaseFinding(
+          ReleaseFindingLevel.manual,
+          'PLAY_TEST_TRACK',
+          'Upload the signed AAB to internal testing, inspect the pre-launch '
+              'report, then satisfy any account-specific closed-testing gate.',
+        ),
+      )
       ..add(
         const ReleaseFinding(
           ReleaseFindingLevel.manual,
@@ -285,22 +350,26 @@ class ReleasePreflight {
 
   String _read(String relativePath) {
     final file = File('${appRoot.path}/$relativePath');
-    return file.existsSync() ? file.readAsStringSync() : '';
+    return file.existsSync() ? _normalizeText(file.readAsStringSync()) : '';
   }
 
   String _readWorkspace(String relativePath) {
     final file = File('${workspaceRoot.path}/$relativePath');
-    return file.existsSync() ? file.readAsStringSync() : '';
+    return file.existsSync() ? _normalizeText(file.readAsStringSync()) : '';
   }
+
+  String _normalizeText(String value) =>
+      value.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
 
   void _checkVersion(
     List<ReleaseFinding> findings,
     String pubspec,
     String appConfig,
   ) {
-    final pubspecVersion =
-        RegExp(r'^version:\s*([0-9.]+)\+([0-9]+)\s*$', multiLine: true)
-            .firstMatch(pubspec);
+    final pubspecVersion = RegExp(
+      r'^version:\s*([0-9.]+)\+([0-9]+)\s*$',
+      multiLine: true,
+    ).firstMatch(pubspec);
     final configVersion = RegExp(
       r"appVersion\s*=\s*'([^']+)'",
     ).firstMatch(appConfig);
@@ -383,6 +452,190 @@ class ReleasePreflight {
       );
   }
 
+  void _checkAndroidReleaseContract(
+    List<ReleaseFinding> findings,
+    String androidGradle,
+    String androidManifest,
+  ) {
+    final targetSdk = RegExp(
+      r'targetSdk\s*=\s*([0-9]+)',
+    ).firstMatch(androidGradle)?.group(1);
+    final targetSdkIsCurrent = targetSdk != null && int.parse(targetSdk) >= 36;
+    final signingFailsClosed = androidGradle.contains('releaseSigningReady') &&
+        androidGradle.contains('Release signing is not configured') &&
+        !RegExp(
+          r'buildTypes[\s\S]*release[\s\S]{0,500}'
+          r'signingConfigs\.getByName\("debug"\)',
+        ).hasMatch(androidGradle);
+    final appLinksConfigured =
+        androidManifest.contains('android:autoVerify="true"') &&
+            androidManifest.contains('android:host="petspace.app"');
+
+    findings
+      ..add(
+        ReleaseFinding(
+          targetSdkIsCurrent
+              ? ReleaseFindingLevel.pass
+              : ReleaseFindingLevel.blocker,
+          'ANDROID_TARGET_SDK',
+          targetSdkIsCurrent
+              ? 'Android targetSdk is API $targetSdk.'
+              : 'Android targetSdk must be API 36 or newer for the planned '
+                  'release window.',
+        ),
+      )
+      ..add(
+        ReleaseFinding(
+          signingFailsClosed
+              ? ReleaseFindingLevel.pass
+              : ReleaseFindingLevel.blocker,
+          'ANDROID_RELEASE_SIGNING',
+          signingFailsClosed
+              ? 'Release builds fail closed when upload signing is absent.'
+              : 'Release signing can fall back or proceed without an explicit '
+                  'upload-signing configuration.',
+        ),
+      )
+      ..add(
+        ReleaseFinding(
+          appLinksConfigured
+              ? ReleaseFindingLevel.pass
+              : ReleaseFindingLevel.blocker,
+          'ANDROID_APP_LINKS',
+          appLinksConfigured
+              ? 'Verified Android App Links are declared for petspace.app.'
+              : 'Verified Android App Links for petspace.app are incomplete.',
+        ),
+      );
+  }
+
+  void _checkFcmContract(
+    List<ReleaseFinding> findings,
+    String androidManifest,
+    String fcmService,
+    String notificationService,
+  ) {
+    final manifestComplete =
+        androidManifest.contains('android.permission.POST_NOTIFICATIONS') &&
+            androidManifest.contains('android.permission.INTERNET') &&
+            !androidManifest.contains(
+              'android:name="com.google.firebase.messaging.FirebaseMessagingService"',
+            );
+    final clientComplete = fcmService.contains("@pragma('vm:entry-point')") &&
+        fcmService.contains('getInitialMessage') &&
+        fcmService.contains('onMessageOpenedApp') &&
+        notificationService.contains('onTokenRefresh');
+
+    findings.add(
+      ReleaseFinding(
+        manifestComplete && clientComplete
+            ? ReleaseFindingLevel.pass
+            : ReleaseFindingLevel.blocker,
+        'ANDROID_FCM_CONTRACT',
+        manifestComplete && clientComplete
+            ? 'Android notification permission, token refresh, background '
+                'entry point, and tap routing are present without overriding '
+                'the FlutterFire messaging service.'
+            : 'Android FCM manifest or lifecycle handling is incomplete.',
+      ),
+    );
+  }
+
+  void _checkGeminiContract(
+    List<ReleaseFinding> findings,
+    String geminiService,
+    String geminiProxy,
+  ) {
+    final clientUsesAuthenticatedProxy =
+        geminiService.contains('functions/v1/gemini-proxy') &&
+            geminiService.contains('currentSession') &&
+            geminiService.contains('accessToken') &&
+            !geminiService.contains('GEMINI_API_KEY');
+    final proxyIsGuarded = geminiProxy.contains('auth.getUser(jwt)') &&
+        geminiProxy.contains('MAX_REQUEST_BYTES') &&
+        geminiProxy.contains('normalizeRequest') &&
+        geminiProxy.contains('MAX_OUTPUT_TOKENS') &&
+        geminiProxy.contains('ALLOWED_MIME_TYPES') &&
+        geminiProxy.contains('SAFETY_SETTINGS') &&
+        geminiProxy.contains('분석 요청을 처리하지 못했습니다.');
+
+    findings.add(
+      ReleaseFinding(
+        clientUsesAuthenticatedProxy && proxyIsGuarded
+            ? ReleaseFindingLevel.pass
+            : ReleaseFindingLevel.blocker,
+        'GEMINI_PROXY_CONTRACT',
+        clientUsesAuthenticatedProxy && proxyIsGuarded
+            ? 'Gemini uses an authenticated, size-limited server proxy and '
+                'server-enforced request, output, image, and safety bounds '
+                'without embedding the provider key in the app.'
+            : 'Gemini proxy authentication, request bounds, or key boundary '
+                'is incomplete.',
+      ),
+    );
+  }
+
+  void _checkKakaoAuthContract(
+    List<ReleaseFinding> findings,
+    String authRepository,
+    String canonicalDatabase,
+  ) {
+    final usesOidc = authRepository.contains('OAuthProvider.kakao') &&
+        authRepository.contains('signInWithIdToken');
+    final hasDeterministicPassword =
+        authRepository.contains('kakaoPasswordSalt') ||
+            authRepository.contains('confirm_kakao_user_by_email');
+    final canonicalExposesEmailConfirmation = RegExp(
+      r'CREATE\s+OR\s+REPLACE\s+FUNCTION\s+'
+      r'confirm_kakao_user_by_email',
+      caseSensitive: false,
+    ).hasMatch(canonicalDatabase);
+    final secure = usesOidc &&
+        !hasDeterministicPassword &&
+        !canonicalExposesEmailConfirmation;
+
+    findings.add(
+      ReleaseFinding(
+        secure ? ReleaseFindingLevel.pass : ReleaseFindingLevel.blocker,
+        'KAKAO_AUTH_CONTRACT',
+        secure
+            ? 'Kakao authentication uses Supabase OIDC without a '
+                'client-derived password or email-confirmation RPC.'
+            : 'Kakao authentication still depends on a client-derived '
+                'password or an arbitrary-email confirmation RPC. Complete '
+                'the reviewed OIDC migration before production release.',
+      ),
+    );
+  }
+
+  void _checkLegacyEmotionFunction(
+    List<ReleaseFinding> findings,
+    String legacyEmotionFunction,
+  ) {
+    if (legacyEmotionFunction.isEmpty) return;
+    final trustsBodyUserId = legacyEmotionFunction.contains('userId') &&
+        legacyEmotionFunction.contains('SUPABASE_SERVICE_ROLE_KEY');
+    final verifiesCaller = legacyEmotionFunction.contains('auth.getUser(');
+    final usesRandomFallback =
+        legacyEmotionFunction.contains('Math.random()') ||
+            legacyEmotionFunction.contains('getFallbackEmotionAnalysis');
+    final safe = !trustsBodyUserId && verifiesCaller && !usesRandomFallback;
+
+    findings.add(
+      ReleaseFinding(
+        safe ? ReleaseFindingLevel.pass : ReleaseFindingLevel.blocker,
+        'LEGACY_ANALYZE_EDGE_CONTRACT',
+        safe
+            ? 'The legacy analysis Edge function authenticates its caller and '
+                'does not fabricate analysis results.'
+            : 'The legacy analyze-emotion Edge function can trust a body '
+                'userId through service-role access or fabricate fallback '
+                'results. Confirm it is undeployed or replace it with an '
+                'authenticated implementation before release.',
+      ),
+    );
+  }
+
   void _checkRequiredReasonApis(
     List<ReleaseFinding> findings,
     String privacyManifest,
@@ -423,8 +676,9 @@ class ReleasePreflight {
   ) {
     final exactLocationIsPersisted = postModel.contains("'location_lat'") &&
         postModel.contains("'location_lng'");
-    final preciseLocationIsDeclared =
-        privacyManifest.contains('NSPrivacyCollectedDataTypePreciseLocation');
+    final preciseLocationIsDeclared = privacyManifest.contains(
+      'NSPrivacyCollectedDataTypePreciseLocation',
+    );
     final preciseLocationIsLinked = RegExp(
       r'NSPrivacyCollectedDataTypePreciseLocation[\s\S]{0,300}'
       r'NSPrivacyCollectedDataTypeLinked</key>\s*<true/>',
@@ -536,18 +790,21 @@ class ReleasePreflight {
       'failureCodes',
     ];
     final purgeIsRetrySafe = purgeRequirements.every(accountPurge.contains);
-    final residualCleanupIndex =
-        accountPurge.indexOf('await removeResidualSnapshots(admin, id)');
-    final authDeleteIndex =
-        accountPurge.indexOf('await deleteAuthUserIfPresent(admin, id)');
+    final residualCleanupIndex = accountPurge.indexOf(
+      'await removeResidualSnapshots(admin, id)',
+    );
+    final authDeleteIndex = accountPurge.indexOf(
+      'await deleteAuthUserIfPresent(admin, id)',
+    );
     final residualCleanupPrecedesIdentityDeletion =
         residualCleanupIndex >= 0 && authDeleteIndex > residualCleanupIndex;
     final canonicalCascade = RegExp(
       r'user_id\s+UUID\s+REFERENCES auth\.users\(id\)'
       r'\s+ON DELETE CASCADE\s+NOT NULL',
     ).hasMatch(canonicalDatabase);
-    final migrationIsGuarded = accountPurgeMigration
-            .contains("to_regclass('public.health_history')") &&
+    final migrationIsGuarded = accountPurgeMigration.contains(
+          "to_regclass('public.health_history')",
+        ) &&
         accountPurgeMigration.contains('ON DELETE CASCADE');
 
     final complete = purgeIsRetrySafe &&
@@ -574,8 +831,9 @@ class ReleasePreflight {
     String canonicalDatabase,
   ) {
     final softDeleteIndex = accountDeletion.indexOf('.update({ deleted_at:');
-    final globalSignOutIndex =
-        accountDeletion.indexOf('admin.auth.admin.signOut');
+    final globalSignOutIndex = accountDeletion.indexOf(
+      'admin.auth.admin.signOut',
+    );
     final deletionPrecedesSessionCleanup =
         softDeleteIndex >= 0 && globalSignOutIndex > softDeleteIndex;
     const guardRequirements = <String>[
@@ -585,10 +843,12 @@ class ReleasePreflight {
       "'chat_messages'",
       "'posts'",
     ];
-    final migrationComplete =
-        guardRequirements.every(accountAccessMigration.contains);
-    final canonicalComplete =
-        guardRequirements.every(canonicalDatabase.contains);
+    final migrationComplete = guardRequirements.every(
+      accountAccessMigration.contains,
+    );
+    final canonicalComplete = guardRequirements.every(
+      canonicalDatabase.contains,
+    );
 
     final complete = deletionPrecedesSessionCleanup &&
         migrationComplete &&
@@ -618,9 +878,7 @@ class ReleasePreflight {
     final settingsDiscloseException = deletionSurfaces.contains(
       '법령상 보관 의무가 있는 자료',
     );
-    final recoveryDisclosesException = deletionSurfaces.contains(
-      '법령상 보존 자료',
-    );
+    final recoveryDisclosesException = deletionSurfaces.contains('법령상 보존 자료');
     final hasNoBlanketDeletionClaim = !deletionSurfaces.contains(
       '모든 데이터가 영구 삭제',
     );
@@ -642,10 +900,7 @@ class ReleasePreflight {
     );
   }
 
-  void _checkStoreUrls(
-    List<ReleaseFinding> findings,
-    String appConfig,
-  ) {
+  void _checkStoreUrls(List<ReleaseFinding> findings, String appConfig) {
     if (RegExp(r'apps\.apple\.com/.+?/id[0-9]+').hasMatch(appConfig)) {
       findings.add(
         const ReleaseFinding(
@@ -712,8 +967,9 @@ String renderReleasePreflight(List<ReleaseFinding> findings) {
       '${finding.code}: ${finding.message}',
     );
   }
-  final blockers =
-      findings.where((finding) => finding.level == ReleaseFindingLevel.blocker);
+  final blockers = findings.where(
+    (finding) => finding.level == ReleaseFindingLevel.blocker,
+  );
   buffer.writeln('BLOCKERS=${blockers.length}');
   return buffer.toString();
 }
@@ -728,9 +984,7 @@ void main(List<String> arguments) {
 
   final findings = ReleasePreflight(root.absolute).run();
   stdout.write(renderReleasePreflight(findings));
-  if (findings.any(
-    (finding) => finding.level == ReleaseFindingLevel.blocker,
-  )) {
+  if (findings.any((finding) => finding.level == ReleaseFindingLevel.blocker)) {
     exitCode = 1;
   }
 }

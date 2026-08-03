@@ -1,6 +1,7 @@
 import 'dart:developer' as dev;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart' show GlobalKey, NavigatorState;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -26,6 +27,12 @@ class FCMService {
     LocalNotificationService? localNotificationService,
   })  : _supabase = supabase,
         _localNotif = localNotificationService;
+
+  void _debugLog(String message) {
+    if (kDebugMode) {
+      dev.log(message, name: 'FCMService');
+    }
+  }
 
   /// 메시지 data 필드 기준 라우팅
   void _routeFromData(Map<String, dynamic> data) {
@@ -70,14 +77,14 @@ class FCMService {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        dev.log('푸시 알림 권한 승인됨', name: 'FCMService');
+        _debugLog('푸시 알림 권한 승인됨');
         AnalyticsService.instance.logNotificationPermissionGranted();
       } else if (settings.authorizationStatus ==
           AuthorizationStatus.provisional) {
-        dev.log('푸시 알림 임시 권한 승인됨', name: 'FCMService');
+        _debugLog('푸시 알림 임시 권한 승인됨');
         AnalyticsService.instance.logNotificationPermissionGranted();
       } else {
-        dev.log('푸시 알림 권한 거부됨', name: 'FCMService');
+        _debugLog('푸시 알림 권한 거부됨');
         return;
       }
 
@@ -89,14 +96,9 @@ class FCMService {
       // 알림 탭 → 딥링크 라우팅 설정
       setupInteractedMessage();
 
-      dev.log('FCM 초기화 완료', name: 'FCMService');
-    } catch (e, stackTrace) {
-      dev.log(
-        'FCM 초기화 실패',
-        error: e,
-        stackTrace: stackTrace,
-        name: 'FCMService',
-      );
+      _debugLog('FCM 초기화 완료');
+    } catch (_) {
+      _debugLog('FCM 초기화 실패');
     }
   }
 
@@ -104,7 +106,7 @@ class FCMService {
   void _handleForegroundMessage(RemoteMessage message) {
     final title = message.notification?.title ?? '알림';
     final body = message.notification?.body ?? '';
-    dev.log('포그라운드 메시지 수신: $title', name: 'FCMService');
+    _debugLog('포그라운드 메시지 수신');
 
     final localNotif = _localNotif;
     if (localNotif == null) return;
@@ -138,7 +140,7 @@ class FCMService {
 
     // 앱이 백그라운드 상태에서 알림 탭으로 포그라운드로 전환된 경우
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      dev.log('알림 탭 → 라우팅: ${message.data}', name: 'FCMService');
+      _debugLog('백그라운드 알림 탭 라우팅');
       _routeFromData(message.data);
     });
   }
@@ -147,9 +149,9 @@ class FCMService {
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _firebaseMessaging.subscribeToTopic(topic);
-      dev.log('토픽 구독 완료: $topic', name: 'FCMService');
-    } catch (e, stackTrace) {
-      dev.log('토픽 구독 실패', error: e, stackTrace: stackTrace, name: 'FCMService');
+      _debugLog('토픽 구독 완료');
+    } catch (_) {
+      _debugLog('토픽 구독 실패');
     }
   }
 
@@ -157,14 +159,9 @@ class FCMService {
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
-      dev.log('토픽 구독 해제 완료: $topic', name: 'FCMService');
-    } catch (e, stackTrace) {
-      dev.log(
-        '토픽 구독 해제 실패',
-        error: e,
-        stackTrace: stackTrace,
-        name: 'FCMService',
-      );
+      _debugLog('토픽 구독 해제 완료');
+    } catch (_) {
+      _debugLog('토픽 구독 해제 실패');
     }
   }
 }
@@ -173,8 +170,7 @@ class FCMService {
 /// top-level 함수여야 함
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  dev.log('백그라운드 메시지 수신', name: 'FCMService');
-  dev.log('Title: ${message.notification?.title}', name: 'FCMService');
-  dev.log('Body: ${message.notification?.body}', name: 'FCMService');
-  dev.log('Data: ${message.data}', name: 'FCMService');
+  if (kDebugMode) {
+    dev.log('백그라운드 메시지 수신', name: 'FCMService');
+  }
 }

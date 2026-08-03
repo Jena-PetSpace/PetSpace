@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../domain/entities/emotion_analysis.dart';
@@ -16,6 +17,12 @@ class GeminiAIService {
   static const String _proxyUrl =
       'https://juukbctqzlrxfnivhgqe.supabase.co/functions/v1/gemini-proxy';
 
+  static void _debugLog(String message) {
+    if (kDebugMode) {
+      log(message, name: 'GeminiAI');
+    }
+  }
+
   static String _buildPrompt({
     String? petName,
     String? petType,
@@ -26,7 +33,9 @@ class GeminiAIService {
   }) {
     final buf = StringBuffer();
     if (petName != null) buf.writeln('- 이름: $petName');
-    if (petType != null) buf.writeln('- 종: ${petType == 'dog' ? '강아지' : '고양이'}');
+    if (petType != null) {
+      buf.writeln('- 종: ${petType == 'dog' ? '강아지' : '고양이'}');
+    }
     if (breed?.isNotEmpty == true) buf.writeln('- 품종: $breed');
     if (age?.isNotEmpty == true) buf.writeln('- 나이: $age');
     if (gender?.isNotEmpty == true) buf.writeln('- 성별: $gender');
@@ -108,7 +117,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     }
 
     try {
-      log('Gemini API 호출 시작', name: 'GeminiAI');
+      _debugLog('Gemini API 호출 시작');
 
       if (!await imageFile.exists()) {
         throw const ImageException('이미지 파일을 찾을 수 없습니다.');
@@ -134,7 +143,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       final requestData = _buildRequest([
         {"text": prompt},
         {
-          "inline_data": {"mime_type": mimeType, "data": base64Image}
+          "inline_data": {"mime_type": mimeType, "data": base64Image},
         },
       ]);
 
@@ -176,7 +185,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     }
 
     try {
-      log('다중 이미지 분석 시작 (${imageFiles.length}장)', name: 'GeminiAI');
+      _debugLog('다중 이미지 분석 시작 (${imageFiles.length}장)');
 
       final parts = <Map<String, dynamic>>[];
       final prompt = _buildPrompt(
@@ -203,10 +212,9 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
         final mimeType = _getMimeType(imageFile.path);
 
         parts.add({
-          "inline_data": {"mime_type": mimeType, "data": base64Image}
+          "inline_data": {"mime_type": mimeType, "data": base64Image},
         });
-        log('이미지 추가: ${(fileSize / 1024).toStringAsFixed(1)} KB',
-            name: 'GeminiAI');
+        _debugLog('분석 이미지 추가 완료');
       }
 
       if (parts.length < 2) {
@@ -236,7 +244,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       final textContent = _extractTextFromResponse(response);
       return textContent.trim();
     } catch (e) {
-      log('generateText 오류: $e', name: 'GeminiAI');
+      _debugLog('텍스트 생성 실패 (${e.runtimeType})');
       return null;
     }
   }
@@ -263,7 +271,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
   Map<String, dynamic> _buildRequest(List<Map<String, dynamic>> parts) {
     return {
       "contents": [
-        {"parts": parts}
+        {"parts": parts},
       ],
       "generationConfig": {
         "temperature": 0.4,
@@ -275,19 +283,19 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       "safetySettings": [
         {
           "category": "HARM_CATEGORY_HARASSMENT",
-          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE",
         },
         {
           "category": "HARM_CATEGORY_HATE_SPEECH",
-          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE",
         },
         {
           "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE",
         },
         {
           "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE",
         },
       ],
     };
@@ -297,7 +305,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
   Map<String, dynamic> _buildTextRequest(List<Map<String, dynamic>> parts) {
     return {
       "contents": [
-        {"parts": parts}
+        {"parts": parts},
       ],
       "generationConfig": {
         "temperature": 0.7,
@@ -308,26 +316,27 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
       "safetySettings": [
         {
           "category": "HARM_CATEGORY_HARASSMENT",
-          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE",
         },
         {
           "category": "HARM_CATEGORY_HATE_SPEECH",
-          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE",
         },
         {
           "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE",
         },
         {
           "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-          "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+          "threshold": "BLOCK_MEDIUM_AND_ABOVE",
         },
       ],
     };
   }
 
   Future<Map<String, dynamic>> _callApi(
-      Map<String, dynamic> requestData) async {
+    Map<String, dynamic> requestData,
+  ) async {
     // 로그인 세션의 access token으로 gemini-proxy 인증(서버에서 JWT 검증).
     final auth = Supabase.instance.client.auth;
     var session = auth.currentSession;
@@ -350,10 +359,12 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     final response = await _dio.post(
       _proxyUrl,
       data: requestData,
-      options: Options(headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      }),
+      options: Options(
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      ),
     );
 
     if (response.statusCode != 200) {
@@ -424,7 +435,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 
   EmotionScoresModel _parseResponse(Map<String, dynamic> responseData) {
     final textContent = _extractTextFromResponse(responseData);
-    log('응답 텍스트: $textContent', name: 'GeminiAI');
+    _debugLog('Gemini 감정 분석 응답 수신');
 
     final jsonStr = _extractJson(textContent);
     if (jsonStr == null) {
@@ -434,26 +445,32 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     final emotionData = jsonDecode(jsonStr) as Map<String, dynamic>;
 
     // 8감정 파싱 (sleepiness 제외)
-    double happiness  = _parseDouble(emotionData['happiness'],  0.125);
-    double calm       = _parseDouble(emotionData['calm'],       0.125);
+    double happiness = _parseDouble(emotionData['happiness'], 0.125);
+    double calm = _parseDouble(emotionData['calm'], 0.125);
     double excitement = _parseDouble(emotionData['excitement'], 0.125);
-    double curiosity  = _parseDouble(emotionData['curiosity'],  0.125);
-    double anxiety    = _parseDouble(emotionData['anxiety'],    0.125);
-    double fear       = _parseDouble(emotionData['fear'],       0.125);
-    double sadness    = _parseDouble(emotionData['sadness'],    0.125);
+    double curiosity = _parseDouble(emotionData['curiosity'], 0.125);
+    double anxiety = _parseDouble(emotionData['anxiety'], 0.125);
+    double fear = _parseDouble(emotionData['fear'], 0.125);
+    double sadness = _parseDouble(emotionData['sadness'], 0.125);
     double discomfort = _parseDouble(emotionData['discomfort'], 0.125);
 
     // 합계 1.0 정규화 (sleepiness 제외)
-    final total = happiness + calm + excitement + curiosity +
-                  anxiety + fear + sadness + discomfort;
+    final total = happiness +
+        calm +
+        excitement +
+        curiosity +
+        anxiety +
+        fear +
+        sadness +
+        discomfort;
     if (total > 0) {
-      happiness  /= total;
-      calm       /= total;
+      happiness /= total;
+      calm /= total;
       excitement /= total;
-      curiosity  /= total;
-      anxiety    /= total;
-      fear       /= total;
-      sadness    /= total;
+      curiosity /= total;
+      anxiety /= total;
+      fear /= total;
+      sadness /= total;
       discomfort /= total;
     }
 
@@ -461,10 +478,10 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     final isSleepy = emotionData['is_sleepy'] as bool? ?? false;
 
     // 추가 지표
-    final stressLevel   = _parseInt(emotionData['stress_level'],   50);
+    final stressLevel = _parseInt(emotionData['stress_level'], 50);
     final activityLevel = _parseInt(emotionData['activity_level'], 50);
-    final comfortLevel  = _parseInt(emotionData['comfort_level'],  50);
-    final healthSignal  = emotionData['health_signal'] as String? ?? 'normal';
+    final comfortLevel = _parseInt(emotionData['comfort_level'], 50);
+    final healthSignal = emotionData['health_signal'] as String? ?? 'normal';
 
     // 부위별 분석
     Map<String, FacialFeature>? facialFeatures;
@@ -487,34 +504,30 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     // 품종 해석
     final breedInsight = emotionData['breed_insight'] as String?;
 
-    log('분석 완료 - happiness: ${happiness.toStringAsFixed(2)}, '
-        'fear: ${fear.toStringAsFixed(2)}, discomfort: ${discomfort.toStringAsFixed(2)}, '
-        'isSleepy: $isSleepy, stress: $stressLevel',
-        name: 'GeminiAI');
+    _debugLog('Gemini 감정 분석 파싱 완료');
 
     return EmotionScoresModel(
-      happiness:   happiness,
-      calm:        calm,
-      excitement:  excitement,
-      curiosity:   curiosity,
-      anxiety:     anxiety,
-      fear:        fear,
-      sadness:     sadness,
-      discomfort:  discomfort,
-      isSleepy:    isSleepy,
-      stressLevel:   stressLevel,
+      happiness: happiness,
+      calm: calm,
+      excitement: excitement,
+      curiosity: curiosity,
+      anxiety: anxiety,
+      fear: fear,
+      sadness: sadness,
+      discomfort: discomfort,
+      isSleepy: isSleepy,
+      stressLevel: stressLevel,
       activityLevel: activityLevel,
-      healthSignal:  healthSignal,
-      comfortLevel:  comfortLevel,
+      healthSignal: healthSignal,
+      comfortLevel: comfortLevel,
       facialFeatures: facialFeatures,
-      healthTips:    healthTips,
-      breedInsight:  breedInsight,
+      healthTips: healthTips,
+      breedInsight: breedInsight,
     );
   }
 
   AnalysisException _handleDioException(DioException e) {
-    log('DioException: ${e.type} - ${e.message}', name: 'GeminiAI');
-    log('Response: ${e.response?.data}', name: 'GeminiAI');
+    _debugLog('Gemini 프록시 요청 실패 (${e.type.name})');
     if (e.response?.statusCode == 400) {
       return const AnalysisException('잘못된 요청입니다. 이미지 형식을 확인해주세요.');
     } else if (e.response?.statusCode == 401) {
@@ -535,9 +548,8 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     if (value is String) {
       try {
         return double.parse(value).clamp(0.0, 1.0);
-      } catch (e) {
-        log('Failed to parse double from "$value": $e',
-            name: 'GeminiAiService');
+      } catch (_) {
+        _debugLog('Gemini 숫자 응답 파싱 실패');
       }
     }
     return defaultValue;
@@ -577,7 +589,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
     }
 
     try {
-      log('건강분석 시작 → 부위: $area (${imagePaths.length}장)', name: 'GeminiAI');
+      _debugLog('Gemini 건강 분석 시작 (${imagePaths.length}장)');
 
       final prompt = _buildHealthPrompt(
         area: area,
@@ -605,7 +617,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
           'inline_data': {
             'mime_type': _getMimeType(path),
             'data': base64Encode(bytes),
-          }
+          },
         });
       }
 
@@ -615,7 +627,7 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
 
       final response = await _callApi(_buildRequest(parts));
       final text = _extractTextFromResponse(response);
-      log('건강분석 응답: $text', name: 'GeminiAI');
+      _debugLog('Gemini 건강 분석 응답 수신');
 
       final jsonStr = _extractJson(text);
       if (jsonStr == null) {
@@ -651,14 +663,17 @@ ${breedContext.isNotEmpty ? '[6] 품종 해석 1~2문장\n' : ''}
   }) {
     final buf = StringBuffer();
     if (petName != null) buf.writeln('- 이름: $petName');
-    if (petType != null) buf.writeln('- 종: ${petType == 'dog' ? '강아지' : '고양이'}');
+    if (petType != null) {
+      buf.writeln('- 종: ${petType == 'dog' ? '강아지' : '고양이'}');
+    }
     if (breed?.isNotEmpty == true) buf.writeln('- 품종: $breed');
     if (age?.isNotEmpty == true) buf.writeln('- 나이: $age');
     if (gender?.isNotEmpty == true) buf.writeln('- 성별: $gender');
 
     final petSection = buf.isNotEmpty ? '\n[반려동물 정보]\n$buf' : '';
     final ctxSection = (additionalContext?.isNotEmpty == true)
-        ? '\n[추가 맥락]\n"$additionalContext"\n→ 분석에 반영.' : '';
+        ? '\n[추가 맥락]\n"$additionalContext"\n→ 분석에 반영.'
+        : '';
 
     return """
 당신은 반려동물 건강 분석 전문 AI입니다.$petSection$ctxSection
