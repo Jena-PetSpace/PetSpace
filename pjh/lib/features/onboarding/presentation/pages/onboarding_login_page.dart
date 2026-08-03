@@ -4,7 +4,6 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -140,96 +139,103 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: EdgeInsets.fromLTRB(24.w, 32.h, 24.w, 28.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildBrandStory(),
-              SizedBox(height: 32.h),
-              Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextFormField(
-                      key: const ValueKey('auth-email-field'),
-                      controller: _emailController,
-                      enabled: !_isPending,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(
-                        labelText: '아이디',
-                        hintText: 'jena@example.com',
-                      ),
-                      validator: AuthInputValidators.validateEmail,
-                    ),
-                    SizedBox(height: 14.h),
-                    TextFormField(
-                      key: const ValueKey('auth-password-field'),
-                      controller: _passwordController,
-                      enabled: !_isPending,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      obscureText: true,
-                      textInputAction: _isLogin
-                          ? TextInputAction.done
-                          : TextInputAction.next,
-                      onFieldSubmitted: _isLogin && !_isPending
-                          ? (_) => _submitEmail()
-                          : null,
-                      autofillHints: _isLogin
-                          ? const [AutofillHints.password]
-                          : const [AutofillHints.newPassword],
-                      decoration: const InputDecoration(labelText: '비밀번호'),
-                      validator: _validatePassword,
-                    ),
-                    if (!_isLogin) ...[
-                      SizedBox(height: 14.h),
-                      TextFormField(
-                        key: const ValueKey('auth-password-confirm-field'),
-                        controller: _passwordConfirmController,
-                        enabled: !_isPending,
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        obscureText: true,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted:
-                            _isPending ? null : (_) => _submitEmail(),
-                        autofillHints: const [AutofillHints.newPassword],
-                        decoration: const InputDecoration(
-                          labelText: '비밀번호 확인',
+          padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+          child: Center(
+            child: ConstrainedBox(
+              key: const Key('auth-content-column'),
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildBrandStory(),
+                  const SizedBox(height: 32),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          key: const ValueKey('auth-email-field'),
+                          controller: _emailController,
+                          enabled: !_isPending,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.email],
+                          decoration: const InputDecoration(
+                            labelText: '아이디',
+                            hintText: 'jena@example.com',
+                          ),
+                          validator: AuthInputValidators.validateEmail,
                         ),
-                        validator: _validatePasswordConfirm,
-                      ),
-                    ],
-                    if (_rateLimitDuration != null) ...[
-                      SizedBox(height: 16.h),
-                      RateLimitCountdown(
-                        duration: _rateLimitDuration!,
-                        onComplete: () {
-                          if (mounted) {
-                            setState(() => _rateLimitDuration = null);
-                          }
-                        },
-                      ),
-                    ],
-                    SizedBox(height: 20.h),
-                    PetSpaceV3PrimaryButton(
-                      key: const ValueKey('email-auth-submit'),
-                      label: _isLogin ? '로그인하기' : '회원가입 계속하기',
-                      onPressed: _isPending ? null : _submitEmail,
-                      loading: _pendingProvider == 'Email',
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          key: const ValueKey('auth-password-field'),
+                          controller: _passwordController,
+                          enabled: !_isPending,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          obscureText: true,
+                          textInputAction: _isLogin
+                              ? TextInputAction.done
+                              : TextInputAction.next,
+                          onFieldSubmitted: _isLogin && !_isPending
+                              ? (_) => _submitEmail()
+                              : null,
+                          autofillHints: _isLogin
+                              ? const [AutofillHints.password]
+                              : const [AutofillHints.newPassword],
+                          decoration: const InputDecoration(labelText: '비밀번호'),
+                          validator: _validatePassword,
+                        ),
+                        if (!_isLogin) ...[
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            key: const ValueKey('auth-password-confirm-field'),
+                            controller: _passwordConfirmController,
+                            enabled: !_isPending,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            obscureText: true,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted:
+                                _isPending ? null : (_) => _submitEmail(),
+                            autofillHints: const [AutofillHints.newPassword],
+                            decoration: const InputDecoration(
+                              labelText: '비밀번호 확인',
+                            ),
+                            validator: _validatePasswordConfirm,
+                          ),
+                        ],
+                        if (_rateLimitDuration != null) ...[
+                          const SizedBox(height: 16),
+                          RateLimitCountdown(
+                            duration: _rateLimitDuration!,
+                            onComplete: () {
+                              if (mounted) {
+                                setState(() => _rateLimitDuration = null);
+                              }
+                            },
+                          ),
+                        ],
+                        const SizedBox(height: 20),
+                        PetSpaceV3PrimaryButton(
+                          key: const ValueKey('email-auth-submit'),
+                          label: _isLogin ? '로그인하기' : '회원가입 계속하기',
+                          onPressed: _isPending ? null : _submitEmail,
+                          loading: _pendingProvider == 'Email',
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildAccountLinks(),
+                  const SizedBox(height: 24),
+                  _buildDivider(),
+                  const SizedBox(height: 20),
+                  _buildSocialLoginRow(isDark),
+                ],
               ),
-              SizedBox(height: 8.h),
-              _buildAccountLinks(),
-              SizedBox(height: 24.h),
-              _buildDivider(),
-              SizedBox(height: 20.h),
-              _buildSocialLoginRow(isDark),
-            ],
+            ),
           ),
         ),
       ),
@@ -249,17 +255,17 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
           '함께한 하루가\n더 오래 기억되도록',
           style: TextStyle(
             color: titleColor,
-            fontSize: 28.sp,
+            fontSize: 28,
             fontWeight: FontWeight.w700,
             height: 1.28,
           ),
         ),
-        SizedBox(height: 12.h),
+        const SizedBox(height: 12),
         Text(
           '반려동물의 감정부터 건강 신호까지 AI로 확인하고, 소중한 일상을 기록해보세요.',
           style: TextStyle(
             color: muted,
-            fontSize: AppTheme.fontBody.sp,
+            fontSize: AppTheme.fontBody,
             height: 1.55,
           ),
         ),
@@ -276,12 +282,12 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
       children: [
         Expanded(child: Divider(color: divider)),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             '또는',
             style: TextStyle(
               color: theme.colorScheme.onSurfaceVariant,
-              fontSize: AppTheme.fontCaption.sp,
+              fontSize: AppTheme.fontCaption,
             ),
           ),
         ),
@@ -298,7 +304,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
     return Wrap(
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 2.w,
+      spacing: 2,
       runSpacing: 0,
       children: [
         TextButton(
@@ -543,10 +549,12 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('계정 복구'),
         content: Text(
           '탈퇴 처리된 계정입니다.\n'
-          '$days일 후 모든 데이터가 영구 삭제될 예정이에요.\n'
+          '$days일 후 계정과 서비스 데이터가 영구 삭제될 예정이에요.\n'
+          '법령상 보존 자료는 정해진 기간 동안 분리 보관돼요.\n'
           '계정을 복구할까요?',
         ),
         actions: [

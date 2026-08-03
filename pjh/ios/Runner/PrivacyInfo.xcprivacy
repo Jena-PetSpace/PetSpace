@@ -93,12 +93,12 @@
         <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
       </array>
     </dict>
-    <!-- 대략적 위치 (동물병원 검색) -->
+    <!-- 정확한 위치 (주변 검색, 사용자가 게시물에 선택한 장소 좌표) -->
     <dict>
       <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypeCoarseLocation</string>
+      <string>NSPrivacyCollectedDataTypePreciseLocation</string>
       <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
+      <true/>
       <key>NSPrivacyCollectedDataTypeTracking</key>
       <false/>
       <key>NSPrivacyCollectedDataTypePurposes</key>

@@ -120,6 +120,31 @@ void main() {
     expect(captured.isPrivate, isFalse);
   });
 
+  testWidgets('제목과 내용은 제출 직전에 공용 콘텐츠 필터를 적용한다', (tester) async {
+    await pumpPage(tester);
+
+    await tester.tap(find.text('일상'));
+    await tester.enterText(
+      find.byKey(const Key('community_title_field')),
+      '정상적인 산책 제목',
+    );
+    await tester.enterText(
+      find.byKey(const Key('community_content_field')),
+      '시*발처럼 우회한 표현',
+    );
+    tester.testTextInput.hide();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('community_submit_button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('커뮤니티 가이드에 맞지 않는 표현이 있어요.'),
+      findsOneWidget,
+    );
+    expect(find.text('표현을 수정한 뒤 다시 등록해 주세요.'), findsOneWidget);
+    verifyNever(() => repository.createPost(any()));
+  });
+
   testWidgets('단일 하단 CTA와 다크 안내 surface를 사용한다', (tester) async {
     await pumpPage(tester, theme: AppTheme.darkTheme);
 

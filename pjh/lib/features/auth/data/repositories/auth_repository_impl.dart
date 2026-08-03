@@ -19,6 +19,7 @@ import '../../../../core/network/network_info.dart';
 import '../../domain/entities/user.dart' as user_entity;
 import '../../domain/repositories/auth_repository.dart';
 import '../models/user_model.dart';
+import '../services/apple_account_deletion_authorization.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final SupabaseClient supabaseClient;
@@ -138,12 +139,10 @@ class AuthRepositoryImpl implements AuthRepository {
         user = UserModel(
           uid: supabaseUser.id,
           email: supabaseUser.email!,
-          displayName:
-              supabaseUser.userMetadata?['display_name'] ??
+          displayName: supabaseUser.userMetadata?['display_name'] ??
               supabaseUser.userMetadata?['full_name'] ??
               '사용자',
-          photoURL:
-              supabaseUser.userMetadata?['photo_url'] ??
+          photoURL: supabaseUser.userMetadata?['photo_url'] ??
               supabaseUser.userMetadata?['avatar_url'],
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -257,11 +256,10 @@ class AuthRepositoryImpl implements AuthRepository {
         final displayName = fullName.isNotEmpty
             ? fullName
             : (supabaseUser.userMetadata?['full_name'] as String?) ??
-                  (supabaseUser.userMetadata?['name'] as String?) ??
-                  '사용자';
+                (supabaseUser.userMetadata?['name'] as String?) ??
+                '사용자';
 
-        final email =
-            supabaseUser.email ??
+        final email = supabaseUser.email ??
             credential.email ??
             'apple_${supabaseUser.id}@apple.user';
 
@@ -733,9 +731,56 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final user = supabaseClient.auth.currentUser;
       if (user != null) {
+        final metadataProviders = <String>[
+          if (user.appMetadata['provider'] is String)
+            user.appMetadata['provider'] as String,
+          if (user.appMetadata['providers'] is List)
+            ...(user.appMetadata['providers'] as List).whereType<String>(),
+        ];
+        final hasAppleIdentity = AppleAccountDeletionPolicy.hasAppleIdentity(
+          [
+            ...metadataProviders,
+            ...?user.identities?.map((identity) => identity.provider),
+          ],
+        );
+        var requestBody = const <String, String>{};
+
+        if (hasAppleIdentity) {
+          // Native iOS client ID(com.jena.petspace)로 발급된 code만 서버에서
+          // 검증·revoke한다. Android web flow는 별도 Services ID 계약이
+          // 필요하므로 잘못된 client ID로 진행하지 않는다.
+          if (!Platform.isIOS) {
+            return const Left(
+              AuthFailure(
+                message: 'Apple로 연결된 계정은 iPhone 또는 iPad에서 본인 확인 후 탈퇴할 수 있어요.',
+              ),
+            );
+          }
+
+          final rawNonce = supabaseClient.auth.generateRawNonce();
+          final hashedNonce = AppleAccountDeletionPolicy.hashNonce(rawNonce);
+          final credential = await SignInWithApple.getAppleIDCredential(
+            scopes: const [],
+            nonce: hashedNonce,
+          );
+          final authorizationCode = credential.authorizationCode.trim();
+          if (authorizationCode.isEmpty) {
+            return const Left(
+              AuthFailure(message: 'Apple 계정 확인 정보를 받지 못했어요. 다시 시도해주세요.'),
+            );
+          }
+          requestBody = AppleAccountDeletionAuthorization(
+            authorizationCode: authorizationCode,
+            rawNonce: rawNonce,
+          ).toRequestBody();
+        }
+
         // 30일 유예 soft delete — Storage 정리·영구 삭제는
         // purge-deleted-accounts 배치가 30일 후 수행
-        await supabaseClient.functions.invoke('request-account-deletion');
+        await supabaseClient.functions.invoke(
+          'request-account-deletion',
+          body: requestBody,
+        );
 
         // Edge Function 서버 측에서 글로벌 signOut이 일어나므로
         // 로컬 signOut 실패 시에도 탈퇴 자체는 성공으로 처리
@@ -750,6 +795,29 @@ class AuthRepositoryImpl implements AuthRepository {
         await prefs.clear();
       }
       return const Right(null);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return const Left(AuthFailure(message: 'Apple 계정 확인이 취소되었습니다.'));
+      }
+      return const Left(
+        AuthFailure(message: 'Apple 계정을 확인하지 못했어요. 잠시 후 다시 시도해주세요.'),
+      );
+    } on FunctionException catch (e) {
+      final details = e.details;
+      final code = details is Map ? details['code']?.toString() : null;
+      if (code == 'APPLE_REAUTH_REQUIRED') {
+        return const Left(
+          AuthFailure(message: 'Apple 계정을 다시 확인한 후 탈퇴를 진행해주세요.'),
+        );
+      }
+      if (code == 'APPLE_REVOKE_FAILED') {
+        return const Left(
+          AuthFailure(message: 'Apple 연결을 해제하지 못했어요. 잠시 후 다시 시도해주세요.'),
+        );
+      }
+      return const Left(
+        GeneralFailure(message: '계정 삭제를 처리하지 못했어요. 잠시 후 다시 시도해주세요.'),
+      );
     } on AuthException catch (e) {
       return Left(AuthFailure(message: _getAuthErrorMessage(e.message)));
     } catch (_) {
@@ -833,9 +901,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
       await supabaseClient.storage.from('images').upload(fileName, file);
 
-      final publicUrl = supabaseClient.storage
-          .from('images')
-          .getPublicUrl(fileName);
+      final publicUrl =
+          supabaseClient.storage.from('images').getPublicUrl(fileName);
 
       return Right(publicUrl);
     } catch (_) {

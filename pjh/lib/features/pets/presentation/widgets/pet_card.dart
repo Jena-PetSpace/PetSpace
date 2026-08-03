@@ -264,6 +264,7 @@ class PetCard extends StatelessWidget {
 
     return PopupMenuButton<String>(
       key: Key('pet_card_menu_${pet.id}'),
+      tooltip: '${pet.name} 더보기 메뉴',
       onSelected: (value) {
         switch (value) {
           case 'primary':

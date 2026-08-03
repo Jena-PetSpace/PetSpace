@@ -24,6 +24,8 @@ class PetManagementPage extends StatefulWidget {
 
 class _PetManagementPageState extends State<PetManagementPage> {
   static const double _navigationOverlapClearance = 64;
+  Pet? _pendingDeleteAfterPrimaryChange;
+  String? _pendingPrimaryForDeletionId;
 
   @override
   void initState() {
@@ -54,16 +56,21 @@ class _PetManagementPageState extends State<PetManagementPage> {
           } else if (state is PetError) {
             _showFeedback(state.message, backgroundColor: AppTheme.errorColor);
           } else if (state is PetLoaded &&
-              state.selectionStatus == PetSelectionStatus.success &&
-              state.selectionMessage != null) {
-            _showFeedback(state.selectionMessage!);
+              state.selectionStatus == PetSelectionStatus.success) {
+            if (state.selectionMessage != null) {
+              _showFeedback(state.selectionMessage!);
+            }
+            _resumePendingDeletion(state);
           } else if (state is PetLoaded &&
-              state.selectionStatus == PetSelectionStatus.failure &&
-              state.selectionMessage != null) {
-            _showFeedback(
-              state.selectionMessage!,
-              backgroundColor: AppTheme.errorColor,
-            );
+              state.selectionStatus == PetSelectionStatus.failure) {
+            _pendingDeleteAfterPrimaryChange = null;
+            _pendingPrimaryForDeletionId = null;
+            if (state.selectionMessage != null) {
+              _showFeedback(
+                state.selectionMessage!,
+                backgroundColor: AppTheme.errorColor,
+              );
+            }
           }
         },
         builder: (context, state) {
@@ -282,33 +289,96 @@ class _PetManagementPageState extends State<PetManagementPage> {
   Future<void> _showPrimaryPetConfirmation(Pet pet) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => Dialog(
         key: const Key('pet_primary_confirmation_dialog'),
-        title: const Text('대표 반려동물 변경'),
-        content: Text(
-          '${pet.name}을(를) 대표 반려동물로 설정할까요?\n\n'
-          '대표 반려동물은 MY와 건강, 감정 분석 등 주요 화면의 '
-          '기본 대상으로 사용됩니다.',
+        insetPadding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 420,
+            maxHeight: MediaQuery.sizeOf(dialogContext).height - 32,
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(20.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '대표 반려동물 변경',
+                          style: TextStyle(
+                            fontSize: AppTheme.fontHeading.sp,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 16.h),
+                        Text(
+                          '대표로 선택할 반려동물',
+                          style: TextStyle(
+                            fontSize: AppTheme.fontCaption.sp,
+                            color: Theme.of(
+                              dialogContext,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        SizedBox(height: 4.h),
+                        Semantics(
+                          label: '대표로 선택할 반려동물: ${pet.name}',
+                          child: ExcludeSemantics(
+                            child: Text(
+                              pet.name,
+                              style: TextStyle(
+                                fontSize: AppTheme.fontHeading.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        Text(
+                          'MY와 건강, 감정 분석 등 주요 화면의 기본 대상으로 사용돼요.',
+                          style: TextStyle(
+                            fontSize: AppTheme.fontBody.sp,
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                FilledButton(
+                  key: const Key('pet_primary_confirmation_confirm'),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  child: const Text('대표로 변경'),
+                ),
+                SizedBox(height: 8.h),
+                TextButton(
+                  key: const Key('pet_primary_confirmation_cancel'),
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  child: const Text('취소'),
+                ),
+              ],
+            ),
+          ),
         ),
-        actions: [
-          TextButton(
-            key: const Key('pet_primary_confirmation_cancel'),
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('취소'),
-          ),
-          FilledButton(
-            key: const Key('pet_primary_confirmation_confirm'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('변경'),
-          ),
-        ],
       ),
     );
     if (confirmed != true || !mounted) return;
     context.read<PetBloc>().add(SelectPet(pet));
   }
 
-  void _requestPetDeletion(Pet pet, Pet? selectedPet) {
+  Future<void> _requestPetDeletion(Pet pet, Pet? selectedPet) async {
     final petBloc = context.read<PetBloc>();
     final currentState = petBloc.state;
     final pets = switch (currentState) {
@@ -318,26 +388,219 @@ class _PetManagementPageState extends State<PetManagementPage> {
     };
     final hasAnotherPet = pets.any((candidate) => candidate.id != pet.id);
     if (selectedPet?.id == pet.id && hasAnotherPet) {
-      showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          key: const Key('pet_primary_delete_gate_dialog'),
-          title: const Text('새 대표 반려동물을 먼저 선택해 주세요'),
-          content: const Text(
-            '대표 반려동물을 삭제하기 전에 다른 반려동물을 대표로 설정해 주세요.',
-          ),
-          actions: [
-            TextButton(
-              key: const Key('pet_primary_delete_gate_confirm'),
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('확인'),
-            ),
-          ],
-        ),
+      final candidates =
+          pets.where((candidate) => candidate.id != pet.id).toList();
+      final replacement = await _showPrimaryReplacementDialog(
+        deletionTarget: pet,
+        candidates: candidates,
       );
+      if (replacement == null || !mounted) return;
+      _pendingDeleteAfterPrimaryChange = pet;
+      _pendingPrimaryForDeletionId = replacement.id;
+      petBloc.add(SelectPet(replacement));
       return;
     }
     _showDeleteConfirmation(pet);
+  }
+
+  Future<Pet?> _showPrimaryReplacementDialog({
+    required Pet deletionTarget,
+    required List<Pet> candidates,
+  }) {
+    return showDialog<Pet>(
+      context: context,
+      builder: (dialogContext) {
+        var selectedId = candidates.first.id;
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) => Dialog(
+            key: const Key('pet_primary_delete_gate_dialog'),
+            insetPadding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 420,
+                maxHeight: MediaQuery.sizeOf(dialogContext).height - 32,
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '새 대표 반려동물을 선택해 주세요',
+                              style: TextStyle(
+                                fontSize: AppTheme.fontHeading.sp,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            SizedBox(height: 10.h),
+                            Text(
+                              '대표 반려동물을 삭제하기 전에 다른 반려동물을 대표로 설정해야 해요.',
+                              style: TextStyle(
+                                fontSize: AppTheme.fontBody.sp,
+                                height: 1.45,
+                              ),
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              '삭제할 반려동물',
+                              style: TextStyle(
+                                fontSize: AppTheme.fontCaption.sp,
+                                color: Theme.of(
+                                  dialogContext,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              deletionTarget.name,
+                              key: const Key('pet_pending_delete_target'),
+                              style: TextStyle(
+                                fontSize: AppTheme.fontHeading.sp,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            SizedBox(height: 18.h),
+                            ...candidates.map(
+                              (candidate) => Padding(
+                                padding: EdgeInsets.only(bottom: 8.h),
+                                child: Semantics(
+                                  label: '대표로 선택할 반려동물: ${candidate.name}',
+                                  button: true,
+                                  selected: selectedId == candidate.id,
+                                  inMutuallyExclusiveGroup: true,
+                                  child: Material(
+                                    color: selectedId == candidate.id
+                                        ? AppTheme.actionContainer
+                                        : Theme.of(
+                                            dialogContext,
+                                          ).colorScheme.surface,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppTheme.radiusMd.r,
+                                      ),
+                                      side: BorderSide(
+                                        color: selectedId == candidate.id
+                                            ? AppTheme.actionBase
+                                            : Theme.of(
+                                                dialogContext,
+                                              ).colorScheme.outlineVariant,
+                                      ),
+                                    ),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: InkWell(
+                                      key: Key(
+                                        'pet_primary_candidate_${candidate.id}',
+                                      ),
+                                      excludeFromSemantics: true,
+                                      onTap: () => setDialogState(
+                                        () => selectedId = candidate.id,
+                                      ),
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          minHeight: 56,
+                                        ),
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 14.w,
+                                            vertical: 10.h,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                selectedId == candidate.id
+                                                    ? Icons.radio_button_checked
+                                                    : Icons
+                                                        .radio_button_unchecked,
+                                                color: AppTheme.actionBase,
+                                              ),
+                                              SizedBox(width: 10.w),
+                                              Expanded(
+                                                child: Text(
+                                                  candidate.name,
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        AppTheme.fontBody.sp,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+                    FilledButton(
+                      key: const Key('pet_primary_delete_gate_confirm'),
+                      onPressed: () => Navigator.of(dialogContext).pop(
+                        candidates.firstWhere(
+                          (candidate) => candidate.id == selectedId,
+                        ),
+                      ),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      child: const Text('대표로 선택하고 계속'),
+                    ),
+                    SizedBox(height: 8.h),
+                    TextButton(
+                      key: const Key('pet_primary_delete_gate_cancel'),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      child: const Text('취소'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _resumePendingDeletion(PetLoaded state) {
+    final target = _pendingDeleteAfterPrimaryChange;
+    final expectedPrimaryId = _pendingPrimaryForDeletionId;
+    if (target == null ||
+        expectedPrimaryId == null ||
+        state.selectedPet?.id != expectedPrimaryId) {
+      return;
+    }
+    Pet? freshTarget;
+    for (final pet in state.pets) {
+      if (pet.id == target.id) {
+        freshTarget = pet;
+        break;
+      }
+    }
+    _pendingDeleteAfterPrimaryChange = null;
+    _pendingPrimaryForDeletionId = null;
+    if (freshTarget == null || freshTarget.id == state.selectedPet?.id) {
+      _showFeedback(
+        '삭제할 반려동물 정보를 다시 확인해 주세요.',
+        backgroundColor: AppTheme.errorColor,
+      );
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _showDeleteConfirmation(freshTarget!);
+    });
   }
 
   void _showFeedback(String message, {Color? backgroundColor}) {

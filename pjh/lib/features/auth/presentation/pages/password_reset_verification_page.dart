@@ -255,17 +255,6 @@ class _PasswordResetVerificationPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 제목
-              const Text(
-                '인증 코드 확인',
-                style: TextStyle(
-                  fontSize: AppTheme.fontTitle,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.brandDeep,
-                ),
-              ),
-              const SizedBox(height: 10),
-
               // 설명
               Text(
                 '${widget.email}로\n발송된 6자리 인증 코드를 입력해주세요',

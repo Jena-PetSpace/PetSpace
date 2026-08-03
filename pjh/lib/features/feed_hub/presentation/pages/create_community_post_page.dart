@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/services/content_filter.dart';
 import '../../../../shared/constants/community_categories.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/category_chip.dart';
@@ -38,6 +40,8 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage>
     with WidgetsBindingObserver {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
+  final _titleFocus = FocusNode();
+  final _contentFocus = FocusNode();
   bool _isSubmitting = false;
   String? _selectedCategory;
   String? _titleError;
@@ -78,6 +82,8 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage>
     _autosaveTimer?.cancel();
     _titleController.dispose();
     _contentController.dispose();
+    _titleFocus.dispose();
+    _contentFocus.dispose();
     super.dispose();
   }
 
@@ -146,6 +152,26 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage>
         _titleError = titleError;
         _contentError = contentError;
         _submitError = categoryError;
+      });
+      return;
+    }
+
+    final titleIsBlocked = ContentFilter.hasBannedKeyword(title);
+    final contentIsBlocked = ContentFilter.hasBannedKeyword(content);
+    if (titleIsBlocked || contentIsBlocked) {
+      setState(() {
+        _titleError = titleIsBlocked ? '커뮤니티 가이드에 맞지 않는 표현이 있어요.' : null;
+        _contentError = contentIsBlocked ? '커뮤니티 가이드에 맞지 않는 표현이 있어요.' : null;
+        _submitError = '표현을 수정한 뒤 다시 등록해 주세요.';
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        (titleIsBlocked ? _titleFocus : _contentFocus).requestFocus();
+        SemanticsService.sendAnnouncement(
+          View.of(context),
+          '커뮤니티 가이드에 맞지 않는 표현이 있어요. 표현을 수정해 주세요.',
+          Directionality.of(context),
+        );
       });
       return;
     }
@@ -338,6 +364,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage>
                 TextField(
                   key: const Key('community_title_field'),
                   controller: _titleController,
+                  focusNode: _titleFocus,
                   enabled: !_isSubmitting,
                   maxLength: 100,
                   textInputAction: TextInputAction.next,
@@ -352,6 +379,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage>
                   decoration: InputDecoration(
                     hintText: '이야기의 핵심을 적어주세요',
                     errorText: _titleError,
+                    errorMaxLines: 3,
                   ),
                 ),
                 SizedBox(height: 16.h),
@@ -360,6 +388,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage>
                 TextField(
                   key: const Key('community_content_field'),
                   controller: _contentController,
+                  focusNode: _contentFocus,
                   enabled: !_isSubmitting,
                   minLines: 7,
                   maxLines: 12,
@@ -375,6 +404,7 @@ class _CreateCommunityPostPageState extends State<CreateCommunityPostPage>
                   decoration: InputDecoration(
                     hintText: '상황이나 경험을 자세히 적어주세요',
                     errorText: _contentError,
+                    errorMaxLines: 3,
                     alignLabelWithHint: true,
                   ),
                 ),

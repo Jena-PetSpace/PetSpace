@@ -11,7 +11,9 @@ import 'package:mocktail/mocktail.dart';
 import 'package:meong_nyang_diary/core/services/app_package_info.dart';
 import 'package:meong_nyang_diary/features/auth/domain/entities/user.dart';
 import 'package:meong_nyang_diary/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:meong_nyang_diary/features/my/presentation/pages/app_info_page.dart';
 import 'package:meong_nyang_diary/features/my/presentation/pages/my_settings_page.dart';
+import 'package:meong_nyang_diary/features/my/presentation/pages/open_source_licenses_page.dart';
 import 'package:meong_nyang_diary/shared/themes/app_theme.dart';
 
 class _MockAuthBloc extends MockBloc<AuthEvent, AuthState>
@@ -85,6 +87,12 @@ void main() {
             child: MySettingsPage(
               packageInfoLoader: () async =>
                   const AppPackageInfo(version: '2.4.1', buildNumber: '37'),
+              licenseLoader: () async => const [
+                AppLicenseEntry(
+                  packageName: 'sample_package',
+                  licenseText: 'Sample license text',
+                ),
+              ],
             ),
           ),
         ),
@@ -106,6 +114,12 @@ void main() {
           builder: (_, __) => MySettingsPage(
             packageInfoLoader: () async =>
                 const AppPackageInfo(version: '2.4.1', buildNumber: '37'),
+            licenseLoader: () async => const [
+              AppLicenseEntry(
+                packageName: 'sample_package',
+                licenseText: 'Sample license text',
+              ),
+            ],
           ),
         ),
         GoRoute(
@@ -146,19 +160,27 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('앱 정보에는 실행 버전과 오픈소스 라이선스 진입점을 표시한다', (
+  testWidgets('앱 정보와 오픈소스 라이선스는 별도 화면으로 진입한다', (
     tester,
   ) async {
     await pumpPage(tester);
     await revealAccountManagement(tester);
-    await tester.tap(find.text('앱 정보 · 버전'));
+    expect(find.text('앱 정보'), findsOneWidget);
+    expect(find.text('오픈소스 라이선스'), findsOneWidget);
+
+    await tester.tap(find.text('앱 정보'));
     await tester.pumpAndSettle();
 
+    expect(find.byType(AppInfoPage), findsOneWidget);
     expect(find.text('2.4.1 (37)'), findsOneWidget);
-    expect(find.text('View licenses'), findsOneWidget);
-    await tester.tap(find.text('View licenses'));
+    expect(find.text('반려동물의 일상과 AI 참고 분석을 한곳에서'), findsOneWidget);
+    await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byType(LicensePage), findsOneWidget);
+
+    await tester.tap(find.text('오픈소스 라이선스'));
+    await tester.pumpAndSettle();
+    expect(find.byType(OpenSourceLicensesPage), findsOneWidget);
+    expect(find.text('sample_package'), findsOneWidget);
   });
 
   testWidgets('차단 관리 메뉴는 계정 섹션에서 정본 개인정보 경로로 이동한다', (
@@ -203,6 +225,10 @@ void main() {
     await revealAccountManagement(tester);
     await tester.tap(find.text('회원탈퇴'));
     await tester.pumpAndSettle();
+
+    expect(find.textContaining('계정과 서비스 데이터'), findsOneWidget);
+    expect(find.textContaining('법령상 보관 의무'), findsOneWidget);
+    expect(find.textContaining('모든 데이터가 영구 삭제'), findsNothing);
 
     final confirm = tester.widget<TextButton>(
       find.byKey(const Key('delete_account_confirm_button')),

@@ -185,6 +185,7 @@ void main() {
       find.byKey(const ValueKey('password-reset-code-accessible')),
       findsNothing,
     );
+    expect(find.text('인증 코드 확인'), findsOneWidget);
     for (var index = 0; index < 6; index++) {
       expect(
         find.byKey(ValueKey('password-reset-code-$index')),

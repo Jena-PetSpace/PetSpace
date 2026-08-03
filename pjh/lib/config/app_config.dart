@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   static const String appName = '펫페이스';
   static const String appVersion = '1.0.0';
-  static const int buildNumber = 1;
+  static const int buildNumber = 4;
 
   // Environment configurations
   static const bool isProduction = kReleaseMode;
@@ -76,8 +76,7 @@ class AppConfig {
   static const String termsOfServiceUrl = 'https://petspace.app/terms';
 
   // App Store URLs
-  static const String appStoreUrl =
-      'https://apps.apple.com/app/petspace';
+  static const String appStoreUrl = 'https://apps.apple.com/app/petspace';
   static const String playStoreUrl =
       'https://play.google.com/store/apps/details?id=com.jena.petspace';
 

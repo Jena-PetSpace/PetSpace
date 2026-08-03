@@ -56,19 +56,28 @@ class SettingsBottomSheet extends StatelessWidget {
                       icon: Icons.pets_outlined,
                       label: '내 반려동물 관리',
                       bgColor: AppTheme.tilePastelBlue,
-                      onTap: () { Navigator.pop(context); context.push('/pets'); },
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/pets');
+                      },
                     ),
                     _SettingsItem(
                       icon: Icons.bar_chart_outlined,
                       label: 'AI 분석 히스토리',
                       bgColor: AppTheme.tilePastelGreen,
-                      onTap: () { Navigator.pop(context); context.push('/ai-history-page'); },
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/ai-history-page');
+                      },
                     ),
                     _SettingsItem(
                       icon: Icons.card_giftcard_outlined,
                       label: '리워드 스토어',
                       bgColor: AppTheme.tilePastelPeach,
-                      onTap: () { Navigator.pop(context); context.push('/reward'); },
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/reward');
+                      },
                     ),
                   ]),
                   _buildDivider(),
@@ -78,19 +87,28 @@ class SettingsBottomSheet extends StatelessWidget {
                       icon: Icons.edit_outlined,
                       label: '프로필 편집',
                       bgColor: AppTheme.tilePastelSand,
-                      onTap: () { Navigator.pop(context); context.push('/my/edit-profile'); },
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/my/edit-profile');
+                      },
                     ),
                     _SettingsItem(
                       icon: Icons.notifications_none_outlined,
                       label: '알림 설정',
                       bgColor: AppTheme.tilePastelPink,
-                      onTap: () { Navigator.pop(context); context.push('/my/notification-settings'); },
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/my/notification-settings');
+                      },
                     ),
                     _SettingsItem(
                       icon: Icons.lock_outline,
                       label: '개인정보처리방침',
                       bgColor: AppTheme.tilePastelSand,
-                      onTap: () { Navigator.pop(context); context.push('/privacy'); },
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/privacy');
+                      },
                     ),
                     _SettingsItem(
                       icon: Icons.info_outline,
@@ -135,7 +153,8 @@ class SettingsBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildGroup(BuildContext context, {required List<_SettingsItem> items}) {
+  Widget _buildGroup(BuildContext context,
+      {required List<_SettingsItem> items}) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
       child: Column(
@@ -159,7 +178,8 @@ class SettingsBottomSheet extends StatelessWidget {
                 color: item.bgColor,
                 borderRadius: BorderRadius.circular(10.r),
               ),
-              child: Icon(item.icon, size: 18.w,
+              child: Icon(item.icon,
+                  size: 18.w,
                   color: item.textColor ?? AppTheme.primaryTextColor),
             ),
             SizedBox(width: 14.w),
@@ -173,7 +193,9 @@ class SettingsBottomSheet extends StatelessWidget {
               ),
             ),
             if (item.showChevron)
-              Icon(Icons.chevron_right, size: 20.w, color: AppTheme.lightTextColor), // v2-review: CCCCCC 근사
+              Icon(Icons.chevron_right,
+                  size: 20.w,
+                  color: AppTheme.lightTextColor), // v2-review: CCCCCC 근사
           ],
         ),
       ),
@@ -195,14 +217,16 @@ class SettingsBottomSheet extends StatelessWidget {
         title: const Text('로그아웃'),
         content: const Text('정말 로그아웃 하시겠어요?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               Navigator.pop(context);
               context.read<AuthBloc>().add(AuthSignOutRequested());
             },
-            child: const Text('로그아웃', style: TextStyle(color: AppTheme.errorColor)),
+            child: const Text('로그아웃',
+                style: TextStyle(color: AppTheme.errorColor)),
           ),
         ],
       ),
@@ -216,13 +240,15 @@ class SettingsBottomSheet extends StatelessWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
+          scrollable: true,
           title: const Text('회원탈퇴'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                '탈퇴 후 30일이 지나면 모든 데이터가 영구 삭제됩니다.\n'
+                '탈퇴 후 30일이 지나면 계정과 서비스 데이터가 영구 삭제됩니다.\n'
+                '법령상 보관 의무가 있는 자료는 정해진 기간 동안 분리 보관돼요.\n'
                 '그 전까지는 다시 로그인하면 계정을 복구할 수 있어요.',
               ),
               SizedBox(height: 12.h),

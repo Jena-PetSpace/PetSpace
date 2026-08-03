@@ -8,17 +8,19 @@ import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../../../shared/widgets/petspace_settings_components.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-
-typedef AppPackageInfoLoader = Future<AppPackageInfo> Function();
+import 'app_info_page.dart';
+import 'open_source_licenses_page.dart';
 
 enum _AccountAction { logout, delete }
 
 class MySettingsPage extends StatefulWidget {
   final AppPackageInfoLoader packageInfoLoader;
+  final AppLicenseLoader licenseLoader;
 
   const MySettingsPage({
     super.key,
     this.packageInfoLoader = AppPackageInfo.load,
+    this.licenseLoader = loadAppLicenses,
   });
 
   @override
@@ -26,14 +28,7 @@ class MySettingsPage extends StatefulWidget {
 }
 
 class _MySettingsPageState extends State<MySettingsPage> {
-  late final Future<AppPackageInfo> _packageInfo;
   _AccountAction? _pendingAction;
-
-  @override
-  void initState() {
-    super.initState();
-    _packageInfo = widget.packageInfoLoader();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,8 +139,13 @@ class _MySettingsPageState extends State<MySettingsPage> {
               ),
               PetSpaceSettingsTile(
                 icon: Icons.info_outline,
-                title: '앱 정보 · 버전',
-                onTap: _showAppInfo,
+                title: '앱 정보',
+                onTap: _openAppInfo,
+              ),
+              PetSpaceSettingsTile(
+                icon: Icons.description_outlined,
+                title: '오픈소스 라이선스',
+                onTap: _openOpenSourceLicenses,
               ),
             ],
           ),
@@ -279,18 +279,23 @@ class _MySettingsPageState extends State<MySettingsPage> {
     );
   }
 
-  Future<void> _showAppInfo() async {
-    AppPackageInfo? info;
-    try {
-      info = await _packageInfo;
-    } catch (_) {
-      // 플랫폼 메타데이터를 읽지 못해도 설정 화면 자체는 계속 사용할 수 있다.
-    }
-    if (!mounted) return;
-    showAboutDialog(
-      context: context,
-      applicationName: 'PetSpace',
-      applicationVersion: info?.displayVersion ?? '확인할 수 없음',
+  void _openAppInfo() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AppInfoPage(
+          packageInfoLoader: widget.packageInfoLoader,
+        ),
+      ),
+    );
+  }
+
+  void _openOpenSourceLicenses() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OpenSourceLicensesPage(
+          licenseLoader: widget.licenseLoader,
+        ),
+      ),
     );
   }
 
@@ -329,13 +334,15 @@ class _MySettingsPageState extends State<MySettingsPage> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
           key: const Key('delete_account_confirm_dialog'),
+          scrollable: true,
           title: const Text('회원탈퇴'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                '탈퇴 후 30일이 지나면 모든 데이터가 영구 삭제됩니다.\n'
+                '탈퇴 후 30일이 지나면 계정과 서비스 데이터가 영구 삭제됩니다.\n'
+                '법령상 보관 의무가 있는 자료는 정해진 기간 동안 분리 보관돼요.\n'
                 '그 전까지는 다시 로그인하면 계정을 복구할 수 있어요.',
               ),
               SizedBox(height: 12.h),

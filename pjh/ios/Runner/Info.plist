@@ -65,7 +65,7 @@
 			<string>nmap</string>
 		</array>
 		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>주변 동물병원을 찾기 위해 위치 정보를 사용합니다.</string>
+		<string>주변 동물병원과 장소를 찾고, 사용자가 선택한 장소를 게시물에 추가하기 위해 현재 위치를 사용합니다.</string>
 		<key>ITSAppUsesNonExemptEncryption</key>
 		<false/>
 		<key>CFBundleVersion</key>

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -44,6 +46,7 @@ void main() {
     Size surface = const Size(390, 844),
     double textScale = 1,
     List<PetState> emittedStates = const [],
+    Stream<PetState>? stateStream,
   }) async {
     tester.view.physicalSize = surface;
     tester.view.devicePixelRatio = 1;
@@ -56,7 +59,7 @@ void main() {
     when(() => bloc.state).thenReturn(state);
     whenListen(
       bloc,
-      Stream<PetState>.fromIterable(emittedStates),
+      stateStream ?? Stream<PetState>.fromIterable(emittedStates),
       initialState: state,
     );
     addTearDown(bloc.close);
@@ -299,11 +302,16 @@ void main() {
     expect(find.text('마지막 반려동물이에요'), findsNothing);
   });
 
-  testWidgets('대표 반려동물은 다른 대표를 선택하기 전 삭제할 수 없다', (tester) async {
+  testWidgets('대표 삭제는 다른 대표 선택 성공 뒤 원래 삭제 확인으로 복귀한다', (
+    tester,
+  ) async {
     final pets = [buildPet(1), buildPet(2)];
+    final states = StreamController<PetState>();
+    addTearDown(states.close);
     final bloc = await pumpPage(
       tester,
       state: PetLoaded(pets: pets, selectedPet: pets.first),
+      stateStream: states.stream,
     );
 
     final menu = tester.widget<PopupMenuButton<String>>(
@@ -316,9 +324,70 @@ void main() {
       find.byKey(const Key('pet_primary_delete_gate_dialog')),
       findsOneWidget,
     );
-    expect(find.text('새 대표 반려동물을 먼저 선택해 주세요'), findsOneWidget);
+    expect(find.text('새 대표 반려동물을 선택해 주세요'), findsOneWidget);
+    expect(
+      find.byKey(const Key('pet_pending_delete_target')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('pet_primary_candidate_pet-2')),
+      findsOneWidget,
+    );
     verifyNever(() => bloc.add(any(that: isA<DeletePetEvent>())));
     expect(find.text('함께 삭제되는 정보'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const Key('pet_primary_delete_gate_confirm')),
+    );
+    await tester.pumpAndSettle();
+
+    final captured = verify(() => bloc.add(captureAny(that: isA<SelectPet>())))
+        .captured
+        .single as SelectPet;
+    expect(captured.pet.id, pets.last.id);
+    expect(find.text('함께 삭제되는 정보'), findsNothing);
+
+    states.add(
+      PetLoaded(
+        pets: pets,
+        selectedPet: pets.last,
+        selectionStatus: PetSelectionStatus.success,
+        selectionMessage: '대표 반려동물로 설정했어요: 반려동물2',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('함께 삭제되는 정보'), findsOneWidget);
+    expect(find.textContaining('반려동물1의 정보를 삭제하면'), findsOneWidget);
+    verifyNever(() => bloc.add(any(that: isA<DeletePetEvent>())));
+  });
+
+  testWidgets('대표 변경과 삭제 게이트는 320x568·200%에서 행동을 유지한다', (
+    tester,
+  ) async {
+    final pets = [buildPet(1), buildPet(2)];
+    await pumpPage(
+      tester,
+      state: PetLoaded(pets: pets, selectedPet: pets.first),
+      surface: const Size(320, 568),
+      textScale: 2,
+    );
+
+    final menu = tester.widget<PopupMenuButton<String>>(
+      find.byKey(const Key('pet_card_menu_pet-1')),
+    );
+    menu.onSelected!('delete');
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('pet_primary_delete_gate_confirm')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('pet_primary_delete_gate_cancel')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('다크모드 CTA는 theme primary container 역할색을 사용한다', (tester) async {

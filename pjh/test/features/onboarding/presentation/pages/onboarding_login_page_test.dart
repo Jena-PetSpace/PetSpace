@@ -362,4 +362,29 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('iPad 세로·가로에서 인증 콘텐츠 폭을 제한하고 overflow하지 않는다', (
+    tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    for (final size in const [
+      Size(744, 1133),
+      Size(1133, 744),
+    ]) {
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(host());
+      await tester.pump();
+
+      final content = tester.getRect(
+        find.byKey(const Key('auth-content-column')),
+      );
+      expect(content.width, lessThanOrEqualTo(480));
+      expect(content.left, greaterThanOrEqualTo(24));
+      expect(content.right, lessThanOrEqualTo(size.width - 24));
+      expect(find.byKey(const ValueKey('email-auth-submit')), findsOneWidget);
+      expect(find.byKey(const ValueKey('social-login-Apple')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
 }

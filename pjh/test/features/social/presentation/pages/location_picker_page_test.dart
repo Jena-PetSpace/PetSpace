@@ -112,7 +112,10 @@ void main() {
     await tester.pump();
 
     expect(find.text('위치를 검색해 추가하세요'), findsOneWidget);
-    expect(find.text('게시물에는 시·군·구까지만 공개돼요.'), findsOneWidget);
+    expect(
+      find.text('선택한 장소 정보가 게시물에 표시돼요. 장소는 1곳만 선택할 수 있어요.'),
+      findsOneWidget,
+    );
     expect(find.textContaining('위치 권한이 없어'), findsOneWidget);
     final complete = tester.widget<TextButton>(
       find.widgetWithText(TextButton, '완료'),
@@ -211,13 +214,32 @@ void main() {
       find.byKey(const Key('location_picker_list_only_badge')),
       findsOneWidget,
     );
-    expect(find.textContaining('목록에서 선택합니다'), findsOneWidget);
+    expect(find.textContaining('목록으로 계속할 수 있어요'), findsOneWidget);
+    expect(
+      find.byKey(const Key('location_picker_map_surface')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('location_picker_draggable_sheet')),
+      findsNothing,
+    );
 
     await submitSearch(tester, '목록 장소');
     await tester.tap(find.text('테스트 장소 1'));
     await tester.pump();
-    final complete = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, '완료'),
+    final selectedSemantics = tester
+        .getSemantics(
+          find.byKey(const Key('location_picker_place_place-0')),
+        )
+        .getSemanticsData();
+    expect(
+        selectedSemantics.flagsCollection.isInMutuallyExclusiveGroup, isTrue);
+    expect(
+      selectedSemantics.flagsCollection.isSelected.toString(),
+      'Tristate.isTrue',
+    );
+    final complete = tester.widget<FilledButton>(
+      find.byKey(const Key('location_picker_list_complete')),
     );
     expect(complete.onPressed, isNotNull);
   });
@@ -287,19 +309,20 @@ void main() {
       findsNothing,
     );
     expect(
-      find.text('지도 재시도를 마쳐 이 화면에서는 목록만 사용해요'),
+      find.text('지도 재시도를 마쳐 목록으로 계속해요.'),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('location_picker_map_surface')), findsNothing);
     expect(
-      find.text('이 화면에서는 목록으로 계속할 수 있어요.'),
-      findsOneWidget,
+      find.byKey(const Key('location_picker_draggable_sheet')),
+      findsNothing,
     );
 
     await submitSearch(tester, '목록 고정 장소');
     await tester.tap(find.text('테스트 장소 1'));
     await tester.pump();
-    final complete = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, '완료'),
+    final complete = tester.widget<FilledButton>(
+      find.byKey(const Key('location_picker_list_complete')),
     );
     expect(complete.onPressed, isNotNull);
   });
@@ -322,7 +345,7 @@ void main() {
 
     expect(find.byType(TextField), findsOneWidget);
     expect(find.text('테스트 장소 1'), findsOneWidget);
-    expect(find.text('완료'), findsOneWidget);
+    expect(find.text('선택 완료'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -364,7 +387,7 @@ void main() {
     await submitSearch(tester, '결과 장소');
     await tester.tap(find.text('테스트 장소 1'));
     await tester.pump();
-    await tester.tap(find.text('완료'));
+    await tester.tap(find.text('선택 완료'));
     await tester.pumpAndSettle();
 
     expect(result?.name, '테스트 장소 1');

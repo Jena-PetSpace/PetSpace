@@ -2102,7 +2102,7 @@ $$;
 
 CREATE TABLE IF NOT EXISTS health_history (
   id                 BIGSERIAL PRIMARY KEY,
-  user_id            UUID REFERENCES auth.users NOT NULL,
+  user_id            UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   pet_id             UUID,
   pet_name           TEXT,
   area               TEXT NOT NULL,
@@ -4541,6 +4541,67 @@ GRANT EXECUTE ON FUNCTION public.get_posts_by_hashtag(text,uuid,text,integer,int
 GRANT EXECUTE ON FUNCTION public.get_posts_by_location(
   double precision,double precision,integer,uuid,integer,integer
 ) TO authenticated;
+
+COMMIT;
+
+BEGIN;
+
+-- ================================================================
+-- L2 ACCOUNT DELETION ACCESS GUARD
+-- ================================================================
+-- public.users 본인 조회와 restore_my_account()는 복구 안내를 위해 유지한다.
+-- 그 외 사용자 소유 데이터는 deleted_at 기록 직후 남은 access token으로도
+-- 읽거나 변경할 수 없도록 restrictive 정책을 추가한다.
+DO $$
+DECLARE
+  table_name text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'pets',
+    'posts',
+    'emotion_history',
+    'comments',
+    'follows',
+    'likes',
+    'notifications',
+    'user_devices',
+    'comment_likes',
+    'reports',
+    'user_blocks',
+    'health_records',
+    'saved_posts',
+    'bookmark_collections',
+    'chat_rooms',
+    'chat_participants',
+    'chat_messages',
+    'pet_mbti_results',
+    'walk_records',
+    'point_transactions',
+    'user_quest_progress',
+    'user_purchases',
+    'user_badges',
+    'health_history',
+    'notification_preferences'
+  ]
+  LOOP
+    IF to_regclass(format('public.%I', table_name)) IS NULL THEN
+      CONTINUE;
+    END IF;
+
+    EXECUTE format(
+      'DROP POLICY IF EXISTS "Active accounts only" ON public.%I',
+      table_name
+    );
+    EXECUTE format(
+      'CREATE POLICY "Active accounts only" ON public.%I '
+      'AS RESTRICTIVE FOR ALL TO authenticated '
+      'USING (private.user_is_active_internal(auth.uid())) '
+      'WITH CHECK (private.user_is_active_internal(auth.uid()))',
+      table_name
+    );
+  END LOOP;
+END;
+$$;
 
 COMMIT;
 

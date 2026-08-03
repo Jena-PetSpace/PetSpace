@@ -130,6 +130,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   int _mapViewGeneration = 0;
   int _mapRetryCount = 0;
   bool _mapRetriesExhausted = false;
+  Timer? _mapInitWatchdog;
   bool _markerLayerAdded = false;
   StreamSubscription<LabelClickEvent>? _labelSub;
   StreamSubscription<CameraMoveEndEvent>? _camSub;
@@ -145,6 +146,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
   final _searchCtrl = TextEditingController();
   final _searchFocus = FocusNode();
+  final _listScrollController = ScrollController();
   Timer? _debounce;
 
   List<_Place> _places = [];
@@ -169,7 +171,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     if (widget.initialMapFailed) {
       _mapInitFailed = true;
       _listOnlyMode = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _expandListOnly());
     }
   }
 
@@ -179,7 +180,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     _camSub?.cancel();
     _searchCtrl.dispose();
     _searchFocus.dispose();
+    _listScrollController.dispose();
     _debounce?.cancel();
+    _mapInitWatchdog?.cancel();
     _sheetCtrl.dispose();
     _mapCtrl?.dispose();
     super.dispose();
@@ -363,6 +366,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
   Future<void> _onMapReady(KakaoMapController ctrl) async {
     if (!mounted || !identical(_mapCtrl, ctrl)) return;
+    _mapInitWatchdog?.cancel();
+    _mapInitWatchdog = null;
     setState(() => _mapInitFailed = false);
     try {
       await ctrl.ready.timeout(const Duration(seconds: 12));
@@ -410,7 +415,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         _listOnlyMode = true;
         _mapRetriesExhausted = _mapRetryCount >= 2;
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) => _expandListOnly());
     }
   }
 
@@ -734,7 +738,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       });
       await _enqueueMarkerApply(generation);
       if (!mounted || !_searchGeneration.isCurrent(generation)) return;
-      if (places.isNotEmpty) {
+      if (places.isNotEmpty && !_listOnlyMode) {
         await _moveCameraProgrammatically(
           target: places.first.latLng,
           zoomLevel: 14,
@@ -789,6 +793,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
   Future<void> _selectPlace(_Place place) async {
     setState(() => _selected = place);
+    if (_listOnlyMode) return;
     await _enqueueMarkerApply(_searchGeneration.current);
     await _moveCameraProgrammatically(
       target: place.latLng,
@@ -812,7 +817,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(
           '위치 추가',
@@ -822,40 +827,190 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 44, minWidth: 56),
-            child: TextButton(
-              onPressed: _selected != null ? _confirm : null,
-              child: Text(
-                '완료',
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w700,
-                  color: _selected != null
-                      ? AppTheme.primaryColor
-                      : Colors.grey[400],
+        actions: _listOnlyMode
+            ? null
+            : [
+                ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(minHeight: 44, minWidth: 56),
+                  child: TextButton(
+                    onPressed: _selected != null ? _confirm : null,
+                    child: Text(
+                      '완료',
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                        color: _selected != null
+                            ? AppTheme.primaryColor
+                            : Colors.grey[400],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
-        ],
+              ],
       ),
-      body: Column(
+      body: _listOnlyMode
+          ? _buildListOnlyLayout()
+          : Column(
+              children: [
+                _buildSearchBar(),
+                const Divider(
+                    height: 1, thickness: 1, color: AppTheme.dividerColor),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: KeyedSubtree(
+                          key: const Key('location_picker_map_surface'),
+                          child: _buildMap(),
+                        ),
+                      ),
+                      _buildMyLocationButton(),
+                      _buildSheet(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildListOnlyLayout() {
+    return SafeArea(
+      top: false,
+      child: Column(
         children: [
           _buildSearchBar(),
           const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
-          Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(child: _buildMap()),
-                if (!_listOnlyMode) _buildMyLocationButton(),
-                _buildSheet(),
-              ],
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.34,
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 10.h),
+              child: _buildListOnlyHeader(),
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: AppTheme.dividerColor),
+          Expanded(child: _buildSearchBody(_listScrollController)),
+          Container(
+            key: const Key('location_picker_list_action'),
+            padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 12.h),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(color: AppTheme.dividerColor),
+              ),
+            ),
+            child: FilledButton(
+              key: const Key('location_picker_list_complete'),
+              onPressed: _selected != null ? _confirm : null,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+              child: const Text('선택 완료'),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildListOnlyHeader() {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          key: const Key('location_picker_list_only_badge'),
+          width: double.infinity,
+          padding: EdgeInsets.all(12.w),
+          decoration: BoxDecoration(
+            color: AppTheme.actionContainer,
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd.r),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.map_outlined,
+                    size: 20.sp,
+                    color: AppTheme.actionBase,
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      _mapRetriesExhausted
+                          ? '지도 재시도를 마쳐 목록으로 계속해요.'
+                          : '지도를 불러오지 못했어요. 목록으로 계속할 수 있어요.',
+                      style: TextStyle(
+                        fontSize: AppTheme.fontCaption.sp,
+                        height: 1.4,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.brandDeep,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (!_mapRetriesExhausted) ...[
+                SizedBox(height: 8.h),
+                OutlinedButton.icon(
+                  key: const Key('location_picker_list_retry_button'),
+                  onPressed: _recreateMapView,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('지도 다시 시도'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(44),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Text(
+          _searchHeader(),
+          key: const Key('location_picker_result_header'),
+          style: TextStyle(
+            fontSize: AppTheme.fontBody.sp,
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 18.sp,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            SizedBox(width: 7.w),
+            Expanded(
+              child: Text(
+                '선택한 장소 정보가 게시물에 표시돼요. 장소는 1곳만 선택할 수 있어요.',
+                key: const Key('location_picker_privacy_notice'),
+                style: TextStyle(
+                  fontSize: AppTheme.fontCaption.sp,
+                  height: 1.4,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (_searchState.status != _PickerSearchStatus.results &&
+            _searchState.status != _PickerSearchStatus.searching &&
+            _locationNotice() != null) ...[
+          SizedBox(height: 10.h),
+          _locationNotice()!,
+        ],
+      ],
     );
   }
 
@@ -937,6 +1092,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     final initialPos = _initialMapPosition ??= _position != null
         ? LatLng(latitude: _position!.latitude, longitude: _position!.longitude)
         : const LatLng(latitude: _defaultLat, longitude: _defaultLng);
+    if (widget.mapPlaceholderBuilder == null) {
+      _armMapInitWatchdog();
+    }
 
     return Stack(
       fit: StackFit.expand,
@@ -951,6 +1109,10 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
               await _labelSub?.cancel();
               await _camSub?.cancel();
               if (!mounted) {
+                ctrl.dispose();
+                return;
+              }
+              if (_listOnlyMode) {
                 ctrl.dispose();
                 return;
               }
@@ -1032,8 +1194,24 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     );
   }
 
+  void _armMapInitWatchdog() {
+    if (_mapInitWatchdog != null || _mapReady || _listOnlyMode) return;
+    _mapInitWatchdog = Timer(const Duration(seconds: 15), () {
+      _mapInitWatchdog = null;
+      if (!mounted || _mapReady || _listOnlyMode) return;
+      dev.log('지도 생성 응답 시간 초과', name: 'LocationPicker');
+      setState(() {
+        _mapInitFailed = true;
+        _listOnlyMode = true;
+        _mapRetriesExhausted = _mapRetryCount >= 2;
+      });
+    });
+  }
+
   Future<void> _recreateMapView() async {
     if (!mounted || _mapRetriesExhausted) return;
+    _mapInitWatchdog?.cancel();
+    _mapInitWatchdog = null;
     unawaited(_labelSub?.cancel());
     unawaited(_camSub?.cancel());
     _labelSub = null;
@@ -1068,18 +1246,6 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       _listOnlyMode = true;
       _mapRetriesExhausted = _mapRetryCount >= 2;
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _expandListOnly());
-  }
-
-  Future<void> _expandListOnly() async {
-    if (!mounted || !_listOnlyMode) return;
-    try {
-      await _sheetCtrl.animateTo(
-        0.85,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOut,
-      );
-    } catch (_) {}
   }
 
   Widget _buildMyLocationButton() {
@@ -1135,6 +1301,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     final compactInitialSize = textScale >= 1.5 ? 0.58 : 0.35;
     final compactMinSize = textScale >= 1.5 ? 0.32 : 0.12;
     return DraggableScrollableSheet(
+      key: const Key('location_picker_draggable_sheet'),
       controller: _sheetCtrl,
       initialChildSize: _listOnlyMode ? 0.85 : compactInitialSize,
       minChildSize: compactMinSize,
@@ -1241,13 +1408,27 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                       ],
                     ),
                     SizedBox(height: 5.h),
-                    Text(
-                      '게시물에는 시·군·구까지만 공개돼요.',
-                      key: const Key('location_picker_privacy_notice'),
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: AppTheme.secondaryTextColor,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 16.sp,
+                          color: AppTheme.secondaryTextColor,
+                        ),
+                        SizedBox(width: 6.w),
+                        Expanded(
+                          child: Text(
+                            '선택한 장소 정보가 게시물에 표시돼요. 장소는 1곳만 선택할 수 있어요.',
+                            key: const Key('location_picker_privacy_notice'),
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              height: 1.4,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     if (_searchState.status != _PickerSearchStatus.results &&
                         _searchState.status != _PickerSearchStatus.searching &&
@@ -1378,7 +1559,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
             color: AppTheme.subtleBackground,
             indent: 56,
           ),
-          itemBuilder: (_, i) => _buildTile(_places[i], i + 1),
+          itemBuilder: (_, i) => _buildTile(_places[i]),
         ),
     };
   }
@@ -1466,71 +1647,87 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     );
   }
 
-  Widget _buildTile(_Place place, int num) {
+  Widget _buildTile(_Place place) {
     final isSelected = _selected?.id == place.id;
-    return InkWell(
-      onTap: () => _selectPlace(place),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 44),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-          color:
-              isSelected ? AppTheme.primaryColor.withValues(alpha: 0.05) : null,
-          child: Row(
-            children: [
-              Container(
-                width: 28.w,
-                height: 28.w,
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppTheme.primaryColor
-                      : AppTheme.subtleBackground,
-                  shape: BoxShape.circle,
+    return Semantics(
+      key: Key('location_picker_place_${place.id}'),
+      label: '장소 선택: ${place.name}',
+      button: true,
+      selected: isSelected,
+      checked: isSelected,
+      inMutuallyExclusiveGroup: true,
+      child: InkWell(
+        excludeFromSemantics: true,
+        onTap: () => _selectPlace(place),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 52),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppTheme.primaryColor.withValues(alpha: 0.05)
+                  : null,
+              border: Border(
+                left: BorderSide(
+                  color:
+                      isSelected ? AppTheme.primaryColor : Colors.transparent,
+                  width: 3,
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  '$num',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color:
-                        isSelected ? Colors.white : AppTheme.secondaryTextColor,
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              child: Row(
+                children: [
+                  Icon(
+                    isSelected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    size: 24.w,
+                    color: isSelected
+                        ? AppTheme.primaryColor
+                        : AppTheme.secondaryTextColor,
                   ),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      place.name,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryTextColor,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          place.name,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryTextColor,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (place.address.isNotEmpty) ...[
+                          SizedBox(height: 2.h),
+                          Text(
+                            place.address,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
                     ),
-                    if (place.address.isNotEmpty) ...[
-                      SizedBox(height: 2.h),
-                      Text(
-                        place.address,
-                        style: TextStyle(
-                            fontSize: 12.sp,
-                            color: AppTheme.secondaryTextColor),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                  ),
+                  if (isSelected) ...[
+                    SizedBox(width: 8.w),
+                    Icon(
+                      Icons.check_rounded,
+                      size: 20.w,
+                      color: AppTheme.primaryColor,
+                    ),
                   ],
-                ),
+                ],
               ),
-              if (isSelected)
-                Icon(Icons.check_circle,
-                    size: 20.w, color: AppTheme.primaryColor),
-            ],
+            ),
           ),
         ),
       ),
