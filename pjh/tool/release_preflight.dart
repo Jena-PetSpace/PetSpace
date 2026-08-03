@@ -639,26 +639,49 @@ class ReleasePreflight {
     List<ReleaseFinding> findings,
     String legacyEmotionFunction,
   ) {
-    if (legacyEmotionFunction.isEmpty) return;
-    final trustsBodyUserId = legacyEmotionFunction.contains('userId') &&
-        legacyEmotionFunction.contains('SUPABASE_SERVICE_ROLE_KEY');
-    final verifiesCaller = legacyEmotionFunction.contains('auth.getUser(');
-    final usesRandomFallback =
-        legacyEmotionFunction.contains('Math.random()') ||
-            legacyEmotionFunction.contains('getFallbackEmotionAnalysis');
-    final safe = !trustsBodyUserId && verifiesCaller && !usesRandomFallback;
+    const forbiddenMarkers = <String>[
+      'SUPABASE_SERVICE_ROLE_KEY',
+      'req.json(',
+      'req.text(',
+      '.from(',
+      '.storage',
+      'Math.random(',
+      'generativelanguage',
+      'vision.googleapis.com',
+      'GEMINI_API_KEY',
+      'GOOGLE_VISION_API_KEY',
+      'userId',
+    ];
+    final isAuthenticatedTombstone = legacyEmotionFunction.isNotEmpty &&
+        legacyEmotionFunction.contains('auth.getUser(') &&
+        legacyEmotionFunction.contains('jsonResponse(410') &&
+        legacyEmotionFunction.contains('LEGACY_ENDPOINT_RETIRED') &&
+        forbiddenMarkers.every(
+          (marker) => !legacyEmotionFunction.contains(marker),
+        );
 
     findings.add(
       ReleaseFinding(
-        safe ? ReleaseFindingLevel.pass : ReleaseFindingLevel.blocker,
+        isAuthenticatedTombstone
+            ? ReleaseFindingLevel.pass
+            : ReleaseFindingLevel.blocker,
         'LEGACY_ANALYZE_EDGE_CONTRACT',
-        safe
-            ? 'The legacy analysis Edge function authenticates its caller and '
-                'does not fabricate analysis results.'
-            : 'The legacy analyze-emotion Edge function can trust a body '
-                'userId through service-role access or fabricate fallback '
-                'results. Confirm it is undeployed or replace it with an '
-                'authenticated implementation before release.',
+        isAuthenticatedTombstone
+            ? 'The repository source for analyze-emotion is an authenticated '
+                '410 retirement tombstone with no analysis or write path.'
+            : 'The legacy analyze-emotion source is absent or can still '
+                'accept input, use privileged writes, call an AI provider, '
+                'or fabricate results. Keep a reviewed authenticated 410 '
+                'tombstone in the repository.',
+      ),
+    );
+    findings.add(
+      const ReleaseFinding(
+        ReleaseFindingLevel.manual,
+        'LEGACY_ANALYZE_EDGE_RUNTIME',
+        'Confirm in Supabase that the deployed analyze-emotion function is '
+            'deleted or matches the reviewed authenticated 410 tombstone. '
+            'A repository-only pass does not prove the runtime is retired.',
       ),
     );
   }
@@ -997,7 +1020,11 @@ String renderReleasePreflight(List<ReleaseFinding> findings) {
   final blockers = findings.where(
     (finding) => finding.level == ReleaseFindingLevel.blocker,
   );
+  final manual = findings.where(
+    (finding) => finding.level == ReleaseFindingLevel.manual,
+  );
   buffer.writeln('BLOCKERS=${blockers.length}');
+  buffer.writeln('MANUAL=${manual.length}');
   return buffer.toString();
 }
 

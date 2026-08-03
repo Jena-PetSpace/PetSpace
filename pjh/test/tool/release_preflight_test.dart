@@ -258,6 +258,80 @@ void main() {
     );
   });
 
+  test('retired legacy analyze-emotion tombstone passes', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'LEGACY_ANALYZE_EDGE_CONTRACT',
+          )
+          .level,
+      ReleaseFindingLevel.pass,
+    );
+  });
+
+  test('legacy analyze-emotion service-role write path is a blocker', () async {
+    final fixture = await _createFixture(legacyEmotionSource: 'unsafe');
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'LEGACY_ANALYZE_EDGE_CONTRACT',
+          )
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('deleting legacy analyze-emotion source remains a blocker', () async {
+    final fixture = await _createFixture(legacyEmotionSource: 'absent');
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'LEGACY_ANALYZE_EDGE_CONTRACT',
+          )
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('legacy analyze-emotion runtime confirmation is always manual',
+      () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'LEGACY_ANALYZE_EDGE_RUNTIME',
+          )
+          .level,
+      ReleaseFindingLevel.manual,
+    );
+    expect(renderReleasePreflight(findings), contains('MANUAL='));
+  });
+
   test('Windows CRLF does not change text contract checks', () async {
     final fixture = await _createFixture();
     addTearDown(() => fixture.delete(recursive: true));
@@ -337,6 +411,7 @@ Future<Directory> _createFixture({
   bool androidReleaseProtected = true,
   bool kakaoOidcProtected = true,
   bool geminiProxyProtected = true,
+  String legacyEmotionSource = 'tombstone',
   int geminiClientRequestMiB = 11,
   int geminiProxyRequestMiB = 12,
 }) async {
@@ -420,6 +495,16 @@ Future<Directory> _createFixture({
             'MAX_OUTPUT_TOKENS ALLOWED_MIME_TYPES SAFETY_SETTINGS '
             '분석 요청을 처리하지 못했습니다.\n',
   );
+  if (legacyEmotionSource != 'absent') {
+    writeWorkspace(
+      'supabase/functions/analyze-emotion/index.ts',
+      legacyEmotionSource == 'tombstone'
+          ? 'auth.getUser(jwt); jsonResponse(410); '
+              'LEGACY_ENDPOINT_RETIRED;\n'
+          : 'SUPABASE_SERVICE_ROLE_KEY; req.json(); userId; '
+              '.storage; .from(); Math.random();\n',
+    );
+  }
   writeApp(
     'ios/Runner.xcodeproj/project.pbxproj',
     'PRODUCT_BUNDLE_IDENTIFIER = com.jena.petspace;\n'

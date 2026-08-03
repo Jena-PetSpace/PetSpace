@@ -61,10 +61,10 @@
      교체는 금지한다. 세부 순서는 별도 작업지시서를 따른다.
 
 2. **레거시 `analyze-emotion` Edge function**
-   - 요청 body의 `userId`를 service role 쓰기 주체로 신뢰하고, API 실패 시 난수 결과를
-     저장할 수 있다.
-   - 앱에서 현재 호출하지 않더라도 운영 배포 여부를 확인해 undeploy하거나 인증된
-     단일 Gemini proxy로 대체하기 전에는 출시 완료로 판정하지 않는다.
+   - 로컬 정본은 요청 본문을 읽거나 Storage/DB/AI를 호출하지 않는 인증된 HTTP 410
+     폐기 엔드포인트로 교체했다. 앱의 분석 경로는 `gemini-proxy` 하나다.
+   - 이 판정은 **로컬 소스만** 확인한다. 운영 배포본을 삭제하거나 동일한 tombstone으로
+     교체하고 401/410·무쓰기 증거를 확보하기 전에는 출시 차단이 해소되지 않는다.
 
 3. **영구 비용 제한**
    - Gemini proxy의 현재 rate limit은 인스턴스 메모리 기반 best-effort다.

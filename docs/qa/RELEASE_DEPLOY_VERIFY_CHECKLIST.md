@@ -48,6 +48,19 @@
 - [ ] 로그인 후 감정 분석 1회 → 결과 화면 정상 + gemini-proxy 로그에 200
 - [ ] JWT 없이 curl → 401 / 잘못된 토큰 → 401
 
+🟦 **레거시 `analyze-emotion` 폐기**
+- [ ] Dashboard Functions와 로그 보존기간 전체에서 현재 배포 여부·호출 수 확인
+- [ ] 권고: 운영 function 삭제. 대안: 검토된 410 tombstone을
+      `supabase functions deploy analyze-emotion`으로 배포
+      ⛔ **`--no-verify-jwt` 금지**
+- [ ] 토큰 없음/무효 토큰 → 401, 유효한 QA 토큰 → 410 `LEGACY_ENDPOINT_RETIRED`
+- [ ] 유효한 QA 토큰으로 임의 본문을 POST해도 `emotion_history` 행과
+      `images/emotions/**` 객체가 새로 생기지 않음
+- [ ] 레거시 전용 `GOOGLE_VISION_API_KEY`와 불필요한 AI secret 연결 해제
+
+> `LEGACY_ANALYZE_EDGE_CONTRACT` PASS는 저장소 소스만 확인한다. 운영에서 삭제 또는
+> tombstone 배포를 확인해 `LEGACY_ANALYZE_EDGE_RUNTIME` 수동 항목을 닫기 전에는 출시하지 않는다.
+
 > ⛔ **이 PHASE가 끝나야 PHASE 4의 분석 동작 검증이 가능.**
 
 ---
@@ -178,7 +191,8 @@
 | MY 탭 개선 | 3af8555..bd7dc25 | (PHASE 7 체크리스트) |
 
 ## 핵심 의존성 요약
-1. **gemini-proxy 배포 + 키 교체 → 그 다음에 분석 동작 검증**(PHASE 1 → PHASE 4 분석).
+1. **gemini-proxy 배포 + 키 교체 + 레거시 analyze-emotion 폐기 → 그 다음에 분석 동작
+   검증**(PHASE 1 → PHASE 4 분석).
 2. soft delete: migration → Edge Function → 시크릿 → cron **순서 엄수**(PHASE 2).
 3. chat_report.sql 실행 → 그 다음 메시지 신고 검증(PHASE 3).
 4. 탈퇴 경로 작동 시 HomePage.dispose 빨간 화면 표면화(debug만, 무시 가능 — PHASE 5).
