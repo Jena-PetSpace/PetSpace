@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/error/error_messages.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../pets/domain/entities/pet.dart';
 import '../../../pets/presentation/bloc/pet_bloc.dart';
@@ -165,7 +166,15 @@ class _MyMbtiBadgeSectionState extends State<MyMbtiBadgeSection> {
     final result = await sl<MbtiRepository>().getLatestResult(pet.id);
     result.fold(
       (failure) => messenger.showSnackBar(
-          SnackBar(content: Text(failure.message))),
+        SnackBar(
+          content: Text(
+            publicErrorMessage(
+              failure.message,
+              fallback: ErrorMessages.mbtiResultLoadFailed,
+            ),
+          ),
+        ),
+      ),
       (res) {
         if (res != null) {
           router.push('/mbti/result', extra: res);

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../config/injection_container.dart';
+import '../../../../core/error/error_messages.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
@@ -81,7 +82,10 @@ class _NewsListViewState extends State<_NewsListView> {
 
           if (state is NewsError) {
             return _ErrorView(
-              message: state.message,
+              message: publicErrorMessage(
+                state.message,
+                fallback: '소식을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
+              ),
               onRetry: () => context.read<NewsBloc>().add(const LoadNews()),
             );
           }

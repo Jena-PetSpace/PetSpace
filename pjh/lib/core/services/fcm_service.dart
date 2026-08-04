@@ -90,13 +90,8 @@ class FCMService {
       setupInteractedMessage();
 
       dev.log('FCM 초기화 완료', name: 'FCMService');
-    } catch (e, stackTrace) {
-      dev.log(
-        'FCM 초기화 실패',
-        error: e,
-        stackTrace: stackTrace,
-        name: 'FCMService',
-      );
+    } catch (_) {
+      dev.log('FCM 초기화 실패', name: 'FCMService');
     }
   }
 
@@ -104,7 +99,7 @@ class FCMService {
   void _handleForegroundMessage(RemoteMessage message) {
     final title = message.notification?.title ?? '알림';
     final body = message.notification?.body ?? '';
-    dev.log('포그라운드 메시지 수신: $title', name: 'FCMService');
+    dev.log('포그라운드 메시지 수신', name: 'FCMService');
 
     final localNotif = _localNotif;
     if (localNotif == null) return;
@@ -138,7 +133,7 @@ class FCMService {
 
     // 앱이 백그라운드 상태에서 알림 탭으로 포그라운드로 전환된 경우
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      dev.log('알림 탭 → 라우팅: ${message.data}', name: 'FCMService');
+      dev.log('알림 탭 라우팅 요청 수신', name: 'FCMService');
       _routeFromData(message.data);
     });
   }
@@ -147,9 +142,9 @@ class FCMService {
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _firebaseMessaging.subscribeToTopic(topic);
-      dev.log('토픽 구독 완료: $topic', name: 'FCMService');
-    } catch (e, stackTrace) {
-      dev.log('토픽 구독 실패', error: e, stackTrace: stackTrace, name: 'FCMService');
+      dev.log('토픽 구독 완료', name: 'FCMService');
+    } catch (_) {
+      dev.log('토픽 구독 실패', name: 'FCMService');
     }
   }
 
@@ -157,14 +152,9 @@ class FCMService {
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
-      dev.log('토픽 구독 해제 완료: $topic', name: 'FCMService');
-    } catch (e, stackTrace) {
-      dev.log(
-        '토픽 구독 해제 실패',
-        error: e,
-        stackTrace: stackTrace,
-        name: 'FCMService',
-      );
+      dev.log('토픽 구독 해제 완료', name: 'FCMService');
+    } catch (_) {
+      dev.log('토픽 구독 해제 실패', name: 'FCMService');
     }
   }
 }
@@ -174,7 +164,4 @@ class FCMService {
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   dev.log('백그라운드 메시지 수신', name: 'FCMService');
-  dev.log('Title: ${message.notification?.title}', name: 'FCMService');
-  dev.log('Body: ${message.notification?.body}', name: 'FCMService');
-  dev.log('Data: ${message.data}', name: 'FCMService');
 }

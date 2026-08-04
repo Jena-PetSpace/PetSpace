@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/error/error_messages.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../social/domain/repositories/social_repository.dart';
 import '../../data/datasources/mbti_content_data_source.dart';
@@ -153,8 +154,7 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
       );
 
     final isLast = state.currentIndex >= state.totalQuestions - 1;
-    final nextIndex =
-        isLast ? state.currentIndex : state.currentIndex + 1;
+    final nextIndex = isLast ? state.currentIndex : state.currentIndex + 1;
 
     emit(state.copyWith(answers: answers, currentIndex: nextIndex));
 
@@ -253,7 +253,10 @@ class MbtiTestBloc extends Bloc<MbtiTestEvent, MbtiTestState> {
       (failure) async {
         emit(state.copyWith(
           status: MbtiTestStatus.failure,
-          errorMessage: failure.message,
+          errorMessage: publicErrorMessage(
+            failure.message,
+            fallback: ErrorMessages.mbtiResultSaveFailed,
+          ),
         ));
       },
       (saved) async {

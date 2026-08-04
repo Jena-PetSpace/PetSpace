@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/error_messages.dart';
 import '../../domain/entities/bookmark_collection.dart';
 import '../../domain/entities/saved_posts_page.dart';
 import '../../domain/repositories/social_repository.dart';
@@ -54,7 +55,7 @@ class BookmarkBloc extends Bloc<BookmarkEvent, BookmarkState> {
     collectionsResult.fold(
       (failure) => next = next.copyWith(
         collectionsStatus: BookmarkLoadStatus.failure,
-        collectionsError: failure.message,
+        collectionsError: publicErrorMessage(failure.message),
       ),
       (collections) => next = next.copyWith(
         collectionsStatus: BookmarkLoadStatus.success,
@@ -65,7 +66,7 @@ class BookmarkBloc extends Bloc<BookmarkEvent, BookmarkState> {
     allCountResult.fold(
       (failure) => next = next.copyWith(
         allCountStatus: BookmarkLoadStatus.failure,
-        allCountError: failure.message,
+        allCountError: publicErrorMessage(failure.message),
       ),
       (count) => next = next.copyWith(
         allCountStatus: BookmarkLoadStatus.success,
@@ -76,7 +77,7 @@ class BookmarkBloc extends Bloc<BookmarkEvent, BookmarkState> {
     unassignedCountResult.fold(
       (failure) => next = next.copyWith(
         unassignedCountStatus: BookmarkLoadStatus.failure,
-        unassignedCountError: failure.message,
+        unassignedCountError: publicErrorMessage(failure.message),
       ),
       (count) => next = next.copyWith(
         unassignedCountStatus: BookmarkLoadStatus.success,
@@ -110,7 +111,7 @@ class BookmarkBloc extends Bloc<BookmarkEvent, BookmarkState> {
     result.fold(
       (failure) => emit(state.copyWith(
         actionStatus: BookmarkActionStatus.failure,
-        actionError: failure.message,
+        actionError: publicErrorMessage(failure.message),
       )),
       (collection) => emit(state.copyWith(
         actionStatus: BookmarkActionStatus.success,
@@ -136,7 +137,7 @@ class BookmarkBloc extends Bloc<BookmarkEvent, BookmarkState> {
     await result.fold(
       (failure) async => emit(state.copyWith(
         actionStatus: BookmarkActionStatus.failure,
-        actionError: failure.message,
+        actionError: publicErrorMessage(failure.message),
       )),
       (_) async {
         final allCountFuture = _repository.countSavedPosts(
@@ -159,7 +160,7 @@ class BookmarkBloc extends Bloc<BookmarkEvent, BookmarkState> {
         allCountResult.fold(
           (failure) => next = next.copyWith(
             allCountStatus: BookmarkLoadStatus.failure,
-            allCountError: failure.message,
+            allCountError: publicErrorMessage(failure.message),
           ),
           (count) => next = next.copyWith(
             allCountStatus: BookmarkLoadStatus.success,
@@ -170,7 +171,7 @@ class BookmarkBloc extends Bloc<BookmarkEvent, BookmarkState> {
         unassignedCountResult.fold(
           (failure) => next = next.copyWith(
             unassignedCountStatus: BookmarkLoadStatus.failure,
-            unassignedCountError: failure.message,
+            unassignedCountError: publicErrorMessage(failure.message),
           ),
           (count) => next = next.copyWith(
             unassignedCountStatus: BookmarkLoadStatus.success,

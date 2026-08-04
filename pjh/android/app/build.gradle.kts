@@ -9,6 +9,27 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
+// 릴리즈 서명 설정 (key.properties 파일에서 읽기)
+// 실제 파일은 gitignore 대상이며 release task에서만 필수다.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+fun releaseProperty(name: String): String? =
+    keystoreProperties.getProperty(name)?.trim()?.takeIf { it.isNotEmpty() }
+
+val releaseKeyAlias = releaseProperty("keyAlias")
+val releaseKeyPassword = releaseProperty("keyPassword")
+val releaseStorePassword = releaseProperty("storePassword")
+val releaseStorePath = releaseProperty("storeFile")
+val releaseStoreFile = releaseStorePath?.let(::file)
+val releaseSigningReady = keystorePropertiesFile.exists() &&
+    releaseKeyAlias != null &&
+    releaseKeyPassword != null &&
+    releaseStorePassword != null &&
+    releaseStoreFile?.isFile == true
+
 android {
     namespace = "com.jena.petspace"
     compileSdk = 36                          // Play 요구사항: API 35+ (36으로 상향)
@@ -24,26 +45,13 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
-    // 릴리즈 서명 설정 (key.properties 파일에서 읽기)
-    // 배포 전: android/ 폴더에 key.properties 파일 생성 필요
-    // key.properties 파일 형식:
-    //   storePassword=YOUR_KEYSTORE_PASSWORD
-    //   keyPassword=YOUR_KEY_PASSWORD
-    //   keyAlias=petspace
-    //   storeFile=../petspace-release.jks
-    val keystorePropertiesFile = rootProject.file("key.properties")
-    val keystoreProperties = Properties()
-    if (keystorePropertiesFile.exists()) {
-        keystoreProperties.load(keystorePropertiesFile.inputStream())
-    }
-
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        if (releaseSigningReady) {
             create("release") {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                storeFile = releaseStoreFile
+                storePassword = releaseStorePassword
             }
         }
     }
@@ -65,15 +73,27 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug") // key.properties 없으면 debug 키 사용
+            if (releaseSigningReady) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
         debug {
             // applicationIdSuffix 제거 — google-services.json과 패키지명 일치 필요
         }
+    }
+}
+
+// Release task가 요청된 경우에만 signing 자산을 검증한다. IDE sync와
+// assembleDebug/profile/test는 signing 자산 없이도 정상 동작해야 한다.
+gradle.taskGraph.whenReady {
+    val releaseTaskRequested = allTasks.any { task ->
+        task.project == project && task.name.contains("release", ignoreCase = true)
+    }
+    if (releaseTaskRequested && !releaseSigningReady) {
+        throw GradleException(
+            "PetSpace release signing is not configured. " +
+                "Provide a complete ignored android/key.properties and keystore."
+        )
     }
 }
 

@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart' as di;
+import '../../../../core/error/error_messages.dart';
 import '../../../../core/utils/back_press_handler.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_uiux_v3.dart';
@@ -99,7 +100,12 @@ class _CommentsPageState extends State<CommentsPage> {
                   if (state is CommentError) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(state.message),
+                        content: Text(
+                          publicErrorMessage(
+                            state.message,
+                            fallback: ErrorMessages.commentFailed,
+                          ),
+                        ),
                         backgroundColor: AppTheme.errorColor,
                       ),
                     );
@@ -124,7 +130,12 @@ class _CommentsPageState extends State<CommentsPage> {
                       child: _buildCommentsList(state),
                     );
                   } else if (state is CommentError) {
-                    return _buildErrorState(state.message);
+                    return _buildErrorState(
+                      publicErrorMessage(
+                        state.message,
+                        fallback: ErrorMessages.commentFailed,
+                      ),
+                    );
                   }
 
                   return const SizedBox.shrink();

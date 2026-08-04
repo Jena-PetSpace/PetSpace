@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/error/error_messages.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../../../shared/widgets/petspace_state_view.dart';
@@ -52,13 +53,19 @@ class _PetManagementPageState extends State<PetManagementPage> {
         },
         listener: (context, state) {
           if (state is PetOperationSuccess) {
-            _showFeedback(state.message);
+            _showFeedback(publicErrorMessage(state.message));
           } else if (state is PetError) {
-            _showFeedback(state.message, backgroundColor: AppTheme.errorColor);
+            _showFeedback(
+              publicErrorMessage(
+                state.message,
+                fallback: ErrorMessages.petDeleteFailed,
+              ),
+              backgroundColor: AppTheme.errorColor,
+            );
           } else if (state is PetLoaded &&
               state.selectionStatus == PetSelectionStatus.success) {
             if (state.selectionMessage != null) {
-              _showFeedback(state.selectionMessage!);
+              _showFeedback(publicErrorMessage(state.selectionMessage!));
             }
             _resumePendingDeletion(state);
           } else if (state is PetLoaded &&
@@ -67,7 +74,10 @@ class _PetManagementPageState extends State<PetManagementPage> {
             _pendingPrimaryForDeletionId = null;
             if (state.selectionMessage != null) {
               _showFeedback(
-                state.selectionMessage!,
+                publicErrorMessage(
+                  state.selectionMessage!,
+                  fallback: ErrorMessages.petUpdateFailed,
+                ),
                 backgroundColor: AppTheme.errorColor,
               );
             }
@@ -80,7 +90,10 @@ class _PetManagementPageState extends State<PetManagementPage> {
 
           if (state is PetError) {
             return PetSpaceStateView.error(
-              message: state.message,
+              message: publicErrorMessage(
+                state.message,
+                fallback: ErrorMessages.petNotFound,
+              ),
               actionLabel: '다시 시도',
               onAction: () {
                 context.read<PetBloc>().add(LoadUserPets());

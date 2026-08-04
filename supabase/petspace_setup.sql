@@ -973,6 +973,7 @@ BEGIN
         COUNT(*) AS post_count
     FROM posts p
     WHERE p.deleted_at IS NULL
+    AND p.is_private IS FALSE
     AND p.hashtags IS NOT NULL
     GROUP BY unnest(p.hashtags)
     ORDER BY post_count DESC
@@ -999,6 +1000,7 @@ BEGIN
         COUNT(*) AS post_count
     FROM posts p
     WHERE p.deleted_at IS NULL
+    AND p.is_private IS FALSE
     AND p.hashtags IS NOT NULL
     AND p.created_at >= NOW() - (days_ago || ' days')::INTERVAL
     GROUP BY unnest(p.hashtags)
@@ -1006,6 +1008,15 @@ BEGIN
     LIMIT limit_count;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.get_popular_hashtags(integer)
+  FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.get_trending_hashtags(integer, integer)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_popular_hashtags(integer)
+  TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_trending_hashtags(integer, integer)
+  TO authenticated;
 
 -- 계정 30일 soft delete (G-1: delete_user_account 대체)
 -- 앱 호출처: auth_repository_impl.dart (Task 1-C에서 교체 예정)
@@ -4074,6 +4085,19 @@ USING (
   AND NOT private.mutually_blocked_internal(auth.uid(), author_id)
 );
 
+-- B0 privacy guard: 기존 PERMISSIVE K1 정책과 AND 결합해 private/NULL을
+-- 작성자 외 사용자에게 노출하지 않는다.
+DROP POLICY IF EXISTS posts_privacy_fail_closed ON public.posts;
+CREATE POLICY posts_privacy_fail_closed
+ON public.posts
+AS RESTRICTIVE
+FOR SELECT
+TO authenticated
+USING (
+  author_id = auth.uid()
+  OR is_private IS FALSE
+);
+
 DROP POLICY IF EXISTS "Comments are viewable by everyone" ON public.comments;
 DROP POLICY IF EXISTS comments_select_visible ON public.comments;
 CREATE POLICY comments_select_visible ON public.comments FOR SELECT TO authenticated
@@ -4393,6 +4417,7 @@ BEGIN
   LEFT JOIN public.users u ON p.author_id = u.id
   LEFT JOIN public.pets pet ON p.pet_id = pet.id
   WHERE p.deleted_at IS NULL
+    AND (p.author_id = v_actor OR p.is_private IS FALSE)
     AND private.user_is_active_internal(p.author_id)
     AND (
       p.author_id = v_actor

@@ -106,7 +106,7 @@ void main() {
     expect(RegExp(r'select\([^)]*email').hasMatch(publicSources), isFalse);
   });
 
-  test('users access is column-scoped and fresh setup matches K1', () {
+  test('users access is column-scoped and fresh setup preserves K1', () {
     expect(
       migration,
       contains(
@@ -119,7 +119,24 @@ void main() {
       migration.indexOf('ON TABLE public.users TO authenticated'),
     );
     expect(grant, isNot(contains('cover_image_url')));
-    expect(setup, contains(migration.trim()));
+    // Fresh setup may append stricter privacy guards after K1. Keep this
+    // assertion semantic so an additive fail-closed contract does not require
+    // byte-for-byte equality with the older K1 migration.
+    for (final marker in [
+      '-- MY-CLOSE P2B / K1: auth.uid()-anchored block and privacy contract.',
+      'CREATE OR REPLACE FUNCTION public.block_user',
+      'CREATE OR REPLACE FUNCTION public.unblock_user',
+      'CREATE OR REPLACE FUNCTION public.get_blocked_users',
+      'CREATE OR REPLACE FUNCTION public.ensure_my_user_profile',
+      'CREATE OR REPLACE FUNCTION public.get_total_unread_count',
+      'CREATE OR REPLACE FUNCTION public.get_or_create_direct_chat',
+      'CREATE OR REPLACE FUNCTION public.notification_delivery_allowed',
+      'REVOKE SELECT ON TABLE public.users FROM PUBLIC, anon, authenticated',
+      'SET search_path = public',
+      'auth.uid()',
+    ]) {
+      expect(setup, contains(marker));
+    }
   });
 
   test(
