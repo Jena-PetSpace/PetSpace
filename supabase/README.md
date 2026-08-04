@@ -19,8 +19,9 @@ For the 2026-08-04 FCM release, use:
 
 Do not run it until both Firebase Edge secrets are registered and
 `send-push-notification` is deployed with JWT verification. The final
-secret-bearing database settings remain a separate owner action and must never
-be committed to Git.
+secret-bearing Vault values remain a separate owner action and must never be
+committed to Git. Use the names `petspace_supabase_url` and
+`petspace_service_role_key`.
 
 ## Rules
 

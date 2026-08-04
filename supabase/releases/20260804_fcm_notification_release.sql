@@ -276,13 +276,24 @@ DECLARE
   v_supabase_url TEXT;
   v_service_key TEXT;
 BEGIN
-  v_supabase_url := current_setting('app.settings.supabase_url', true);
-  v_service_key := current_setting('app.settings.service_role_key', true);
+  SELECT decrypted_secret
+    INTO v_supabase_url
+  FROM vault.decrypted_secrets
+  WHERE name = 'petspace_supabase_url'
+  ORDER BY updated_at DESC
+  LIMIT 1;
+
+  SELECT decrypted_secret
+    INTO v_service_key
+  FROM vault.decrypted_secrets
+  WHERE name = 'petspace_service_role_key'
+  ORDER BY updated_at DESC
+  LIMIT 1;
 
   IF nullif(btrim(v_supabase_url), '') IS NULL
      OR nullif(btrim(v_service_key), '') IS NULL THEN
     RAISE WARNING
-      'notify_push_on_notification: required app.settings are missing';
+      'notify_push_on_notification: required Vault secrets are missing';
     RETURN NEW;
   END IF;
 
@@ -333,8 +344,8 @@ REVOKE ALL ON FUNCTION public.notify_push_on_notification()
 
 COMMIT;
 
--- Verification: all rows must be true. The settings become true only after
--- the separate, secret-bearing ALTER DATABASE commands are run by the owner.
+-- Verification: all rows must be true. The Vault columns become true only
+-- after the project owner stores both values in Supabase Vault.
 SELECT
   to_regprocedure('public.create_notification(uuid,uuid,text,text,text,uuid,uuid,jsonb,text)')
     IS NOT NULL AS create_notification_exists,
@@ -344,7 +355,13 @@ SELECT
     SELECT 1 FROM pg_trigger
     WHERE tgname = 'trg_push_on_notification' AND NOT tgisinternal
   ) AS push_trigger_exists,
-  NULLIF(BTRIM(current_setting('app.settings.supabase_url', true)), '')
-    IS NOT NULL AS supabase_url_setting_exists,
-  NULLIF(BTRIM(current_setting('app.settings.service_role_key', true)), '')
-    IS NOT NULL AS service_role_setting_exists;
+  EXISTS (
+    SELECT 1 FROM vault.decrypted_secrets
+    WHERE name = 'petspace_supabase_url'
+      AND NULLIF(BTRIM(decrypted_secret), '') IS NOT NULL
+  ) AS supabase_url_vault_exists,
+  EXISTS (
+    SELECT 1 FROM vault.decrypted_secrets
+    WHERE name = 'petspace_service_role_key'
+      AND NULLIF(BTRIM(decrypted_secret), '') IS NOT NULL
+  ) AS service_role_vault_exists;
