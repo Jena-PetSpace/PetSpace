@@ -272,7 +272,8 @@ BEGIN
   v_supabase_url := current_setting('app.settings.supabase_url', true);
   v_service_key := current_setting('app.settings.service_role_key', true);
 
-  IF v_supabase_url IS NULL OR v_service_key IS NULL THEN
+  IF nullif(btrim(v_supabase_url), '') IS NULL
+     OR nullif(btrim(v_service_key), '') IS NULL THEN
     RAISE WARNING
       'notify_push_on_notification: required app.settings are missing';
     RETURN NEW;

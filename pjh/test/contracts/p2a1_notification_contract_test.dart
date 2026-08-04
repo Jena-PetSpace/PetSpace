@@ -60,7 +60,42 @@ void main() {
       expect(pushEdge, contains(".eq(\"is_active\", true)"));
       expect(pushEdge, contains('is_sent: true'));
       expect(pushEdge, contains('sent_at:'));
+      expect(pushEdge, contains('channel_id: androidChannelId'));
+      expect(
+        pushEdge.indexOf('result.notification_id = notification.id'),
+        greaterThan(pushEdge.indexOf('Object.entries(notification.data')),
+      );
+      expect(pushEdge, contains('case "health_alert"'));
+      for (final channelId in <String>['social', 'health', 'chat', 'system']) {
+        expect(pushEdge, contains('return "$channelId"'));
+      }
       expect(pushEdge, isNot(contains('console.log(device.fcm_token')));
+    });
+
+    test('remote and local notification taps share one route resolver', () {
+      final fcmService = _read('lib/core/services/fcm_service.dart');
+      final localService = _read(
+        'lib/core/services/local_notification_service.dart',
+      );
+      final router = _read('lib/core/navigation/app_router.dart');
+      final manifest = _read('android/app/src/main/AndroidManifest.xml');
+
+      expect(fcmService, contains('NotificationRouteResolver.resolve'));
+      expect(localService, contains('NotificationRouteResolver.resolve'));
+      expect(localService, contains('getNotificationAppLaunchDetails'));
+      for (final channelId in <String>['social', 'health', 'chat', 'system']) {
+        expect(localService, contains("'$channelId'"));
+      }
+      expect(
+        router,
+        contains('sl<LocalNotificationService>().navigatorKey = navigatorKey'),
+      );
+      expect(
+        manifest,
+        contains('default_notification_channel_id'),
+      );
+      expect(manifest, contains('default_notification_icon'));
+      expect(manifest, contains('@drawable/ic_stat_petspace'));
     });
 
     test('canonical SQL and migration encode preference and idempotency', () {
@@ -75,6 +110,7 @@ void main() {
         expect(source, contains('event_key'));
         expect(source, contains("'notification_id'"));
         expect(source, contains('enabled_health_alert'));
+        expect(source, contains('nullif(btrim('));
       }
       expect(migration, contains('TO service_role'));
       expect(

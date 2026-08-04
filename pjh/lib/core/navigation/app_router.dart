@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../../config/injection_container.dart' as di;
 import '../../core/services/fcm_service.dart';
+import '../../core/services/local_notification_service.dart';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -840,14 +841,19 @@ class AppRouter {
       ),
     );
 
-    // FCMService에 navigatorKey 주입 (딥링크 라우팅용)
+    // 원격·로컬 알림 모두 같은 GoRouter로 이동하도록 navigatorKey를 주입합니다.
+    final navigatorKey = router.routerDelegate.navigatorKey;
     try {
-      di.sl<FCMService>().navigatorKey = GlobalKey<NavigatorState>()
-        ..currentState;
-      // GoRouter 자체 navigatorKey 활용
-      di.sl<FCMService>().navigatorKey = router.routerDelegate.navigatorKey;
+      di.sl<LocalNotificationService>().navigatorKey = navigatorKey;
     } catch (e) {
-      log('[AppRouter] FCMService navigatorKey 설정 실패: $e', name: 'AppRouter');
+      log('[AppRouter] 로컬 알림 navigatorKey 설정 실패: $e', name: 'AppRouter');
+    }
+    try {
+      if (di.sl.isRegistered<FCMService>()) {
+        di.sl<FCMService>().navigatorKey = navigatorKey;
+      }
+    } catch (e) {
+      log('[AppRouter] FCM navigatorKey 설정 실패: $e', name: 'AppRouter');
     }
 
     return router;

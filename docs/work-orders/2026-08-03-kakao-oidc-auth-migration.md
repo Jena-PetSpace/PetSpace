@@ -1,6 +1,6 @@
 # Kakao OIDC 인증 전환 작업지시서
 
-> 상태: 구현 보류 — 운영 집계·계정 연결 방식·사람 결정 선행
+> 상태: KAO-0 완료 — blocker/high 6건 반영 후 staging 구현 범위 확정 필요
 > 목적: 기존 사용자 UUID와 모든 FK를 보존하면서 클라이언트 파생 비밀번호와 임의 이메일 확인 RPC를 제거한다.
 > 독립 검토: 2026-08-04 Codex·Claude Opus 5 교차검토 결과 반영
 
@@ -88,9 +88,17 @@
 
 ### KAO-0 읽기 전용 사실 확정
 
-- 3절의 집계 SQL 결과를 확인한다.
-- Kakao 후보 계정에 OIDC `sub`를 안전하게 대응할 근거가 있는지 판정한다.
-- 충돌·고아·이메일 미제공 수가 0이 아니면 해당 군의 지원 절차를 먼저 확정한다.
+- **2026-08-04 완료.** `docs/qa/2026-08-04-kakao-oidc-preflight-inventory.sql`을 운영
+  프로젝트에 SELECT-only로 실행했다.
+- 기존 Kakao 후보는 2계정이고 UUID/profile 불일치, 교차 소유 이메일 충돌, 고아, 중복,
+  삭제 예정 계정은 모두 0이다.
+- 두 계정 모두 email identity와 encrypted password가 있지만 Kakao identity와 검증된
+  Kakao subject는 0이다. raw metadata의 `kakao_id` 힌트만 있으므로 자동 백필 근거로
+  사용할 수 없다.
+- `confirm_kakao_user_by_email(text)`와 `confirm_my_email()`의 `PUBLIC`/`anon`/
+  `authenticated` 실행권이 모두 열려 있음을 확인했다.
+- 상세 교차검토 결과는
+  `docs/reviews/2026-08-04-kakao-oidc-inventory-review-result.md`를 정본으로 한다.
 
 ### KAO-0.5 staging 콘솔·권한 계약
 
@@ -165,6 +173,9 @@
 
 ## 8. 현재 허용 범위
 
-- 허용: 로컬 문서 수정, 읽기 전용 코드/SQL 검토, count-only 조사 SQL 작성·검토
-- 미허용: 앱 구현, 운영 SQL 실행, 계정/identity 변경, 콘솔 설정, Edge, 배포
-- 다음 단계: 본 문서와 집계 SQL의 양쪽 비준 후 사람이 집계 SQL을 실행하고 숫자만 전달
+- 허용: 로컬 migration/Edge/앱 코드와 테스트 작성, 피처 플래그 기본값 off, staging 검증안,
+  rollback 문서, SELECT-only 재집계 쿼리
+- 미허용: 운영 migration, 운영 계정/identity 변경, Edge 배포, production provider 활성화,
+  앱 배포, 기존 email/password 인증수단 무효화
+- 다음 단계: 위험 RPC 권한 회수·세션 결합형 Kakao subject 연결·미연결 subject 차단의 정확한
+  구현 manifest를 확정하고 staging 전용으로 구현·검증한다.

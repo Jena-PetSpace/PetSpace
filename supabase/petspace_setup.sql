@@ -3064,7 +3064,8 @@ CREATE INDEX IF NOT EXISTS idx_user_devices_is_active ON user_devices(is_active)
 -- ============================================================================
 -- PART 15: FCM 푸시 알림 트리거 (D-4)
 -- notifications INSERT 시 Edge Function send-push-notification 비동기 호출
--- 선행 조건: pg_net 활성화 + PART 16 ALTER DATABASE 설정 완료
+-- 선행 조건: pg_net 활성화 + Edge secret 등록 + 함수 배포·인증 거부 검증 완료
+-- PART 16 ALTER DATABASE 설정은 위 조건을 통과한 뒤 수행하는 최종 활성화 단계다.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.notify_push_on_notification()
@@ -3080,7 +3081,8 @@ BEGIN
   _supabase_url := current_setting('app.settings.supabase_url', true);
   _service_key  := current_setting('app.settings.service_role_key', true);
 
-  IF _supabase_url IS NULL OR _service_key IS NULL THEN
+  IF nullif(btrim(_supabase_url), '') IS NULL
+     OR nullif(btrim(_service_key), '') IS NULL THEN
     RAISE WARNING 'notify_push_on_notification: app.settings 미설정 — PART 16 실행 필요';
     RETURN NEW;
   END IF;
@@ -3112,8 +3114,10 @@ REVOKE EXECUTE ON FUNCTION public.notify_push_on_notification() FROM anon, authe
 -- ============================================================================
 -- PART 16: D-4 사후 설정 (Supabase Dashboard에서 실행)
 -- ============================================================================
--- pg_net 트리거 활성화 전 반드시 실행.
--- YOUR_PROJECT_REF / YOUR_SERVICE_ROLE_KEY 를 실제 값으로 교체 후 실행.
+-- Edge secret 등록과 함수 배포·401/403 검증을 마친 뒤 최종 활성화 단계에서만 실행.
+-- 보안: 이 정본 파일의 플레이스홀더를 실제 값으로 치환하거나 커밋하지 않는다.
+-- 실제 값은 권한 있는 사람이 Supabase Dashboard SQL Editor에서만 직접 입력한다.
+-- 확인 로그에는 값이 아닌 설정 존재 여부만 남긴다.
 
 -- ALTER DATABASE postgres
 --   SET "app.settings.supabase_url" = 'https://YOUR_PROJECT_REF.supabase.co';
