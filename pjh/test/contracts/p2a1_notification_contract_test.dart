@@ -55,7 +55,18 @@ void main() {
       expect(createEdge, isNot(contains('.from("notifications").insert')));
 
       expect(pushEdge, contains('notification_id'));
-      expect(pushEdge, contains(r'Bearer ${serviceRoleKey}'));
+      expect(
+        pushEdge,
+        contains(
+          'Deno.env.get("PUSH_AUTH_SERVICE_ROLE_KEY") ?? serviceRoleKey',
+        ),
+      );
+      expect(pushEdge, contains('constantTimeEqual'));
+      expect(pushEdge, contains(r'Bearer ${pushAuthorizationKey}'));
+      expect(
+        pushEdge,
+        isNot(contains(r'authorization !== `Bearer ${serviceRoleKey}`')),
+      );
       expect(pushEdge, contains('"enabled_push"'));
       expect(pushEdge, contains(".eq(\"is_active\", true)"));
       expect(pushEdge, contains('is_sent: true'));
