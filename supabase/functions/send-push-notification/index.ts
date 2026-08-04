@@ -66,8 +66,37 @@ function stringData(
   return result;
 }
 
+function parseServiceAccountKey(
+  configuredValue: string,
+): { client_email: string; private_key: string } {
+  let jsonValue = configuredValue.trim();
+  if (!jsonValue.startsWith("{")) {
+    try {
+      const decoded = Uint8Array.from(
+        atob(jsonValue),
+        (char) => char.charCodeAt(0),
+      );
+      jsonValue = new TextDecoder().decode(decoded);
+    } catch (_) {
+      throw new Error("Firebase service account secret is invalid");
+    }
+  }
+
+  const parsed = JSON.parse(jsonValue) as Record<string, unknown>;
+  if (
+    typeof parsed.client_email !== "string" ||
+    typeof parsed.private_key !== "string"
+  ) {
+    throw new Error("Firebase service account fields are missing");
+  }
+  return {
+    client_email: parsed.client_email,
+    private_key: parsed.private_key,
+  };
+}
+
 async function getAccessToken(serviceAccountKey: string): Promise<string> {
-  const serviceAccount = JSON.parse(serviceAccountKey);
+  const serviceAccount = parseServiceAccountKey(serviceAccountKey);
   const now = Math.floor(Date.now() / 1000);
   const encode = (value: object) =>
     btoa(JSON.stringify(value))
@@ -230,14 +259,16 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const pushAuthorizationKey =
+      Deno.env.get("PUSH_AUTH_SERVICE_ROLE_KEY") ?? serviceRoleKey;
     const serviceAccountKey =
       Deno.env.get("FIREBASE_SERVICE_ACCOUNT_KEY") ?? "";
     const projectId = Deno.env.get("FIREBASE_PROJECT_ID") ?? "";
     const authorization = req.headers.get("authorization") ?? "";
-    if (!serviceRoleKey) {
+    if (!serviceRoleKey || !pushAuthorizationKey) {
       return json({ error: "Push service is not configured" }, 500);
     }
-    if (!constantTimeEqual(authorization, `Bearer ${serviceRoleKey}`)) {
+    if (!constantTimeEqual(authorization, `Bearer ${pushAuthorizationKey}`)) {
       return json({ error: "Forbidden" }, 403);
     }
     if (

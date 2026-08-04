@@ -13,7 +13,8 @@ Prerequisites:
 
 The SQL is idempotent and contains no secret values. After it runs, the final
 verification row must show the notification function and trigger as true.
-The two database setting columns remain false until the project owner runs the
-secret-bearing `ALTER DATABASE` statements from the private deployment step.
+The two Vault columns remain false until the project owner stores the Edge URL
+and service-role key under `petspace_supabase_url` and
+`petspace_service_role_key` in Supabase Vault.
 
 Never paste a service-role key into a tracked SQL file.

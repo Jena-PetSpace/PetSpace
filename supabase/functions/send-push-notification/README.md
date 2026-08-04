@@ -50,13 +50,14 @@
 |---|---|
 | `SUPABASE_URL` | Supabase 프로젝트 URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | server-side DB 접근 키 |
-| `FIREBASE_SERVICE_ACCOUNT_KEY` | Firebase 서비스 계정 JSON |
+| `PUSH_AUTH_SERVICE_ROLE_KEY` | DB 트리거 Authorization에 사용하는 legacy service-role JWT |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | Firebase 서비스 계정 JSON 또는 해당 JSON의 Base64 값 |
 | `FIREBASE_PROJECT_ID` | Firebase 프로젝트 ID |
 
 ## 운영 적용 전 체크
 
 1. `supabase/releases/20260804_fcm_notification_release.sql`을 staging에서 검토·적용
-2. `app.settings.supabase_url`과 service role key의 안전한 저장 방식 확정
+2. Supabase Vault에 URL과 push 인증용 service-role JWT 저장
 3. 세 Edge Function을 staging에 배포
 4. 유형 ON/OFF, 전체 push OFF, 다기기, 만료 token, 재시도 E2E
 5. blocker/high 0과 별도 운영 승인 후 production 적용
