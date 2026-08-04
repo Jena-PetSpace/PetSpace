@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../core/error/error_messages.dart';
 import '../../core/error/failures.dart';
 import '../themes/app_theme.dart';
 
@@ -47,7 +48,7 @@ class ErrorDialog extends StatelessWidget {
 
             // 에러 메시지
             Text(
-              failure.message,
+              ErrorInfo.fromFailure(failure).message,
               style: TextStyle(
                 fontSize: 14.sp,
                 color: AppTheme.neutral700,
@@ -228,7 +229,7 @@ class ErrorBottomSheet extends StatelessWidget {
               SizedBox(width: 12.w),
               Expanded(
                 child: Text(
-                  failure.message,
+                  ErrorInfo.fromFailure(failure).message,
                   style: TextStyle(
                     fontSize: 16.sp,
                     height: 1.4,
@@ -335,7 +336,7 @@ class ErrorDialogHelper {
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
-                failure.message,
+                ErrorInfo.fromFailure(failure).message,
                 style: TextStyle(color: Colors.white, fontSize: 14.sp),
               ),
             ),

@@ -14,6 +14,76 @@ import 'features/my/presentation/pages/my_page.dart';
 import 'shared/models/navigation_item.dart';
 import 'shared/themes/app_theme.dart';
 
+class RootNavigationDestination extends StatelessWidget {
+  final NavigationItem item;
+  final int index;
+  final int itemCount;
+  final bool isSelected;
+  final Widget icon;
+  final Color selectedColor;
+  final Color unselectedColor;
+  final VoidCallback onTap;
+
+  const RootNavigationDestination({
+    super.key,
+    required this.item,
+    required this.index,
+    required this.itemCount,
+    required this.isSelected,
+    required this.icon,
+    required this.selectedColor,
+    required this.unselectedColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: item.label,
+      hint: '${index + 1}/$itemCount',
+      button: true,
+      selected: isSelected,
+      onTap: onTap,
+      child: ExcludeSemantics(
+        child: Tooltip(
+          message: item.label,
+          child: InkWell(
+            onTap: onTap,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 52),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 6.h),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(width: 24.w, height: 24.w, child: icon),
+                    SizedBox(height: 4.h),
+                    MediaQuery.withClampedTextScaling(
+                      maxScaleFactor: 1.3,
+                      child: Text(
+                        item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.fade,
+                        softWrap: false,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? selectedColor : unselectedColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class MainNavigation extends StatefulWidget {
   final Widget child;
 
@@ -187,41 +257,15 @@ class _MainNavigationState extends State<MainNavigation> {
         ? theme.colorScheme.onSurfaceVariant
         : AppTheme.secondaryTextColor;
 
-    return Semantics(
-      label: item.label,
-      button: true,
-      selected: isSelected,
+    return RootNavigationDestination(
+      item: item,
+      index: index,
+      itemCount: _navigationItems.length,
+      isSelected: isSelected,
+      icon: icon,
+      selectedColor: selectedColor,
+      unselectedColor: unselectedColor,
       onTap: () => _onTabTapped(index),
-      child: ExcludeSemantics(
-        child: InkWell(
-          onTap: () => _onTabTapped(index),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 52),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 6.h),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(width: 24.w, height: 24.w, child: icon),
-                  SizedBox(height: 4.h),
-                  Text(
-                    item.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.fade,
-                    softWrap: false,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? selectedColor : unselectedColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 

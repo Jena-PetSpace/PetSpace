@@ -114,18 +114,38 @@ class ErrorMessages {
   static const String contactSupportAction = '문의하기';
 }
 
-/// 인증 provider나 백엔드의 내부 상세를 사용자 문구로 내보내지 않는다.
-String publicAuthErrorMessage(String message) {
+/// 백엔드·SDK·로컬 경로의 내부 상세를 사용자 문구로 내보내지 않는다.
+///
+/// 제품이 직접 작성한 짧은 한국어 안내만 그대로 유지한다. 그 외에는 기능별
+/// [fallback]으로 치환해 예외 타입, 식별자, URL, 쿼리 정보가 UI에 노출되지 않게
+/// 한다.
+String publicErrorMessage(
+  String message, {
+  String fallback = ErrorMessages.operationFailed,
+}) {
   final normalized = message.trim();
-  if (normalized.isEmpty) return ErrorMessages.authOperationFailed;
+  if (normalized.isEmpty) return fallback;
 
   final unsafe = RegExp(
-    r'(exception|stack|token|oauth|authorization|supabase|postgrest|sql|uid|storage|https?://|[A-Za-z]:\\|/Users/)',
+    r'(exception|stack|trace|token|oauth|authorization|supabase|postgrest|sql|uid|storage|firebase|socket|endpoint|https?://|[A-Za-z]:\\|/Users/|/private/|package:|\.dart:\d+|'
+    r'[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|'
+    r'\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b|'
+    r'(?:code|details|hint|message)\s*[:=]|[{}\[\]])',
     caseSensitive: false,
   );
-  return unsafe.hasMatch(normalized)
-      ? ErrorMessages.authOperationFailed
+  final isProductKorean = RegExp(r'[가-힣]').hasMatch(normalized);
+  final isReasonableLength = normalized.length <= 240;
+  return unsafe.hasMatch(normalized) || !isProductKorean || !isReasonableLength
+      ? fallback
       : normalized;
+}
+
+/// 인증 provider나 백엔드의 내부 상세를 사용자 문구로 내보내지 않는다.
+String publicAuthErrorMessage(String message) {
+  return publicErrorMessage(
+    message,
+    fallback: ErrorMessages.authOperationFailed,
+  );
 }
 
 /// 컨텍스트별 에러 메시지 생성 헬퍼
@@ -227,7 +247,10 @@ class ErrorInfo {
   factory ErrorInfo.fromFailure(Failure failure) {
     if (failure is NetworkFailure) {
       return ErrorInfo(
-        message: failure.message,
+        message: publicErrorMessage(
+          failure.message,
+          fallback: ErrorMessages.networkError,
+        ),
         severity: ErrorSeverity.warning,
         category: ErrorCategory.network,
         suggestedAction: ErrorMessages.retryAction,
@@ -237,7 +260,7 @@ class ErrorInfo {
 
     if (failure is AuthFailure) {
       return ErrorInfo(
-        message: failure.message,
+        message: publicAuthErrorMessage(failure.message),
         severity: ErrorSeverity.error,
         category: ErrorCategory.auth,
         suggestedAction: ErrorMessages.loginAction,
@@ -247,7 +270,10 @@ class ErrorInfo {
 
     if (failure is UnauthorizedFailure) {
       return ErrorInfo(
-        message: failure.message,
+        message: publicErrorMessage(
+          failure.message,
+          fallback: ErrorMessages.unauthorized,
+        ),
         severity: ErrorSeverity.error,
         category: ErrorCategory.permission,
         suggestedAction: ErrorMessages.loginAction,
@@ -257,7 +283,10 @@ class ErrorInfo {
 
     if (failure is ValidationFailure) {
       return ErrorInfo(
-        message: failure.message,
+        message: publicErrorMessage(
+          failure.message,
+          fallback: ErrorMessages.invalidData,
+        ),
         severity: ErrorSeverity.warning,
         category: ErrorCategory.validation,
         suggestedAction: ErrorMessages.goBackAction,
@@ -267,7 +296,10 @@ class ErrorInfo {
 
     if (failure is DatabaseFailure || failure is ServerFailure) {
       return ErrorInfo(
-        message: failure.message,
+        message: publicErrorMessage(
+          failure.message,
+          fallback: ErrorMessages.databaseError,
+        ),
         severity: ErrorSeverity.error,
         category: ErrorCategory.database,
         suggestedAction: ErrorMessages.retryAction,
@@ -277,7 +309,10 @@ class ErrorInfo {
 
     if (failure is TimeoutFailure) {
       return ErrorInfo(
-        message: failure.message,
+        message: publicErrorMessage(
+          failure.message,
+          fallback: ErrorMessages.timeoutError,
+        ),
         severity: ErrorSeverity.warning,
         category: ErrorCategory.network,
         suggestedAction: ErrorMessages.retryAction,
@@ -287,7 +322,10 @@ class ErrorInfo {
 
     if (failure is AnalysisFailure) {
       return ErrorInfo(
-        message: failure.message,
+        message: publicErrorMessage(
+          failure.message,
+          fallback: ErrorMessages.analysisError,
+        ),
         severity: ErrorSeverity.error,
         category: ErrorCategory.ai,
         suggestedAction: ErrorMessages.retryAction,
@@ -297,7 +335,7 @@ class ErrorInfo {
 
     // GeneralFailure 또는 기타
     return ErrorInfo(
-      message: failure.message,
+      message: publicErrorMessage(failure.message),
       severity: ErrorSeverity.error,
       category: ErrorCategory.unknown,
       suggestedAction: ErrorMessages.retryAction,

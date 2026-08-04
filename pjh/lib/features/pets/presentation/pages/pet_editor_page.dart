@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../config/injection_container.dart' as di;
+import '../../../../core/error/error_messages.dart';
 import '../../../../core/services/image_upload_service.dart';
 import '../../../../shared/constants/pet_constants.dart';
 import '../../../../shared/themes/app_theme.dart';
@@ -234,7 +235,14 @@ class _PetEditorPageState extends State<PetEditorPage> {
       } else if (state is PetError) {
         _resubmitAfterReload = false;
         setState(() => _isSubmitting = false);
-        _showMessage('${state.message} 잠시 후 저장을 다시 시도해주세요.');
+        _showMessage(
+          publicErrorMessage(
+            state.message,
+            fallback: widget.pet == null
+                ? ErrorMessages.petCreateFailed
+                : ErrorMessages.petUpdateFailed,
+          ),
+        );
       }
       return;
     }
@@ -248,7 +256,14 @@ class _PetEditorPageState extends State<PetEditorPage> {
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(state.message),
+          content: Text(
+            publicErrorMessage(
+              state.message,
+              fallback: widget.pet == null
+                  ? ErrorMessages.petCreateFailed
+                  : ErrorMessages.petUpdateFailed,
+            ),
+          ),
           backgroundColor: AppTheme.errorColor,
         ),
       );

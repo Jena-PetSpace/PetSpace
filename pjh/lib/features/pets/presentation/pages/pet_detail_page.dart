@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/error/error_messages.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../../shared/widgets/petspace_page_scaffold.dart';
 import '../../domain/entities/pet.dart';
@@ -44,7 +45,16 @@ class _PetDetailPageState extends State<PetDetailPage> {
           _updateDisplayedPet(state.pets);
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
+          ).showSnackBar(
+            SnackBar(
+              content: Text(
+                publicErrorMessage(
+                  state.message,
+                  fallback: ErrorMessages.petUpdateFailed,
+                ),
+              ),
+            ),
+          );
           // PetBloc에 operation type이 없는 기존 계약을 유지한다.
           if (state.message.contains('삭제')) {
             Navigator.of(context).pop();

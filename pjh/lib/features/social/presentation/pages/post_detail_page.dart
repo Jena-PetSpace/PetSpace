@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../config/injection_container.dart' as di;
+import '../../../../core/error/error_messages.dart';
 import '../../../../core/utils/public_ai_text.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -1204,7 +1205,10 @@ class _PostDetailPageState extends State<PostDetailPage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(publicErrorMessage(message)),
+        ),
       );
   }
 

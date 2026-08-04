@@ -7,13 +7,16 @@ class AppTheme {
   static const Color brandDeep =
       Color(0xFF1E3A5F); // 헤딩 텍스트·브랜드 워딩·선택 칩 채움·하단 탭 활성
   static const Color actionBase =
-      Color(0xFF3A6EA8); // 버튼 채움·링크·활성 인디케이터·FAB·스위치 on
-  static const Color actionPressed = Color(0xFF2E5786); // actionBase 눌림
+      Color(0xFF2F6399); // 버튼 채움·링크·활성 인디케이터·FAB·스위치 on
+  static const Color actionPressed = Color(0xFF244E79); // actionBase 눌림
+  static const Color onAction = Color(0xFFFFFFFF);
+  static const Color actionDisabled = Color(0xFFD6DEE8);
+  static const Color onActionDisabled = Color(0xFF6B7788);
   static const Color actionContainer =
       Color(0xFFE8F0F8); // 액션 연한 배경 (선택 배경·정보 칩 배경)
   static const Color textBody = Color(0xFF283746); // 본문
   static const Color textMuted = Color(0xFF687789); // 보조·시간·카운트
-  static const Color border = Color(0xFFDCE3E9); // 카드 보더 0.5~1px
+  static const Color border = Color(0xFFE5E8EC); // 카드 보더 1px
   static const Color infoSky = Color(0xFF5BC0EB); // 정보성 상태 뱃지만 (도면적·버튼 금지)
 
   // 브랜드 컬러 (기존 토큰명 유지 — v2 값/alias)
@@ -34,6 +37,27 @@ class AppTheme {
   static const Color surfaceColor = Colors.white; // 카드·시트
   static const Color cardColor = Colors.white;
   static const Color brandPanelSurface = Color(0xFFF7F8FA); // 홈 하단과 같은 MY 정보 패널
+
+  // 다크 모드 정본 토큰 (B0)
+  static const Color darkBackground = Color(0xFF0F1724);
+  static const Color darkSurface = Color(0xFF182232);
+  static const Color darkBorder = Color(0xFF344054);
+  static const Color darkText = Color(0xFFF4F7FB);
+  static const Color darkSecondaryText = Color(0xFFB8C2CF);
+  static const Color darkBrandAccent = Color(0xFFA9C7E8);
+  static const Color darkAction = Color(0xFF86B7E7);
+  static const Color darkOnAction = Color(0xFF10243A);
+  static const Color darkActionPressed = Color(0xFFA5CAED);
+  static const Color darkActionDisabled = Color(0xFF344054);
+  static const Color darkOnActionDisabled = Color(0xFF8E9AAA);
+  static const Color lightFocus = actionBase;
+  static const Color darkFocus = darkBrandAccent;
+  static const Color lightError = Color(0xFFB42318);
+  static const Color darkError = Color(0xFFFFB4AB);
+  static const Color lightSuccess = Color(0xFF2E7D32);
+  static const Color darkSuccess = Color(0xFFA6D8A8);
+  static const Color lightScrim = Color(0x99000000);
+  static const Color darkScrim = Color(0xB3000000);
 
   // 텍스트 컬러
   static const Color primaryTextColor = textBody;
@@ -198,13 +222,13 @@ class AppTheme {
   }
 
   // 시맨틱 컬러 — 상태/피드백 (v2: 원빨강 금지 → 에러는 highlight 코랄)
-  static const Color successColor = Color(0xFF4CAF50); // 성공·완료 (초록)
-  static const Color errorColor = highlightColor; // 에러·삭제
+  static const Color successColor = lightSuccess; // 성공·완료
+  static const Color errorColor = lightError; // 에러·삭제
   static const Color warningColor = Color(0xFFFF9800); // 경고 (주황)
   static const Color infoColor = actionBase; // 정보
 
   // === Semantic Tokens ===
-  static const Color success = Color(0xFF4CAF50);
+  static const Color success = lightSuccess;
   static const Color warning = Color(0xFFFF9800);
   static const Color danger = highlightColor;
   static const Color info = actionBase;
@@ -290,9 +314,18 @@ class AppTheme {
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         brightness: Brightness.light,
+        primary: actionBase,
+        onPrimary: onAction,
         surface: surfaceColor,
+        onSurface: primaryTextColor,
+        outline: border,
+        error: lightError,
+        onError: Colors.white,
+      ).copyWith(
+        scrim: lightScrim,
       ),
       primaryColor: primaryColor,
+      focusColor: lightFocus,
       scaffoldBackgroundColor: backgroundColor,
 
       // AppBar 테마
@@ -330,8 +363,8 @@ class AppTheme {
       // Elevated Button 테마 — v2: 버튼 채움 actionBase, elevation 절제
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: actionBase,
-          foregroundColor: Colors.white,
+          foregroundColor: onAction,
+          disabledForegroundColor: onActionDisabled,
           elevation: 0,
           minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -342,15 +375,19 @@ class AppTheme {
             fontSize: fontBody,
             fontWeight: FontWeight.w500,
           ),
+        ).copyWith(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) return actionDisabled;
+            if (states.contains(WidgetState.pressed)) return actionPressed;
+            return actionBase;
+          }),
         ),
       ),
 
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: actionBase,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: disabledColor.withValues(alpha: 0.45),
-          disabledForegroundColor: Colors.white.withValues(alpha: 0.78),
+          foregroundColor: onAction,
+          disabledForegroundColor: onActionDisabled,
           minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
@@ -359,6 +396,12 @@ class AppTheme {
             fontSize: fontBody,
             fontWeight: FontWeight.w600,
           ),
+        ).copyWith(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) return actionDisabled;
+            if (states.contains(WidgetState.pressed)) return actionPressed;
+            return actionBase;
+          }),
         ),
       ),
 
@@ -406,7 +449,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSm),
-          borderSide: const BorderSide(color: actionBase, width: 2),
+          borderSide: const BorderSide(color: lightFocus, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSm),
@@ -483,26 +526,28 @@ class AppTheme {
   }
 
   static ThemeData get darkTheme {
-    const darkBackground = Color(0xFF121212);
-    const darkSurface = Color(0xFF1E1E1E);
-    const darkCard = Color(0xFF252525);
-    const darkText = Color(0xFFE0E0E0);
-    const darkSecondaryText = Color(0xFF9E9E9E);
-    const darkDivider = Color(0xFF2E2E2E);
-    const darkHint = Color(0xFF9E9E9E);
-
     return ThemeData(
       useMaterial3: true,
       fontFamily: 'Pretendard',
       colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
+        seedColor: darkAction,
         brightness: Brightness.dark,
         surface: darkSurface,
-        primary: actionBase,
-        onPrimary: Colors.white,
-        secondary: highlightColor,
+        primary: darkAction,
+        onPrimary: darkOnAction,
+        secondary: darkBrandAccent,
+        onSurface: darkText,
+        outline: darkBorder,
+        error: darkError,
+        onError: darkOnAction,
+      ).copyWith(
+        surfaceContainerHighest: darkSurface,
+        onSurfaceVariant: darkSecondaryText,
+        outlineVariant: darkBorder,
+        scrim: darkScrim,
       ),
-      primaryColor: primaryColor,
+      primaryColor: darkBrandAccent,
+      focusColor: darkFocus,
       scaffoldBackgroundColor: darkBackground,
 
       // AppBar
@@ -529,20 +574,20 @@ class AppTheme {
 
       // Card
       cardTheme: CardThemeData(
-        color: darkCard,
+        color: darkSurface,
         elevation: 0,
         shadowColor: Colors.black54,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: darkDivider),
+          side: const BorderSide(color: darkBorder),
         ),
       ),
 
       // BottomNavigationBar
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: darkSurface,
-        selectedItemColor: primaryColor,
+        selectedItemColor: darkBrandAccent,
         unselectedItemColor: darkSecondaryText,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
@@ -550,17 +595,17 @@ class AppTheme {
 
       // TabBar
       tabBarTheme: const TabBarThemeData(
-        labelColor: primaryColor,
+        labelColor: darkBrandAccent,
         unselectedLabelColor: darkSecondaryText,
-        indicatorColor: primaryColor,
+        indicatorColor: darkBrandAccent,
       ),
 
       // ElevatedButton
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          elevation: 2,
+          foregroundColor: darkOnAction,
+          disabledForegroundColor: darkOnActionDisabled,
+          elevation: 0,
           minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
@@ -571,15 +616,23 @@ class AppTheme {
             fontWeight: FontWeight.w600,
             fontFamily: 'Pretendard',
           ),
+        ).copyWith(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return darkActionDisabled;
+            }
+            if (states.contains(WidgetState.pressed)) {
+              return darkActionPressed;
+            }
+            return darkAction;
+          }),
         ),
       ),
 
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: actionBase,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: darkDivider,
-          disabledForegroundColor: darkSecondaryText,
+          foregroundColor: darkOnAction,
+          disabledForegroundColor: darkOnActionDisabled,
           minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusMd),
@@ -589,13 +642,23 @@ class AppTheme {
             fontWeight: FontWeight.w600,
             fontFamily: 'Pretendard',
           ),
+        ).copyWith(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return darkActionDisabled;
+            }
+            if (states.contains(WidgetState.pressed)) {
+              return darkActionPressed;
+            }
+            return darkAction;
+          }),
         ),
       ),
 
       // TextButton
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: accentColor,
+          foregroundColor: darkAction,
           textStyle: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -607,9 +670,9 @@ class AppTheme {
       // OutlinedButton
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: primaryColor,
+          foregroundColor: darkAction,
           minimumSize: const Size(0, 48),
-          side: const BorderSide(color: primaryColor),
+          side: const BorderSide(color: darkBorder),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -619,27 +682,27 @@ class AppTheme {
 
       // FloatingActionButton
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: darkAction,
+        foregroundColor: darkOnAction,
       ),
 
       // InputDecoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: darkCard,
-        hintStyle: const TextStyle(color: darkHint),
+        fillColor: darkSurface,
+        hintStyle: const TextStyle(color: darkSecondaryText),
         labelStyle: const TextStyle(color: darkSecondaryText),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: darkDivider),
+          borderSide: const BorderSide(color: darkBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: darkDivider),
+          borderSide: const BorderSide(color: darkBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryColor, width: 1.5),
+          borderSide: const BorderSide(color: darkFocus, width: 2),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -647,17 +710,17 @@ class AppTheme {
 
       // Divider
       dividerTheme: const DividerThemeData(
-        color: darkDivider,
+        color: darkBorder,
         thickness: 1,
         space: 1,
       ),
 
       // Chip
       chipTheme: ChipThemeData(
-        backgroundColor: darkCard,
-        selectedColor: primaryColor,
+        backgroundColor: darkSurface,
+        selectedColor: darkAction,
         labelStyle: const TextStyle(color: darkText, fontFamily: 'Pretendard'),
-        side: const BorderSide(color: darkDivider),
+        side: const BorderSide(color: darkBorder),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -691,7 +754,7 @@ class AppTheme {
 
       // SnackBar
       snackBarTheme: const SnackBarThemeData(
-        backgroundColor: darkCard,
+        backgroundColor: darkSurface,
         contentTextStyle: TextStyle(color: darkText, fontFamily: 'Pretendard'),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -726,13 +789,13 @@ class AppTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? primaryColor
+              ? darkAction
               : darkSecondaryText,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? primaryColor.withValues(alpha: 0.4)
-              : darkDivider,
+              ? darkAction.withValues(alpha: 0.4)
+              : darkBorder,
         ),
       ),
     );

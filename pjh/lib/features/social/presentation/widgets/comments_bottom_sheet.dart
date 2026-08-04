@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../config/injection_container.dart' as di;
+import '../../../../core/error/error_messages.dart';
 import '../../../../core/services/content_filter.dart';
 import '../../../../shared/themes/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -222,7 +223,12 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       },
       listener: (context, state) {
         if (state is CommentError) {
-          _showMessage(state.message);
+          _showMessage(
+            publicErrorMessage(
+              state.message,
+              fallback: ErrorMessages.commentFailed,
+            ),
+          );
           return;
         }
         if (state is! CommentLoaded || state.actionOutcome == null) return;

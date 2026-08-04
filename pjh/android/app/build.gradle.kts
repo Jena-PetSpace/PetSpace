@@ -9,6 +9,27 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
+// 릴리즈 서명 설정 (key.properties 파일에서 읽기)
+// 실제 파일은 gitignore 대상이며 release task에서만 필수다.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+fun releaseProperty(name: String): String? =
+    keystoreProperties.getProperty(name)?.trim()?.takeIf { it.isNotEmpty() }
+
+val releaseKeyAlias = releaseProperty("keyAlias")
+val releaseKeyPassword = releaseProperty("keyPassword")
+val releaseStorePassword = releaseProperty("storePassword")
+val releaseStorePath = releaseProperty("storeFile")
+val releaseStoreFile = releaseStorePath?.let(::file)
+val releaseSigningReady = keystorePropertiesFile.exists() &&
+    releaseKeyAlias != null &&
+    releaseKeyPassword != null &&
+    releaseStorePassword != null &&
+    releaseStoreFile?.isFile == true
+
 android {
     namespace = "com.jena.petspace"
     compileSdk = 36                          // Play 요구사항: API 35+ (36으로 상향)
@@ -31,40 +52,13 @@ android {
     //   keyPassword=YOUR_KEY_PASSWORD
     //   keyAlias=petspace
     //   storeFile=../petspace-release.jks
-    val keystorePropertiesFile = rootProject.file("key.properties")
-    val keystoreProperties = Properties()
-    if (keystorePropertiesFile.exists()) {
-        keystoreProperties.load(keystorePropertiesFile.inputStream())
-    }
-    val requiredSigningProperties =
-        listOf("keyAlias", "keyPassword", "storeFile", "storePassword")
-    val hasAllSigningProperties = requiredSigningProperties.all { key ->
-        (keystoreProperties[key] as String?)?.isNotBlank() == true
-    }
-    val configuredStoreFile =
-        (keystoreProperties["storeFile"] as String?)?.let { file(it) }
-    val releaseSigningReady =
-        keystorePropertiesFile.exists() &&
-            hasAllSigningProperties &&
-            configuredStoreFile?.exists() == true
-    val releaseBuildRequested = gradle.startParameter.taskNames.any { task ->
-        task.contains("release", ignoreCase = true)
-    }
-
-    if (releaseBuildRequested && !releaseSigningReady) {
-        throw GradleException(
-            "Release signing is not configured. " +
-                "Provide an ignored android/key.properties file and upload keystore.",
-        )
-    }
-
     signingConfigs {
         if (releaseSigningReady) {
             create("release") {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = configuredStoreFile
-                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                storeFile = releaseStoreFile
+                storePassword = releaseStorePassword
             }
         }
     }
@@ -93,6 +87,20 @@ android {
         debug {
             // applicationIdSuffix 제거 — google-services.json과 패키지명 일치 필요
         }
+    }
+}
+
+// Release task가 요청된 경우에만 signing 자산을 검증한다. IDE sync와
+// assembleDebug/profile/test는 signing 자산 없이도 정상 동작해야 한다.
+gradle.taskGraph.whenReady {
+    val releaseTaskRequested = allTasks.any { task ->
+        task.project == project && task.name.contains("release", ignoreCase = true)
+    }
+    if (releaseTaskRequested && !releaseSigningReady) {
+        throw GradleException(
+            "PetSpace release signing is not configured. " +
+                "Provide a complete ignored android/key.properties and keystore."
+        )
     }
 }
 

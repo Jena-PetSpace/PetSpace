@@ -7,10 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 const _secretPath = 'lib/config/secrets.dart';
 const _v3Import = 'petspace_uiux_v3.dart';
 const _protectedScopeManifestDigest =
-    '2215e9227896bdd29d11f1e668ee39d665a18222cd6128069f699d30c44d4bf5';
+    'a0d31e00e8cf97f42de3371b7c8713097122296b4fe44e560da96e2ca48d64b5';
 const _protectedDigests = <String, String>{
   'lib/shared/themes/app_theme.dart':
-      '53d3be329febc1b9c0e9581f707f2f5376ed74723c1a5217ca47c37649d24bcb',
+      'b14b5bd97944f8a29638eb3e92f17f3dc7e01fdc45f4828a8d99bcba78f93a21',
   'lib/shared/widgets/petspace_page_scaffold.dart':
       'f045eeb73197ba772ea4d2155dae9f52e2e6d5b7bcc12a86d6828407adb9d8be',
   'lib/shared/widgets/petspace_app_bar.dart':

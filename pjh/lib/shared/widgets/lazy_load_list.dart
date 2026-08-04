@@ -94,10 +94,10 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
         _hasMore = newItems.isNotEmpty;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
         _hasError = true;
-        _errorMessage = e.toString();
+        _errorMessage = '목록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.';
         _isLoading = false;
       });
     }
@@ -117,15 +117,15 @@ class _LazyLoadListState<T> extends State<LazyLoadList<T>> {
         _hasMore = newItems.isNotEmpty;
         _isLoadingMore = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
         _isLoadingMore = false;
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('더 많은 데이터를 불러오는 중 오류가 발생했습니다: ${e.toString()}'),
+          const SnackBar(
+            content: Text('목록을 더 불러오지 못했어요. 잠시 후 다시 시도해주세요.'),
             backgroundColor: AppTheme.errorColor,
           ),
         );
