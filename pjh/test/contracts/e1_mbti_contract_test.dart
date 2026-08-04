@@ -10,7 +10,7 @@ void main() {
   test('fresh setup and E1 migration keep the MBTI history contract aligned',
       () {
     final setup = _read('../supabase/petspace_setup.sql');
-    final migration = _read('../supabase/migrations/E1_pet_mbti.sql');
+    final migration = _read('../supabase/manual_sql/history/E1_pet_mbti.sql');
 
     for (final sql in <String>[setup, migration]) {
       expect(sql, contains('pet_mbti_results'));

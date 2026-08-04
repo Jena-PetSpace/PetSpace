@@ -68,7 +68,7 @@
 ## PHASE 2 — 계정 soft delete 배포 (App Store 5.1.1 필수)
 
 🟦 **배포 (순서 엄수)**
-- [ ] 1) `G1_account_soft_delete.sql` 대시보드 SQL Editor 실행 (기존 delete_user_account RPC DROP 포함)
+- [ ] 1) 과거 적용 이력 `supabase/manual_sql/history/G1_account_soft_delete.sql`의 운영 반영 여부를 읽기 전용으로 확인
 - [ ] 2) Edge Function 2종 배포:
       `supabase functions deploy request-account-deletion`
       `supabase functions deploy purge-deleted-accounts --no-verify-jwt`  ← purge만 no-verify-jwt(cron/시크릿 호출)
@@ -89,7 +89,7 @@
 ## PHASE 3 — 채팅 신고·차단 배포 (UGC 정책 필수)
 
 🟦 **배포**
-- [ ] `chat_report.sql` 대시보드 실행 (reports에 reported_message_id 컬럼+CHECK 확장)
+- [ ] 과거 적용 이력 `supabase/manual_sql/history/chat_report.sql`의 컬럼·CHECK 반영 여부 확인
       ⛔ 미실행 시 **메시지 신고만 실패**, 사용자 신고·차단은 동작.
 
 📱 **검증** (docs/qa/chat_safety_verification.md 5종)
@@ -126,7 +126,7 @@
 ## PHASE 6 — 피드 탭 개선 (Q&A 정주 + 사진 그리드)
 
 🟦 **배포 (선행 필수)**
-- [ ] `supabase/migrations/posts_category.sql` 대시보드 SQL Editor 실행
+- [ ] 과거 적용 이력 `supabase/manual_sql/history/posts_category.sql`의 반영 여부 확인
       (`posts.category` 컬럼 추가 + hashtags→category 멱등 백필 + 인덱스).
       ⛔ **미실행 시 Q&A 조회·작성이 컬럼 부재로 에러.** 앱 배포 시점과 맞출 것.
 - [ ] (참고) 라이브 백필 영향 0건(분류 태그 보유 글 0). 컬럼 생성만으로 동작.
@@ -194,6 +194,6 @@
 1. **gemini-proxy 배포 + 키 교체 + 레거시 analyze-emotion 폐기 → 그 다음에 분석 동작
    검증**(PHASE 1 → PHASE 4 분석).
 2. soft delete: migration → Edge Function → 시크릿 → cron **순서 엄수**(PHASE 2).
-3. chat_report.sql 실행 → 그 다음 메시지 신고 검증(PHASE 3).
+3. `manual_sql/history/chat_report.sql` 반영 여부 확인 → 그 다음 메시지 신고 검증(PHASE 3).
 4. 탈퇴 경로 작동 시 HomePage.dispose 빨간 화면 표면화(debug만, 무시 가능 — PHASE 5).
-5. **posts_category.sql 실행 → 그 다음 Q&A 조회·작성 가능**(PHASE 6). 미실행 시 Q&A 에러.
+5. **`manual_sql/history/posts_category.sql` 반영 여부 확인 → 그 다음 Q&A 조회·작성 검증**(PHASE 6).

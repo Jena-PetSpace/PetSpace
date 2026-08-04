@@ -5,8 +5,8 @@
 - 표기: 🟦=대시보드 수동 작업, 📱=실기기 검증
 
 ## 0. 🟦 선행 — SQL 적용
-- [ ] `supabase/migrations/posts_category.sql` 적용 여부 확인 (미적용이면 먼저 실행 — 컬럼·인덱스)
-- [ ] `supabase/migrations/posts_category_v2.sql` 실행 (COMMENT 갱신만 — 스키마 무변경, 멱등)
+- [ ] `supabase/manual_sql/history/posts_category.sql` 적용 여부 확인
+- [ ] `supabase/manual_sql/history/posts_category_v2.sql`의 COMMENT 반영 여부 확인
   - 신 체계: chat(잡담)/brag(자랑)/qa(궁금해요)/info(정보). 백필 없음(설계 결정).
 
 ## 1. 📱 딥링크 신구 호환 (5종)

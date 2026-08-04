@@ -55,7 +55,7 @@
 
 ## 운영 적용 전 체크
 
-1. `J1_notification_contract.sql`을 staging에서 검토·적용
+1. `supabase/releases/20260804_fcm_notification_release.sql`을 staging에서 검토·적용
 2. `app.settings.supabase_url`과 service role key의 안전한 저장 방식 확정
 3. 세 Edge Function을 staging에 배포
 4. 유형 ON/OFF, 전체 push OFF, 다기기, 만료 token, 재시도 E2E

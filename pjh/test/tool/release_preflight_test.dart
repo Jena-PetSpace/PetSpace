@@ -599,13 +599,13 @@ Future<Directory> _createFixture({
         : '// account purge protections missing\n',
   );
   writeWorkspace(
-    'supabase/migrations/L1_account_purge_contract.sql',
+    'supabase/manual_sql/history/L1_account_purge_contract.sql',
     accountPurgeProtected
         ? "to_regclass('public.health_history') ON DELETE CASCADE\n"
         : 'ALTER TABLE public.health_history;\n',
   );
   writeWorkspace(
-    'supabase/migrations/L2_account_deletion_access_guard.sql',
+    'supabase/manual_sql/history/L2_account_deletion_access_guard.sql',
     softDeleteAccessProtected
         ? 'AS RESTRICTIVE FOR ALL TO authenticated '
             'private.user_is_active_internal(auth.uid()) '

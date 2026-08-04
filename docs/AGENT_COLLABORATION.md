@@ -77,7 +77,7 @@
 
 ## 첫 파일럿 후보: 산책
 
-산책은 `supabase/migrations/H1_walk_records.sql`, RLS, `location_access_log`, 약관 문구가 준비됐고 앱 feature는 아직 없어 독립 구현 후보로 적합하다. 다만 개인위치정보 기능이므로 다음 항목을 작업지시서에서 먼저 확정한다.
+산책은 `supabase/manual_sql/history/H1_walk_records.sql`, RLS, `location_access_log`, 약관 문구가 준비됐고 앱 feature는 아직 없어 독립 구현 후보로 적합하다. 다만 개인위치정보 기능이므로 다음 항목을 작업지시서에서 먼저 확정한다.
 
 - LBS 신고 상태와 제공 범위
 - 위치 권한 거부·철회 UX

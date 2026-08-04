@@ -1,7 +1,14 @@
+-- CURRENT RELEASE APPLY FILE (2026-08-04)
+-- Run only after FIREBASE_SERVICE_ACCOUNT_KEY and FIREBASE_PROJECT_ID are
+-- registered and send-push-notification is deployed with JWT verification.
+-- This file never stores production secrets. Re-running is idempotent.
+
 -- P2A-1: canonical notification contract
 -- Local implementation only. Apply to production only after explicit approval.
 
 BEGIN;
+
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
 ALTER TABLE public.notifications
   ADD COLUMN IF NOT EXISTS event_key TEXT;
@@ -295,4 +302,49 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trigger_notify_on_like ON public.likes;
+CREATE TRIGGER trigger_notify_on_like
+  AFTER INSERT ON public.likes
+  FOR EACH ROW EXECUTE FUNCTION public.notify_on_like();
+
+DROP TRIGGER IF EXISTS trigger_notify_on_comment ON public.comments;
+CREATE TRIGGER trigger_notify_on_comment
+  AFTER INSERT ON public.comments
+  FOR EACH ROW EXECUTE FUNCTION public.notify_on_comment();
+
+DROP TRIGGER IF EXISTS trigger_notify_on_follow ON public.follows;
+CREATE TRIGGER trigger_notify_on_follow
+  AFTER INSERT ON public.follows
+  FOR EACH ROW EXECUTE FUNCTION public.notify_on_follow();
+
+DROP TRIGGER IF EXISTS trg_push_on_notification ON public.notifications;
+CREATE TRIGGER trg_push_on_notification
+  AFTER INSERT ON public.notifications
+  FOR EACH ROW EXECUTE FUNCTION public.notify_push_on_notification();
+
+REVOKE ALL ON FUNCTION public.notify_on_like()
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_on_comment()
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_on_follow()
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_push_on_notification()
+  FROM PUBLIC, anon, authenticated;
+
 COMMIT;
+
+-- Verification: all rows must be true. The settings become true only after
+-- the separate, secret-bearing ALTER DATABASE commands are run by the owner.
+SELECT
+  to_regprocedure('public.create_notification(uuid,uuid,text,text,text,uuid,uuid,jsonb,text)')
+    IS NOT NULL AS create_notification_exists,
+  to_regprocedure('public.notify_push_on_notification()')
+    IS NOT NULL AS push_function_exists,
+  EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_push_on_notification' AND NOT tgisinternal
+  ) AS push_trigger_exists,
+  NULLIF(BTRIM(current_setting('app.settings.supabase_url', true)), '')
+    IS NOT NULL AS supabase_url_setting_exists,
+  NULLIF(BTRIM(current_setting('app.settings.service_role_key', true)), '')
+    IS NOT NULL AS service_role_setting_exists;

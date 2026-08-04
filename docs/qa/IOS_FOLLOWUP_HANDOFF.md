@@ -26,7 +26,7 @@
 - 위험: 누군가 이 위젯을 되살리면 미완성 리워드 화면이 심사 노출(2.1). → 삭제 또는 동일하게 주석 처리.
 
 ### 3. purge 배치 cron 실제 등록
-- `supabase/migrations/G1_account_soft_delete.sql` / `purge-deleted-accounts` — pg_cron 등록이 SQL 주석으로만 존재(**수동 실행 전제**).
+- `supabase/manual_sql/history/G1_account_soft_delete.sql` / `purge-deleted-accounts` — 과거 수동 적용 이력이며 현재는 운영 반영 여부를 먼저 확인한다.
 - 30일 자동 영구삭제가 실제 동작하려면 운영자가 cron 등록 필요.
 - **제출 전 체크**: cron 실제 등록 + 1회 동작 확인. (미등록 시 "삭제됨" 안내와 실제 삭제 불일치)
 

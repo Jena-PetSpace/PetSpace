@@ -3194,7 +3194,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_category
 -- 외부 RSS를 Edge Function(collect-news)이 매일 09:00 KST 수집 → pending 적재.
 -- 운영자가 대시보드에서 published 토글 → 앱은 published만 노출(원문 링크아웃).
 -- 저작권: 제목·발행일·출처·원문 링크만 저장. 본문/요약/썸네일 컬럼 없음.
--- (상세·검증 내역은 supabase/migrations/F1_pet_news.sql 참조)
+-- (상세·검증 내역은 supabase/manual_sql/history/F1_pet_news.sql 참조)
 
 -- 19-1) 수집 소스 목록
 create table if not exists public.news_sources (

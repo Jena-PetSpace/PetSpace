@@ -1,7 +1,7 @@
 # 계정 soft delete E2E 검증 시나리오
 
 ## 사전 조건
-- [ ] G1_account_soft_delete.sql 대시보드 실행 완료
+- [ ] `supabase/manual_sql/history/G1_account_soft_delete.sql` 운영 반영 여부 확인 완료
 - [ ] request-account-deletion / purge-deleted-accounts Edge Function 배포 완료
 - [ ] PURGE_SHARED_SECRET 설정, pg_cron 등록
 

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final migration = File(
-    '../supabase/migrations/K1_block_privacy_contract.sql',
+    '../supabase/manual_sql/history/K1_block_privacy_contract.sql',
   ).readAsStringSync().replaceAll('\r\n', '\n');
   final setup = File(
     '../supabase/petspace_setup.sql',

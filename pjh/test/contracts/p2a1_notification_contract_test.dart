@@ -101,7 +101,7 @@ void main() {
     test('canonical SQL and migration encode preference and idempotency', () {
       final setup = _read('../supabase/petspace_setup.sql');
       final migration = _read(
-        '../supabase/migrations/J1_notification_contract.sql',
+        '../supabase/releases/20260804_fcm_notification_release.sql',
       );
 
       for (final source in <String>[setup, migration]) {

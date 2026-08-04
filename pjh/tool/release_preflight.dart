@@ -52,10 +52,10 @@ class ReleasePreflight {
       'supabase/functions/purge-deleted-accounts/index.ts',
     );
     final accountPurgeMigration = _readWorkspace(
-      'supabase/migrations/L1_account_purge_contract.sql',
+      'supabase/manual_sql/history/L1_account_purge_contract.sql',
     );
     final accountAccessMigration = _readWorkspace(
-      'supabase/migrations/L2_account_deletion_access_guard.sql',
+      'supabase/manual_sql/history/L2_account_deletion_access_guard.sql',
     );
     final canonicalDatabase = _readWorkspace('supabase/petspace_setup.sql');
     final authRepository = _read(
