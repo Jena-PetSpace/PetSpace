@@ -67,7 +67,7 @@ android {
         applicationId = "com.jena.petspace"
         minSdk = flutter.minSdkVersion                      // Android 5.0+ (Lollipop)
         targetSdk = 36                   // Android 16 (Play 요구사항: API 35+)
-        versionCode = 4                  // Play 업로드용 — 1·2·3 이미 사용됨(재사용 불가)
+        versionCode = 5                  // Play 업로드용 — 1·2·3·4 이미 사용됨(재사용 불가)
         versionName = "1.0.0"
         multiDexEnabled = true
     }

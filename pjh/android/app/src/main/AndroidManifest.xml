@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- 권한 설정 -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -11,6 +12,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- PetSpace는 음성·동영상 녹음을 제공하지 않는다. 카메라 플러그인의
+         전이 선언이 release manifest에 합쳐지지 않도록 명시적으로 제거한다. -->
+    <uses-permission
+        android:name="android.permission.RECORD_AUDIO"
+        tools:node="remove" />
 
     <!-- 카메라 사용 필수 -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />

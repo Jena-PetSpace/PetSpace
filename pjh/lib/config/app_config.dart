@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   static const String appName = '펫페이스';
   static const String appVersion = '1.0.0';
-  static const int buildNumber = 4;
+  static const int buildNumber = 5;
 
   // Environment configurations
   static const bool isProduction = kReleaseMode;

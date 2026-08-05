@@ -192,6 +192,54 @@ void main() {
     );
   });
 
+  test('Android versionCode must match the shared build number', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final gradle = File(
+      p.join(fixture.path, 'pjh/android/app/build.gradle.kts'),
+    );
+    gradle.writeAsStringSync(
+      gradle
+          .readAsStringSync()
+          .replaceFirst('versionCode = 5', 'versionCode = 4'),
+    );
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere((finding) => finding.code == 'VERSION_SOURCE_SYNC')
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('unused Android microphone permission must be removed', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final manifest = File(
+      p.join(fixture.path, 'pjh/android/app/src/main/AndroidManifest.xml'),
+    );
+    manifest.writeAsStringSync(
+      manifest.readAsStringSync().replaceFirst('tools:node="remove"', ''),
+    );
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'ANDROID_MICROPHONE_PERMISSION',
+          )
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
   test('Kakao client-derived password remains a release blocker', () async {
     final fixture = await _createFixture(kakaoOidcProtected: false);
     addTearDown(() => fixture.delete(recursive: true));
@@ -432,11 +480,11 @@ Future<Directory> _createFixture({
     file.writeAsStringSync(contents);
   }
 
-  writeApp('pubspec.yaml', 'version: 1.0.0+4\n');
+  writeApp('pubspec.yaml', 'version: 1.0.0+5\n');
   writeApp(
     'lib/config/app_config.dart',
     "static const String appVersion = '1.0.0';\n"
-        'static const int buildNumber = 4;\n'
+        'static const int buildNumber = 5;\n'
         "const appStoreUrl = 'https://apps.apple.com/app/id1234567890';\n"
         "const playStoreUrl = "
         "'https://play.google.com/store/apps/details?id="
@@ -446,13 +494,13 @@ Future<Directory> _createFixture({
     'android/app/build.gradle.kts',
     androidReleaseProtected
         ? 'defaultConfig { applicationId = "com.jena.petspace"; '
-            'targetSdk = 36 }\n'
+            'targetSdk = 36; versionCode = 5 }\n'
             'val releaseSigningReady = true\n'
             'throw GradleException("Release signing is not configured")\n'
             'buildTypes { release { signingConfig = '
             'signingConfigs.getByName("release") } }\n'
         : 'defaultConfig { applicationId = "com.jena.petspace"; '
-            'targetSdk = 36 }\n'
+            'targetSdk = 36; versionCode = 5 }\n'
             'buildTypes { release { signingConfig = '
             'signingConfigs.getByName("debug") } }\n',
   );
@@ -461,6 +509,8 @@ Future<Directory> _createFixture({
     '<uses-permission android:name="android.permission.INTERNET" />\n'
         '<uses-permission '
         'android:name="android.permission.POST_NOTIFICATIONS" />\n'
+        '<uses-permission android:name="android.permission.RECORD_AUDIO" '
+        'tools:node="remove" />\n'
         '<intent-filter android:autoVerify="true">\n'
         '<data android:host="petspace.app" />\n'
         '</intent-filter>\n',

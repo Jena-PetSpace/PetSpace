@@ -79,7 +79,7 @@ class ReleasePreflight {
       'apple_account_deletion_authorization.dart',
     );
 
-    _checkVersion(findings, pubspec, appConfig);
+    _checkVersion(findings, pubspec, appConfig, androidGradle);
     _checkAndroidPackage(findings, androidGradle, appConfig);
     _checkAndroidReleaseContract(findings, androidGradle, androidManifest);
     _checkFcmContract(
@@ -365,6 +365,7 @@ class ReleasePreflight {
     List<ReleaseFinding> findings,
     String pubspec,
     String appConfig,
+    String androidGradle,
   ) {
     final pubspecVersion = RegExp(
       r'^version:\s*([0-9.]+)\+([0-9]+)\s*$',
@@ -376,6 +377,9 @@ class ReleasePreflight {
     final configBuild = RegExp(
       r'buildNumber\s*=\s*([0-9]+)',
     ).firstMatch(appConfig);
+    final androidVersionCode = RegExp(
+      r'versionCode\s*=\s*([0-9]+)',
+    ).firstMatch(androidGradle);
 
     if (pubspecVersion == null) {
       findings.add(
@@ -390,12 +394,17 @@ class ReleasePreflight {
 
     final version = pubspecVersion.group(1)!;
     final build = pubspecVersion.group(2)!;
-    if (configVersion?.group(1) == version && configBuild?.group(1) == build) {
+    final buildNumber = int.parse(build);
+    final versionSourcesAgree = configVersion?.group(1) == version &&
+        configBuild?.group(1) == build &&
+        androidVersionCode?.group(1) == build;
+    if (versionSourcesAgree && buildNumber >= 5) {
       findings.add(
         ReleaseFinding(
           ReleaseFindingLevel.pass,
           'VERSION_SOURCE_SYNC',
-          'Release version sources agree on $version+$build.',
+          'Release version sources agree on $version+$build and meet the '
+              'Stage 2A minimum Android versionCode.',
         ),
       );
       return;
@@ -405,7 +414,8 @@ class ReleasePreflight {
       ReleaseFinding(
         ReleaseFindingLevel.blocker,
         'VERSION_SOURCE_SYNC',
-        'Release version sources disagree; pubspec.yaml is $version+$build.',
+        'Release version sources must all agree and use Android versionCode '
+            '5 or newer; pubspec.yaml is $version+$build.',
       ),
     );
   }
@@ -462,7 +472,10 @@ class ReleasePreflight {
     ).firstMatch(androidGradle)?.group(1);
     final targetSdkIsCurrent = targetSdk != null && int.parse(targetSdk) >= 36;
     final signingFailsClosed = androidGradle.contains('releaseSigningReady') &&
-        androidGradle.contains('Release signing is not configured') &&
+        androidGradle.contains('throw GradleException') &&
+        androidGradle
+            .toLowerCase()
+            .contains('release signing is not configured') &&
         !RegExp(
           r'buildTypes[\s\S]*release[\s\S]{0,500}'
           r'signingConfigs\.getByName\("debug"\)',
@@ -470,6 +483,9 @@ class ReleasePreflight {
     final appLinksConfigured =
         androidManifest.contains('android:autoVerify="true"') &&
             androidManifest.contains('android:host="petspace.app"');
+    final microphonePermissionRemoved =
+        androidManifest.contains('android.permission.RECORD_AUDIO') &&
+            androidManifest.contains('tools:node="remove"');
 
     findings
       ..add(
@@ -505,6 +521,19 @@ class ReleasePreflight {
           appLinksConfigured
               ? 'Verified Android App Links are declared for petspace.app.'
               : 'Verified Android App Links for petspace.app are incomplete.',
+        ),
+      )
+      ..add(
+        ReleaseFinding(
+          microphonePermissionRemoved
+              ? ReleaseFindingLevel.pass
+              : ReleaseFindingLevel.blocker,
+          'ANDROID_MICROPHONE_PERMISSION',
+          microphonePermissionRemoved
+              ? 'The unused RECORD_AUDIO permission is removed from the '
+                  'merged Android manifest contract.'
+              : 'Explicitly remove the unused RECORD_AUDIO permission from '
+                  'the merged Android manifest.',
         ),
       );
   }
