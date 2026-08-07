@@ -216,6 +216,65 @@ void main() {
     );
   });
 
+  test('Android versionCode must not fall below the Stage 2A floor', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final appRoot = p.join(fixture.path, 'pjh');
+    final pubspec = File(p.join(appRoot, 'pubspec.yaml'));
+    final appConfig = File(p.join(appRoot, 'lib/config/app_config.dart'));
+    final gradle = File(p.join(appRoot, 'android/app/build.gradle.kts'));
+
+    pubspec.writeAsStringSync(
+      pubspec.readAsStringSync().replaceFirst('1.0.0+5', '1.0.0+4'),
+    );
+    appConfig.writeAsStringSync(
+      appConfig.readAsStringSync().replaceFirst(
+            'buildNumber = 5',
+            'buildNumber = 4',
+          ),
+    );
+    gradle.writeAsStringSync(
+      gradle.readAsStringSync().replaceFirst(
+            'versionCode = 5',
+            'versionCode = 4',
+          ),
+    );
+
+    final findings = ReleasePreflight(Directory(appRoot)).run();
+
+    expect(
+      findings
+          .firstWhere((finding) => finding.code == 'VERSION_SOURCE_SYNC')
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('Android versionName must match the shared app version', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final gradle = File(
+      p.join(fixture.path, 'pjh/android/app/build.gradle.kts'),
+    );
+    gradle.writeAsStringSync(
+      gradle.readAsStringSync().replaceFirst(
+            'versionName = "1.0.0"',
+            'versionName = "0.9.0"',
+          ),
+    );
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere((finding) => finding.code == 'VERSION_SOURCE_SYNC')
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
   test('unused Android microphone permission must be removed', () async {
     final fixture = await _createFixture();
     addTearDown(() => fixture.delete(recursive: true));
@@ -234,6 +293,114 @@ void main() {
       findings
           .firstWhere(
             (finding) => finding.code == 'ANDROID_MICROPHONE_PERMISSION',
+          )
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('microphone removal must be on the RECORD_AUDIO element', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final manifest = File(
+      p.join(fixture.path, 'pjh/android/app/src/main/AndroidManifest.xml'),
+    );
+    manifest.writeAsStringSync(
+      manifest
+          .readAsStringSync()
+          .replaceFirst(' tools:node="remove"', '')
+          .replaceFirst(
+            '<intent-filter',
+            '<application tools:node="remove" />\n<intent-filter',
+          ),
+    );
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'ANDROID_MICROPHONE_PERMISSION',
+          )
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('camera audio usage blocks RECORD_AUDIO removal', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final camera = File(
+      p.join(
+        fixture.path,
+        'pjh/lib/features/emotion/presentation/pages/guided_camera_page.dart',
+      ),
+    );
+    camera.writeAsStringSync('CameraController(enableAudio: true);\n');
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'ANDROID_MICROPHONE_PERMISSION',
+          )
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('every camera controller must explicitly disable audio', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final secondCamera = File(
+      p.join(
+        fixture.path,
+        'pjh/lib/features/social/presentation/pages/second_camera.dart',
+      ),
+    );
+    secondCamera
+      ..createSync(recursive: true)
+      ..writeAsStringSync('CameraController(description, preset);\n');
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'ANDROID_MICROPHONE_PERMISSION',
+          )
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('broad Android photo permissions remain a Play blocker', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final manifest = File(
+      p.join(fixture.path, 'pjh/android/app/src/main/AndroidManifest.xml'),
+    );
+    manifest.writeAsStringSync(
+      '<uses-permission '
+      'android:name="android.permission.READ_MEDIA_IMAGES" />\n'
+      '${manifest.readAsStringSync()}',
+    );
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'ANDROID_PHOTO_PERMISSION_POLICY',
           )
           .level,
       ReleaseFindingLevel.blocker,
@@ -494,13 +661,13 @@ Future<Directory> _createFixture({
     'android/app/build.gradle.kts',
     androidReleaseProtected
         ? 'defaultConfig { applicationId = "com.jena.petspace"; '
-            'targetSdk = 36; versionCode = 5 }\n'
+            'targetSdk = 36; versionCode = 5; versionName = "1.0.0" }\n'
             'val releaseSigningReady = true\n'
             'throw GradleException("Release signing is not configured")\n'
             'buildTypes { release { signingConfig = '
             'signingConfigs.getByName("release") } }\n'
         : 'defaultConfig { applicationId = "com.jena.petspace"; '
-            'targetSdk = 36; versionCode = 5 }\n'
+            'targetSdk = 36; versionCode = 5; versionName = "1.0.0" }\n'
             'buildTypes { release { signingConfig = '
             'signingConfigs.getByName("debug") } }\n',
   );
@@ -519,6 +686,10 @@ Future<Directory> _createFixture({
     'lib/core/services/fcm_service.dart',
     "@pragma('vm:entry-point')\n"
         'getInitialMessage(); onMessageOpenedApp;\n',
+  );
+  writeApp(
+    'lib/features/emotion/presentation/pages/guided_camera_page.dart',
+    'CameraController(enableAudio: false);\n',
   );
   writeApp('lib/core/services/notification_service.dart', 'onTokenRefresh;\n');
   writeApp(

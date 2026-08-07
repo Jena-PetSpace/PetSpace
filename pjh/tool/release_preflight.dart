@@ -24,6 +24,7 @@ class ReleasePreflight {
     final appConfig = _read('lib/config/app_config.dart');
     final androidGradle = _read('android/app/build.gradle.kts');
     final androidManifest = _read('android/app/src/main/AndroidManifest.xml');
+    final appDartSources = _readAppDartSources();
     final project = _read('ios/Runner.xcodeproj/project.pbxproj');
     final infoPlist = _read('ios/Runner/Info.plist');
     final releaseEntitlements = _read('ios/Runner/Runner.entitlements');
@@ -81,7 +82,12 @@ class ReleasePreflight {
 
     _checkVersion(findings, pubspec, appConfig, androidGradle);
     _checkAndroidPackage(findings, androidGradle, appConfig);
-    _checkAndroidReleaseContract(findings, androidGradle, androidManifest);
+    _checkAndroidReleaseContract(
+      findings,
+      androidGradle,
+      androidManifest,
+      appDartSources,
+    );
     _checkFcmContract(
       findings,
       androidManifest,
@@ -358,6 +364,19 @@ class ReleasePreflight {
     return file.existsSync() ? _normalizeText(file.readAsStringSync()) : '';
   }
 
+  String _readAppDartSources() {
+    final lib = Directory('${appRoot.path}/lib');
+    if (!lib.existsSync()) return '';
+    final sources = <String>[];
+    for (final entity in lib.listSync(recursive: true, followLinks: false)) {
+      if (entity is! File || !entity.path.endsWith('.dart')) continue;
+      final normalized = entity.path.replaceAll('\\', '/');
+      if (normalized.endsWith('/lib/config/secrets.dart')) continue;
+      sources.add(_normalizeText(entity.readAsStringSync()));
+    }
+    return sources.join('\n');
+  }
+
   String _normalizeText(String value) =>
       value.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
 
@@ -380,6 +399,9 @@ class ReleasePreflight {
     final androidVersionCode = RegExp(
       r'versionCode\s*=\s*([0-9]+)',
     ).firstMatch(androidGradle);
+    final androidVersionName = RegExp(
+      r'versionName\s*=\s*"([0-9.]+)"',
+    ).firstMatch(androidGradle);
 
     if (pubspecVersion == null) {
       findings.add(
@@ -397,7 +419,8 @@ class ReleasePreflight {
     final buildNumber = int.parse(build);
     final versionSourcesAgree = configVersion?.group(1) == version &&
         configBuild?.group(1) == build &&
-        androidVersionCode?.group(1) == build;
+        androidVersionCode?.group(1) == build &&
+        androidVersionName?.group(1) == version;
     if (versionSourcesAgree && buildNumber >= 5) {
       findings.add(
         ReleaseFinding(
@@ -466,6 +489,7 @@ class ReleasePreflight {
     List<ReleaseFinding> findings,
     String androidGradle,
     String androidManifest,
+    String appDartSources,
   ) {
     final targetSdk = RegExp(
       r'targetSdk\s*=\s*([0-9]+)',
@@ -483,9 +507,24 @@ class ReleasePreflight {
     final appLinksConfigured =
         androidManifest.contains('android:autoVerify="true"') &&
             androidManifest.contains('android:host="petspace.app"');
-    final microphonePermissionRemoved =
-        androidManifest.contains('android.permission.RECORD_AUDIO') &&
-            androidManifest.contains('tools:node="remove"');
+    final microphonePermissionRemoved = RegExp(
+      r'<uses-permission\b'
+      r'(?=[^>]*android:name="android\.permission\.RECORD_AUDIO")'
+      r'(?=[^>]*tools:node="remove")[^>]*>',
+    ).hasMatch(androidManifest);
+    final cameraControllerCount = RegExp(
+      r'CameraController\s*\(',
+    ).allMatches(appDartSources).length;
+    final audioDisabledControllerCount = RegExp(
+      r'enableAudio\s*:\s*false',
+    ).allMatches(appDartSources).length;
+    final cameraDoesNotUseAudio = cameraControllerCount > 0 &&
+        cameraControllerCount == audioDisabledControllerCount &&
+        !RegExp(r'enableAudio\s*:\s*true').hasMatch(appDartSources) &&
+        !appDartSources.contains('startVideoRecording');
+    final broadPhotoPermissionDeclared = androidManifest
+            .contains('android.permission.READ_MEDIA_IMAGES') ||
+        androidManifest.contains('android.permission.READ_EXTERNAL_STORAGE');
 
     findings
       ..add(
@@ -525,15 +564,29 @@ class ReleasePreflight {
       )
       ..add(
         ReleaseFinding(
-          microphonePermissionRemoved
+          microphonePermissionRemoved && cameraDoesNotUseAudio
               ? ReleaseFindingLevel.pass
               : ReleaseFindingLevel.blocker,
           'ANDROID_MICROPHONE_PERMISSION',
-          microphonePermissionRemoved
-              ? 'The unused RECORD_AUDIO permission is removed from the '
-                  'merged Android manifest contract.'
-              : 'Explicitly remove the unused RECORD_AUDIO permission from '
-                  'the merged Android manifest.',
+          microphonePermissionRemoved && cameraDoesNotUseAudio
+              ? 'The unused RECORD_AUDIO permission is removed and the camera '
+                  'flow remains image-only with audio disabled.'
+              : 'Remove RECORD_AUDIO only while every camera path remains '
+                  'image-only with audio disabled.',
+        ),
+      )
+      ..add(
+        ReleaseFinding(
+          broadPhotoPermissionDeclared
+              ? ReleaseFindingLevel.blocker
+              : ReleaseFindingLevel.pass,
+          'ANDROID_PHOTO_PERMISSION_POLICY',
+          broadPhotoPermissionDeclared
+              ? 'Broad Android photo-library permissions remain. Migrate to '
+                  'the system Photo Picker before Play submission, or record '
+                  'an approved core-use declaration and deliberately revise '
+                  'this gate.'
+              : 'No broad Android photo-library read permission is declared.',
         ),
       );
   }
