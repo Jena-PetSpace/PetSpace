@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -204,8 +205,9 @@ final class _Options {
       } else if (argument.startsWith('--snapshot-file=')) {
         snapshotPath = argument.substring('--snapshot-file='.length);
       } else if (argument.startsWith('--protected-snapshot-file=')) {
-        protectedSnapshotPath =
-            argument.substring('--protected-snapshot-file='.length);
+        protectedSnapshotPath = argument.substring(
+          '--protected-snapshot-file='.length,
+        );
       } else if (argument.startsWith('--entry=')) {
         entryPoints.add(argument.substring('--entry='.length));
       } else if (argument.startsWith('--explicit=')) {
@@ -214,9 +216,11 @@ final class _Options {
         throw StateError('Unsupported verifier option.');
       }
     }
-    if ([printSnapshot, writeSnapshot, writeProtectedSnapshot]
-            .where((enabled) => enabled)
-            .length >
+    if ([
+          printSnapshot,
+          writeSnapshot,
+          writeProtectedSnapshot,
+        ].where((enabled) => enabled).length >
         1) {
       throw StateError('Choose one snapshot output mode.');
     }
@@ -226,8 +230,9 @@ final class _Options {
       snapshotPath: snapshotPath,
       protectedSnapshotPath: protectedSnapshotPath,
       entryPoints: entryPoints.isEmpty ? null : entryPoints,
-      explicitFrozenFiles:
-          explicitFrozenFiles.isEmpty ? null : explicitFrozenFiles,
+      explicitFrozenFiles: explicitFrozenFiles.isEmpty
+          ? null
+          : explicitFrozenFiles,
       printSnapshot: printSnapshot,
       writeSnapshot: writeSnapshot,
       writeProtectedSnapshot: writeProtectedSnapshot,
@@ -281,10 +286,40 @@ Future<List<String>> _buildSnapshot(
   final lines = <String>[];
   for (final relativePath in sorted) {
     final file = _requireFile(root, relativePath);
-    final digest = sha256.convert(await file.readAsBytes());
+    final digest = sha256.convert(await _stableBytes(file, relativePath));
     lines.add('$digest  $relativePath');
   }
   return lines;
+}
+
+Future<List<int>> _stableBytes(File file, String relativePath) async {
+  if (_isBinaryRenderingInput(relativePath)) {
+    return file.readAsBytes();
+  }
+  final normalized = (await file.readAsString())
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n');
+  return utf8.encode(normalized);
+}
+
+bool _isBinaryRenderingInput(String relativePath) {
+  const binaryExtensions = <String>{
+    '.avif',
+    '.gif',
+    '.ico',
+    '.jpeg',
+    '.jpg',
+    '.otf',
+    '.pdf',
+    '.png',
+    '.ttf',
+    '.webp',
+    '.woff',
+    '.woff2',
+  };
+  return binaryExtensions.contains(
+    p.posix.extension(relativePath.toLowerCase()),
+  );
 }
 
 Future<Set<String>> _collectDartClosure(
@@ -304,10 +339,7 @@ Future<Set<String>> _collectDartClosure(
     for (final directive in _directivePattern.allMatches(source)) {
       final body = directive.group(1)!;
       for (final uriMatch in _quotedUriPattern.allMatches(body)) {
-        final resolved = _resolveLocalDartImport(
-          current,
-          uriMatch.group(1)!,
-        );
+        final resolved = _resolveLocalDartImport(current, uriMatch.group(1)!);
         if (resolved != null &&
             !_isSensitivePath(resolved) &&
             !seen.contains(resolved)) {
@@ -344,8 +376,10 @@ Future<void> _addRequiredFilesBelow({
   var added = 0;
   await for (final entity in base.list(recursive: true, followLinks: false)) {
     if (entity is! File) continue;
-    final relative =
-        p.relative(entity.path, from: root.path).split(p.separator).join('/');
+    final relative = p
+        .relative(entity.path, from: root.path)
+        .split(p.separator)
+        .join('/');
     if (_isSensitivePath(relative) || !where(relative)) continue;
     target.add(relative);
     added++;
@@ -391,16 +425,16 @@ Future<bool> _verifyLocalSecretBoundary(Directory root) async {
   final localSecret = File(p.join(root.path, _localSecretPath));
   if (!localSecret.existsSync()) return true;
 
-  final ignored = await Process.run(
-    'git',
-    ['check-ignore', '--quiet', _localSecretPath],
-    workingDirectory: root.path,
-  );
-  final tracked = await Process.run(
-    'git',
-    ['ls-files', '--error-unmatch', _localSecretPath],
-    workingDirectory: root.path,
-  );
+  final ignored = await Process.run('git', [
+    'check-ignore',
+    '--quiet',
+    _localSecretPath,
+  ], workingDirectory: root.path);
+  final tracked = await Process.run('git', [
+    'ls-files',
+    '--error-unmatch',
+    _localSecretPath,
+  ], workingDirectory: root.path);
 
   if (ignored.exitCode == 0 && tracked.exitCode != 0) return true;
   stderr.writeln(
@@ -412,8 +446,10 @@ Future<bool> _verifyLocalSecretBoundary(Directory root) async {
 void _reportMismatch(List<String> expected, List<String> actual) {
   final expectedByPath = _linesByPath(expected);
   final actualByPath = _linesByPath(actual);
-  final allPaths =
-      <String>{...expectedByPath.keys, ...actualByPath.keys}.toList()..sort();
+  final allPaths = <String>{
+    ...expectedByPath.keys,
+    ...actualByPath.keys,
+  }.toList()..sort();
 
   stderr.writeln('UI/UX frozen scope verification failed.');
   for (final path in allPaths) {

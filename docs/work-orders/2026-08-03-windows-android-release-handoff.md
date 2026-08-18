@@ -1,15 +1,16 @@
 # Windows 노트북 Android 출시 작업 인계서
 
 기준일: 2026-08-03
-노트북 작업 브랜치: `mac-ios-release`
-공통 출시 준비 코드 커밋: `5e62b8f`
+노트북 통합·검증 브랜치: `win-android-release`
+Mac 인계 기준 커밋: `164ae40`
 
 ## 인계 목표
 
 Mac에서 검증한 공통 Flutter·Supabase·출시 준비 변경을 Windows 노트북의
-`mac-ios-release`에서 그대로 이어 받아 Android 전용 출시 검증과 UI/UX
-실기기 점검을 수행한다. 현재 원격 `win-android-release`에도 동일 기준
-커밋이 있지만, 사용자의 후속 작업 정본은 `mac-ios-release`로 고정한다.
+`win-android-release`로 검토·병합한 뒤 Android 전용 출시 검증과 UI/UX
+실기기 점검을 수행한다. Mac의 전화면·전기능 감사 정본은
+`mac-ios-release`, Windows 통합·Android 출시 정본은 `win-android-release`로
+분리한다. Mac 변경은 원격 상태와 diff를 확인한 뒤에만 Windows로 병합한다.
 iOS 전용 signing·APNs·App Store 작업은 Windows에서 변경하지 않는다.
 
 ## 이번에 전달되는 주요 변경
@@ -30,8 +31,9 @@ iOS 전용 signing·APNs·App Store 작업은 Windows에서 변경하지 않는�
 
 ```powershell
 git fetch origin
-git switch mac-ios-release
-git pull --ff-only origin mac-ios-release
+git switch win-android-release
+git pull --ff-only origin win-android-release
+git log --left-right --oneline origin/win-android-release...origin/mac-ios-release
 git status --short --branch
 git log -5 --oneline
 ```
@@ -67,9 +69,8 @@ dart run tool/release_preflight.dart
 
 ## Android 출시 P0 게이트
 
-1. `pjh/android/app/build.gradle.kts`가 `key.properties` 부재 시 release에
-   debug signing을 사용하는 현재 폴백을 제거하거나 release build를
-   명시적으로 실패시킨다.
+1. `pjh/android/app/build.gradle.kts`는 `key.properties` 또는 upload keystore가
+   없으면 release build를 명시적으로 실패시킨다. 이 fail-closed 계약을 유지한다.
 2. 업로드 키/JKS와 `key.properties`는 로컬에서만 준비하고 Git에 추가하지
    않는다. 값·비밀번호·SHA를 Codex 보고서나 로그에 출력하지 않는다.
 3. Firebase Android 앱 package가 `com.jena.petspace`인지 콘솔에서 확인하고
@@ -116,7 +117,8 @@ flutter build appbundle --release
 
 ## Windows Codex에 전달할 첫 요청문
 
-> origin/mac-ios-release를 fetch/pull한 뒤 AGENTS.md와
+> origin/win-android-release와 origin/mac-ios-release를 fetch한 뒤 차이와
+> Mac 인계 커밋을 먼저 검토하라. win-android-release를 통합 브랜치로 사용하고 AGENTS.md와
 > docs/work-orders/2026-08-03-windows-android-release-handoff.md,
 > docs/reviews/2026-08-03-full-app-uiux-audit-plan.md를 전부 읽어라.
 > 먼저 read-only로 Android signing, Firebase/FCM, Kakao, App Links,

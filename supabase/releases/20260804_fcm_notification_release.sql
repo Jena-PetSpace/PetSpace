@@ -1,7 +1,14 @@
+-- CURRENT RELEASE APPLY FILE (2026-08-04)
+-- Run only after FIREBASE_SERVICE_ACCOUNT_KEY and FIREBASE_PROJECT_ID are
+-- registered and send-push-notification is deployed with JWT verification.
+-- This file never stores production secrets. Re-running is idempotent.
+
 -- P2A-1: canonical notification contract
 -- Local implementation only. Apply to production only after explicit approval.
 
 BEGIN;
+
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
 ALTER TABLE public.notifications
   ADD COLUMN IF NOT EXISTS event_key TEXT;
@@ -269,12 +276,24 @@ DECLARE
   v_supabase_url TEXT;
   v_service_key TEXT;
 BEGIN
-  v_supabase_url := current_setting('app.settings.supabase_url', true);
-  v_service_key := current_setting('app.settings.service_role_key', true);
+  SELECT decrypted_secret
+    INTO v_supabase_url
+  FROM vault.decrypted_secrets
+  WHERE name = 'petspace_supabase_url'
+  ORDER BY updated_at DESC
+  LIMIT 1;
 
-  IF v_supabase_url IS NULL OR v_service_key IS NULL THEN
+  SELECT decrypted_secret
+    INTO v_service_key
+  FROM vault.decrypted_secrets
+  WHERE name = 'petspace_service_role_key'
+  ORDER BY updated_at DESC
+  LIMIT 1;
+
+  IF nullif(btrim(v_supabase_url), '') IS NULL
+     OR nullif(btrim(v_service_key), '') IS NULL THEN
     RAISE WARNING
-      'notify_push_on_notification: required app.settings are missing';
+      'notify_push_on_notification: required Vault secrets are missing';
     RETURN NEW;
   END IF;
 
@@ -294,4 +313,55 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trigger_notify_on_like ON public.likes;
+CREATE TRIGGER trigger_notify_on_like
+  AFTER INSERT ON public.likes
+  FOR EACH ROW EXECUTE FUNCTION public.notify_on_like();
+
+DROP TRIGGER IF EXISTS trigger_notify_on_comment ON public.comments;
+CREATE TRIGGER trigger_notify_on_comment
+  AFTER INSERT ON public.comments
+  FOR EACH ROW EXECUTE FUNCTION public.notify_on_comment();
+
+DROP TRIGGER IF EXISTS trigger_notify_on_follow ON public.follows;
+CREATE TRIGGER trigger_notify_on_follow
+  AFTER INSERT ON public.follows
+  FOR EACH ROW EXECUTE FUNCTION public.notify_on_follow();
+
+DROP TRIGGER IF EXISTS trg_push_on_notification ON public.notifications;
+CREATE TRIGGER trg_push_on_notification
+  AFTER INSERT ON public.notifications
+  FOR EACH ROW EXECUTE FUNCTION public.notify_push_on_notification();
+
+REVOKE ALL ON FUNCTION public.notify_on_like()
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_on_comment()
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_on_follow()
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notify_push_on_notification()
+  FROM PUBLIC, anon, authenticated;
+
 COMMIT;
+
+-- Verification: all rows must be true. The Vault columns become true only
+-- after the project owner stores both values in Supabase Vault.
+SELECT
+  to_regprocedure('public.create_notification(uuid,uuid,text,text,text,uuid,uuid,jsonb,text)')
+    IS NOT NULL AS create_notification_exists,
+  to_regprocedure('public.notify_push_on_notification()')
+    IS NOT NULL AS push_function_exists,
+  EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'trg_push_on_notification' AND NOT tgisinternal
+  ) AS push_trigger_exists,
+  EXISTS (
+    SELECT 1 FROM vault.decrypted_secrets
+    WHERE name = 'petspace_supabase_url'
+      AND NULLIF(BTRIM(decrypted_secret), '') IS NOT NULL
+  ) AS supabase_url_vault_exists,
+  EXISTS (
+    SELECT 1 FROM vault.decrypted_secrets
+    WHERE name = 'petspace_service_role_key'
+      AND NULLIF(BTRIM(decrypted_secret), '') IS NOT NULL
+  ) AS service_role_vault_exists;

@@ -84,12 +84,12 @@ P0-1은 ①의 IconButton 제거만으로 완결되며, ②와 [channel_subscrip
 
 ---
 
-## 2. (b) migrations/posts_category.sql 실체 — [일치 + 문서 스테일]
+## 2. (b) manual_sql/history/posts_category.sql 실체 — [일치 + 문서 스테일]
 
-- **CHECK 제약 없음 [일치]**: [posts_category.sql:31](supabase/migrations/posts_category.sql#L31) `ALTER TABLE posts ADD COLUMN IF NOT EXISTS category TEXT` — nullable, default 없음, 제약 없음. 신 값 도입에 DDL 변경 불필요라는 기획서 결론 [일치].
-- **백필 로직**: hashtags 배열 `@>` 매칭으로 구 5종(health/training/food/life/qa)만 조건부 UPDATE([:40-49](supabase/migrations/posts_category.sql#L40-L49)), `WHERE category IS NULL` 멱등, magazine 명시 제외([:51-52](supabase/migrations/posts_category.sql#L51-L52)), 부분 인덱스 `idx_posts_category`([:55-56](supabase/migrations/posts_category.sql#L55-L56)).
-- **[미확인]** 기획서의 "2918행": 로컬에서 라이브 DB 조회 불가. 파일 주석의 2026-06-15 실측은 "alive 글 6건"([:14](supabase/migrations/posts_category.sql#L14))이므로 2918은 그 이후 데이터이거나 deleted 포함 수치로 추정 — 웹 검토 시 근거 재확인 요망.
-- **문서 스테일 (I-E 필요성 실증)**: SQL COMMENT([:33-35](supabase/migrations/posts_category.sql#L33-L35))와 entity 주석([community_post.dart:19](pjh/lib/features/feed_hub/domain/entities/community_post.dart#L19))은 구 5종만 기술하는데, `categoryLabel`은 이미 신 6종(qa/quiz/careguide/education/policy/event) + 구 4종 호환의 **2세대 체계**를 처리 중이다. 여기에 기획서의 chat/brag/question/info를 더하면 **3세대 값이 무제약 TEXT에 공존**한다 → §5-1 반대의견 참조.
+- **CHECK 제약 없음 [일치]**: [posts_category.sql:31](../../supabase/manual_sql/history/posts_category.sql#L31) `ALTER TABLE posts ADD COLUMN IF NOT EXISTS category TEXT` — nullable, default 없음, 제약 없음. 신 값 도입에 DDL 변경 불필요라는 기획서 결론 [일치].
+- **백필 로직**: hashtags 배열 `@>` 매칭으로 구 5종(health/training/food/life/qa)만 조건부 UPDATE([:40-49](../../supabase/manual_sql/history/posts_category.sql#L40)), `WHERE category IS NULL` 멱등, magazine 명시 제외, 부분 인덱스 `idx_posts_category`.
+- **[미확인]** 기획서의 "2918행": 로컬에서 라이브 DB 조회 불가. 파일 주석의 2026-06-15 실측은 "alive 글 6건"([:14](../../supabase/manual_sql/history/posts_category.sql#L14))이므로 2918은 그 이후 데이터이거나 deleted 포함 수치로 추정 — 웹 검토 시 근거 재확인 요망.
+- **문서 스테일 (I-E 필요성 실증)**: SQL COMMENT([:33-35](../../supabase/manual_sql/history/posts_category.sql#L33-L35))와 entity 주석([community_post.dart:19](../../pjh/lib/features/feed_hub/domain/entities/community_post.dart#L19))은 구 5종만 기술하는데, `categoryLabel`은 이미 신 6종(qa/quiz/careguide/education/policy/event) + 구 4종 호환의 **2세대 체계**를 처리 중이다. 여기에 기획서의 chat/brag/question/info를 더하면 **3세대 값이 무제약 TEXT에 공존**한다 → §5-1 반대의견 참조.
 
 ## 3. (c) social/home_page.dart 수정 금지 현행 — §1 O-4에 통합 기술. 결론: **현재 금지 아님, 근거는 git log**
 

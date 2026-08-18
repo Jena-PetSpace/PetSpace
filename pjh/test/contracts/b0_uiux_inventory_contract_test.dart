@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,8 +13,13 @@ void main() {
       'cb7e5d28f193a4327619723f8ffed86fa355e786e49c4de5b03f6f73d5945d6a';
 
   test('정본과 80-screen inventory SHA가 고정돼 있다', () {
-    String sha(String path) =>
-        sha256.convert(File(path).readAsBytesSync()).toString();
+    String sha(String path) {
+      final normalized = File(path)
+          .readAsStringSync()
+          .replaceAll('\r\n', '\n')
+          .replaceAll('\r', '\n');
+      return sha256.convert(utf8.encode(normalized)).toString();
+    }
 
     expect(sha(inventoryPath), expectedInventorySha);
     expect(sha(masterPath), expectedMasterSha);

@@ -74,6 +74,32 @@ curl -i -X POST \
 
 ---
 
+## 3.1 레거시 analyze-emotion 폐기 확인
+
+운영 function은 삭제하는 방식을 권고한다. 삭제 대신 정본 tombstone을 배포했다면
+**`--no-verify-jwt` 없이** 배포하고 다음 응답을 확인한다.
+
+```bash
+# 토큰 없음 → 401
+curl -i -X POST \
+  "https://juukbctqzlrxfnivhgqe.supabase.co/functions/v1/analyze-emotion" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# 유효한 QA 계정 access token → 410 + LEGACY_ENDPOINT_RETIRED
+# 실제 토큰은 문서·로그·Git에 남기지 않는다.
+curl -i -X POST \
+  "https://juukbctqzlrxfnivhgqe.supabase.co/functions/v1/analyze-emotion" \
+  -H "Authorization: Bearer <QA_ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"ignored":true}'
+```
+
+호출 전후 QA 계정의 `emotion_history` 행과 `images/emotions/**` 객체 수가 같아야 한다.
+운영 function을 삭제했다면 410 대신 gateway 404를 합격으로 본다.
+
+---
+
 ## 4. 앱 분석 동작 회귀 (실기기 — 묶음 검증)
 
 > 실기기 검증은 다른 항목과 함께 모아서 진행. 아래는 체크 항목만.
@@ -92,6 +118,7 @@ curl -i -X POST \
 - 변경은 `_callApi`의 URL·인증부 + 진입 가드의 세션 체크 전환뿐.
 
 ## 후속 TODO (범위 밖, 별도 추적)
-- 미사용 레거시 `analyze-emotion` Edge Function 정리(앱 미호출, 서버 env 키 사용).
+- 레거시 `analyze-emotion` 운영 폐기는 `RELEASE_DEPLOY_VERIFY_CHECKLIST.md` PHASE 1의
+  수동 게이트에서 완료한다. 로컬 tombstone만으로 운영 폐기를 대신하지 않는다.
 - gemini-proxy v2: 사용자당 영구 rate limit(현재 인메모리 best-effort).
 - secrets.dart의 `firebaseApiKey` 등 다른 평문 키 처리 방향 결정.

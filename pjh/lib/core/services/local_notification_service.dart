@@ -2,12 +2,15 @@ import 'dart:developer' as dev;
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show GlobalKey, NavigatorState;
+import 'package:flutter/material.dart'
+    show GlobalKey, NavigatorState, WidgetsBinding;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+
+import 'notification_route_resolver.dart';
 
 enum HealthAlertScheduleResult {
   scheduled,
@@ -37,8 +40,16 @@ class LocalNotificationService {
   final HealthAlertScheduleDelegate? _healthAlertScheduleDelegate;
   final NotificationPermissionDelegate? _permissionDelegate;
 
-  /// GoRouter navigatorKey — main.dart에서 주입
-  GlobalKey<NavigatorState>? navigatorKey;
+  GlobalKey<NavigatorState>? _navigatorKey;
+  String? _pendingLaunchPayload;
+
+  /// GoRouter navigatorKey — AppRouter에서 주입합니다.
+  GlobalKey<NavigatorState>? get navigatorKey => _navigatorKey;
+
+  set navigatorKey(GlobalKey<NavigatorState>? value) {
+    _navigatorKey = value;
+    _schedulePendingLaunchRouting();
+  }
 
   LocalNotificationService({
     required SupabaseClient supabase,
@@ -81,7 +92,7 @@ class LocalNotificationService {
       }
 
       // 2. 플랫폼별 초기화 설정
-      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidInit = AndroidInitializationSettings('ic_stat_petspace');
       const iosInit = DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -94,6 +105,14 @@ class LocalNotificationService {
         initSettings,
         onDidReceiveNotificationResponse: _onTap,
       );
+
+      final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+      final launchPayload = launchDetails?.notificationResponse?.payload;
+      if (launchDetails?.didNotificationLaunchApp == true &&
+          launchPayload != null &&
+          launchPayload.isNotEmpty) {
+        _pendingLaunchPayload = launchPayload;
+      }
 
       // 3. 채널 생성 (Android 8+)
       await _createChannels();
@@ -174,22 +193,68 @@ class LocalNotificationService {
     required String title,
     required String body,
     String? payload,
+    String type = 'social',
   }) async {
     await _plugin.show(
       id,
       title,
       body,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
+      NotificationDetails(
+        android: _androidDetailsForType(type),
+        iOS: const DarwinNotificationDetails(),
+      ),
+      payload: payload,
+    );
+  }
+
+  @visibleForTesting
+  static String androidChannelIdForType(String? type) {
+    switch (type) {
+      case 'like':
+      case 'comment':
+      case 'follow':
+      case 'mention':
+        return 'social';
+      case 'health_alert':
+        return 'health';
+      case 'chat':
+        return 'chat';
+      default:
+        return 'system';
+    }
+  }
+
+  static AndroidNotificationDetails _androidDetailsForType(String? type) {
+    switch (androidChannelIdForType(type)) {
+      case 'social':
+        return const AndroidNotificationDetails(
           'social',
           '소셜 알림',
           importance: Importance.high,
           priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(),
-      ),
-      payload: payload,
-    );
+        );
+      case 'health':
+        return const AndroidNotificationDetails(
+          'health',
+          '건강 알림',
+          importance: Importance.high,
+          priority: Priority.high,
+        );
+      case 'chat':
+        return const AndroidNotificationDetails(
+          'chat',
+          '채팅 알림',
+          importance: Importance.high,
+          priority: Priority.high,
+        );
+      default:
+        return const AndroidNotificationDetails(
+          'system',
+          '시스템 알림',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        );
+    }
   }
 
   /// 건강 알림 예약 스케줄링
@@ -282,35 +347,42 @@ class LocalNotificationService {
     final payload = response.payload;
     if (payload == null || payload.isEmpty) return;
 
-    final router = navigatorKey?.currentContext != null
-        ? GoRouter.of(navigatorKey!.currentContext!)
-        : null;
-    if (router == null) return;
+    _routePayload(payload);
+  }
+
+  void _routePayload(String payload) {
+    final context = _navigatorKey?.currentContext;
+    if (context == null) {
+      _pendingLaunchPayload = payload;
+      _schedulePendingLaunchRouting();
+      return;
+    }
+
+    _pendingLaunchPayload = null;
+    final router = GoRouter.of(context);
 
     // payload 파싱 — "key1=value1&key2=value2" 포맷
     final params = _parsePayload(payload);
-    final type = params['type'];
-    final postId = params['post_id'];
-    final senderId = params['sender_id'];
     final userId = _supabase.auth.currentUser?.id ?? '';
+    router.push(
+      NotificationRouteResolver.resolve(params, currentUserId: userId),
+    );
+  }
 
-    switch (type) {
-      case 'like':
-      case 'comment':
-      case 'mention':
-        if (postId != null) router.push('/post/$postId');
-        break;
-      case 'follow':
-        if (senderId != null) {
-          router.push('/user-profile/$senderId?currentUserId=$userId');
-        }
-        break;
-      case 'health_alert':
-        router.push('/health');
-        break;
-      default:
-        router.push('/notifications?userId=$userId');
-    }
+  void _schedulePendingLaunchRouting([int attempt = 0]) {
+    if (_pendingLaunchPayload == null || _navigatorKey == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final payload = _pendingLaunchPayload;
+      if (payload == null) return;
+      if (_navigatorKey?.currentContext != null) {
+        _routePayload(payload);
+      } else if (attempt < 4) {
+        Future<void>.delayed(
+          const Duration(milliseconds: 100),
+          () => _schedulePendingLaunchRouting(attempt + 1),
+        );
+      }
+    });
   }
 
   Map<String, String> _parsePayload(String payload) {
@@ -318,7 +390,7 @@ class LocalNotificationService {
     for (final part in payload.split('&')) {
       final idx = part.indexOf('=');
       if (idx > 0) {
-        map[part.substring(0, idx)] =
+        map[Uri.decodeComponent(part.substring(0, idx))] =
             Uri.decodeComponent(part.substring(idx + 1));
       }
     }
@@ -328,7 +400,10 @@ class LocalNotificationService {
   /// payload 생성 헬퍼
   static String buildPayload(Map<String, String> data) {
     return data.entries
-        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .map(
+          (e) =>
+              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
+        )
         .join('&');
   }
 }

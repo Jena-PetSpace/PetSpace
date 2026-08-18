@@ -4,14 +4,14 @@
 
 - 대상 커밋: `feed-STEP1`(cac3591) · `STEP2`(891ceae) · `STEP3`(9bd9f96) ·
   `STEP4`(647332d) · `STEP5`(74c7025)
-- ⛔ **선행 조건**: `supabase/migrations/posts_category.sql` 대시보드 실행 완료.
+- ⛔ **선행 조건**: `supabase/manual_sql/history/posts_category.sql` 운영 반영 여부 확인.
   미실행 시 `posts.category` 컬럼이 없어 **Q&A 조회·작성이 에러**난다(아래 0번).
 - 표기: 🟦=대시보드 수동, 📱=실기기, ⛔=선행 의존성
 
 ---
 
 ## 0. ⛔ 선행 — posts_category.sql 적용 확인 (Q&A 동작 전제)
-1. 🟦 Supabase SQL Editor에서 `supabase/migrations/posts_category.sql` 실행.
+1. 🟦 Supabase SQL Editor에서 `supabase/manual_sql/history/posts_category.sql`의 객체 존재 여부를 읽기 전용으로 확인.
 2. 컬럼 생성 확인:
    ```sql
    SELECT column_name FROM information_schema.columns

@@ -23,8 +23,8 @@
 
 ## 운영 적용 전 확인
 
-1. `L1_account_purge_contract.sql`과
-   `L2_account_deletion_access_guard.sql`의 변경 대상을 read-only로
+1. `supabase/manual_sql/history/L1_account_purge_contract.sql`과
+   `supabase/manual_sql/history/L2_account_deletion_access_guard.sql`의 변경 대상을 read-only로
    확인한다.
 2. `PURGE_SHARED_SECRET`, `SUPABASE_URL`,
    `SUPABASE_SERVICE_ROLE_KEY`의 존재만 확인하고 값을 출력하지 않는다.

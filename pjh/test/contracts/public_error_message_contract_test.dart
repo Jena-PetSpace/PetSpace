@@ -120,7 +120,7 @@ void main() {
       final source = entity.readAsStringSync();
       if (source.contains('publicAuthErrorMessage(state.message)')) continue;
       if (rawPatterns.any((pattern) => pattern.hasMatch(source))) {
-        found.add(entity.path);
+        found.add(entity.path.replaceAll('\\', '/'));
       }
     }
     expect(found, lockedAllowlist);

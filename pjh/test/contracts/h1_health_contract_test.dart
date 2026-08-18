@@ -41,7 +41,7 @@ void main() {
   test('fresh setup and L1 migration enforce pet owner on every operation', () {
     final setup = _read('supabase/petspace_setup.sql');
     final migration =
-        _read('supabase/migrations/L1_health_record_owner_contract.sql');
+        _read('supabase/manual_sql/history/L1_health_record_owner_contract.sql');
 
     for (final sql in [setup, migration]) {
       expect(sql, contains('pets.id = health_records.pet_id'));

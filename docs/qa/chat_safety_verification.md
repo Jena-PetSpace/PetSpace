@@ -4,7 +4,7 @@
 정책 대응. 실기기 검증 묶음 항목.
 
 - 대상 커밋: `chatsafety-STEP1`(c13c5f5) · `STEP2`(403fbeb) · `STEP3`(1c2e19f)
-- 선행 조건: **`supabase/migrations/chat_report.sql` 대시보드 실행 완료**(메시지 신고 컬럼).
+- 선행 조건: **`supabase/manual_sql/history/chat_report.sql` 운영 반영 확인 완료**(메시지 신고 컬럼).
   미실행 시 메시지 신고는 컬럼 부재로 실패. 사용자 신고·차단은 기존 테이블로 동작.
 
 ---

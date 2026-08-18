@@ -159,4 +159,23 @@ void main() {
       HealthAlertScheduleResult.failed,
     );
   });
+
+  test('foreground notification types use the matching Android channel', () {
+    expect(
+      LocalNotificationService.androidChannelIdForType('comment'),
+      'social',
+    );
+    expect(
+      LocalNotificationService.androidChannelIdForType('health_alert'),
+      'health',
+    );
+    expect(
+      LocalNotificationService.androidChannelIdForType('chat'),
+      'chat',
+    );
+    expect(
+      LocalNotificationService.androidChannelIdForType('emotion_analysis'),
+      'system',
+    );
+  });
 }

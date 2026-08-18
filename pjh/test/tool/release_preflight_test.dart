@@ -15,9 +15,7 @@ void main() {
     ).run();
 
     expect(
-      findings.where(
-        (finding) => finding.level == ReleaseFindingLevel.blocker,
-      ),
+      findings.where((finding) => finding.level == ReleaseFindingLevel.blocker),
       isEmpty,
     );
   });
@@ -35,7 +33,10 @@ void main() {
       contains(
         isA<ReleaseFinding>()
             .having(
-                (finding) => finding.code, 'code', 'PRECISE_LOCATION_PRIVACY')
+              (finding) => finding.code,
+              'code',
+              'PRECISE_LOCATION_PRIVACY',
+            )
             .having(
               (finding) => finding.level,
               'level',
@@ -57,11 +58,7 @@ void main() {
       findings,
       contains(
         isA<ReleaseFinding>()
-            .having(
-              (finding) => finding.code,
-              'code',
-              'APPLE_TOKEN_REVOCATION',
-            )
+            .having((finding) => finding.code, 'code', 'APPLE_TOKEN_REVOCATION')
             .having(
               (finding) => finding.level,
               'level',
@@ -83,11 +80,7 @@ void main() {
       findings,
       contains(
         isA<ReleaseFinding>()
-            .having(
-              (finding) => finding.code,
-              'code',
-              'ACCOUNT_PURGE_CONTRACT',
-            )
+            .having((finding) => finding.code, 'code', 'ACCOUNT_PURGE_CONTRACT')
             .having(
               (finding) => finding.level,
               'level',
@@ -163,10 +156,32 @@ void main() {
       findings,
       contains(
         isA<ReleaseFinding>()
+            .having((finding) => finding.code, 'code', 'PLAY_STORE_PACKAGE_URL')
+            .having(
+              (finding) => finding.level,
+              'level',
+              ReleaseFindingLevel.blocker,
+            ),
+      ),
+    );
+  });
+
+  test('Android release signing must fail closed', () async {
+    final fixture = await _createFixture(androidReleaseProtected: false);
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings,
+      contains(
+        isA<ReleaseFinding>()
             .having(
               (finding) => finding.code,
               'code',
-              'PLAY_STORE_PACKAGE_URL',
+              'ANDROID_RELEASE_SIGNING',
             )
             .having(
               (finding) => finding.level,
@@ -174,6 +189,168 @@ void main() {
               ReleaseFindingLevel.blocker,
             ),
       ),
+    );
+  });
+
+  test('Kakao client-derived password remains a release blocker', () async {
+    final fixture = await _createFixture(kakaoOidcProtected: false);
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings,
+      contains(
+        isA<ReleaseFinding>()
+            .having((finding) => finding.code, 'code', 'KAKAO_AUTH_CONTRACT')
+            .having(
+              (finding) => finding.level,
+              'level',
+              ReleaseFindingLevel.blocker,
+            ),
+      ),
+    );
+  });
+
+  test('Gemini client and proxy request budgets must stay aligned', () async {
+    final fixture = await _createFixture(geminiClientRequestMiB: 13);
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings,
+      contains(
+        isA<ReleaseFinding>()
+            .having((finding) => finding.code, 'code', 'GEMINI_PROXY_CONTRACT')
+            .having(
+              (finding) => finding.level,
+              'level',
+              ReleaseFindingLevel.blocker,
+            ),
+      ),
+    );
+  });
+
+  test('Gemini proxy must retain image and response-format guards', () async {
+    final fixture = await _createFixture(geminiProxyProtected: false);
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings,
+      contains(
+        isA<ReleaseFinding>()
+            .having((finding) => finding.code, 'code', 'GEMINI_PROXY_CONTRACT')
+            .having(
+              (finding) => finding.level,
+              'level',
+              ReleaseFindingLevel.blocker,
+            ),
+      ),
+    );
+  });
+
+  test('retired legacy analyze-emotion tombstone passes', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'LEGACY_ANALYZE_EDGE_CONTRACT',
+          )
+          .level,
+      ReleaseFindingLevel.pass,
+    );
+  });
+
+  test('legacy analyze-emotion service-role write path is a blocker', () async {
+    final fixture = await _createFixture(legacyEmotionSource: 'unsafe');
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'LEGACY_ANALYZE_EDGE_CONTRACT',
+          )
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('deleting legacy analyze-emotion source remains a blocker', () async {
+    final fixture = await _createFixture(legacyEmotionSource: 'absent');
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'LEGACY_ANALYZE_EDGE_CONTRACT',
+          )
+          .level,
+      ReleaseFindingLevel.blocker,
+    );
+  });
+
+  test('legacy analyze-emotion runtime confirmation is always manual',
+      () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere(
+            (finding) => finding.code == 'LEGACY_ANALYZE_EDGE_RUNTIME',
+          )
+          .level,
+      ReleaseFindingLevel.manual,
+    );
+    expect(renderReleasePreflight(findings), contains('MANUAL='));
+  });
+
+  test('Windows CRLF does not change text contract checks', () async {
+    final fixture = await _createFixture();
+    addTearDown(() => fixture.delete(recursive: true));
+    final privacyManifest = File(
+      p.join(fixture.path, 'pjh/ios/Runner/PrivacyInfo.xcprivacy'),
+    );
+    privacyManifest.writeAsStringSync(
+      privacyManifest.readAsStringSync().replaceAll('\n', '\r\n'),
+    );
+
+    final findings = ReleasePreflight(
+      Directory(p.join(fixture.path, 'pjh')),
+    ).run();
+
+    expect(
+      findings
+          .firstWhere((finding) => finding.code == 'TRACKING_DECLARATION')
+          .level,
+      ReleaseFindingLevel.pass,
     );
   });
 
@@ -231,9 +408,16 @@ Future<Directory> _createFixture({
   bool accountPurgeProtected = true,
   bool softDeleteAccessProtected = true,
   bool accountDeletionDisclosureAccurate = true,
+  bool androidReleaseProtected = true,
+  bool kakaoOidcProtected = true,
+  bool geminiProxyProtected = true,
+  String legacyEmotionSource = 'tombstone',
+  int geminiClientRequestMiB = 11,
+  int geminiProxyRequestMiB = 12,
 }) async {
-  final workspace =
-      await Directory.systemTemp.createTemp('release-preflight-test-');
+  final workspace = await Directory.systemTemp.createTemp(
+    'release-preflight-test-',
+  );
   final appRoot = Directory(p.join(workspace.path, 'pjh'));
 
   void writeApp(String path, String contents) {
@@ -260,8 +444,67 @@ Future<Directory> _createFixture({
   );
   writeApp(
     'android/app/build.gradle.kts',
-    'defaultConfig { applicationId = "com.jena.petspace" }\n',
+    androidReleaseProtected
+        ? 'defaultConfig { applicationId = "com.jena.petspace"; '
+            'targetSdk = 36 }\n'
+            'val releaseSigningReady = true\n'
+            'throw GradleException("Release signing is not configured")\n'
+            'buildTypes { release { signingConfig = '
+            'signingConfigs.getByName("release") } }\n'
+        : 'defaultConfig { applicationId = "com.jena.petspace"; '
+            'targetSdk = 36 }\n'
+            'buildTypes { release { signingConfig = '
+            'signingConfigs.getByName("debug") } }\n',
   );
+  writeApp(
+    'android/app/src/main/AndroidManifest.xml',
+    '<uses-permission android:name="android.permission.INTERNET" />\n'
+        '<uses-permission '
+        'android:name="android.permission.POST_NOTIFICATIONS" />\n'
+        '<intent-filter android:autoVerify="true">\n'
+        '<data android:host="petspace.app" />\n'
+        '</intent-filter>\n',
+  );
+  writeApp(
+    'lib/core/services/fcm_service.dart',
+    "@pragma('vm:entry-point')\n"
+        'getInitialMessage(); onMessageOpenedApp;\n',
+  );
+  writeApp('lib/core/services/notification_service.dart', 'onTokenRefresh;\n');
+  writeApp(
+    'lib/features/emotion/data/services/gemini_ai_service.dart',
+    'functions/v1/gemini-proxy currentSession accessToken '
+        'maxImagesPerRequest = 5 '
+        'maxSourceImageBytes = 5 * 1024 * 1024 '
+        'maxClientRequestBytes = $geminiClientRequestMiB * 1024 * 1024 '
+        'maxImageBase64Chars isWithinRequestBudget '
+        'isEncodedRequestWithinBudget statusCode == 413\n',
+  );
+  writeWorkspace(
+    'supabase/functions/gemini-proxy/index.ts',
+    geminiProxyProtected
+        ? 'auth.getUser(jwt) '
+            'MAX_REQUEST_BYTES = $geminiProxyRequestMiB * 1024 * 1024 '
+            'normalizeRequest '
+            'MAX_OUTPUT_TOKENS MAX_IMAGE_PARTS ALLOWED_MIME_TYPES '
+            'SAFETY_SETTINGS responseMimeType '
+            '분석 요청을 처리하지 못했습니다.\n'
+        : 'auth.getUser(jwt) '
+            'MAX_REQUEST_BYTES = $geminiProxyRequestMiB * 1024 * 1024 '
+            'normalizeRequest '
+            'MAX_OUTPUT_TOKENS ALLOWED_MIME_TYPES SAFETY_SETTINGS '
+            '분석 요청을 처리하지 못했습니다.\n',
+  );
+  if (legacyEmotionSource != 'absent') {
+    writeWorkspace(
+      'supabase/functions/analyze-emotion/index.ts',
+      legacyEmotionSource == 'tombstone'
+          ? 'auth.getUser(jwt); jsonResponse(410); '
+              'LEGACY_ENDPOINT_RETIRED;\n'
+          : 'SUPABASE_SERVICE_ROLE_KEY; req.json(); userId; '
+              '.storage; .from(); Math.random();\n',
+    );
+  }
   writeApp(
     'ios/Runner.xcodeproj/project.pbxproj',
     'PRODUCT_BUNDLE_IDENTIFIER = com.jena.petspace;\n'
@@ -356,13 +599,13 @@ Future<Directory> _createFixture({
         : '// account purge protections missing\n',
   );
   writeWorkspace(
-    'supabase/migrations/L1_account_purge_contract.sql',
+    'supabase/manual_sql/history/L1_account_purge_contract.sql',
     accountPurgeProtected
         ? "to_regclass('public.health_history') ON DELETE CASCADE\n"
         : 'ALTER TABLE public.health_history;\n',
   );
   writeWorkspace(
-    'supabase/migrations/L2_account_deletion_access_guard.sql',
+    'supabase/manual_sql/history/L2_account_deletion_access_guard.sql',
     softDeleteAccessProtected
         ? 'AS RESTRICTIVE FOR ALL TO authenticated '
             'private.user_is_active_internal(auth.uid()) '
@@ -376,14 +619,16 @@ Future<Directory> _createFixture({
             'auth.users(id) NOT NULL\n'}'
         '${softDeleteAccessProtected ? 'AS RESTRICTIVE FOR ALL TO authenticated '
             'private.user_is_active_internal(auth.uid()) '
-            "'health_history' 'chat_messages' 'posts'\n" : ''}',
+            "'health_history' 'chat_messages' 'posts'\n" : ''}'
+        '${kakaoOidcProtected ? '' : 'CREATE OR REPLACE FUNCTION '
+            'confirm_kakao_user_by_email(p_email text);\n'}',
   );
   writeApp(
     'lib/features/auth/data/repositories/auth_repository_impl.dart',
-    appleRevocationImplemented
-        ? 'authorizationCode; appleAuthorizationCode; appleNonce; '
-            'request-account-deletion;\n'
-        : 'request-account-deletion;\n',
+    '${appleRevocationImplemented ? 'authorizationCode; '
+            'appleAuthorizationCode; appleNonce; '
+            'request-account-deletion;\n' : 'request-account-deletion;\n'}'
+        '${kakaoOidcProtected ? 'OAuthProvider.kakao; signInWithIdToken;\n' : 'kakaoPasswordSalt; confirm_kakao_user_by_email;\n'}',
   );
   return workspace;
 }

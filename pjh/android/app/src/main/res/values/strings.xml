@@ -2,4 +2,5 @@
 <resources>
     <!-- Kakao Native App Key -->
     <string name="kakao_app_key">c9e18a9067b1d5b615849d787d7ef05b</string>
+    <string name="default_notification_channel_id">system</string>
 </resources>

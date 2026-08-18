@@ -45,6 +45,13 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
+    // 릴리즈 서명 설정 (key.properties 파일에서 읽기)
+    // 배포 전: android/ 폴더에 key.properties 파일 생성 필요
+    // key.properties 파일 형식:
+    //   storePassword=YOUR_KEYSTORE_PASSWORD
+    //   keyPassword=YOUR_KEY_PASSWORD
+    //   keyAlias=petspace
+    //   storeFile=../petspace-release.jks
     signingConfigs {
         if (releaseSigningReady) {
             create("release") {

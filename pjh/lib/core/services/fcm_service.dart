@@ -1,12 +1,15 @@
 import 'dart:developer' as dev;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart' show GlobalKey, NavigatorState;
+import 'package:flutter/material.dart'
+    show GlobalKey, NavigatorState, WidgetsBinding;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'analytics_service.dart';
 import 'local_notification_service.dart';
+import 'notification_route_resolver.dart';
 
 /// Firebase Cloud Messaging 서비스
 /// 푸시 알림 수신과 라우팅을 관리합니다.
@@ -18,8 +21,16 @@ class FCMService {
   final SupabaseClient _supabase;
   final LocalNotificationService? _localNotif;
 
-  /// GoRouter navigatorKey — main.dart에서 주입
-  GlobalKey<NavigatorState>? navigatorKey;
+  GlobalKey<NavigatorState>? _navigatorKey;
+  Map<String, dynamic>? _pendingRouteData;
+
+  /// GoRouter navigatorKey — AppRouter에서 주입합니다.
+  GlobalKey<NavigatorState>? get navigatorKey => _navigatorKey;
+
+  set navigatorKey(GlobalKey<NavigatorState>? value) {
+    _navigatorKey = value;
+    _schedulePendingRouting();
+  }
 
   FCMService({
     required SupabaseClient supabase,
@@ -27,35 +38,43 @@ class FCMService {
   })  : _supabase = supabase,
         _localNotif = localNotificationService;
 
+  void _debugLog(String message) {
+    if (kDebugMode) {
+      dev.log(message, name: 'FCMService');
+    }
+  }
+
   /// 메시지 data 필드 기준 라우팅
   void _routeFromData(Map<String, dynamic> data) {
-    final router = navigatorKey?.currentContext != null
-        ? GoRouter.of(navigatorKey!.currentContext!)
-        : null;
-    if (router == null) return;
-
-    final type = data['type'] as String?;
-    final postId = data['post_id'] as String?;
-    final senderId = data['sender_id'] as String?;
-    final userId = _supabase.auth.currentUser?.id ?? '';
-
-    switch (type) {
-      case 'like':
-      case 'comment':
-      case 'mention':
-        if (postId != null) router.push('/post/$postId');
-        break;
-      case 'follow':
-        if (senderId != null) {
-          router.push('/user-profile/$senderId?currentUserId=$userId');
-        }
-        break;
-      case 'emotion_analysis':
-        router.push('/ai-history-page');
-        break;
-      default:
-        router.push('/notifications?userId=$userId');
+    final context = _navigatorKey?.currentContext;
+    if (context == null) {
+      _pendingRouteData = Map<String, dynamic>.from(data);
+      _schedulePendingRouting();
+      return;
     }
+
+    _pendingRouteData = null;
+    final router = GoRouter.of(context);
+    final userId = _supabase.auth.currentUser?.id ?? '';
+    router.push(
+      NotificationRouteResolver.resolve(data, currentUserId: userId),
+    );
+  }
+
+  void _schedulePendingRouting([int attempt = 0]) {
+    if (_pendingRouteData == null || _navigatorKey == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final data = _pendingRouteData;
+      if (data == null) return;
+      if (_navigatorKey?.currentContext != null) {
+        _routeFromData(data);
+      } else if (attempt < 4) {
+        Future<void>.delayed(
+          const Duration(milliseconds: 100),
+          () => _schedulePendingRouting(attempt + 1),
+        );
+      }
+    });
   }
 
   /// FCM 초기화
@@ -70,14 +89,14 @@ class FCMService {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        dev.log('푸시 알림 권한 승인됨', name: 'FCMService');
+        _debugLog('푸시 알림 권한 승인됨');
         AnalyticsService.instance.logNotificationPermissionGranted();
       } else if (settings.authorizationStatus ==
           AuthorizationStatus.provisional) {
-        dev.log('푸시 알림 임시 권한 승인됨', name: 'FCMService');
+        _debugLog('푸시 알림 임시 권한 승인됨');
         AnalyticsService.instance.logNotificationPermissionGranted();
       } else {
-        dev.log('푸시 알림 권한 거부됨', name: 'FCMService');
+        _debugLog('푸시 알림 권한 거부됨');
         return;
       }
 
@@ -89,9 +108,9 @@ class FCMService {
       // 알림 탭 → 딥링크 라우팅 설정
       setupInteractedMessage();
 
-      dev.log('FCM 초기화 완료', name: 'FCMService');
+      _debugLog('FCM 초기화 완료');
     } catch (_) {
-      dev.log('FCM 초기화 실패', name: 'FCMService');
+      _debugLog('FCM 초기화 실패');
     }
   }
 
@@ -99,7 +118,7 @@ class FCMService {
   void _handleForegroundMessage(RemoteMessage message) {
     final title = message.notification?.title ?? '알림';
     final body = message.notification?.body ?? '';
-    dev.log('포그라운드 메시지 수신', name: 'FCMService');
+    _debugLog('포그라운드 메시지 수신');
 
     final localNotif = _localNotif;
     if (localNotif == null) return;
@@ -119,6 +138,7 @@ class FCMService {
       title: title,
       body: body,
       payload: payload,
+      type: message.data['type']?.toString() ?? 'system',
     );
   }
 
@@ -133,7 +153,7 @@ class FCMService {
 
     // 앱이 백그라운드 상태에서 알림 탭으로 포그라운드로 전환된 경우
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      dev.log('알림 탭 라우팅 요청 수신', name: 'FCMService');
+      _debugLog('백그라운드 알림 탭 라우팅');
       _routeFromData(message.data);
     });
   }
@@ -142,9 +162,9 @@ class FCMService {
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _firebaseMessaging.subscribeToTopic(topic);
-      dev.log('토픽 구독 완료', name: 'FCMService');
+      _debugLog('토픽 구독 완료');
     } catch (_) {
-      dev.log('토픽 구독 실패', name: 'FCMService');
+      _debugLog('토픽 구독 실패');
     }
   }
 
@@ -152,9 +172,9 @@ class FCMService {
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
-      dev.log('토픽 구독 해제 완료', name: 'FCMService');
+      _debugLog('토픽 구독 해제 완료');
     } catch (_) {
-      dev.log('토픽 구독 해제 실패', name: 'FCMService');
+      _debugLog('토픽 구독 해제 실패');
     }
   }
 }
@@ -163,5 +183,7 @@ class FCMService {
 /// top-level 함수여야 함
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  dev.log('백그라운드 메시지 수신', name: 'FCMService');
+  if (kDebugMode) {
+    dev.log('백그라운드 메시지 수신', name: 'FCMService');
+  }
 }

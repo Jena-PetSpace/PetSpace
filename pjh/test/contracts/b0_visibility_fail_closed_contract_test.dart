@@ -2,7 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-String _read(String path) => File(path).readAsStringSync();
+String _read(String path) => File(path)
+    .readAsStringSync()
+    .replaceAll('\r\n', '\n')
+    .replaceAll('\r', '\n');
 
 String _match(String source, RegExp pattern) {
   final match = pattern.firstMatch(source);
@@ -41,7 +44,8 @@ void main() {
   test('익명·자식 테이블·hashtag 집계 우회 경로를 닫는다', () {
     final migration = _read(migrationPath);
     final setup = _read('../supabase/petspace_setup.sql');
-    final k1 = _read('../supabase/migrations/K1_block_privacy_contract.sql');
+    // K1은 canonical setup에 통합돼 별도 migration 파일을 보관하지 않는다.
+    final k1 = setup;
 
     final k1PostsPolicy = _match(
       k1,
@@ -106,7 +110,8 @@ void main() {
   test('SECURITY DEFINER feed RPC도 caller id가 아닌 auth.uid를 정본으로 쓴다', () {
     final migration = _read(migrationPath);
     final setup = _read('../supabase/petspace_setup.sql');
-    final k1 = _read('../supabase/migrations/K1_block_privacy_contract.sql');
+    // K1은 canonical setup에 통합돼 별도 migration 파일을 보관하지 않는다.
+    final k1 = setup;
 
     for (final source in [migration, setup]) {
       expect(source,

@@ -25,6 +25,25 @@ interface FcmResult {
   invalidToken: boolean;
 }
 
+function androidChannelId(type: string): string {
+  switch (type) {
+    case "like":
+    case "comment":
+    case "follow":
+    case "mention":
+      return "social";
+    case "health_alert":
+      return "health";
+    case "chat":
+      return "chat";
+    case "system":
+    case "admin_new_post":
+    case "emotion_analysis":
+    default:
+      return "system";
+  }
+}
+
 function json(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -35,20 +54,49 @@ function json(body: Record<string, unknown>, status = 200): Response {
 function stringData(
   notification: NotificationRow,
 ): Record<string, string> {
-  const result: Record<string, string> = {
-    notification_id: notification.id,
-    type: notification.type,
-  };
+  const result: Record<string, string> = {};
   for (const [key, value] of Object.entries(notification.data ?? {})) {
     if (value != null) {
       result[key] = typeof value === "string" ? value : JSON.stringify(value);
     }
   }
+  // 예약 키는 producer data가 덮어쓸 수 없도록 마지막에 정본 값으로 고정합니다.
+  result.notification_id = notification.id;
+  result.type = notification.type;
   return result;
 }
 
+function parseServiceAccountKey(
+  configuredValue: string,
+): { client_email: string; private_key: string } {
+  let jsonValue = configuredValue.trim();
+  if (!jsonValue.startsWith("{")) {
+    try {
+      const decoded = Uint8Array.from(
+        atob(jsonValue),
+        (char) => char.charCodeAt(0),
+      );
+      jsonValue = new TextDecoder().decode(decoded);
+    } catch (_) {
+      throw new Error("Firebase service account secret is invalid");
+    }
+  }
+
+  const parsed = JSON.parse(jsonValue) as Record<string, unknown>;
+  if (
+    typeof parsed.client_email !== "string" ||
+    typeof parsed.private_key !== "string"
+  ) {
+    throw new Error("Firebase service account fields are missing");
+  }
+  return {
+    client_email: parsed.client_email,
+    private_key: parsed.private_key,
+  };
+}
+
 async function getAccessToken(serviceAccountKey: string): Promise<string> {
-  const serviceAccount = JSON.parse(serviceAccountKey);
+  const serviceAccount = parseServiceAccountKey(serviceAccountKey);
   const now = Math.floor(Date.now() / 1000);
   const encode = (value: object) =>
     btoa(JSON.stringify(value))
@@ -110,10 +158,45 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
     .replace(/\//g, "_");
 }
 
+function constantTimeEqual(left: string, right: string): boolean {
+  const encoder = new TextEncoder();
+  const leftBytes = encoder.encode(left);
+  const rightBytes = encoder.encode(right);
+  const length = Math.max(leftBytes.length, rightBytes.length);
+  let difference = leftBytes.length ^ rightBytes.length;
+  for (let index = 0; index < length; index += 1) {
+    difference |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0);
+  }
+  return difference === 0;
+}
+
 function isInvalidTokenError(error: unknown): boolean {
-  const serialized = JSON.stringify(error);
-  return serialized.includes("UNREGISTERED") ||
-    serialized.includes("registration-token-not-registered");
+  if (!error || typeof error !== "object") return false;
+  const root = (error as {
+    error?: {
+      status?: unknown;
+      message?: unknown;
+      details?: Array<{ errorCode?: unknown }>;
+    };
+  }).error;
+  if (!root || typeof root !== "object") return false;
+
+  const codes = new Set<string>();
+  if (typeof root.status === "string") codes.add(root.status);
+  for (const detail of root.details ?? []) {
+    if (typeof detail?.errorCode === "string") {
+      codes.add(detail.errorCode);
+    }
+  }
+  if (codes.has("UNREGISTERED") || codes.has("SENDER_ID_MISMATCH")) {
+    return true;
+  }
+  const message = typeof root.message === "string"
+    ? root.message.toLowerCase()
+    : "";
+  return codes.has("INVALID_ARGUMENT") &&
+    (message.includes("registration token") ||
+      message.includes("message.token"));
 }
 
 async function sendFcmMessage(
@@ -138,7 +221,12 @@ async function sendFcmMessage(
             body: notification.body,
           },
           data: stringData(notification),
-          android: { priority: "HIGH" },
+          android: {
+            priority: "HIGH",
+            notification: {
+              channel_id: androidChannelId(notification.type),
+            },
+          },
           apns: { payload: { aps: { sound: "default" } } },
         },
       }),
@@ -171,21 +259,24 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const pushAuthorizationKey =
+      Deno.env.get("PUSH_AUTH_SERVICE_ROLE_KEY") ?? serviceRoleKey;
     const serviceAccountKey =
       Deno.env.get("FIREBASE_SERVICE_ACCOUNT_KEY") ?? "";
     const projectId = Deno.env.get("FIREBASE_PROJECT_ID") ?? "";
+    const authorization = req.headers.get("authorization") ?? "";
+    if (!serviceRoleKey || !pushAuthorizationKey) {
+      return json({ error: "Push service is not configured" }, 500);
+    }
+    if (!constantTimeEqual(authorization, `Bearer ${pushAuthorizationKey}`)) {
+      return json({ error: "Forbidden" }, 403);
+    }
     if (
       !supabaseUrl ||
-      !serviceRoleKey ||
       !serviceAccountKey ||
       !projectId
     ) {
       return json({ error: "Push service is not configured" }, 500);
-    }
-    if (
-      req.headers.get("authorization") !== `Bearer ${serviceRoleKey}`
-    ) {
-      return json({ error: "Forbidden" }, 403);
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -255,15 +346,25 @@ serve(async (req) => {
 
     const accessToken = await getAccessToken(serviceAccountKey);
     const results = await Promise.all(
-      (devices as UserDevice[]).map(async (device) => ({
-        device,
-        result: await sendFcmMessage(
-          projectId,
-          accessToken,
-          device,
-          notification,
-        ),
-      })),
+      (devices as UserDevice[]).map(async (device) => {
+        try {
+          return {
+            device,
+            result: await sendFcmMessage(
+              projectId,
+              accessToken,
+              device,
+              notification,
+            ),
+          };
+        } catch (_) {
+          console.error("FCM transport failed");
+          return {
+            device,
+            result: { success: false, invalidToken: false },
+          };
+        }
+      }),
     );
 
     const invalidTokens = results
