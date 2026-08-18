@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 const _secretPath = 'lib/config/secrets.dart';
 const _v3Import = 'petspace_uiux_v3.dart';
 const _protectedScopeManifestDigest =
-    'd0c84375ab018752020fad0071d14cd70619fccd25eeb13718be2961f57f13de';
+    'a956ac60fe8cee3b59721ba3195d59dbc964c91a425d6b9e9ec870845ddbb1e7';
 const _protectedDigests = <String, String>{
   'lib/shared/themes/app_theme.dart':
       'b14b5bd97944f8a29638eb3e92f17f3dc7e01fdc45f4828a8d99bcba78f93a21',
@@ -19,7 +19,7 @@ const _protectedDigests = <String, String>{
   'lib/shared/widgets/petspace_bottom_action_bar.dart':
       '7face4bcb1a9c3e5f229d9b38396787ecd596438a557ab37d0f1bd78bc5958da',
   'lib/features/social/presentation/pages/home_page.dart':
-      'f9b05b08e1e76f22a6e6885ceef7c92d6b56c3001a29f00563b5bf588782f133',
+      'a88a4545c02af5331ebd6b09bdc5b4a113e86b9770ee28ef128945e97cf67517',
   'lib/features/emotion/presentation/pages/emotion_result_loader_page.dart':
       'ff32396aa434ef54b6b04b3f1918bf2121295dabf621a29e566cd8ede9c56471',
   'lib/features/emotion/presentation/pages/emotion_result_page.dart':

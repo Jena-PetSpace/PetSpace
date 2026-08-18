@@ -97,6 +97,6 @@ void main() {
 
   test('법무 정본과 앱 설정은 동일한 지원 이메일을 사용한다', () {
     expect(LegalDocuments.supportEmail, AppConfig.supportEmail);
-    expect(LegalDocuments.supportEmail, 'jera.00003@gmail.com');
+    expect(LegalDocuments.supportEmail, 'jenk.k00002@gmail.com');
   });
 }

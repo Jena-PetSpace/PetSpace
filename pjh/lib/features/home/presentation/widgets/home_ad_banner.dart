@@ -3,115 +3,107 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../shared/themes/app_theme.dart';
 
-/// 퀵 액션 아래 배너 캐러셀 — 추후 배너형 광고 또는 공지사항이 들어갈 자리.
-/// 현재는 미구현이라 자리만 잡아두는 플레이스홀더(좌우 페이지 인디케이터·AD 뱃지 포함).
-class HomeAdBanner extends StatefulWidget {
-  /// 슬롯(페이지) 개수 — 추후 실제 광고/공지 개수로 교체.
-  final int slotCount;
+/// 홈의 광고·프로모션 공용 슬롯.
+///
+/// 외부 광고 SDK가 아직 연결되지 않은 상태에서 빈 광고나 가짜 광고를
+/// 노출하지 않는다. 현재는 실제 동작하는 펫페이스 내부 추천을 보여주고,
+/// 광고 공급자가 확정되면 이 위치를 SDK 광고 위젯으로 교체한다.
+class HomeAdBanner extends StatelessWidget {
+  const HomeAdBanner({
+    super.key,
+    required this.onTap,
+  });
 
-  const HomeAdBanner({super.key, this.slotCount = 5});
-
-  @override
-  State<HomeAdBanner> createState() => _HomeAdBannerState();
-}
-
-class _HomeAdBannerState extends State<HomeAdBanner> {
-  late final PageController _controller;
-  int _current = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = PageController();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.r),
-        child: SizedBox(
-          height: 96.h,
-          child: Stack(
-            children: [
-              // 배너 페이지들 (현재는 빈 슬롯)
-              PageView.builder(
-                controller: _controller,
-                itemCount: widget.slotCount,
-                onPageChanged: (i) => setState(() => _current = i),
-                itemBuilder: (_, __) => _buildSlot(),
-              ),
-
-              // 페이지 인디케이터 (예: 2/5)
-              Positioned(
-                top: 8.h,
-                right: 12.w,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: Text(
-                    '${_current + 1}/${widget.slotCount}',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+      child: Semantics(
+        button: true,
+        label: '펫페이스 추천, 플레이스에서 주변 반려동물 장소 찾아보기',
+        child: ExcludeSemantics(
+          child: Material(
+            key: const ValueKey<String>('home-promo-banner'),
+            color: AppTheme.actionContainer,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.r),
+              side: const BorderSide(color: AppTheme.border),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 14.h, 12.w, 14.h),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48.w,
+                      height: 48.w,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.surfaceColor,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.place_outlined,
+                        size: 25.w,
+                        color: AppTheme.actionBase,
+                      ),
                     ),
-                  ),
+                    SizedBox(width: 13.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '펫페이스 추천',
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.actionBase,
+                            ),
+                          ),
+                          SizedBox(height: 3.h),
+                          Text(
+                            '가까운 반려동물 장소를 찾아보세요',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              height: 1.25,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primaryTextColor,
+                            ),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(
+                            '동물병원부터 함께 가기 좋은 장소까지',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.sp,
+                              height: 1.3,
+                              color: AppTheme.secondaryTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 15.w,
+                      color: AppTheme.actionBase,
+                    ),
+                  ],
                 ),
               ),
-
-              // AD 뱃지
-              Positioned(
-                bottom: 8.h,
-                right: 12.w,
-                child: Text(
-                  'AD',
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.secondaryTextColor.withValues(alpha: 0.55),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSlot() {
-    return Container(
-      color: AppTheme.primaryColor.withValues(alpha: 0.05),
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.campaign_outlined,
-            size: 22.w,
-            color: AppTheme.secondaryTextColor.withValues(alpha: 0.4),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            '광고 · 공지 배너 영역',
-            style: TextStyle(
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.secondaryTextColor.withValues(alpha: 0.6),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

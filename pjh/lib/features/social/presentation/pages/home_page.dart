@@ -135,11 +135,13 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-              // ── 배너형 광고 / 공지 슬롯 (자리만) ──────────
+              // ── 광고·프로모션 공용 슬롯 ──────────────────
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.only(top: 20.h),
-                  child: const HomeAdBanner(),
+                  child: HomeAdBanner(
+                    onTap: () => context.push('/hospital'),
+                  ),
                 ),
               ),
 
