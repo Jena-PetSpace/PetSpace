@@ -859,8 +859,8 @@ class _HealthMainViewState extends State<_HealthMainView> {
                 Icons.notifications_none,
                 color: AppTheme.actionBase,
               ),
-              title: const Text('건강 알림'),
-              subtitle: const Text('예정일 알림 제공 범위와 기기 알림 테스트'),
+              title: const Text('알림 수신 점검'),
+              subtitle: const Text('현재 기기의 알림 권한과 수신 여부 확인'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Navigator.pop(sheetContext);

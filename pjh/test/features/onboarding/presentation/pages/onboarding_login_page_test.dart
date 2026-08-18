@@ -143,6 +143,28 @@ void main() {
     expect(tester.widget<TextFormField>(password).controller!.text, isEmpty);
   });
 
+  testWidgets('인증 모드를 바꾸면 이전 모드의 입력 오류는 남지 않는다', (
+    tester,
+  ) async {
+    await tester.pumpWidget(host());
+    final email = find.byKey(const ValueKey('auth-email-field'));
+    final password = find.byKey(const ValueKey('auth-password-field'));
+
+    await tester.enterText(email, 'wrong-id');
+    await tester.enterText(password, 'short');
+    await tester.pump();
+    expect(find.text('올바른 이메일 주소를 입력해주세요.'), findsOneWidget);
+    expect(find.text('영문과 숫자를 포함해 8자 이상 입력해주세요.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('auth-mode-toggle')));
+    await tester.pump();
+
+    expect(tester.widget<TextFormField>(email).controller!.text, 'wrong-id');
+    expect(tester.widget<TextFormField>(password).controller!.text, isEmpty);
+    expect(find.text('올바른 이메일 주소를 입력해주세요.'), findsNothing);
+    expect(find.text('영문과 숫자를 포함해 8자 이상 입력해주세요.'), findsNothing);
+  });
+
   testWidgets('비밀번호 72자 상한을 로그인과 회원가입에 동일하게 적용한다', (
     tester,
   ) async {

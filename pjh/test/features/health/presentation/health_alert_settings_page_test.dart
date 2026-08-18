@@ -64,13 +64,14 @@ void main() {
     service = _MockLocalNotificationService();
   });
 
-  testWidgets('automatic alert is honest and test action is at least 44dp',
+  testWidgets('only the complete device notification check is exposed',
       (tester) async {
     _stub(service, HealthAlertScheduleResult.scheduled);
     await _pumpPage(tester, service);
 
-    expect(find.text('자동 예정일 알림'), findsOneWidget);
-    expect(find.text('준비 중'), findsOneWidget);
+    expect(find.text('알림 수신 점검'), findsOneWidget);
+    expect(find.text('자동 예정일 알림'), findsNothing);
+    expect(find.text('준비 중'), findsNothing);
     expect(find.byType(Switch), findsNothing);
     expect(find.byType(Checkbox), findsNothing);
     expect(
@@ -81,7 +82,6 @@ void main() {
     await tester.tap(find.byKey(const Key('health_alert_test_button')));
     await tester.pumpAndSettle();
     expect(find.textContaining('테스트 알림을 예약했어요'), findsOneWidget);
-    expect(find.textContaining('자동 예정일 알림이 켜진 것은 아닙니다'), findsOneWidget);
   });
 
   testWidgets('permission denial never displays the success message',

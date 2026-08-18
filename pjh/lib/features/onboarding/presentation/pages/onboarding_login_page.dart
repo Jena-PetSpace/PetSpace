@@ -38,7 +38,7 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _passwordConfirmController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   bool _isLogin = true;
   String? _pendingProvider;
@@ -318,6 +318,9 @@ class _OnboardingLoginPageState extends State<OnboardingLoginPage> {
                     _passwordController.clear();
                     _passwordConfirmController.clear();
                     _rateLimitDuration = null;
+                    // 이전 모드에서 입력 중 노출된 validation은 다음 모드의
+                    // 오류처럼 보이지 않도록 필드 상호작용 상태만 새로 시작한다.
+                    _formKey = GlobalKey<FormState>();
                   }),
           style: TextButton.styleFrom(foregroundColor: linkColor),
           child: Text(_isLogin ? '회원가입' : '로그인'),

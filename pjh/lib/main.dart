@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:ui' show PlatformDispatcher;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -45,14 +45,20 @@ import 'features/chat/presentation/bloc/chat_badge/chat_badge_bloc.dart';
 import 'features/social/presentation/bloc/notification_badge/notification_badge_bloc.dart';
 import 'shared/themes/theme_cubit.dart';
 
+void _debugLog(String message, {String name = 'PetSpace'}) {
+  if (kDebugMode) {
+    log(message, name: name);
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // StatusBar 전역 설정: 흰색 배경 + 검은 아이콘 (고정)
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.white,
-    statusBarIconBrightness: Brightness.dark,  // Android: 검은 아이콘
-    statusBarBrightness: Brightness.light,     // iOS: 검은 아이콘
+    statusBarIconBrightness: Brightness.dark, // Android: 검은 아이콘
+    statusBarBrightness: Brightness.light, // iOS: 검은 아이콘
     systemNavigationBarColor: Colors.white,
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
@@ -83,8 +89,11 @@ void main() async {
     try {
       kakao.KakaoSdk.init(nativeAppKey: ApiConfig.kakaoAppKey);
       await KakaoMapsFlutter.init(ApiConfig.kakaoAppKey);
-    } catch (e) {
-      log('⚠️ Kakao SDK init failed: $e', name: 'main.kakao');
+    } catch (error) {
+      _debugLog(
+        'Kakao SDK 초기화 실패 (${error.runtimeType})',
+        name: 'main.kakao',
+      );
     }
   }
 
@@ -111,7 +120,6 @@ void main() async {
   unawaited(_initBackground());
 }
 
-
 /// runApp 이후 백그라운드 초기화 (Flutter 스플래시가 보이는 동안 처리)
 Future<void> _initBackground() async {
   // Firebase 초기화 (iOS는 미지원 — graceful skip)
@@ -127,16 +135,22 @@ Future<void> _initBackground() async {
       try {
         await FirebasePerformance.instance
             .setPerformanceCollectionEnabled(true);
-      } catch (e) {
-        log('⚠️ Firebase Performance 초기화 실패: $e', name: 'main.firebase');
+      } catch (error) {
+        _debugLog(
+          'Firebase Performance 초기화 실패 (${error.runtimeType})',
+          name: 'main.firebase',
+        );
       }
       firebaseInitialized = true;
-      log('✅ Firebase 초기화 완료', name: 'main.firebase');
-    } catch (e) {
-      log('⚠️ Firebase 초기화 실패: $e', name: 'main.firebase');
+      _debugLog('Firebase 초기화 완료', name: 'main.firebase');
+    } catch (error) {
+      _debugLog(
+        'Firebase 초기화 실패 (${error.runtimeType})',
+        name: 'main.firebase',
+      );
     }
   } else {
-    log('ℹ️ 현재 플랫폼에서 Firebase 미지원 — 건너뜀', name: 'main.firebase');
+    _debugLog('현재 플랫폼에서 Firebase 미지원', name: 'main.firebase');
   }
 
   // CacheManager
@@ -145,9 +159,12 @@ Future<void> _initBackground() async {
   // LocalNotificationService (플랫폼 무관하게 초기화 — 로컬 알림은 FCM 없어도 필요)
   try {
     await di.sl<LocalNotificationService>().initialize();
-    log('✅ LocalNotificationService 초기화 완료', name: 'main.localnotif');
-  } catch (e) {
-    log('⚠️ LocalNotificationService 초기화 실패: $e', name: 'main.localnotif');
+    _debugLog('LocalNotificationService 초기화 완료', name: 'main.localnotif');
+  } catch (error) {
+    _debugLog(
+      'LocalNotificationService 초기화 실패 (${error.runtimeType})',
+      name: 'main.localnotif',
+    );
   }
 
   // RealtimeService
@@ -158,18 +175,24 @@ Future<void> _initBackground() async {
   // NotificationService 초기화
   try {
     await NotificationService().initialize();
-    log('✅ NotificationService 초기화 완료', name: 'main.notif');
-  } catch (e) {
-    log('⚠️ NotificationService 초기화 실패: $e', name: 'main.notif');
+    _debugLog('NotificationService 초기화 완료', name: 'main.notif');
+  } catch (error) {
+    _debugLog(
+      'NotificationService 초기화 실패 (${error.runtimeType})',
+      name: 'main.notif',
+    );
   }
 
   // FCMService 초기화 (Firebase 성공 시에만)
   if (firebaseInitialized) {
     try {
       await di.sl<FCMService>().initialize();
-      log('✅ FCMService 초기화 완료', name: 'main.fcm');
-    } catch (e) {
-      log('⚠️ FCMService 초기화 실패: $e', name: 'main.fcm');
+      _debugLog('FCMService 초기화 완료', name: 'main.fcm');
+    } catch (error) {
+      _debugLog(
+        'FCMService 초기화 실패 (${error.runtimeType})',
+        name: 'main.fcm',
+      );
     }
   }
 }
@@ -204,55 +227,51 @@ class _PetSpaceAppState extends State<PetSpaceApp> {
   Future<void> _initDeepLinks() async {
     // 앱이 실행 중일 때 Deep Link 처리
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      log('Deep Link received: $uri', name: 'DeepLink');
+      _debugLog('Deep link 수신', name: 'DeepLink');
 
       // Kakao OAuth 콜백은 app_links로 처리하지 않음 - Kakao SDK가 직접 처리해야 함
       if (uri.scheme.startsWith('kakao') && uri.host == 'oauth') {
-        log('✅ Kakao OAuth callback - skipping app_links processing',
-            name: 'DeepLink.Kakao');
+        _debugLog('Kakao OAuth callback 수신', name: 'DeepLink.Kakao');
         // 중요: 여기서 아무것도 하지 않고 그냥 return하면 Kakao SDK가 받을 수 없음
         // 해결: app_links 사용 안 함 - AndroidManifest.xml의 intent-filter가 직접 처리
         return;
       }
 
       _handleDeepLink(uri);
-    }, onError: (err) {
-      log('Deep Link error: $err', name: 'DeepLink');
+    }, onError: (error) {
+      _debugLog(
+        'Deep link stream 실패 (${error.runtimeType})',
+        name: 'DeepLink',
+      );
     });
 
     // 앱이 종료된 상태에서 Deep Link로 시작된 경우
     try {
       final uri = await _appLinks.getInitialLink();
       if (uri != null) {
-        log('Initial Deep Link: $uri', name: 'DeepLink');
+        _debugLog('초기 deep link 수신', name: 'DeepLink');
 
         // Kakao OAuth 콜백은 app_links로 처리하지 않음
         if (uri.scheme.startsWith('kakao') && uri.host == 'oauth') {
-          log('✅ Initial Kakao OAuth callback - skipping app_links processing',
-              name: 'DeepLink.Kakao');
+          _debugLog('초기 Kakao OAuth callback 수신', name: 'DeepLink.Kakao');
           return;
         }
 
         _handleDeepLink(uri);
       }
-    } catch (err) {
-      log('Failed to get initial link: $err', name: 'DeepLink');
+    } catch (error) {
+      _debugLog(
+        '초기 deep link 확인 실패 (${error.runtimeType})',
+        name: 'DeepLink',
+      );
     }
   }
 
   void _handleDeepLink(Uri uri) {
-    log('Handling deep link: $uri', name: 'DeepLink');
-    log('Deep Link scheme: ${uri.scheme}', name: 'DeepLink');
-    log('Deep Link host: ${uri.host}', name: 'DeepLink');
-    log('Deep Link path: ${uri.path}', name: 'DeepLink');
-    log('Deep Link fragment: ${uri.fragment}', name: 'DeepLink');
-    log('Deep Link query params: ${uri.queryParameters}', name: 'DeepLink');
-
     // Kakao OAuth 콜백 처리
     // kakaoc9e18a9067b1d5b615849d787d7ef05b://oauth 형태의 링크
     if (uri.scheme.startsWith('kakao') && uri.host == 'oauth') {
-      log('✅ Kakao OAuth callback detected - Kakao SDK will handle it automatically',
-          name: 'DeepLink.Kakao');
+      _debugLog('Kakao OAuth callback 처리', name: 'DeepLink.Kakao');
       // Kakao SDK가 자동으로 OAuth 콜백을 처리하므로 GoRouter로 라우팅하지 않음
       // AuthBloc의 signInWithKakao가 완료되면 AuthAuthenticated 상태로 변경되어 자동으로 프로필 페이지로 이동
       return;
@@ -261,7 +280,7 @@ class _PetSpaceAppState extends State<PetSpaceApp> {
     // Supabase 이메일 인증 콜백 처리
     // com.petspace.app://login-callback#... 형태의 링크
     if (uri.host == 'login-callback' || uri.path.contains('login-callback')) {
-      log('Email verification callback detected', name: 'DeepLink');
+      _debugLog('이메일 인증 callback 처리', name: 'DeepLink');
       // Supabase에 deep link 수동 전달
       Supabase.instance.client.auth.getSessionFromUrl(uri);
     }
@@ -319,7 +338,8 @@ class _PetSpaceAppState extends State<PetSpaceApp> {
               }
             },
             child: BlocBuilder<ThemeCubit, ThemeMode>(
-              builder: (context, themeMode) => AnnotatedRegion<SystemUiOverlayStyle>(
+              builder: (context, themeMode) =>
+                  AnnotatedRegion<SystemUiOverlayStyle>(
                 value: const SystemUiOverlayStyle(
                   statusBarColor: Colors.white,
                   statusBarIconBrightness: Brightness.dark,

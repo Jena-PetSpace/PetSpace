@@ -30,7 +30,7 @@ void main() {
     );
 
     expect(main, contains("tooltip: '건강 도구'"));
-    expect(main, contains("'건강 알림'"));
+    expect(main, contains("'알림 수신 점검'"));
     expect(main, contains("pageContext.push('/health/alert-settings')"));
     expect(main, contains("'건강 리포트'"));
     expect(main, contains("'반려동물을 먼저 등록해주세요'"));
